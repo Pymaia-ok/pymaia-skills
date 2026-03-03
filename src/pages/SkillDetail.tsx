@@ -115,6 +115,18 @@ const SkillDetail = () => {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">{skill.display_name}</h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">{skill.tagline}</p>
+            <div className="flex flex-wrap items-center gap-4 mb-8">
+              <button
+                onClick={handleCopy}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base"
+              >
+                {copied ? <Check className="w-5 h-5" /> : <Download className="w-5 h-5" />}
+                {copied ? "¡Comando copiado!" : "Instalar skill"}
+              </button>
+              <span className="text-sm text-muted-foreground">
+                Copia el comando y pegalo en Claude Code
+              </span>
+            </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground mb-12">
               <div className="flex items-center gap-1.5">
                 <Star className="w-4 h-4 fill-foreground text-foreground" />
