@@ -1,10 +1,10 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
-import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation } from "@/lib/api";
+import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -28,6 +28,12 @@ const SkillDetail = () => {
     queryKey: ["reviews", skill?.id],
     queryFn: () => fetchReviewsForSkill(skill!.id),
     enabled: !!skill?.id,
+  });
+
+  const { data: creatorProfile } = useQuery({
+    queryKey: ["creator", skill?.creator_id],
+    queryFn: () => fetchProfile(skill!.creator_id!),
+    enabled: !!skill?.creator_id,
   });
 
   if (isLoading) {
@@ -127,7 +133,7 @@ const SkillDetail = () => {
                 Copia el comando y pegalo en Claude Code
               </span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground mb-12">
+            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-6">
               <div className="flex items-center gap-1.5">
                 <Star className="w-4 h-4 fill-foreground text-foreground" />
                 <span className="font-medium text-foreground">{Number(skill.avg_rating).toFixed(1)}</span>
@@ -141,6 +147,32 @@ const SkillDetail = () => {
                 <Clock className="w-4 h-4" />
                 <span>{skill.time_to_install_minutes} min para instalar</span>
               </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-12">
+              {creatorProfile && (
+                <Link
+                  to={creatorProfile.username ? `/u/${creatorProfile.username}` : "#"}
+                  className="inline-flex items-center gap-2 hover:text-foreground transition-colors"
+                >
+                  {creatorProfile.avatar_url ? (
+                    <img src={creatorProfile.avatar_url} alt="" className="w-5 h-5 rounded-full" />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
+                  <span>{creatorProfile.display_name || creatorProfile.username || "Autor"}</span>
+                </Link>
+              )}
+              {skill.github_url && (
+                <a
+                  href={skill.github_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Ver repositorio</span>
+                </a>
+              )}
             </div>
           </motion.div>
 
