@@ -123,6 +123,7 @@ export type Database = {
       skills: {
         Row: {
           avg_rating: number
+          category: string
           created_at: string
           creator_id: string | null
           description_human: string
@@ -144,6 +145,7 @@ export type Database = {
         }
         Insert: {
           avg_rating?: number
+          category?: string
           created_at?: string
           creator_id?: string | null
           description_human: string
@@ -165,6 +167,7 @@ export type Database = {
         }
         Update: {
           avg_rating?: number
+          category?: string
           created_at?: string
           creator_id?: string | null
           description_human?: string

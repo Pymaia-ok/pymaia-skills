@@ -11,26 +11,28 @@ const mcp = new McpServer({
   version: "1.0.0",
 });
 
-// Tool: Search skills
+// ─── DISCOVERY TOOLS ───
+
 mcp.tool("search_skills", {
-  description: "Search the SkillHub directory for Claude Code skills by name, tagline, or description.",
+  description: "Search the SkillHub directory for Agent Skills by name, tagline, or description. Returns install command, rating, and install count.",
   inputSchema: {
     type: "object",
     properties: {
       query: { type: "string", description: "Search query describing the task or skill needed" },
-      industry: { type: "string", description: "Optional industry filter (e.g. marketing, legal, finanzas)" },
+      category: { type: "string", description: "Optional category filter: desarrollo, diseño, marketing, automatización, productividad, legal, negocios, creatividad, datos, ia" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
     },
     required: ["query"],
   },
-  handler: async (args: { query: string; industry?: string }) => {
+  handler: async (args: { query: string; category?: string; limit?: number }) => {
     let dbQuery = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, industry, time_to_install_minutes")
+      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
       .eq("status", "approved")
-      .order("avg_rating", { ascending: false })
-      .limit(5);
+      .order("install_count", { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
 
-    if (args.industry) dbQuery = dbQuery.contains("industry", [args.industry]);
+    if (args.category) dbQuery = dbQuery.eq("category", args.category);
 
     const { data: skills, error } = await dbQuery;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
@@ -44,16 +46,15 @@ mcp.tool("search_skills", {
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes." }] };
 
     const text = results
-      .map((s: any) => `**${s.display_name}** (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count} instalaciones)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
+      .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count.toLocaleString()} installs)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
       .join("\n\n---\n\n");
 
     return { content: [{ type: "text" as const, text }] };
   },
 });
 
-// Tool: Get skill details
 mcp.tool("get_skill_details", {
-  description: "Get detailed information about a specific skill including description, use cases, and install command.",
+  description: "Get detailed information about a specific skill including description, use cases, category, and install command.",
   inputSchema: {
     type: "object",
     properties: {
@@ -71,38 +72,294 @@ mcp.tool("get_skill_details", {
       ? (skill.use_cases as { title: string; after: string }[]).map((uc) => `• ${uc.title}: ${uc.after}`).join("\n")
       : "";
 
-    const text = `# ${skill.display_name}\n\n${skill.tagline}\n\n⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count} instalaciones\n\n## Descripción\n${skill.description_human}\n\n${useCases ? `## Casos de uso\n${useCases}\n\n` : ""}## Instalación\n\`${skill.install_command}\``;
+    const text = `# ${skill.display_name}\n\n📂 Categoría: ${skill.category}\n🎯 Roles: ${skill.target_roles?.join(", ") || "todos"}\n\n${skill.tagline}\n\n⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count.toLocaleString()} instalaciones\n\n## Descripción\n${skill.description_human}\n\n${useCases ? `## Casos de uso\n${useCases}\n\n` : ""}## Instalación\n\`${skill.install_command}\``;
 
     return { content: [{ type: "text" as const, text }] };
   },
 });
 
-// Tool: List popular skills
+// ─── RANKING TOOLS ───
+
 mcp.tool("list_popular_skills", {
-  description: "List the most popular skills sorted by installations or rating.",
+  description: "List the most popular skills sorted by installations or rating. Optionally filter by category.",
   inputSchema: {
     type: "object",
     properties: {
       sort_by: { type: "string", description: "Sort by 'installs' or 'rating' (default: installs)" },
+      category: { type: "string", description: "Optional category filter" },
       limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
     },
   },
-  handler: async (args: { sort_by?: string; limit?: number }) => {
+  handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
     const orderCol = args.sort_by === "rating" ? "avg_rating" : "install_count";
-    const { data: skills, error } = await supabase
+    let q = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command")
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category")
       .eq("status", "approved")
       .order(orderCol, { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
+
+    if (args.category) q = q.eq("category", args.category);
+
+    const { data: skills, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const text = (skills || [])
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .join("\n\n");
+
+    return { content: [{ type: "text" as const, text: text || "No hay skills disponibles." }] };
+  },
+});
+
+mcp.tool("list_new_skills", {
+  description: "List the most recently added skills to the directory.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+  },
+  handler: async (args: { limit?: number }) => {
+    const { data: skills, error } = await supabase
+      .from("skills")
+      .select("display_name, tagline, slug, install_count, install_command, category, created_at")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
       .limit(Math.min(args.limit || 5, 10));
 
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     const text = (skills || [])
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count} instalaciones\n   Instalar: \`${s.install_command}\``)
+      .map((s: any, i: number) => {
+        const date = new Date(s.created_at).toLocaleDateString("es");
+        return `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   📅 ${date} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``;
+      })
       .join("\n\n");
 
-    return { content: [{ type: "text" as const, text: text || "No hay skills disponibles." }] };
+    return { content: [{ type: "text" as const, text: text || "No hay skills nuevas." }] };
+  },
+});
+
+// ─── CATEGORIZATION TOOLS ───
+
+mcp.tool("list_categories", {
+  description: "List all available skill categories with the number of skills in each.",
+  inputSchema: { type: "object", properties: {} },
+  handler: async () => {
+    const { data: skills, error } = await supabase
+      .from("skills")
+      .select("category")
+      .eq("status", "approved");
+
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const counts: Record<string, number> = {};
+    for (const s of skills || []) {
+      counts[s.category] = (counts[s.category] || 0) + 1;
+    }
+
+    const categoryDescriptions: Record<string, string> = {
+      desarrollo: "🛠️ Frameworks, best practices, y herramientas de código",
+      diseño: "🎨 UI/UX, sistemas de diseño, y guidelines visuales",
+      marketing: "📣 SEO, copywriting, contenido, y analytics",
+      automatización: "⚡ Navegación web, scraping, y flujos automatizados",
+      productividad: "🚀 Brainstorming, organización, y eficiencia",
+      legal: "⚖️ Documentos legales, contratos, y compliance",
+      negocios: "💼 Presentaciones, pitch decks, y estrategia",
+      creatividad: "✨ Video, animación, y contenido creativo",
+      datos: "📊 Análisis de datos, extracción, y visualización",
+      ia: "🤖 Modelos de IA, agentes, y herramientas inteligentes",
+      general: "📦 Otras skills del ecosistema",
+    };
+
+    const text = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, count]) => `${categoryDescriptions[cat] || cat} — **${cat}** (${count} skills)`)
+      .join("\n");
+
+    return { content: [{ type: "text" as const, text: `# Categorías disponibles\n\n${text}` }] };
+  },
+});
+
+mcp.tool("search_by_role", {
+  description: "Find the best skills for a specific professional role: marketer, abogado, consultor, founder, diseñador, or general.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      role: { type: "string", description: "Professional role: marketer, abogado, consultor, founder, disenador, otro" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+    required: ["role"],
+  },
+  handler: async (args: { role: string; limit?: number }) => {
+    const { data: skills, error } = await supabase
+      .from("skills")
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles")
+      .eq("status", "approved")
+      .contains("target_roles", [args.role])
+      .order("install_count", { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
+
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    if (!skills?.length) return { content: [{ type: "text" as const, text: `No encontré skills para el rol "${args.role}".` }] };
+
+    const roleLabels: Record<string, string> = {
+      marketer: "📣 Marketer", abogado: "⚖️ Abogado", consultor: "💼 Consultor",
+      founder: "🚀 Founder", disenador: "🎨 Diseñador", otro: "✨ General",
+    };
+
+    const text = skills
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .join("\n\n");
+
+    return { content: [{ type: "text" as const, text: `# Skills para ${roleLabels[args.role] || args.role}\n\n${text}` }] };
+  },
+});
+
+// ─── RECOMMENDATION TOOLS ───
+
+mcp.tool("recommend_for_task", {
+  description: "Get skill recommendations based on a specific task you want to accomplish. Describe what you need to do and get the best matching skills.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      task: { type: "string", description: "Describe the task you want to accomplish (e.g., 'crear contenido para redes sociales', 'revisar un contrato', 'automatizar reportes')" },
+      role: { type: "string", description: "Optional: your professional role for better recommendations" },
+    },
+    required: ["task"],
+  },
+  handler: async (args: { task: string; role?: string }) => {
+    let q = supabase
+      .from("skills")
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, description_human, industry")
+      .eq("status", "approved")
+      .order("install_count", { ascending: false })
+      .limit(20);
+
+    if (args.role) q = q.contains("target_roles", [args.role]);
+
+    const { data: skills, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const taskLower = args.task.toLowerCase();
+    const keywords = taskLower.split(/\s+/).filter(w => w.length > 3);
+
+    const scored = (skills || []).map((s: any) => {
+      let score = 0;
+      const searchable = `${s.display_name} ${s.tagline} ${s.description_human} ${(s.industry || []).join(" ")}`.toLowerCase();
+      for (const kw of keywords) {
+        if (searchable.includes(kw)) score += 2;
+      }
+      if (s.install_count > 100000) score += 3;
+      else if (s.install_count > 50000) score += 2;
+      else if (s.install_count > 10000) score += 1;
+      score += Number(s.avg_rating) * 0.5;
+      return { ...s, score };
+    });
+
+    const results = scored.sort((a: any, b: any) => b.score - a.score).slice(0, 5);
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes para esa tarea." }] };
+
+    const text = results
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}]\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .join("\n\n");
+
+    return { content: [{ type: "text" as const, text: `# Recomendaciones para: "${args.task}"\n\n${text}` }] };
+  },
+});
+
+mcp.tool("compare_skills", {
+  description: "Compare two or more skills side by side to decide which one to install.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slugs: { type: "array", items: { type: "string" }, description: "Array of skill slugs to compare (2-4 skills)" },
+    },
+    required: ["slugs"],
+  },
+  handler: async (args: { slugs: string[] }) => {
+    const { data: skills, error } = await supabase
+      .from("skills")
+      .select("*")
+      .in("slug", args.slugs)
+      .eq("status", "approved");
+
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    if (!skills?.length) return { content: [{ type: "text" as const, text: "No encontré las skills solicitadas." }] };
+
+    const text = skills.map((s: any) =>
+      `## ${s.display_name}\n📂 ${s.category} · 🎯 ${s.target_roles?.join(", ")}\n⭐ ${Number(s.avg_rating).toFixed(1)} (${s.review_count} reviews) · ${s.install_count.toLocaleString()} installs\n⏱️ ${s.time_to_install_minutes} min instalación\n\n${s.tagline}\n\n\`${s.install_command}\``
+    ).join("\n\n---\n\n");
+
+    return { content: [{ type: "text" as const, text: `# Comparación de Skills\n\n${text}` }] };
+  },
+});
+
+// ─── STATS TOOLS ───
+
+mcp.tool("get_directory_stats", {
+  description: "Get overall statistics about the SkillHub directory: total skills, categories, top rated, most installed.",
+  inputSchema: { type: "object", properties: {} },
+  handler: async () => {
+    const { data: skills, error } = await supabase
+      .from("skills")
+      .select("display_name, slug, avg_rating, install_count, category, created_at")
+      .eq("status", "approved")
+      .order("install_count", { ascending: false });
+
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const all = skills || [];
+    const totalInstalls = all.reduce((sum: number, s: any) => sum + s.install_count, 0);
+    const categories = new Set(all.map((s: any) => s.category));
+    const topInstalled = all[0];
+    const topRated = [...all].sort((a: any, b: any) => Number(b.avg_rating) - Number(a.avg_rating))[0];
+    const newest = [...all].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+    const text = `# 📊 SkillHub Directory Stats\n\n- **${all.length}** skills disponibles\n- **${categories.size}** categorías\n- **${totalInstalls.toLocaleString()}** instalaciones totales\n\n## Highlights\n- 🏆 Más instalada: **${topInstalled?.display_name}** (${topInstalled?.install_count.toLocaleString()})\n- ⭐ Mejor valorada: **${topRated?.display_name}** (${Number(topRated?.avg_rating).toFixed(1)})\n- 🆕 Más reciente: **${newest?.display_name}**`;
+
+    return { content: [{ type: "text" as const, text }] };
+  },
+});
+
+mcp.tool("get_install_command", {
+  description: "Quickly get just the install command for a skill by name or slug. Perfect for fast installation.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: { type: "string", description: "Skill name or slug" },
+    },
+    required: ["name"],
+  },
+  handler: async (args: { name: string }) => {
+    const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
+
+    const { data: skill } = await supabase
+      .from("skills")
+      .select("display_name, install_command, slug")
+      .eq("status", "approved")
+      .eq("slug", nameLower)
+      .maybeSingle();
+
+    if (skill) {
+      return { content: [{ type: "text" as const, text: `**${skill.display_name}**\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
+    }
+
+    // Fuzzy search
+    const { data: skills } = await supabase
+      .from("skills")
+      .select("display_name, install_command, slug")
+      .eq("status", "approved")
+      .ilike("display_name", `%${args.name}%`)
+      .limit(3);
+
+    if (skills?.length) {
+      const text = skills.map((s: any) => `**${s.display_name}**\n\`\`\`\n${s.install_command}\n\`\`\``).join("\n\n");
+      return { content: [{ type: "text" as const, text }] };
+    }
+
+    return { content: [{ type: "text" as const, text: `No encontré "${args.name}". Usa search_skills para buscar.` }] };
   },
 });
 
@@ -110,11 +367,21 @@ mcp.tool("list_popular_skills", {
 const transport = new StreamableHttpTransport();
 const httpHandler = transport.bind(mcp);
 
-// Two Hono apps pattern for Supabase Edge Functions
 const app = new Hono();
 const mcpApp = new Hono();
 
-mcpApp.get("/", (c) => c.json({ message: "SkillHub MCP Server", endpoints: { mcp: "/mcp" } }));
+mcpApp.get("/", (c) => c.json({
+  message: "SkillHub MCP Server",
+  version: "2.0.0",
+  tools: [
+    "search_skills", "get_skill_details",
+    "list_popular_skills", "list_new_skills",
+    "list_categories", "search_by_role",
+    "recommend_for_task", "compare_skills",
+    "get_directory_stats", "get_install_command",
+  ],
+  categories: ["desarrollo", "diseño", "marketing", "automatización", "productividad", "legal", "negocios", "creatividad", "datos", "ia"],
+}));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
 
 app.route("/mcp-server", mcpApp);
