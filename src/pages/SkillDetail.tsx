@@ -97,40 +97,24 @@ const SkillDetail = () => {
             </div>
           </motion.div>
 
-          {/* Description */}
+          {/* About this skill */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="mb-16"
           >
-            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
+            <h2 className="text-2xl font-semibold mb-6">Qué hace esta skill</h2>
+            <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl">
               {skill.descriptionHuman}
             </p>
-          </motion.div>
 
-          {/* Before & After */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="mb-16"
-          >
-            <h2 className="text-2xl font-semibold mb-8">Antes y después</h2>
-            <div className="grid gap-4">
+            <h3 className="text-lg font-semibold mb-4">Casos de uso</h3>
+            <div className="grid gap-3">
               {skill.useCases.map((uc) => (
-                <div key={uc.title} className="p-6 rounded-2xl bg-secondary">
-                  <h3 className="font-semibold mb-4">{uc.title}</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-background">
-                      <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Antes</p>
-                      <p className="text-sm text-muted-foreground">{uc.before}</p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-background">
-                      <p className="text-xs text-foreground mb-1 uppercase tracking-wider font-medium">Después</p>
-                      <p className="text-sm">{uc.after}</p>
-                    </div>
-                  </div>
+                <div key={uc.title} className="p-5 rounded-2xl bg-secondary">
+                  <h4 className="font-semibold mb-1">{uc.title}</h4>
+                  <p className="text-sm text-muted-foreground">{uc.after}</p>
                 </div>
               ))}
             </div>
