@@ -1,0 +1,193 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Navbar from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
+import { submitSkill } from "@/lib/api";
+import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
+
+const roleOptions = [
+  { id: "marketer", label: "Marketer" },
+  { id: "abogado", label: "Abogado" },
+  { id: "consultor", label: "Consultor" },
+  { id: "founder", label: "Founder" },
+  { id: "disenador", label: "Diseñador" },
+  { id: "otro", label: "Otro" },
+];
+
+const industryOptions = ["Agencias", "Legal", "Consultoras", "E-commerce", "Startups", "Educación", "Finanzas"];
+
+const Publicar = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    displayName: "",
+    tagline: "",
+    descriptionHuman: "",
+    useCase1Title: "", useCase1Before: "", useCase1After: "",
+    useCase2Title: "", useCase2Before: "", useCase2After: "",
+    useCase3Title: "", useCase3Before: "", useCase3After: "",
+    targetRoles: [] as string[],
+    installCommand: "",
+    githubUrl: "",
+    timeToInstall: 2,
+    industry: [] as string[],
+  });
+
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+
+  const toggleRole = (id: string) => {
+    setForm(f => ({
+      ...f,
+      targetRoles: f.targetRoles.includes(id)
+        ? f.targetRoles.filter(r => r !== id)
+        : [...f.targetRoles, id],
+    }));
+  };
+
+  const toggleIndustry = (id: string) => {
+    setForm(f => ({
+      ...f,
+      industry: f.industry.includes(id)
+        ? f.industry.filter(i => i !== id)
+        : [...f.industry, id],
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.displayName || !form.tagline || !form.descriptionHuman || !form.installCommand) {
+      toast.error("Completá todos los campos obligatorios");
+      return;
+    }
+    if (form.targetRoles.length === 0) {
+      toast.error("Elegí al menos un rol objetivo");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const slug = form.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const useCases = [
+        { title: form.useCase1Title, before: form.useCase1Before, after: form.useCase1After },
+        { title: form.useCase2Title, before: form.useCase2Before, after: form.useCase2After },
+        { title: form.useCase3Title, before: form.useCase3Before, after: form.useCase3After },
+      ].filter(uc => uc.title);
+
+      await submitSkill({
+        slug,
+        display_name: form.displayName,
+        tagline: form.tagline,
+        description_human: form.descriptionHuman,
+        use_cases: useCases,
+        target_roles: form.targetRoles,
+        install_command: form.installCommand,
+        github_url: form.githubUrl || undefined,
+        time_to_install_minutes: form.timeToInstall,
+        industry: form.industry,
+        creator_id: user.id,
+      });
+      toast.success("Skill enviada para revisión");
+      navigate("/explorar");
+    } catch {
+      toast.error("Error al enviar la skill");
+    }
+    setSubmitting(false);
+  };
+
+  const inputClass = "w-full px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm";
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="pt-14 max-w-2xl mx-auto px-6 py-16">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="section-title mb-2">Publicar una skill</h1>
+          <p className="text-muted-foreground mb-10">Compartí tu skill con miles de profesionales. Será revisada antes de publicarse.</p>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Nombre de la skill *</label>
+              <input value={form.displayName} onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))} placeholder="Ej: Brief Generator" className={inputClass} maxLength={100} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Frase de resultado *</label>
+              <input value={form.tagline} onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))} placeholder="Ej: Generá briefs de campaña en 3 minutos" className={inputClass} maxLength={200} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Descripción *</label>
+              <textarea value={form.descriptionHuman} onChange={e => setForm(f => ({ ...f, descriptionHuman: e.target.value }))} rows={4} placeholder="Explicá qué hace esta skill en lenguaje simple..." className={inputClass + " resize-none"} maxLength={1000} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-3 block">Casos de uso (hasta 3)</label>
+              {[1, 2, 3].map(n => {
+                const titleKey = `useCase${n}Title` as keyof typeof form;
+                const beforeKey = `useCase${n}Before` as keyof typeof form;
+                const afterKey = `useCase${n}After` as keyof typeof form;
+                return (
+                  <div key={n} className="p-4 rounded-xl bg-secondary mb-3">
+                    <p className="text-xs text-muted-foreground mb-2">Caso de uso {n}</p>
+                    <input value={form[titleKey] as string} onChange={e => setForm(f => ({ ...f, [titleKey]: e.target.value }))} placeholder="Título" className="w-full px-3 py-2 rounded-lg bg-background text-sm mb-2 focus:outline-none" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input value={form[beforeKey] as string} onChange={e => setForm(f => ({ ...f, [beforeKey]: e.target.value }))} placeholder="Antes..." className="px-3 py-2 rounded-lg bg-background text-sm focus:outline-none" />
+                      <input value={form[afterKey] as string} onChange={e => setForm(f => ({ ...f, [afterKey]: e.target.value }))} placeholder="Después..." className="px-3 py-2 rounded-lg bg-background text-sm focus:outline-none" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-3 block">¿Para quién es? *</label>
+              <div className="flex flex-wrap gap-2">
+                {roleOptions.map(r => (
+                  <button key={r.id} type="button" onClick={() => toggleRole(r.id)} className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${form.targetRoles.includes(r.id) ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"}`}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-3 block">Industria</label>
+              <div className="flex flex-wrap gap-2">
+                {industryOptions.map(i => (
+                  <button key={i} type="button" onClick={() => toggleIndustry(i)} className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${form.industry.includes(i) ? "bg-foreground text-background" : "bg-secondary text-muted-foreground"}`}>
+                    {i}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Comando de instalación *</label>
+              <input value={form.installCommand} onChange={e => setForm(f => ({ ...f, installCommand: e.target.value }))} placeholder="npx skills add mi-skill" className={inputClass} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">URL de GitHub</label>
+              <input value={form.githubUrl} onChange={e => setForm(f => ({ ...f, githubUrl: e.target.value }))} placeholder="https://github.com/..." className={inputClass} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Tiempo de instalación (minutos)</label>
+              <input type="number" min={1} max={30} value={form.timeToInstall} onChange={e => setForm(f => ({ ...f, timeToInstall: Number(e.target.value) }))} className={inputClass + " w-24"} />
+            </div>
+
+            <button type="submit" disabled={submitting} className="w-full py-3.5 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+              {submitting ? "Enviando..." : "Enviar skill para revisión"}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default Publicar;

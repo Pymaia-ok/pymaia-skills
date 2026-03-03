@@ -4,7 +4,7 @@ import { Star, ArrowLeft, Copy, Check, Clock, Download } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
-import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases } from "@/lib/api";
+import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -63,6 +63,9 @@ const SkillDetail = () => {
     navigator.clipboard.writeText(skill.install_command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    if (user) {
+      trackInstallation(skill.id, user.id).catch(() => {});
+    }
   };
 
   const handleSubmitReview = async () => {
