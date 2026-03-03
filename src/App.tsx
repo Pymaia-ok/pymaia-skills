@@ -9,6 +9,11 @@ import Explore from "./pages/Explore";
 import SkillDetail from "./pages/SkillDetail";
 import PrimerosPasos from "./pages/PrimerosPasos";
 import Auth from "./pages/Auth";
+import Publicar from "./pages/Publicar";
+import UserProfile from "./pages/UserProfile";
+import Teams from "./pages/Teams";
+import MCP from "./pages/MCP";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +31,11 @@ const App = () => (
             <Route path="/skill/:slug" element={<SkillDetail />} />
             <Route path="/primeros-pasos" element={<PrimerosPasos />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/publicar" element={<Publicar />} />
+            <Route path="/u/:username" element={<UserProfile />} />
+            <Route path="/teams" element={<Teams />} />
+            <Route path="/mcp" element={<MCP />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
