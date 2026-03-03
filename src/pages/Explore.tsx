@@ -1,37 +1,33 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
-import { skills, industries } from "@/data/skills";
+import { fetchSkills } from "@/lib/api";
+
+const industries = ["Agencias", "Legal", "Consultoras", "E-commerce", "Startups"];
 
 const Explore = () => {
   const [search, setSearch] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"rating" | "installs" | "new">("rating");
+  const [sortBy, setSortBy] = useState<"rating" | "installs">("rating");
+
+  const { data: skills = [], isLoading } = useQuery({
+    queryKey: ["skills", selectedIndustry, sortBy],
+    queryFn: () => fetchSkills({ industry: selectedIndustry || undefined, sortBy }),
+  });
 
   const filtered = useMemo(() => {
-    let result = [...skills];
-
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.displayName.toLowerCase().includes(q) ||
-          s.tagline.toLowerCase().includes(q) ||
-          s.descriptionHuman.toLowerCase().includes(q)
-      );
-    }
-
-    if (selectedIndustry) {
-      result = result.filter((s) => s.industry.includes(selectedIndustry));
-    }
-
-    if (sortBy === "rating") result.sort((a, b) => b.avgRating - a.avgRating);
-    else if (sortBy === "installs") result.sort((a, b) => b.installCount - a.installCount);
-
-    return result;
-  }, [search, selectedIndustry, sortBy]);
+    if (!search) return skills;
+    const q = search.toLowerCase();
+    return skills.filter(
+      (s) =>
+        s.display_name.toLowerCase().includes(q) ||
+        s.tagline.toLowerCase().includes(q) ||
+        s.description_human.toLowerCase().includes(q)
+    );
+  }, [skills, search]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,7 +45,6 @@ const Explore = () => {
             </p>
           </motion.div>
 
-          {/* Search */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -66,7 +61,6 @@ const Explore = () => {
             />
           </motion.div>
 
-          {/* Filters */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -98,7 +92,6 @@ const Explore = () => {
             ))}
           </motion.div>
 
-          {/* Sort */}
           <div className="flex gap-4 mb-8 text-sm">
             {[
               { key: "rating" as const, label: "Mejor valoradas" },
@@ -118,14 +111,21 @@ const Explore = () => {
             ))}
           </div>
 
-          {/* Grid */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {filtered.map((skill, i) => (
-              <SkillCard key={skill.id} skill={skill} index={i} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-48 rounded-2xl bg-secondary animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {filtered.map((skill, i) => (
+                <SkillCard key={skill.id} skill={skill} index={i} />
+              ))}
+            </div>
+          )}
 
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <div className="text-center py-20">
               <p className="text-muted-foreground text-lg">
                 No encontramos skills para esa búsqueda.
