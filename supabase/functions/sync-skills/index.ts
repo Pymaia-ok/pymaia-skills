@@ -223,6 +223,23 @@ Deno.serve(async (req) => {
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
 
+      // Infer category from name/description
+      const inferCategory = (name: string, desc: string): string => {
+        const text = `${name} ${desc}`.toLowerCase();
+        if (text.match(/design|ui|ux|css|style|layout/)) return "diseño";
+        if (text.match(/market|seo|content|copy|social/)) return "marketing";
+        if (text.match(/automat|browser|scrape|crawl/)) return "automatización";
+        if (text.match(/legal|contract|compliance|law/)) return "legal";
+        if (text.match(/video|animation|creative|art/)) return "creatividad";
+        if (text.match(/data|analyt|chart|csv|excel/)) return "datos";
+        if (text.match(/ai|llm|agent|model|gpt|claude/)) return "ia";
+        if (text.match(/pitch|business|presentation|slide/)) return "negocios";
+        if (text.match(/productiv|brainstorm|organiz|todo/)) return "productividad";
+        return "desarrollo";
+      };
+
+      const category = inferCategory(ns.name, description);
+
       const { error } = await supabase.from("skills").insert({
         slug: ns.name,
         display_name: displayName,
@@ -235,6 +252,7 @@ Deno.serve(async (req) => {
         industry: ["tecnologia"],
         target_roles: ["otro"],
         time_to_install_minutes: 2,
+        category,
       });
 
       if (!error) { added++; console.log(`Added: ${ns.name} (${ns.installCount})`); }
