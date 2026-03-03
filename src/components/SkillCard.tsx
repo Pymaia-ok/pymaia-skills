@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import type { Skill } from "@/data/skills";
+import type { SkillFromDB } from "@/lib/api";
 
 interface SkillCardProps {
-  skill: Skill;
+  skill: SkillFromDB;
   index?: number;
 }
 
@@ -30,7 +30,7 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => (
       </div>
 
       <h3 className="text-lg font-semibold mb-1.5 group-hover:text-foreground transition-colors">
-        {skill.displayName}
+        {skill.display_name}
       </h3>
       <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
         {skill.tagline}
@@ -39,17 +39,17 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Star className="w-3.5 h-3.5 fill-foreground text-foreground" />
-          <span className="text-sm font-medium">{skill.avgRating}</span>
+          <span className="text-sm font-medium">{Number(skill.avg_rating).toFixed(1)}</span>
           <span className="text-xs text-muted-foreground">
-            ({skill.reviewCount})
+            ({skill.review_count})
           </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            {skill.installCount.toLocaleString()} instalaciones
+            {skill.install_count.toLocaleString()} instalaciones
           </span>
           <span className="text-xs text-muted-foreground">
-            {skill.timeToInstallMinutes} min
+            {skill.time_to_install_minutes} min
           </span>
         </div>
       </div>
