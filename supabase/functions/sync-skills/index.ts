@@ -125,94 +125,70 @@ async function fetchSkillsSh(): Promise<ParsedSkill[]> {
   return skills;
 }
 
-// ─── SOURCE 2: skillsmp.com (SSR scraping) ───
+// ─── SOURCE 2: skillsmp.com (via API) ───
 
 async function fetchSkillsMP(): Promise<ParsedSkill[]> {
-  console.log("[skillsmp.com] Fetching homepage...");
+  const apiKey = Deno.env.get("SKILLSMP_API_KEY");
+  if (!apiKey) {
+    console.log("[skillsmp.com] No API key configured, skipping");
+    return [];
+  }
+
+  console.log("[skillsmp.com] Fetching via API...");
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
 
-  try {
-    const res = await fetch("https://skillsmp.com/", {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
-    });
-    const html = await res.text();
-    console.log(`[skillsmp.com] HTML: ${html.length} chars`);
+  // Search for skills across relevant categories (limited to avoid timeout)
+  const queries = ["agent skills", "design", "automation", "productivity"];
 
-    // Try to extract __NEXT_DATA__ JSON blob
-    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-    if (nextDataMatch) {
-      try {
-        const nextData = JSON.parse(nextDataMatch[1]);
-        // Navigate the Next.js data structure to find skills
-        const pageProps = nextData?.props?.pageProps;
-        const skillsList = pageProps?.skills || pageProps?.initialSkills || [];
-        console.log(`[skillsmp.com] Found ${skillsList.length} skills in __NEXT_DATA__`);
+  for (const query of queries) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout per request
 
-        for (const item of skillsList) {
-          const name = (item.name || item.skillName || "").replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
-          if (!name) continue;
-          const owner = item.owner || item.author || item.repoOwner || "";
-          const repo = item.repo || item.repoName || "";
-          const key = `${owner}/${repo}/${name}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-
-          skills.push({
-            name, owner, repo,
-            installCount: item.stars || item.downloads || 0,
-            stars: item.stars || 0,
-            description: item.description || "",
-            source: "skillsmp.com",
-          });
+      const res = await fetch(
+        `https://skillsmp.com/api/v1/skills/search?q=${encodeURIComponent(query)}&limit=50&sortBy=stars`,
+        {
+          headers: { "Authorization": `Bearer ${apiKey}`, "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)" },
+          signal: controller.signal,
         }
-      } catch (e) {
-        console.error("[skillsmp.com] Error parsing __NEXT_DATA__:", (e as Error).message);
+      );
+      clearTimeout(timeout);
+      if (!res.ok) {
+        const body = await res.text();
+        console.log(`[skillsmp.com] API ${res.status} for "${query}": ${body.substring(0, 200)}`);
+        if (res.status === 401) { console.error("[skillsmp.com] Invalid API key"); return skills; }
+        continue;
       }
-    }
 
-    // Fallback: extract from href patterns in SSR HTML
-    if (skills.length === 0) {
-      console.log("[skillsmp.com] Fallback: scanning href patterns");
-      const hrefRegex = /href="\/skills\/([\w-]+)"[^>]*>/g;
-      let match;
-      while ((match = hrefRegex.exec(html)) !== null) {
-        const slug = match[1];
-        if (seen.has(slug)) continue;
-        seen.add(slug);
+      const json = await res.json();
+      const items = json?.data?.skills || json?.skills || json?.data || [];
 
-        // Extract description from nearby text
-        const ahead = html.substring(match.index, match.index + 2000);
+      for (const item of items) {
+        const rawName = item.name || item.skillName || item.slug || "";
+        if (!rawName) continue;
+        const name = rawName.replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
+        const owner = item.owner || item.author || item.repoOwner || "";
+        const repo = item.repo || item.repoName || "";
 
-        // Try to extract stars count
-        let stars = 0;
-        const starsMatch = ahead.match(/([\d,.]+[KkMm])/);
-        if (starsMatch) stars = parseInstallCount(starsMatch[1]);
-
-        // Try to extract owner from avatar alt or "from" text
-        const ownerMatch = ahead.match(/alt="(\w+)"/);
-        const owner = ownerMatch ? ownerMatch[1] : "";
-
-        // Extract description text
-        const descMatch = ahead.match(/from &quot;[^&]+&quot;[^>]*>([^<]+)</);
-        const description = descMatch ? descMatch[1].trim() : "";
-
-        // Parse name from slug (format: owner-repo-skills-name-skill-md)
-        const parts = slug.split("-");
-        const name = parts.length > 2 ? parts.slice(-3, -2).join("-") : slug;
+        const key = `${owner}/${repo}/${name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
 
         skills.push({
-          name, owner, repo: "",
-          installCount: stars, stars,
-          description, source: "skillsmp.com",
+          name, owner, repo,
+          installCount: item.stars || item.downloads || 0,
+          stars: item.stars || 0,
+          description: item.description || "",
+          source: "skillsmp.com",
         });
       }
+    } catch (e) {
+      console.error(`[skillsmp.com] Error for "${query}":`, (e as Error).message);
     }
-  } catch (e) {
-    console.error("[skillsmp.com] Fetch error:", (e as Error).message);
   }
 
-  console.log(`[skillsmp.com] Parsed ${skills.length} skills`);
+  console.log(`[skillsmp.com] Parsed ${skills.length} skills via API`);
   return skills;
 }
 
