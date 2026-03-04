@@ -1,20 +1,26 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User, Menu, X } from "lucide-react";
+import { LogOut, User, Menu, X, Globe } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const Navbar = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t, i18n } = useTranslation();
+
+  const toggleLang = () => {
+    i18n.changeLanguage(i18n.language === "es" ? "en" : "es");
+  };
 
   const links = [
-    { to: "/", label: "Inicio" },
-    { to: "/explorar", label: "Explorar" },
-    { to: "/mcp", label: "MCP" },
-    { to: "/teams", label: "Teams" },
-    { to: "/primeros-pasos", label: "Primeros pasos" },
+    { to: "/", label: t("nav.home") },
+    { to: "/explorar", label: t("nav.explore") },
+    { to: "/mcp", label: t("nav.mcp") },
+    { to: "/teams", label: t("nav.teams") },
+    { to: "/primeros-pasos", label: t("nav.gettingStarted") },
   ];
 
   return (
@@ -43,10 +49,19 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
+
+          <button
+            onClick={toggleLang}
+            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {i18n.language === "es" ? "EN" : "ES"}
+          </button>
+
           {user ? (
             <div className="flex items-center gap-3">
               <Link to="/publicar" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Publicar
+                {t("nav.publish")}
               </Link>
               <span className="text-sm text-muted-foreground">
                 {user.user_metadata?.full_name || user.email?.split("@")[0]}
@@ -64,7 +79,7 @@ const Navbar = () => {
               className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity"
             >
               <User className="w-3.5 h-3.5" />
-              Ingresar
+              {t("nav.signIn")}
             </Link>
           )}
         </div>
@@ -90,18 +105,25 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
+          <button
+            onClick={toggleLang}
+            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-secondary text-muted-foreground"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {i18n.language === "es" ? "EN" : "ES"}
+          </button>
           {user ? (
             <>
               <Link to="/publicar" onClick={() => setMobileOpen(false)} className="block text-sm py-1 text-muted-foreground">
-                Publicar skill
+                {t("nav.publishSkill")}
               </Link>
               <button onClick={() => { signOut(); setMobileOpen(false); }} className="text-sm text-muted-foreground">
-                Cerrar sesión
+                {t("nav.signOut")}
               </button>
             </>
           ) : (
             <Link to="/auth" onClick={() => setMobileOpen(false)} className="block text-sm font-medium py-1">
-              Ingresar
+              {t("nav.signIn")}
             </Link>
           )}
         </div>
