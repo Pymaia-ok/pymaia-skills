@@ -380,12 +380,12 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
   const token = Deno.env.get("GITHUB_TOKEN");
   if (!token) { console.log("[github-enrich] No GITHUB_TOKEN"); return { enriched: 0 }; }
 
-  // Find skills with github_url but missing description or low install_count
+  // Find skills with github_url but missing/generic description or no github_stars
   const { data: skills, error } = await supabase
     .from("skills")
-    .select("id, slug, github_url, description_human, install_count")
+    .select("id, slug, github_url, description_human, install_count, github_stars")
     .not("github_url", "is", null)
-    .or("description_human.ilike.%ecosistema open-source%,install_count.eq.0")
+    .or("description_human.ilike.%ecosistema open-source%,github_stars.eq.0")
     .limit(batchSize);
 
   if (error || !skills || skills.length === 0) {
@@ -413,7 +413,9 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
       const repoData = await res.json();
       const updates: Record<string, unknown> = {};
 
-      if (repoData.description && skill.description_human?.includes("ecosistema open-source")) {
+      // Use GitHub description as fallback for generic or missing descriptions
+      const isGenericDesc = !skill.description_human || skill.description_human.includes("ecosistema open-source") || skill.description_human.length < 20;
+      if (repoData.description && isGenericDesc) {
         updates.description_human = repoData.description;
         updates.tagline = repoData.description;
       }
