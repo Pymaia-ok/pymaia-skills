@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorks from "@/components/landing/HowItWorks";
 import StatsBar from "@/components/landing/StatsBar";
+import MarqueeSection from "@/components/landing/MarqueeSection";
 import TwoPathsSection from "@/components/landing/TwoPathsSection";
 import WizardSection from "@/components/landing/WizardSection";
 import PopularSkills from "@/components/landing/PopularSkills";
@@ -46,6 +47,7 @@ const Index = () => {
         <HeroSection />
         <HowItWorks />
         <StatsBar />
+        <MarqueeSection />
         <TwoPathsSection />
         <WizardSection allSkills={allSkills} />
         <PopularSkills />
