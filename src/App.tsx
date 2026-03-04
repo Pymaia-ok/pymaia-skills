@@ -14,6 +14,8 @@ import UserProfile from "./pages/UserProfile";
 import Teams from "./pages/Teams";
 import MCP from "./pages/MCP";
 import Admin from "./pages/Admin";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +38,8 @@ const App = () => (
             <Route path="/teams" element={<Teams />} />
             <Route path="/mcp" element={<MCP />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/terminos" element={<Terms />} />
+            <Route path="/privacidad" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

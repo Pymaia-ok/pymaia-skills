@@ -12,6 +12,11 @@ const Footer = () => {
     { to: "/publicar", label: t("nav.publish") },
   ];
 
+  const legalLinks = [
+    { to: "/terminos", label: "Términos y Condiciones" },
+    { to: "/privacidad", label: "Política de Privacidad" },
+  ];
+
   return (
     <footer className="border-t border-border py-12">
       <div className="max-w-5xl mx-auto px-6">
@@ -29,7 +34,21 @@ const Footer = () => {
             ))}
           </nav>
         </div>
-        <div className="mt-8 text-center text-xs text-muted-foreground">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+          {legalLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
+          <a href="mailto:info@pymaia.com" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            info@pymaia.com
+          </a>
+        </div>
+        <div className="mt-4 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Pymaia Skills
         </div>
       </div>
