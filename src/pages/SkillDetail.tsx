@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -137,12 +137,9 @@ const SkillDetail = () => {
               )}
               {skill.github_stars > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <Star className="w-4 h-4" />
-                  <span>{skill.github_stars.toLocaleString()} GitHub stars</span>
+                  <Heart className="w-4 h-4" />
+                  <span>{skill.github_stars.toLocaleString()} favorites</span>
                 </div>
-              )}
-              {skill.install_count > 0 && (
-                <div className="flex items-center gap-1.5"><Download className="w-4 h-4" /><span>{skill.install_count.toLocaleString()} {t("detail.installs")}</span></div>
               )}
               <div className="flex items-center gap-1.5"><Clock className="w-4 h-4" /><span>{skill.time_to_install_minutes} {t("detail.minToInstall")}</span></div>
             </div>
