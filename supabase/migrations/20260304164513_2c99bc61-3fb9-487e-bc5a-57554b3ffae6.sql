@@ -1,0 +1,1 @@
+ALTER TABLE public.skills ADD COLUMN tagline_es text, ADD COLUMN description_human_es text;

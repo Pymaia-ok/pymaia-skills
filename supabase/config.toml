@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.sync-skills]
 verify_jwt = false
+
+[functions.translate-skills]
+verify_jwt = false
