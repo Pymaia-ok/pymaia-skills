@@ -71,10 +71,10 @@ async function firecrawlCrawl(url: string, opts: Record<string, unknown>): Promi
 
   console.log(`[firecrawl] Crawl started id=${crawlId}, polling...`);
   const allPages: any[] = [];
-  const maxPolls = 10;
+  const maxPolls = 15;
 
   for (let i = 0; i < maxPolls; i++) {
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise(r => setTimeout(r, 3000));
     const statusRes = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlId}`, {
       headers: { "Authorization": `Bearer ${firecrawlKey}` },
     });
@@ -396,7 +396,7 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
         if (!updateErr) enriched++;
       }
 
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 200));
     } catch (e) {
       console.error(`[github-enrich] Error for ${skill.slug}:`, (e as Error).message);
     }
@@ -414,7 +414,7 @@ async function fetchSmitheryCrawl(): Promise<ParsedSkill[]> {
 
   console.log("[smithery] Starting crawl...");
   const pages = await firecrawlCrawl("https://smithery.ai", {
-    limit: 500,
+    limit: 100,
     includePaths: ["/server/*"],
     excludePaths: ["/docs/*", "/blog/*", "/auth/*"],
     scrapeOptions: { formats: ["markdown", "links"] },
@@ -458,7 +458,7 @@ async function fetchMcpSoCrawl(): Promise<ParsedSkill[]> {
 
   console.log("[mcp.so] Starting crawl...");
   const pages = await firecrawlCrawl("https://mcp.so", {
-    limit: 500,
+    limit: 100,
     includePaths: ["/server/*"],
     excludePaths: ["/blog/*", "/docs/*"],
     scrapeOptions: { formats: ["markdown", "links"] },
@@ -502,7 +502,7 @@ async function fetchGlamaCrawl(): Promise<ParsedSkill[]> {
 
   console.log("[glama] Starting crawl...");
   const pages = await firecrawlCrawl("https://glama.ai/mcp/servers", {
-    limit: 500,
+    limit: 100,
     includePaths: ["/mcp/servers/*"],
     excludePaths: ["/blog/*", "/docs/*", "/auth/*"],
     scrapeOptions: { formats: ["markdown", "links"] },
@@ -545,7 +545,7 @@ async function fetchPulseMCPCrawl(): Promise<ParsedSkill[]> {
 
   console.log("[pulsemcp] Starting crawl...");
   const pages = await firecrawlCrawl("https://pulsemcp.com", {
-    limit: 500,
+    limit: 100,
     includePaths: ["/servers/*"],
     excludePaths: ["/blog/*", "/docs/*", "/auth/*"],
     scrapeOptions: { formats: ["markdown", "links"] },
