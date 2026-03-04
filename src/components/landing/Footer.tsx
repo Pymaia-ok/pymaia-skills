@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import logoImg from "@/assets/logo.png";
+import logoIcon from "@/assets/logo-icon.png";
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -22,7 +22,10 @@ const Footer = () => {
     <footer className="border-t border-border py-12">
       <div className="max-w-5xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <Link to="/"><img src={logoImg} alt="Pymaia Skills" className="h-10 w-auto" /></Link>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logoIcon} alt="Pymaia" className="h-8 w-8" />
+            <span className="font-semibold text-foreground text-base tracking-tight">Pymaia Skills</span>
+          </Link>
           <nav className="flex flex-wrap items-center justify-center gap-6">
             {links.map((link) => (
               <Link

@@ -203,8 +203,22 @@ export default {
   // Auth
   auth: {
     title: "Iniciá sesión",
+    signupTitle: "Creá tu cuenta",
     subtitle: "Para dejar reviews, publicar skills y guardar tus instalaciones.",
     continueGoogle: "Continuar con Google",
+    orEmail: "o con email",
+    emailPlaceholder: "tu@email.com",
+    passwordPlaceholder: "Contraseña (mín. 6 caracteres)",
+    loginBtn: "Iniciar sesión",
+    signupBtn: "Crear cuenta",
+    noAccount: "¿No tenés cuenta?",
+    signupLink: "Registrate",
+    hasAccount: "¿Ya tenés cuenta?",
+    loginLink: "Iniciá sesión",
+    checkEmail: "Revisá tu email",
+    confirmSent: "Te enviamos un link de confirmación.",
+    terms: "Al continuar, aceptás nuestros",
+    and: "y",
   },
 
   // MCP
