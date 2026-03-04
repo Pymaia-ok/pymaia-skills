@@ -13,7 +13,7 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
-      <div className="relative max-w-5xl mx-auto px-6 pt-32 pb-24 text-center">
+      <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-12 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -28,7 +28,7 @@ const HeroSection = () => {
             {t("landing.heroTitle")}
           </h1>
 
-          <p className="hero-subtitle max-w-2xl mx-auto mb-12">
+          <p className="hero-subtitle max-w-2xl mx-auto mb-8">
             {t("landing.heroSubtitle")}
           </p>
 
