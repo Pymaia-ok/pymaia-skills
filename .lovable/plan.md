@@ -1,80 +1,48 @@
 
 
-## Plan: Landing page completa y explicativa
+## Reporte de testing y puntos de mejora de Pymaia Skills
 
-### Problema actual
-La landing es solo el flujo de onboarding (Rol > Tarea > Resultados). No explica qué es SkillHub, no tiene social proof, no tiene secciones informativas, y no diferencia entre usuarios nuevos (no usan Claude Code) y usuarios existentes.
+### Estado general
+La app funciona correctamente en sus flujos principales: landing, explorar skills, detalle de skill, primeros pasos, términos y privacidad. No hay errores críticos que bloqueen la navegación.
 
-### Nueva estructura de la landing (scroll vertical, secciones apiladas)
+---
 
-La página pasa de ser un wizard interactivo a una **landing completa con scroll**, manteniendo el wizard como una sección más.
+### Bugs encontrados
 
-```text
-┌─────────────────────────────────────┐
-│  HERO                               │
-│  Título grande + subtítulo          │
-│  2 CTAs: "Explorar skills" /        │
-│          "¿Qué es Claude Code?"     │
-├─────────────────────────────────────┤
-│  HOW IT WORKS (3 pasos visuales)    │
-│  1. Elegí una skill                 │
-│  2. Copiá un comando                │
-│  3. Claude lo sabe hacer            │
-├─────────────────────────────────────┤
-│  SOCIAL PROOF (stats en vivo)       │
-│  X skills · Y instalaciones ·      │
-│  Z categorías                       │
-├─────────────────────────────────────┤
-│  DOS CAMINOS (tabs o cards)         │
-│  "Ya uso Claude Code" → Explorar    │
-│  "No sé qué es" → Primeros pasos   │
-├─────────────────────────────────────┤
-│  WIZARD INTERACTIVO (existente)     │
-│  "Encontrá la skill ideal"         │
-│  Rol > Tarea > Resultados          │
-├─────────────────────────────────────┤
-│  SKILLS POPULARES (top 6)           │
-│  Grid de SkillCards con las más     │
-│  instaladas                         │
-├─────────────────────────────────────┤
-│  TESTIMONIALS / USE CASES           │
-│  Antes vs Después por profesión     │
-│  (3 cards con datos concretos)      │
-├─────────────────────────────────────┤
-│  CTA FINAL                          │
-│  "Empezá ahora" + link a explorar  │
-│  y primeros pasos                   │
-├─────────────────────────────────────┤
-│  FOOTER (links, etc.)               │
-└─────────────────────────────────────┘
-```
+1. **Logo no se muestra en header ni footer** — En el navbar y footer se muestra texto "Pymaia Skills" en vez de la imagen del logo. El código importa `logoImg` y usa `<img>`, pero la imagen aparece como texto plano. Probablemente el archivo `src/assets/logo.png` no se copió correctamente o está corrupto. Hay que verificar y resubir el asset.
 
-### Cambios técnicos
+2. **Traducción inconsistente en hero (EN)** — La versión en inglés (`en.ts`) todavía dice "No terminal, no code" en `heroSubtitle` (línea 30), pero se pidió sacarlo solo del español. Si se quiere consistencia, habría que actualizarlo también en inglés.
 
-1. **Reescribir `src/pages/Index.tsx`** de wizard-only a landing completa con todas las secciones. El wizard se embebe como una sección más con su AnimatePresence interno.
+3. **Warnings de React en consola** — Hay errores de `forwardRef` en los componentes `Navbar`, `Footer` y `SkillCard`. Esto ocurre porque `framer-motion` pasa refs a componentes funcionales que no usan `forwardRef`. No es bloqueante pero ensucia la consola.
 
-2. **Crear componentes de sección** en `src/components/landing/`:
-   - `HeroSection.tsx` — título, subtítulo, 2 CTAs diferenciados
-   - `HowItWorks.tsx` — 3 pasos con iconos/ilustraciones numeradas
-   - `StatsBar.tsx` — query a DB para contar skills, instalaciones totales
-   - `TwoPathsSection.tsx` — cards para usuarios nuevos vs existentes
-   - `PopularSkills.tsx` — top 6 skills por instalaciones
-   - `BeforeAfterSection.tsx` — 3 ejemplos de transformación por profesión
-   - `FinalCTA.tsx` — call to action de cierre
-   - `Footer.tsx` — links a explorar, primeros pasos, MCP, teams
+4. **Categorías duplicadas en Explore** — Aparecen "All" y "AI" como categorías separadas, lo que sugiere que hay datos con categorías duplicadas o inconsistentes.
 
-3. **Agregar traducciones** en `src/i18n/es.ts` y `src/i18n/en.ts` para todo el contenido nuevo de las secciones.
+---
 
-4. **Animaciones**: Cada sección usa `motion.div` con `whileInView` para animar al hacer scroll (fade-in + slide-up).
+### Puntos de mejora sugeridos
 
-5. **Stats en vivo**: Query simple con `supabase.from("skills").select("id, install_count")` para calcular totales.
+1. **SEO y metadata** — Agregar meta tags dinámicos por página (especialmente en `/skill/:slug`), Open Graph images, y structured data (JSON-LD) para mejor posicionamiento.
 
-### Dos tipos de usuario
+2. **Loading states** — No hay skeletons ni spinners visibles mientras cargan los skills. Agregar estados de carga mejoraría la percepción de velocidad.
 
-La sección "Dos caminos" presenta:
-- **"Ya uso Claude Code"** → CTA directo a `/explorar` o al wizard más abajo
-- **"Todavía no lo uso"** → CTA a `/primeros-pasos` con explicación breve de que es gratis y toma 5 minutos
+3. **Paginación en Explore** — Aunque el código soporta paginación, no se ve un control de "cargar más" o paginación en la UI de Explore.
 
-### Sin cambios de backend
-Todo es frontend. Los datos de stats vienen de la query existente de skills.
+4. **Footer: links legales no traducidos** — Los textos "Términos y Condiciones" y "Política de Privacidad" en el footer están hardcodeados en español. Deberían usar el sistema de i18n.
+
+5. **Perfil de usuario vacío** — Si un usuario se loguea, no hay onboarding para completar perfil (username, bio, etc.).
+
+6. **Mobile: menú hamburguesa** — Funciona pero no tiene animación de apertura/cierre. Una transición suave mejoraría la experiencia.
+
+7. **Accesibilidad** — Falta `aria-label` en varios botones (toggle idioma, menú mobile, sign out). Los botones de iconos deberían tener labels accesibles.
+
+8. **Performance** — La landing hace múltiples queries a la base de datos (`skills-all`, `skills-stats`, `skills-popular-landing`) que podrían consolidarse o cachearse mejor.
+
+---
+
+### Prioridad recomendada
+1. Arreglar el logo (bug visual)
+2. Arreglar warnings de forwardRef
+3. Agregar loading states
+4. Internacionalizar textos hardcodeados del footer
+5. Mejoras de SEO
 
