@@ -72,10 +72,10 @@ const Explore = () => {
             />
           </motion.div>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="flex flex-wrap gap-2 mb-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
             <button
               onClick={() => { setSelectedCategory(null); setPage(0); }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!selectedCategory ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${!selectedCategory ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
             >
               {t("explore.all")}
             </button>
@@ -83,7 +83,7 @@ const Explore = () => {
               <button
                 key={cat.key}
                 onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
               >
                 {t(`categories.${cat.key}`, cat.label)}
               </button>
