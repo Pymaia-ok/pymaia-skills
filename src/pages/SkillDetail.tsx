@@ -169,59 +169,58 @@ const SkillDetail = () => {
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-20">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-semibold">{t("detail.reviewsTitle")}</h2>
-              {user && !showReviewForm && (
-                <button onClick={() => setShowReviewForm(true)} className="text-sm font-medium px-4 py-2 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity">{t("detail.leaveReview")}</button>
+          {(reviews.length > 0 || user) && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-20">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-semibold">{t("detail.reviewsTitle")}</h2>
+                {user && !showReviewForm && (
+                  <button onClick={() => setShowReviewForm(true)} className="text-sm font-medium px-4 py-2 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity">{t("detail.leaveReview")}</button>
+                )}
+              </div>
+
+              {showReviewForm && (
+                <div className="p-6 rounded-2xl bg-secondary mb-6">
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">{t("detail.rating")}</label>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} onClick={() => setReviewRating(n)}><Star className={`w-5 h-5 ${n <= reviewRating ? "fill-foreground text-foreground" : "text-muted-foreground"}`} /></button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">{t("detail.timeSaved")}</label>
+                    <input value={reviewTimeSaved} onChange={(e) => setReviewTimeSaved(e.target.value)} placeholder={t("detail.timeSavedPlaceholder")} className="w-full px-4 py-3 rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">{t("detail.tellUs")}</label>
+                    <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3} placeholder={t("detail.tellUsPlaceholder")} className="w-full px-4 py-3 rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm resize-none" />
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={handleSubmitReview} disabled={submitting} className="text-sm font-medium px-6 py-2.5 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50">{submitting ? t("detail.publishing") : t("detail.publishReview")}</button>
+                    <button onClick={() => setShowReviewForm(false)} className="text-sm text-muted-foreground hover:text-foreground">{t("detail.cancel")}</button>
+                  </div>
+                </div>
               )}
-              {!user && <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground">{t("detail.signInToReview")}</Link>}
-            </div>
 
-            {showReviewForm && (
-              <div className="p-6 rounded-2xl bg-secondary mb-6">
-                <div className="mb-4">
-                  <label className="text-sm font-medium mb-2 block">{t("detail.rating")}</label>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button key={n} onClick={() => setReviewRating(n)}><Star className={`w-5 h-5 ${n <= reviewRating ? "fill-foreground text-foreground" : "text-muted-foreground"}`} /></button>
-                    ))}
-                  </div>
-                </div>
-                <div className="mb-4">
-                  <label className="text-sm font-medium mb-2 block">{t("detail.timeSaved")}</label>
-                  <input value={reviewTimeSaved} onChange={(e) => setReviewTimeSaved(e.target.value)} placeholder={t("detail.timeSavedPlaceholder")} className="w-full px-4 py-3 rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
-                </div>
-                <div className="mb-4">
-                  <label className="text-sm font-medium mb-2 block">{t("detail.tellUs")}</label>
-                  <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3} placeholder={t("detail.tellUsPlaceholder")} className="w-full px-4 py-3 rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm resize-none" />
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={handleSubmitReview} disabled={submitting} className="text-sm font-medium px-6 py-2.5 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50">{submitting ? t("detail.publishing") : t("detail.publishReview")}</button>
-                  <button onClick={() => setShowReviewForm(false)} className="text-sm text-muted-foreground hover:text-foreground">{t("detail.cancel")}</button>
-                </div>
-              </div>
-            )}
-
-            {reviews.length > 0 ? (
-              <div className="grid gap-4">
-                {reviews.map((review) => (
-                  <div key={review.id} className="p-6 rounded-2xl bg-secondary">
-                    <div className="flex items-center gap-1 mb-3">
-                      {Array.from({ length: review.rating }).map((_, i) => (<Star key={i} className="w-3.5 h-3.5 fill-foreground text-foreground" />))}
+              {reviews.length > 0 && (
+                <div className="grid gap-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="p-6 rounded-2xl bg-secondary">
+                      <div className="flex items-center gap-1 mb-3">
+                        {Array.from({ length: review.rating }).map((_, i) => (<Star key={i} className="w-3.5 h-3.5 fill-foreground text-foreground" />))}
+                      </div>
+                      {review.comment && <p className="text-base mb-4 leading-relaxed">"{review.comment}"</p>}
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString(i18n.language === "es" ? "es-AR" : "en-US")}</p>
+                        {review.time_saved && <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-background text-muted-foreground">{t("detail.saves")} {review.time_saved}</span>}
+                      </div>
                     </div>
-                    {review.comment && <p className="text-base mb-4 leading-relaxed">"{review.comment}"</p>}
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString(i18n.language === "es" ? "es-AR" : "en-US")}</p>
-                      {review.time_saved && <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-background text-muted-foreground">{t("detail.saves")} {review.time_saved}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">{t("detail.noReviews")}</p>
-            )}
-          </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
             <div className="border-t border-border pt-16">
