@@ -411,39 +411,33 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
 async function fetchSmitheryCrawl(): Promise<ParsedSkill[]> {
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) throw new Error("FIRECRAWL_API_KEY not set");
 
-  console.log("[smithery] Starting crawl...");
-  const pages = await firecrawlCrawl("https://smithery.ai", {
-    limit: 100,
-    includePaths: ["/server/*"],
-    excludePaths: ["/docs/*", "/blog/*", "/auth/*"],
-    scrapeOptions: { formats: ["markdown", "links"] },
+  // Use map (fast sitemap) instead of crawl to avoid timeouts
+  console.log("[smithery] Using map to discover URLs...");
+  const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ url: "https://smithery.ai/servers", limit: 5000, includeSubdomains: false }),
   });
+  const mapData = await mapRes.json();
+  const links: string[] = mapData?.links || [];
+  console.log(`[smithery] Map returned ${links.length} URLs`);
 
-  for (const page of pages) {
-    const pageUrl = page?.metadata?.sourceURL || "";
-    // Smithery URLs: /server/@owner/repo-name
-    const match = pageUrl.match(/smithery\.ai\/server\/@([^\/]+)\/([^\/\s?#]+)/);
-    if (match) {
-      const [, owner, repo] = match;
-      const name = slugFromName(repo);
-      const key = `${owner}/${repo}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        // Try to extract description from markdown
-        const desc = (page.markdown || "").slice(0, 200).replace(/[#\n]/g, " ").trim();
-        skills.push({ name, owner, repo, installCount: 0, stars: 0, description: desc, source: "smithery.ai" });
-      }
-    }
+  const parseSmitheryUrl = (url: string) => {
+    const m1 = url.match(/smithery\.ai\/servers\/([^\/\s?#]+)\/([^\/\s?#]+)/);
+    if (m1) return { owner: m1[1], repo: m1[2], key: `${m1[1]}/${m1[2]}` };
+    const m2 = url.match(/smithery\.ai\/servers\/([^\/\s?#]+)/);
+    if (m2 && !["new", "search", "trending", "popular", "featured", "categories"].includes(m2[1])) return { owner: m2[1], repo: m2[1], key: m2[1] };
+    return null;
+  };
 
-    // Also check links on each page
-    for (const link of (page.links || [])) {
-      const m = link.match(/smithery\.ai\/server\/@([^\/]+)\/([^\/\s?#]+)/);
-      if (!m) continue;
-      const [, o, r] = m;
-      const k = `${o}/${r}`;
-      if (!seen.has(k)) { seen.add(k); skills.push({ name: slugFromName(r), owner: o, repo: r, installCount: 0, stars: 0, description: "", source: "smithery.ai" }); }
-    }
+  for (const link of links) {
+    const p = parseSmitheryUrl(link);
+    if (!p || seen.has(p.key)) continue;
+    seen.add(p.key);
+    skills.push({ name: slugFromName(p.repo), owner: p.owner, repo: p.repo, installCount: 0, stars: 0, description: "", source: "smithery.ai" });
   }
 
   console.log(`[smithery] Total: ${skills.length}`);
