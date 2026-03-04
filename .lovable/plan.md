@@ -1,33 +1,23 @@
 
 
-## Plan: Traducir contenido de skills al idioma del usuario
+## Situación actual
 
-Tenés razón — sería mejor que todo esté en el idioma del usuario. El contenido de las skills (`display_name`, `tagline`, `description_human`) viene de GitHub en inglés y actualmente no se traduce. Acá va el plan para solucionarlo.
+Se tradujeron exitosamente **~280 skills** hasta ahora. Todo funciona correctamente — la Edge Function traduce, guarda en la DB, y el frontend ya muestra el contenido traducido cuando el idioma es español.
 
-### Enfoque
+**El problema**: quedan ~13,900 skills y ejecutar esto manualmente desde acá es inviable (700+ llamadas).
 
-Agregar columnas `tagline_es` y `description_human_es` a la tabla `skills`, y usar una Edge Function que traduzca en lotes usando el modelo de IA de Lovable (Gemini Flash, sin API key). En el frontend, mostrar la versión en español cuando `i18n.language === "es"`.
+## Plan: Botón de traducción en el panel Admin
 
-### Pasos
+Agregar un botón en la página Admin que ejecute la traducción en lotes automáticamente desde el navegador, con progreso visual:
 
-1. **Migración de DB** — Agregar columnas `tagline_es` y `description_human_es` (nullable) a la tabla `skills`.
+1. **Botón "Traducir skills pendientes"** en `/admin` que:
+   - Llama a la Edge Function en un loop automático
+   - Muestra progreso en tiempo real (barra de progreso + contador "X de Y traducidas")
+   - Pausa 1 segundo entre llamadas para evitar rate limits
+   - Permite detener el proceso manualmente
+   
+2. **Sin cambios de DB ni Edge Function** — todo ya existe, solo falta la UI para dispararlo
 
-2. **Edge Function `translate-skills`** — Nueva función que:
-   - Selecciona skills donde `tagline_es IS NULL` en lotes de 50
-   - Envía `tagline` + `description_human` al modelo Gemini Flash pidiendo traducción al español
-   - Actualiza las columnas `_es` con el resultado
-   - Diseñada para ejecutarse múltiples veces hasta completar las ~14k skills
-
-3. **Frontend: mostrar contenido traducido** — En `SkillCard.tsx` y `SkillDetail.tsx`:
-   - Si `i18n.language === "es"` y existe `tagline_es`, mostrar `tagline_es`; si no, fallback al original
-   - Mismo patrón para `description_human_es`
-   - `display_name` NO se traduce (son nombres propios de herramientas)
-
-4. **Ejecutar traducción en lotes** — Llamar la Edge Function repetidamente hasta cubrir todos los registros.
-
-### Consideraciones
-- **Costo**: Gemini Flash es económico; ~14k traducciones cortas son manejables
-- **Tiempo**: En lotes de 50, serían ~280 llamadas; estimado 15-30 minutos total
-- **Fallback**: Si no hay traducción disponible, se muestra el contenido original (inglés)
-- **Sync futuro**: Cuando se sincronicen nuevas skills, `tagline_es` será NULL y se traducirán en la siguiente ejecución
+### Resultado
+El admin puede iniciar la traducción masiva, ver el progreso, y dejarla corriendo hasta que se complete. Puede pausar y retomar en cualquier momento.
 
