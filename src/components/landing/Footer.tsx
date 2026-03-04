@@ -14,8 +14,8 @@ const Footer = () => {
   ];
 
   const legalLinks = [
-    { to: "/terminos", label: "Términos y Condiciones" },
-    { to: "/privacidad", label: "Política de Privacidad" },
+    { to: "/terminos", label: t("footer.terms") },
+    { to: "/privacidad", label: t("footer.privacy") },
   ];
 
   return (

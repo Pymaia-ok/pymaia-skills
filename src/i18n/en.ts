@@ -27,7 +27,7 @@ export default {
   landing: {
     heroBadge: "The #1 skill directory for Claude Code",
     heroTitle: "Give your Claude\nsuperpowers.",
-    heroSubtitle: "Thousands of ready-to-install skills. No terminal, no code. In 2 minutes your AI can do things it couldn't before.",
+    heroSubtitle: "Thousands of ready-to-install skills. In 2 minutes your AI can do things it couldn't before.",
     heroCtaExplore: "Explore skills",
     heroCtaLearn: "What is Claude Code?",
 
@@ -340,5 +340,10 @@ export default {
   lang: {
     es: "ES",
     en: "EN",
+  },
+
+  footer: {
+    terms: "Terms & Conditions",
+    privacy: "Privacy Policy",
   },
 } as const;
