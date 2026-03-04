@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useSEO } from "@/hooks/useSEO";
 
 const SkillDetail = () => {
   const { slug } = useParams();
@@ -50,6 +51,31 @@ const SkillDetail = () => {
   const useCases = parseUseCases(skill.use_cases);
   const tagline = (i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline;
   const descriptionHuman = (i18n.language === "es" && skill.description_human_es) ? skill.description_human_es : skill.description_human;
+
+  useSEO({
+    title: `${skill.display_name} — ${tagline}`,
+    description: `${descriptionHuman.slice(0, 150)}. ⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count} installs.`,
+    canonical: `https://pymaiaskills.lovable.app/skill/${skill.slug}`,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: skill.display_name,
+      description: descriptionHuman,
+      applicationCategory: skill.category,
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: Number(skill.avg_rating).toFixed(1),
+        reviewCount: skill.review_count,
+        bestRating: 5,
+        worstRating: 1,
+      },
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+    },
+  });
 
   const handleCopy = () => {
     navigator.clipboard.writeText(skill.install_command);
