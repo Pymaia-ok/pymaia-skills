@@ -32,7 +32,7 @@ const Navbar = () => {
     >
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center">
-          <img src={logoImg} alt="Pymaia Skills" className="h-7 md:h-8 w-auto" />
+          <img src={logoImg} alt="Pymaia Skills" className="h-9 md:h-10 w-auto" />
         </Link>
 
         {/* Desktop */}
