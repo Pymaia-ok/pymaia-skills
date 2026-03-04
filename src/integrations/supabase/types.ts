@@ -228,6 +228,43 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_skills: {
+        Args: {
+          filter_category?: string
+          filter_industry?: string
+          filter_roles?: string[]
+          page_num?: number
+          page_size?: number
+          search_query: string
+          sort_by?: string
+        }
+        Returns: {
+          avg_rating: number
+          category: string
+          created_at: string
+          creator_id: string
+          description_human: string
+          description_human_es: string
+          display_name: string
+          github_stars: number
+          github_url: string
+          id: string
+          industry: string[]
+          install_command: string
+          install_count: number
+          review_count: number
+          similarity_score: number
+          slug: string
+          status: string
+          tagline: string
+          tagline_es: string
+          target_roles: string[]
+          time_to_install_minutes: number
+          total_count: number
+          use_cases: Json
+          video_url: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
