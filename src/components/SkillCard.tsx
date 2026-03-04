@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, GitFork } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 
@@ -61,21 +61,14 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
             )}
             {skill.github_stars > 0 && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Star className="w-3 h-3" />
+                <Heart className="w-3 h-3" />
                 <span>{formatCount(skill.github_stars)}</span>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {skill.install_count > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {skill.install_count.toLocaleString()} {t("skillCard.installations")}
-              </span>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {skill.time_to_install_minutes} {t("skillCard.min")}
-            </span>
-          </div>
+          <span className="text-xs text-muted-foreground">
+            {skill.time_to_install_minutes} {t("skillCard.min")}
+          </span>
         </div>
 
         <div className="mt-4 pt-4 border-t border-border">
