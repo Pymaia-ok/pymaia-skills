@@ -2,24 +2,31 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
+import { SKILL_CATEGORIES } from "@/lib/api";
 
 interface SkillCardProps {
   skill: SkillFromDB;
   index?: number;
 }
 
-const SkillCard = ({ skill, index = 0 }: SkillCardProps) => (
+const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
+  const catLabel = SKILL_CATEGORIES.find(c => c.key === skill.category)?.label ?? skill.category;
+
+  return (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.1, duration: 0.4 }}
+    transition={{ delay: Math.min(index * 0.05, 0.5), duration: 0.4 }}
   >
     <Link
       to={`/skill/${skill.slug}`}
       className="block p-6 rounded-2xl bg-secondary hover:bg-accent transition-all group"
     >
       <div className="flex items-center gap-2 mb-3">
-        {skill.industry.slice(0, 2).map((ind) => (
+        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+          {catLabel}
+        </span>
+        {skill.industry.slice(0, 1).map((ind) => (
           <span
             key={ind}
             className="text-xs font-medium px-2.5 py-1 rounded-full bg-background text-muted-foreground"
@@ -61,6 +68,7 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => (
       </div>
     </Link>
   </motion.div>
-);
+  );
+};
 
 export default SkillCard;

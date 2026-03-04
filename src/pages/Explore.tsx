@@ -1,33 +1,43 @@
-import { useState, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
-import { fetchSkills } from "@/lib/api";
-
-const industries = ["Agencias", "Legal", "Consultoras", "E-commerce", "Startups"];
+import { fetchSkills, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
 
 const Explore = () => {
   const [search, setSearch] = useState("");
-  const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"rating" | "installs">("rating");
+  const [page, setPage] = useState(0);
 
-  const { data: skills = [], isLoading } = useQuery({
-    queryKey: ["skills", selectedIndustry, sortBy],
-    queryFn: () => fetchSkills({ industry: selectedIndustry || undefined, sortBy }),
+  // Debounce search
+  const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearch = useCallback((val: string) => {
+    setSearch(val);
+    if (debounceRef[0]) clearTimeout(debounceRef[0]);
+    debounceRef[0] = setTimeout(() => {
+      setDebouncedSearch(val);
+      setPage(0);
+    }, 350);
+  }, [debounceRef]);
+
+  const { data: result, isLoading } = useQuery({
+    queryKey: ["skills", selectedCategory, sortBy, page, debouncedSearch],
+    queryFn: () =>
+      fetchSkills({
+        category: selectedCategory || undefined,
+        sortBy,
+        page,
+        search: debouncedSearch || undefined,
+      }),
   });
 
-  const filtered = useMemo(() => {
-    if (!search) return skills;
-    const q = search.toLowerCase();
-    return skills.filter(
-      (s) =>
-        s.display_name.toLowerCase().includes(q) ||
-        s.tagline.toLowerCase().includes(q) ||
-        s.description_human.toLowerCase().includes(q)
-    );
-  }, [skills, search]);
+  const skills = result?.data ?? [];
+  const totalCount = result?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,10 +51,11 @@ const Explore = () => {
           >
             <h1 className="section-title mb-4">Explorá skills</h1>
             <p className="text-muted-foreground max-w-lg mx-auto">
-              Encontrá la skill perfecta para lo que necesitás hacer.
+              {totalCount.toLocaleString()} skills disponibles. Encontrá la perfecta para lo que necesitás.
             </p>
           </motion.div>
 
+          {/* Search */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -54,13 +65,14 @@ const Explore = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="¿Qué querés hacer mejor? Ej: preparar propuestas, analizar datos..."
+              placeholder="Buscar skills por nombre o descripción..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-4 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
             />
           </motion.div>
 
+          {/* Category filters */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -68,30 +80,31 @@ const Explore = () => {
             className="flex flex-wrap gap-2 mb-4"
           >
             <button
-              onClick={() => setSelectedIndustry(null)}
+              onClick={() => { setSelectedCategory(null); setPage(0); }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                !selectedIndustry
+                !selectedCategory
                   ? "bg-foreground text-background"
                   : "bg-secondary text-muted-foreground hover:text-foreground"
               }`}
             >
               Todas
             </button>
-            {industries.map((ind) => (
+            {SKILL_CATEGORIES.map((cat) => (
               <button
-                key={ind}
-                onClick={() => setSelectedIndustry(ind === selectedIndustry ? null : ind)}
+                key={cat.key}
+                onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedIndustry === ind
+                  selectedCategory === cat.key
                     ? "bg-foreground text-background"
                     : "bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {ind}
+                {cat.label}
               </button>
             ))}
           </motion.div>
 
+          {/* Sort */}
           <div className="flex gap-4 mb-8 text-sm">
             {[
               { key: "rating" as const, label: "Mejor valoradas" },
@@ -99,7 +112,7 @@ const Explore = () => {
             ].map((s) => (
               <button
                 key={s.key}
-                onClick={() => setSortBy(s.key)}
+                onClick={() => { setSortBy(s.key); setPage(0); }}
                 className={`transition-colors ${
                   sortBy === s.key
                     ? "text-foreground font-medium"
@@ -111,6 +124,7 @@ const Explore = () => {
             ))}
           </div>
 
+          {/* Grid */}
           {isLoading ? (
             <div className="grid md:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
@@ -119,17 +133,40 @@ const Explore = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
-              {filtered.map((skill, i) => (
+              {skills.map((skill, i) => (
                 <SkillCard key={skill.id} skill={skill} index={i} />
               ))}
             </div>
           )}
 
-          {!isLoading && filtered.length === 0 && (
+          {!isLoading && skills.length === 0 && (
             <div className="text-center py-20">
               <p className="text-muted-foreground text-lg">
                 No encontramos skills para esa búsqueda.
               </p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-12">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="p-2 rounded-xl bg-secondary text-foreground disabled:opacity-30 hover:bg-accent transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-sm text-muted-foreground">
+                Página {page + 1} de {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="p-2 rounded-xl bg-secondary text-foreground disabled:opacity-30 hover:bg-accent transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
           )}
         </div>

@@ -1,6 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export const SKILL_CATEGORIES = [
+  { key: "ia", label: "IA" },
+  { key: "desarrollo", label: "Desarrollo" },
+  { key: "diseño", label: "Diseño" },
+  { key: "marketing", label: "Marketing" },
+  { key: "automatización", label: "Automatización" },
+  { key: "datos", label: "Datos" },
+  { key: "creatividad", label: "Creatividad" },
+  { key: "productividad", label: "Productividad" },
+  { key: "legal", label: "Legal" },
+  { key: "negocios", label: "Negocios" },
+] as const;
+
+export const PAGE_SIZE = 24;
+
 export interface SkillFromDB {
+  category: string;
   id: string;
   slug: string;
   display_name: string;
@@ -51,28 +67,27 @@ export interface ProfileFromDB {
 export async function fetchSkills(filters?: {
   search?: string;
   industry?: string;
+  category?: string;
   sortBy?: "rating" | "installs";
   roles?: string[];
-}) {
-  let query = supabase.from("skills").select("*").eq("status", "approved");
+  page?: number;
+}): Promise<{ data: SkillFromDB[]; count: number }> {
+  const page = filters?.page ?? 0;
+  const from = page * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  let query = supabase.from("skills").select("*", { count: "exact" }).eq("status", "approved");
+  if (filters?.category) query = query.eq("category", filters.category);
   if (filters?.industry) query = query.contains("industry", [filters.industry]);
   if (filters?.roles && filters.roles.length > 0) query = query.overlaps("target_roles", filters.roles);
+  if (filters?.search) query = query.or(`display_name.ilike.%${filters.search}%,tagline.ilike.%${filters.search}%`);
   if (filters?.sortBy === "installs") query = query.order("install_count", { ascending: false });
   else query = query.order("avg_rating", { ascending: false });
+  query = query.range(from, to);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) throw error;
-  let results = (data || []) as SkillFromDB[];
-
-  if (filters?.search) {
-    const q = filters.search.toLowerCase();
-    results = results.filter(s =>
-      s.display_name.toLowerCase().includes(q) ||
-      s.tagline.toLowerCase().includes(q) ||
-      s.description_human.toLowerCase().includes(q)
-    );
-  }
-  return results;
+  return { data: (data || []) as SkillFromDB[], count: count ?? 0 };
 }
 
 export async function fetchAllSkills() {

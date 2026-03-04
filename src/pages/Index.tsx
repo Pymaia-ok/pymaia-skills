@@ -60,10 +60,11 @@ const Index = () => {
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedTask, setSelectedTask] = useState("");
 
-  const { data: allSkills = [] } = useQuery({
+  const { data: skillsResult } = useQuery({
     queryKey: ["skills-all"],
-    queryFn: () => fetchSkills(),
+    queryFn: () => fetchSkills({ sortBy: "rating" }),
   });
+  const allSkills = skillsResult?.data ?? [];
 
   const handleRoleSelect = (roleId: string) => {
     setSelectedRole(roleId);
