@@ -1,0 +1,1 @@
+UPDATE public.skills SET install_count = 0 WHERE install_count > 0
