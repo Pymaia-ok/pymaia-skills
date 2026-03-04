@@ -16,7 +16,7 @@ const Footer = () => {
     <footer className="border-t border-border py-12">
       <div className="max-w-5xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-sm font-semibold tracking-tight">SkillHub</div>
+          <div className="text-sm font-semibold tracking-tight">Pymaia Skills</div>
           <nav className="flex flex-wrap items-center justify-center gap-6">
             {links.map((link) => (
               <Link
@@ -30,7 +30,7 @@ const Footer = () => {
           </nav>
         </div>
         <div className="mt-8 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} SkillHub
+          © {new Date().getFullYear()} Pymaia Skills
         </div>
       </div>
     </footer>
