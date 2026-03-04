@@ -1,29 +1,33 @@
 
 
-## Analysis: Translation Coverage
+## Plan: Traducir contenido de skills al idioma del usuario
 
-The UI chrome (navbar, buttons, labels, page titles) is fully translated via i18n dictionaries. However, **the actual skill content is NOT translated** — and it shouldn't be, because:
+Tenés razón — sería mejor que todo esté en el idioma del usuario. El contenido de las skills (`display_name`, `tagline`, `description_human`) viene de GitHub en inglés y actualmente no se traduce. Acá va el plan para solucionarlo.
 
-1. **Skill content comes from the database** (`display_name`, `tagline`, `description_human`) — these are scraped/synced from GitHub repos and are overwhelmingly in English.
-2. Translating ~14,000 skill descriptions would require either:
-   - Storing dual-language columns (`tagline_es`, `tagline_en`) and running LLM translation on all 14k records
-   - Or runtime translation via an API, which would be slow and expensive
+### Enfoque
 
-3. **Category labels** ARE translated via `t('categories.${key}')` in the i18n dictionaries — this works correctly.
+Agregar columnas `tagline_es` y `description_human_es` a la tabla `skills`, y usar una Edge Function que traduzca en lotes usando el modelo de IA de Lovable (Gemini Flash, sin API key). En el frontend, mostrar la versión en español cuando `i18n.language === "es"`.
 
-### What IS translated (UI chrome)
-- Navbar links, auth page, explore page labels, filters, pagination
-- Category chips (IA, Development, Design, etc.)
-- Skill card labels ("installs", "min", "See how to install →")
-- All static pages: MCP, Teams, Getting Started, Publish, 404
+### Pasos
 
-### What is NOT translated (dynamic content)
-- `display_name`, `tagline`, `description_human` — these come from GitHub/DB in their original language (mostly English)
-- This is **expected and correct** for a directory of open-source tools — the names and descriptions should match their source repos
+1. **Migración de DB** — Agregar columnas `tagline_es` y `description_human_es` (nullable) a la tabla `skills`.
 
-### Recommendation
+2. **Edge Function `translate-skills`** — Nueva función que:
+   - Selecciona skills donde `tagline_es IS NULL` en lotes de 50
+   - Envía `tagline` + `description_human` al modelo Gemini Flash pidiendo traducción al español
+   - Actualiza las columnas `_es` con el resultado
+   - Diseñada para ejecutarse múltiples veces hasta completar las ~14k skills
 
-No code changes needed. The i18n setup is complete for all UI elements. Skill content stays in its original language (matching the source repos), which is the standard approach for tool/package directories (like npm, PyPI, VS Code Marketplace).
+3. **Frontend: mostrar contenido traducido** — En `SkillCard.tsx` y `SkillDetail.tsx`:
+   - Si `i18n.language === "es"` y existe `tagline_es`, mostrar `tagline_es`; si no, fallback al original
+   - Mismo patrón para `description_human_es`
+   - `display_name` NO se traduce (son nombres propios de herramientas)
 
-If you want skill descriptions translated to Spanish, that would be a separate large effort requiring LLM-based batch translation of all 14k records and dual-language column storage. Let me know if you want to pursue that.
+4. **Ejecutar traducción en lotes** — Llamar la Edge Function repetidamente hasta cubrir todos los registros.
+
+### Consideraciones
+- **Costo**: Gemini Flash es económico; ~14k traducciones cortas son manejables
+- **Tiempo**: En lotes de 50, serían ~280 llamadas; estimado 15-30 minutos total
+- **Fallback**: Si no hay traducción disponible, se muestra el contenido original (inglés)
+- **Sync futuro**: Cuando se sincronicen nuevas skills, `tagline_es` será NULL y se traducirán en la siguiente ejecución
 
