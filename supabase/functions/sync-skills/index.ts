@@ -19,29 +19,65 @@ interface ParsedSkill {
 
 function inferCategory(name: string, desc: string): string {
   const text = `${name} ${desc}`.toLowerCase();
-  if (text.match(/design|ui|ux|css|style|layout|figma/)) return "diseño";
-  if (text.match(/market|seo|content|copy|social|brand/)) return "marketing";
-  if (text.match(/automat|browser|scrape|crawl|workflow/)) return "automatización";
-  if (text.match(/legal|contract|compliance|law/)) return "legal";
-  if (text.match(/video|animation|creative|art|remotion/)) return "creatividad";
-  if (text.match(/data|analyt|chart|csv|excel|xlsx/)) return "datos";
-  if (text.match(/\bai\b|llm|agent|model|gpt|claude|prompt/)) return "ia";
-  if (text.match(/pitch|business|presentation|pptx|slide/)) return "negocios";
-  if (text.match(/productiv|brainstorm|organiz|todo|debug/)) return "productividad";
-  if (text.match(/doc|pdf|word|docx|document/)) return "productividad";
+
+  // 1. Legal — very specific domain
+  if (text.match(/\b(legal|lawyer|law\b|contract|compliance|regulat|gdpr|hipaa|attorney|litigation|arbitrat)/)) return "legal";
+
+  // 2. Marketing — broad but specific keywords
+  if (text.match(/\b(marketing|seo\b|sem\b|adwords|analytics|campaign|newsletter|email.?market|social.?media|brand|copywriting|advertising|ads\b|hubspot|mailchimp|google.?ads)/)) return "marketing";
+
+  // 3. Design — visual/UI tools
+  if (text.match(/\b(design|figma|sketch|adobe|photoshop|illustrat|canva|ui.?kit|ux\b|wireframe|prototype|color.?palette|typography|tailwind|css|style|layout|responsive)/)) return "diseño";
+
+  // 4. Data — analytics, databases, data processing
+  if (text.match(/\b(database|sql\b|postgres|mysql|mongo|redis|elasticsearch|bigquery|snowflake|data.?warehouse|etl\b|csv|excel|xlsx|parquet|arrow|tableau|power.?bi|grafana|analytics|metric|dashboard|chart|visualiz|pandas|dataframe|dbt\b|pipeline)/)) return "datos";
+
+  // 5. Automation — workflow, scraping, integration
+  if (text.match(/\b(automat|workflow|zapier|n8n|scrape|crawl|puppeteer|playwright|selenium|cron|schedul|webhook|integration|connect|sync\b|orchestrat|pipeline|trigger|batch|queue|worker)/)) return "automatización";
+
+  // 6. Creativity — media creation
+  if (text.match(/\b(video|audio|music|sound|animation|3d\b|render|image.?gen|dall.?e|stable.?diffus|midjourney|creative|art\b|photo|camera|podcast|stream|youtube|tiktok|instagram)/)) return "creatividad";
+
+  // 7. Productivity — communication, docs, organization
+  if (text.match(/\b(slack|discord|teams|notion|obsidian|roam|todoist|trello|jira|asana|linear|calendar|email|gmail|outlook|pdf\b|document|note|wiki|knowledge.?base|bookmark|clipboard|translat|meeting|zoom|organiz)/)) return "productividad";
+
+  // 8. Business — finance, sales, strategy
+  if (text.match(/\b(business|finance|invoice|payment|stripe|paypal|shopify|e.?commerce|sales|crm|salesforce|pitch|investor|startup|revenue|pricing|accounting|tax\b|budget|forecast|report)/)) return "negocios";
+
+  // 9. Development — code, devtools, infrastructure
+  if (text.match(/\b(github|gitlab|bitbucket|docker|kubernetes|aws\b|azure|gcp\b|terraform|ci.?cd|deploy|server|api\b|rest\b|graphql|grpc|typescript|javascript|python|rust|golang|node|npm|package|lint|test|debug|compiler|ide\b|vscode|terminal|shell|bash|git\b|commit|pull.?request|code.?review|webpack|vite\b|build|infra)/)) return "desarrollo";
+
+  // 10. AI — only if nothing more specific matched above
+  if (text.match(/\b(ai\b|artificial.?intellig|llm|language.?model|gpt|claude|gemini|openai|anthropic|embedding|vector|rag\b|retriev|chat.?bot|conversati|prompt|fine.?tun|train|inference|neural|transformer|token|context.?window|agent|copilot|assistant)/)) return "ia";
+
+  // Default: check if it mentions "mcp" or "server" generically — likely a dev tool
+  if (text.match(/\b(mcp|server|tool|plugin|extension)/)) return "desarrollo";
+
   return "desarrollo";
 }
 
-function inferRoles(name: string, desc: string, _category: string): string[] {
+function inferRoles(name: string, desc: string, category: string): string[] {
   const text = `${name} ${desc}`.toLowerCase();
   const roles: string[] = [];
-  if (text.match(/market|seo|content|copy|social|brand/)) roles.push("marketer");
-  if (text.match(/legal|contract|compliance|law/)) roles.push("abogado");
-  if (text.match(/consult|strateg|proposal|research/)) roles.push("consultor");
-  if (text.match(/startup|product|pitch|founder|mvp/)) roles.push("founder");
-  if (text.match(/design|ui|ux|figma|css|frontend/)) roles.push("disenador");
-  if (roles.length === 0) roles.push("otro");
-  return roles;
+
+  // Category-based defaults
+  if (category === "marketing") roles.push("marketer");
+  if (category === "legal") roles.push("abogado");
+  if (category === "diseño") roles.push("disenador");
+  if (category === "negocios") roles.push("founder");
+  if (category === "datos") roles.push("consultor");
+  if (category === "desarrollo" || category === "ia") roles.push("developer");
+
+  // Keyword-based additions
+  if (text.match(/\b(market|seo|content|copy|social|brand|campaign)/)) roles.push("marketer");
+  if (text.match(/\b(legal|contract|compliance|law\b)/)) roles.push("abogado");
+  if (text.match(/\b(consult|strateg|proposal|research|analys)/)) roles.push("consultor");
+  if (text.match(/\b(startup|product|pitch|founder|mvp|business)/)) roles.push("founder");
+  if (text.match(/\b(design|ui|ux|figma|css|frontend)/)) roles.push("disenador");
+
+  // Deduplicate
+  const unique = [...new Set(roles)];
+  return unique.length > 0 ? unique : ["otro"];
 }
 
 function slugFromName(raw: string): string {
@@ -763,6 +799,42 @@ Deno.serve(async (req) => {
     } catch { /* no body */ }
 
     console.log(`Sync: source=${requestedSource}, letter="${letter}", topic="${topic}", offset=${insertOffset}, maxInsert=${maxInsert}`);
+
+    // ─── Recategorize: re-apply inferCategory in batches ───
+    if (requestedSource === "recategorize") {
+      const pageSize = batchSize || 200;
+      const { data: batch } = await supabase
+        .from("skills")
+        .select("id, slug, display_name, tagline, description_human, category, target_roles")
+        .eq("status", "approved")
+        .range(insertOffset, insertOffset + pageSize - 1);
+
+      if (!batch || batch.length === 0) {
+        return new Response(JSON.stringify({ success: true, source: "recategorize", updated: 0, message: "No more skills to process" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Group updates by new category to batch them
+      const updatesByCategory: Record<string, { ids: string[]; roles: string[] }[]> = {};
+      let changed = 0;
+
+      for (const skill of batch) {
+        const newCat = inferCategory(skill.slug, `${skill.display_name} ${skill.tagline} ${skill.description_human}`);
+        const newRoles = inferRoles(skill.slug, `${skill.display_name} ${skill.tagline} ${skill.description_human}`, newCat);
+        if (newCat !== skill.category) {
+          await supabase.from("skills").update({ category: newCat, target_roles: newRoles }).eq("id", skill.id);
+          changed++;
+        }
+      }
+
+      return new Response(JSON.stringify({
+        success: true, source: "recategorize", processed: batch.length, changed,
+        nextOffset: insertOffset + batch.length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ─── GitHub Enrich (special: doesn't go through upsert) ───
     if (requestedSource === "github-enrich") {
