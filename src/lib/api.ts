@@ -76,6 +76,50 @@ export async function fetchSkills(filters?: {
   page?: number;
 }): Promise<{ data: SkillFromDB[]; count: number }> {
   const page = filters?.page ?? 0;
+
+  // Use fuzzy search function when there's a search query
+  if (filters?.search && filters.search.trim().length > 0) {
+    const { data, error } = await supabase.rpc("search_skills", {
+      search_query: filters.search,
+      filter_category: filters.category || null,
+      filter_industry: filters.industry || null,
+      filter_roles: filters.roles && filters.roles.length > 0 ? filters.roles : null,
+      sort_by: filters.sortBy || "rating",
+      page_num: page,
+      page_size: PAGE_SIZE,
+    });
+    if (error) throw error;
+    const rows = (data || []) as any[];
+    const count = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    // Map RPC results to SkillFromDB shape
+    const skills: SkillFromDB[] = rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      display_name: r.display_name,
+      tagline: r.tagline,
+      tagline_es: r.tagline_es,
+      description_human: r.description_human,
+      description_human_es: r.description_human_es,
+      category: r.category,
+      industry: r.industry,
+      target_roles: r.target_roles,
+      install_command: r.install_command,
+      github_url: r.github_url,
+      video_url: r.video_url,
+      time_to_install_minutes: r.time_to_install_minutes,
+      install_count: r.install_count,
+      avg_rating: r.avg_rating,
+      review_count: r.review_count,
+      github_stars: r.github_stars,
+      use_cases: r.use_cases,
+      creator_id: r.creator_id,
+      created_at: r.created_at,
+      status: r.status,
+    }));
+    return { data: skills, count };
+  }
+
+  // Standard query without search
   const from = page * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
@@ -83,8 +127,7 @@ export async function fetchSkills(filters?: {
   if (filters?.category) query = query.eq("category", filters.category);
   if (filters?.industry) query = query.contains("industry", [filters.industry]);
   if (filters?.roles && filters.roles.length > 0) query = query.overlaps("target_roles", filters.roles);
-  if (filters?.search) query = query.or(`display_name.ilike.%${filters.search}%,tagline.ilike.%${filters.search}%`);
-  if (filters?.sortBy === "installs") query = query.order("install_count", { ascending: false });
+  if (filters?.sortBy === "installs") query = query.order("github_stars", { ascending: false });
   else query = query.order("avg_rating", { ascending: false });
   query = query.range(from, to);
 
