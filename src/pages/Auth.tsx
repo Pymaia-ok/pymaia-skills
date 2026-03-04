@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import logoIcon from "@/assets/logo-icon.png";
+import logoImg from "@/assets/logo.png";
 
 const Auth = () => {
   const { user, loading } = useAuth();
@@ -66,7 +66,7 @@ const Auth = () => {
           className="w-full max-w-sm"
         >
           <div className="flex flex-col items-center text-center mb-8">
-            <img src={logoIcon} alt="Pymaia" className="h-12 w-12 mb-6" />
+            <img src={logoImg} alt="Pymaia Skills" className="h-10 w-auto mb-6" />
             <h1 className="text-2xl font-semibold tracking-tight mb-2">
               {mode === "login" ? t("auth.title") : t("auth.signupTitle", "Creá tu cuenta")}
             </h1>

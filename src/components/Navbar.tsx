@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LogOut, User, Menu, X, Globe } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import logoIcon from "@/assets/logo-icon.png";
+import logoImg from "@/assets/logo.png";
 
 const Navbar = () => {
   const location = useLocation();
@@ -31,9 +31,8 @@ const Navbar = () => {
       className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border"
     >
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logoIcon} alt="Pymaia" className="h-8 w-8" />
-          <span className="font-semibold text-foreground text-base tracking-tight hidden sm:inline">Pymaia Skills</span>
+        <Link to="/" className="flex items-center">
+          <img src={logoImg} alt="Pymaia Skills" className="h-7 md:h-8 w-auto" />
         </Link>
 
         {/* Desktop */}
