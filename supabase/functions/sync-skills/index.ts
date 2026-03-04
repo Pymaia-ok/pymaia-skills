@@ -15,17 +15,6 @@ interface ParsedSkill {
   source: string;
 }
 
-function parseInstallCount(raw: string): number {
-  const cleaned = raw.replace(/,/g, "").trim();
-  const m = cleaned.match(/^([\d.]+)\s*([KkMm]?)$/);
-  if (!m) return 0;
-  const num = parseFloat(m[1]);
-  const suffix = m[2].toUpperCase();
-  if (suffix === "K") return Math.round(num * 1000);
-  if (suffix === "M") return Math.round(num * 1000000);
-  return Math.round(num);
-}
-
 function inferCategory(name: string, desc: string): string {
   const text = `${name} ${desc}`.toLowerCase();
   if (text.match(/design|ui|ux|css|style|layout|figma/)) return "diseño";
@@ -41,7 +30,7 @@ function inferCategory(name: string, desc: string): string {
   return "desarrollo";
 }
 
-function inferRoles(name: string, desc: string, category: string): string[] {
+function inferRoles(name: string, desc: string, _category: string): string[] {
   const text = `${name} ${desc}`.toLowerCase();
   const roles: string[] = [];
   if (text.match(/market|seo|content|copy|social|brand/)) roles.push("marketer");
@@ -53,101 +42,89 @@ function inferRoles(name: string, desc: string, category: string): string[] {
   return roles;
 }
 
-// ─── SOURCE 1: skillsmp.com (paginated API — 17K+ skills) ───
+// ─── SOURCE 1: skillsmp.com — deep paginated API by letter ───
 
-async function fetchSkillsMP(): Promise<ParsedSkill[]> {
+async function fetchSkillsMP(letter: string): Promise<ParsedSkill[]> {
   const apiKey = Deno.env.get("SKILLSMP_API_KEY");
   if (!apiKey) {
-    console.log("[skillsmp.com] No API key, skipping");
+    console.log("[skillsmp] No API key, skipping");
     return [];
   }
 
-  console.log("[skillsmp.com] Fetching ALL skills via paginated API...");
+  console.log(`[skillsmp] Fetching skills for letter "${letter}"...`);
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
+  const maxPages = 100;
 
-  // Use fewer queries with limited pages to stay within edge function timeout
-  const queries = ["agent", "skill", "design", "marketing", "automation"];
+  let page = 1;
+  while (page <= maxPages) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
 
-  for (const query of queries) {
-    let page = 1;
-    const maxPages = 2; // 2 pages * 100 = 200 per query
+      const url = `https://skillsmp.com/api/v1/skills/search?q=${encodeURIComponent(letter)}&page=${page}&limit=100&sortBy=stars`;
+      const res = await fetch(url, {
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)",
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-    while (page <= maxPages) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-
-        const url = `https://skillsmp.com/api/v1/skills/search?q=${encodeURIComponent(query)}&page=${page}&limit=100&sortBy=stars`;
-        const res = await fetch(url, {
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)",
-          },
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!res.ok) {
-          if (res.status === 401) { console.error("[skillsmp.com] Invalid API key"); return skills; }
-          if (res.status === 429) { console.log("[skillsmp.com] Rate limited, stopping"); return skills; }
-          break;
-        }
-
-        const json = await res.json();
-        const items = json?.data?.skills || json?.skills || json?.data || [];
-
-        if (!items || items.length === 0) break;
-
-        for (const item of items) {
-          const rawName = item.name || item.skillName || item.slug || "";
-          if (!rawName) continue;
-          const name = rawName.replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
-          const owner = item.owner || item.author || item.repoOwner || "";
-          const repo = item.repo || item.repoName || "";
-
-          const key = `${owner}/${repo}/${name}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-
-          skills.push({
-            name, owner, repo,
-            installCount: item.stars || item.downloads || 0,
-            stars: item.stars || 0,
-            description: item.description || "",
-            source: "skillsmp.com",
-          });
-        }
-
-        // If less than 100 results, no more pages
-        if (items.length < 100) break;
-        page++;
-      } catch (e) {
-        console.error(`[skillsmp.com] Error q="${query}" p=${page}:`, (e as Error).message);
+      if (!res.ok) {
+        if (res.status === 401) { console.error("[skillsmp] Invalid API key"); return skills; }
+        if (res.status === 429) { console.log("[skillsmp] Rate limited, stopping"); return skills; }
+        console.log(`[skillsmp] HTTP ${res.status} at page ${page}, stopping`);
         break;
       }
-    }
 
-    // Log progress every few queries
-    if (skills.length % 500 < 100) {
-      console.log(`[skillsmp.com] Progress: ${skills.length} skills after query "${query}"`);
+      const json = await res.json();
+      const items = json?.data?.skills || json?.skills || json?.data || [];
+      if (!items || items.length === 0) break;
+
+      for (const item of items) {
+        const rawName = item.name || item.skillName || item.slug || "";
+        if (!rawName) continue;
+        const name = rawName.replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
+        const owner = item.owner || item.author || item.repoOwner || "";
+        const repo = item.repo || item.repoName || "";
+
+        const key = `${owner}/${repo}/${name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        skills.push({
+          name, owner, repo,
+          installCount: item.stars || item.downloads || 0,
+          stars: item.stars || 0,
+          description: item.description || "",
+          source: "skillsmp.com",
+        });
+      }
+
+      if (items.length < 100) break;
+      page++;
+    } catch (e) {
+      console.error(`[skillsmp] Error letter="${letter}" page=${page}:`, (e as Error).message);
+      break;
     }
   }
 
-  console.log(`[skillsmp.com] Total: ${skills.length} skills`);
+  console.log(`[skillsmp] Letter "${letter}": ${skills.length} skills, ${page} pages`);
   return skills;
 }
 
-// ─── SOURCE 2: skills.sh (via Firecrawl map — fast URL discovery) ───
+// ─── SOURCE 2: skills.sh — Firecrawl map with search term ───
 
-async function fetchSkillsShFirecrawl(): Promise<ParsedSkill[]> {
+async function fetchSkillsSh(letter: string): Promise<ParsedSkill[]> {
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
   if (!firecrawlKey) {
-    console.log("[skills.sh] No Firecrawl key, falling back to HTML scrape");
-    return fetchSkillsShHTML();
+    console.log("[skillssh] No Firecrawl key, skipping");
+    return [];
   }
 
-  console.log("[skills.sh] Mapping site via Firecrawl...");
+  console.log(`[skillssh] Mapping with search="${letter}"...`);
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
 
@@ -163,6 +140,7 @@ async function fetchSkillsShFirecrawl(): Promise<ParsedSkill[]> {
       },
       body: JSON.stringify({
         url: "https://skills.sh",
+        search: letter,
         limit: 5000,
         includeSubdomains: false,
       }),
@@ -173,7 +151,7 @@ async function fetchSkillsShFirecrawl(): Promise<ParsedSkill[]> {
     if (mapRes.ok) {
       const mapJson = await mapRes.json();
       const allLinks = mapJson?.links || [];
-      console.log(`[skills.sh] Map found ${allLinks.length} URLs`);
+      console.log(`[skillssh] Map returned ${allLinks.length} URLs`);
 
       for (const link of allLinks) {
         const match = link.match(/skills\.sh\/([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
@@ -188,58 +166,33 @@ async function fetchSkillsShFirecrawl(): Promise<ParsedSkill[]> {
         skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "skills.sh" });
       }
     } else {
-      console.error(`[skills.sh] Firecrawl map returned ${mapRes.status}`);
-      return fetchSkillsShHTML();
+      console.error(`[skillssh] Firecrawl map returned ${mapRes.status}`);
     }
   } catch (e) {
-    console.error("[skills.sh] Map error:", (e as Error).message);
-    return fetchSkillsShHTML();
+    console.error("[skillssh] Map error:", (e as Error).message);
   }
 
-  console.log(`[skills.sh] Total: ${skills.length} skills`);
-  return skills.length > 0 ? skills : fetchSkillsShHTML();
-}
-
-// Fallback: raw HTML scrape for skills.sh
-async function fetchSkillsShHTML(): Promise<ParsedSkill[]> {
-  console.log("[skills.sh] Fetching via HTML scrape (fallback)...");
-  const res = await fetch("https://skills.sh/", {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
-  });
-  const html = await res.text();
-  const skills: ParsedSkill[] = [];
-  const seen = new Set<string>();
-
-  const hrefRegex = /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"/g;
-  let match;
-  while ((match = hrefRegex.exec(html)) !== null) {
-    const [, owner, repo, name] = match;
-    if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) || name.includes(".") || owner.startsWith("_")) continue;
-    const key = `${owner}/${repo}/${name}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "skills.sh" });
-  }
-
-  console.log(`[skills.sh] HTML fallback: ${skills.length} skills`);
+  console.log(`[skillssh] Letter "${letter}": ${skills.length} skills`);
   return skills;
 }
 
-// ─── SOURCE 3: claude-plugins.dev (via Firecrawl) ───
+// ─── SOURCE 3: claude-plugins.dev — Firecrawl map with search term ───
 
-async function fetchClaudePlugins(): Promise<ParsedSkill[]> {
+async function fetchClaudePlugins(letter: string): Promise<ParsedSkill[]> {
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
   if (!firecrawlKey) {
-    console.log("[claude-plugins.dev] No Firecrawl key, falling back to HTML");
-    return fetchClaudePluginsHTML();
+    console.log("[claudeplugins] No Firecrawl key, skipping");
+    return [];
   }
 
-  console.log("[claude-plugins.dev] Fetching via Firecrawl...");
+  console.log(`[claudeplugins] Mapping with search="${letter}"...`);
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
 
-  // Map the site first to find all skill URLs
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
     const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: {
@@ -248,19 +201,20 @@ async function fetchClaudePlugins(): Promise<ParsedSkill[]> {
       },
       body: JSON.stringify({
         url: "https://claude-plugins.dev/skills",
-        search: "skills",
+        search: letter,
         limit: 5000,
         includeSubdomains: false,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (mapRes.ok) {
       const mapJson = await mapRes.json();
       const allLinks = mapJson?.links || [];
-      console.log(`[claude-plugins.dev] Map found ${allLinks.length} URLs`);
+      console.log(`[claudeplugins] Map returned ${allLinks.length} URLs`);
 
       for (const link of allLinks) {
-        // Pattern: /skills/@owner/repo/skill-name or /@owner/repo/skill-name
         const match = link.match(/(?:skills\/)?\@([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
         if (!match) continue;
         const [, owner, repo, name] = match;
@@ -271,71 +225,14 @@ async function fetchClaudePlugins(): Promise<ParsedSkill[]> {
 
         skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
       }
+    } else {
+      console.error(`[claudeplugins] Firecrawl map returned ${mapRes.status}`);
     }
   } catch (e) {
-    console.error("[claude-plugins.dev] Map error:", (e as Error).message);
+    console.error("[claudeplugins] Map error:", (e as Error).message);
   }
 
-  // Also scrape the main skills page
-  try {
-    const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${firecrawlKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: "https://claude-plugins.dev/skills",
-        formats: ["markdown", "links"],
-        waitFor: 3000,
-      }),
-    });
-
-    if (scrapeRes.ok) {
-      const json = await scrapeRes.json();
-      const links = json?.data?.links || json?.links || [];
-
-      for (const link of links) {
-        const match = link.match(/(?:skills\/)?\@([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
-        if (!match) continue;
-        const [, owner, repo, name] = match;
-
-        const key = `${owner}/${repo}/${name}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
-      }
-    }
-  } catch (e) {
-    console.error("[claude-plugins.dev] Scrape error:", (e as Error).message);
-  }
-
-  console.log(`[claude-plugins.dev] Total: ${skills.length} skills`);
-  return skills.length > 0 ? skills : fetchClaudePluginsHTML();
-}
-
-// Fallback HTML scrape
-async function fetchClaudePluginsHTML(): Promise<ParsedSkill[]> {
-  console.log("[claude-plugins.dev] HTML fallback...");
-  const res = await fetch("https://claude-plugins.dev/skills", {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
-  });
-  const html = await res.text();
-  const skills: ParsedSkill[] = [];
-  const seen = new Set<string>();
-
-  const hrefRegex = /href="(?:https:\/\/claude-plugins\.dev)?\/skills\/@([^/]+)\/([^/]+)\/([^"]+)"/g;
-  let match;
-  while ((match = hrefRegex.exec(html)) !== null) {
-    const [, owner, repo, name] = match;
-    const key = `${owner}/${repo}/${name}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
-  }
-
-  console.log(`[claude-plugins.dev] HTML fallback: ${skills.length} skills`);
+  console.log(`[claudeplugins] Letter "${letter}": ${skills.length} skills`);
   return skills;
 }
 
@@ -352,103 +249,93 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Accept optional source parameter to sync one source at a time (avoids timeout)
     let requestedSource = "all";
+    let letter = "";
+    let insertOffset = 0;
+    let maxInsert = 2000;
+
     try {
       const body = await req.json();
       requestedSource = body?.source || "all";
-    } catch { /* no body = sync all */ }
+      letter = body?.letter || "";
+      insertOffset = body?.offset || 0;
+      maxInsert = body?.maxInsert || 2000;
+    } catch { /* no body */ }
 
-    console.log(`Syncing source: ${requestedSource}`);
+    console.log(`Sync: source=${requestedSource}, letter="${letter}", offset=${insertOffset}, maxInsert=${maxInsert}`);
 
-    let skillsMPData: ParsedSkill[] = [];
-    let skillsShData: ParsedSkill[] = [];
-    let claudePluginsData: ParsedSkill[] = [];
-
-    if (requestedSource === "all" || requestedSource === "skillsmp") {
-      skillsMPData = await fetchSkillsMP().catch(e => { console.error("[skillsmp.com] Error:", e.message); return [] as ParsedSkill[]; });
+    // If no letter provided and source needs one, default to running all letters (legacy mode)
+    const needsLetter = ["skillsmp", "skillssh", "claudeplugins"].includes(requestedSource);
+    if (needsLetter && !letter) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Parameter 'letter' is required for this source. Example: {\"source\":\"skillsmp\",\"letter\":\"a\"}"
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    if (requestedSource === "all" || requestedSource === "skillssh") {
-      skillsShData = await fetchSkillsShFirecrawl().catch(e => { console.error("[skills.sh] Error:", e.message); return [] as ParsedSkill[]; });
-    }
-    if (requestedSource === "all" || requestedSource === "claudeplugins") {
-      claudePluginsData = await fetchClaudePlugins().catch(e => { console.error("[claude-plugins.dev] Error:", e.message); return [] as ParsedSkill[]; });
+
+    let discovered: ParsedSkill[] = [];
+
+    if (requestedSource === "skillsmp") {
+      discovered = await fetchSkillsMP(letter);
+    } else if (requestedSource === "skillssh") {
+      discovered = await fetchSkillsSh(letter);
+    } else if (requestedSource === "claudeplugins") {
+      discovered = await fetchClaudePlugins(letter);
+    } else if (requestedSource === "all") {
+      // Legacy: run all sources without letter (limited results)
+      const [a, b, c] = await Promise.all([
+        fetchSkillsMP("a").catch(() => [] as ParsedSkill[]),
+        fetchSkillsSh("").catch(() => [] as ParsedSkill[]),
+        fetchClaudePlugins("").catch(() => [] as ParsedSkill[]),
+      ]);
+      discovered = [...a, ...b, ...c];
     }
 
-    console.log(`Sources: skillsmp.com=${skillsMPData.length}, skills.sh=${skillsShData.length}, claude-plugins.dev=${claudePluginsData.length}`);
-
-    // Merge: deduplicate by skill name, prefer highest install count
+    // Deduplicate discovered skills
     const merged = new Map<string, ParsedSkill>();
-
-    for (const skill of [...skillsMPData, ...skillsShData, ...claudePluginsData]) {
+    for (const skill of discovered) {
       const existing = merged.get(skill.name);
       if (!existing || skill.installCount > existing.installCount) {
-        if (existing?.description && !skill.description) {
-          skill.description = existing.description;
-        }
+        if (existing?.description && !skill.description) skill.description = existing.description;
         merged.set(skill.name, skill);
       } else if (existing && skill.description && !existing.description) {
         existing.description = skill.description;
       }
     }
-
     const allSkills = Array.from(merged.values());
-    console.log(`Merged unique skills: ${allSkills.length}`);
+    console.log(`Discovered ${discovered.length} → deduplicated ${allSkills.length}`);
 
-    // Get ALL existing skills from DB (paginate past 1000 row limit)
-    let existingSkills: any[] = [];
-    let offset = 0;
+    // Get ALL existing slugs from DB (paginate past 1000 row limit)
+    const existingSlugs = new Set<string>();
+    let dbOffset = 0;
     const pageSize = 1000;
     while (true) {
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from("skills")
-        .select("id, slug, install_count, display_name, description_human")
-        .range(offset, offset + pageSize - 1);
-      if (fetchError) throw fetchError;
+        .select("slug")
+        .range(dbOffset, dbOffset + pageSize - 1);
+      if (error) throw error;
       if (!data || data.length === 0) break;
-      existingSkills = existingSkills.concat(data);
+      for (const s of data) existingSlugs.add(s.slug);
       if (data.length < pageSize) break;
-      offset += pageSize;
+      dbOffset += pageSize;
     }
-    console.log(`Existing skills in DB: ${existingSkills.length}`);
+    console.log(`Existing slugs in DB: ${existingSlugs.size}`);
 
-    const existingBySlug = new Map(existingSkills.map((s: any) => [s.slug, s]));
+    // Filter new skills
+    const newSkills = allSkills.filter(s => !existingSlugs.has(s.name));
+    console.log(`New skills to add: ${newSkills.length} (offset=${insertOffset}, max=${maxInsert})`);
 
-    let updated = 0;
+    // Apply offset and limit
+    const toAdd = newSkills.slice(insertOffset, insertOffset + maxInsert);
     let added = 0;
-    const updateDetails: string[] = [];
 
-    // Update existing skills
-    for (const ls of allSkills) {
-      const existing = existingBySlug.get(ls.name);
-      if (!existing) continue;
-
-      const updates: any = {};
-      if (ls.installCount > 0 && ls.installCount > existing.install_count) {
-        updates.install_count = ls.installCount;
-      }
-      if (ls.description && ls.description.length > (existing.description_human?.length || 0)) {
-        updates.description_human = ls.description;
-      }
-
-      if (Object.keys(updates).length > 0) {
-        const { error } = await supabase.from("skills").update(updates).eq("id", existing.id);
-        if (!error) {
-          updated++;
-          if (updates.install_count) updateDetails.push(`${ls.name}: ${existing.install_count}→${updates.install_count}`);
-        }
-      }
-    }
-
-    // Discover ALL new skills — no threshold
-    const newSkills = allSkills.filter(ls => !existingBySlug.has(ls.name));
-
-    // Add in batches — keep small to avoid timeout
-    const toAdd = newSkills.slice(0, 500);
-
-    // Bulk insert in chunks of 50
-    for (let i = 0; i < toAdd.length; i += 50) {
-      const chunk = toAdd.slice(i, i + 50).map(ns => {
+    // Bulk insert in chunks of 100
+    for (let i = 0; i < toAdd.length; i += 100) {
+      const chunk = toAdd.slice(i, i + 100).map(ns => {
         const displayName = ns.name.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
         const description = ns.description || `${displayName} — Agent Skill del ecosistema open-source.`;
         const category = inferCategory(ns.name, description);
@@ -469,24 +356,43 @@ Deno.serve(async (req) => {
         };
       });
 
-      const { error, data } = await supabase.from("skills").insert(chunk);
+      const { error } = await supabase.from("skills").insert(chunk);
       if (!error) added += chunk.length;
-      else console.error(`Bulk insert error (batch ${i}):`, error.message);
+      else console.error(`Insert error (batch ${i}):`, error.message);
+    }
+
+    // Update existing skills with better data
+    let updated = 0;
+    if (allSkills.length > 0) {
+      // Only update skills that exist and have better data
+      for (const skill of allSkills) {
+        if (!existingSlugs.has(skill.name)) continue;
+        if (skill.installCount <= 0 && !skill.description) continue;
+
+        const updates: Record<string, unknown> = {};
+        if (skill.installCount > 0) updates.install_count = skill.installCount;
+        if (skill.description) updates.description_human = skill.description;
+
+        if (Object.keys(updates).length > 0) {
+          // Use upsert-like update — only if install_count is higher
+          const { error } = await supabase.from("skills").update(updates).eq("slug", skill.name);
+          if (!error) updated++;
+        }
+      }
     }
 
     const summary = {
       success: true,
-      sources: {
-        "skillsmp.com": skillsMPData.length,
-        "skills.sh": skillsShData.length,
-        "claude-plugins.dev": claudePluginsData.length,
-      },
-      mergedUnique: allSkills.length,
-      existingInDB: existingSkills?.length || 0,
-      updated,
-      updateDetails: updateDetails.slice(0, 20),
+      source: requestedSource,
+      letter,
+      discovered: discovered.length,
+      deduplicated: allSkills.length,
+      existingInDB: existingSlugs.size,
+      newFound: newSkills.length,
       added,
-      remainingCandidates: newSkills.length - toAdd.length,
+      updated,
+      remainingNew: Math.max(0, newSkills.length - insertOffset - maxInsert),
+      nextOffset: insertOffset + toAdd.length,
       timestamp: new Date().toISOString(),
     };
 
