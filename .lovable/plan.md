@@ -1,84 +1,94 @@
 
 
-## Plan: Pre-cargar skills reales del ecosistema Agent Skills
+## Plan: Escalar la captura de skills a cientos de miles
 
-### Contexto
+### Situacion actual
 
-Actualmente hay 12 skills ficticias en la DB. Vamos a reemplazarlas con ~30 skills reales extraídas de los directorios que compartiste (skills.sh, skillsmp.com, claude-plugins.dev). Estas son Agent Skills reales del ecosistema open-source basado en el estándar SKILL.md.
+- **DB actual**: ~8,690 skills
+- **skills.sh**: 84K skills, sin API publica, Firecrawl map capped a 5K URLs
+- **skillsmp.com**: 364K skills, API con paginacion (`/api/v1/skills/search`), rate limit 500 req/dia, max 100 por request, **wildcard searches NO soportadas** (requiere `q` con texto)
+- **claude-plugins.dev**: 52K skills, NO tiene API REST publica (el endpoint `/api/skills/search` devuelve 404)
+- **agentskills.io**: Es solo la especificacion del estandar, no un registry
 
-### Fuentes de datos usadas
+### Por que no puedo "usar skills para buscar skills"
 
-Los directorios comparten el mismo ecosistema. Las skills más populares vienen de:
-- **Anthropic** (anthropics/skills): frontend-design, pdf, docx, xlsx, pptx, mcp-builder, skill-creator, canvas-design, webapp-testing
-- **Vercel** (vercel-labs): find-skills, react-best-practices, web-design-guidelines, agent-browser, composition-patterns
-- **Obra** (obra/superpowers): brainstorming, systematic-debugging, test-driven-development, writing-plans
-- **Marketing** (coreyhaines31/marketingskills): seo-audit, copywriting, content-strategy, marketing-psychology, social-content, pricing-strategy, email-sequence
-- **Microsoft** (microsoft/github-copilot-for-azure): azure-ai, azure-deploy, azure-postgres
-- **Otros populares**: remotion-best-practices, supabase-postgres-best-practices, better-auth-best-practices, ui-ux-pro-max, senior-architect, browser-use, expo/building-native-ui
+Las skills como `find-skills` (vercel-labs) y `skills-search` (daymade) son **SKILL.md files** — instrucciones para que Claude Code ejecute comandos como `ccpm search` o `npx skills search` dentro de un terminal local. No son APIs web ni herramientas MCP que yo pueda invocar desde aqui. Solo funcionan dentro de Claude Code CLI corriendo en tu maquina.
 
-### Cambios a implementar
+### Estrategia para maximizar la captura
 
-#### 1. Eliminar las 12 skills ficticias actuales
-Una operación DELETE para limpiar los datos de prueba (junto con reviews e installations asociadas).
+#### 1. skillsmp.com — API paginada con queries alfabeticos (hasta ~50K/dia)
 
-#### 2. Insertar ~30 skills reales con datos verificados
-Cada skill tendrá:
-- `slug`: basado en el nombre real (ej: `frontend-design`)
-- `display_name`: nombre real (ej: "Frontend Design")
-- `tagline`: descripción corta real extraída de los directorios
-- `description_human`: descripción más detallada
-- `install_command`: comando real `npx skills add owner/repo/skill-name`
-- `github_url`: URL real del repositorio (ej: `https://github.com/anthropics/skills`)
-- `target_roles`: mapeados a los roles existentes del sistema (marketer, founder, consultor, abogado, disenador, otro)
-- `industry`: categorías relevantes
-- `install_count`: datos reales de skills.sh (redondeados)
-- `avg_rating`: valores realistas (4.5-4.9)
-- `status`: 'approved'
-- `creator_id`: NULL (no tienen creador en nuestro sistema)
+La API requiere un `q` no vacio y tiene 500 req/dia. Estrategia:
 
-#### 3. Actualizar el archivo `src/data/skills.ts`
-Actualizar los datos estáticos de fallback para que coincidan con las skills reales, en caso de que se usen como referencia.
+- **Queries por letra**: "a", "b", "c"... "z" = 26 queries base
+- **Queries por bigrama**: "aa", "ab", "ac"... para cubrir mas espacio = cientos de queries
+- Cada query pagina hasta que se acaben resultados (max 100/page)
+- **Problema**: 500 req/dia. Con ~50 pages promedio por letra y 26 letras = 1,300 requests. Esto toma ~3 dias de ejecucion.
+- **Solucion**: Parametrizar la funcion con `letter` para procesar una letra por invocacion. Cada invocacion usa ~20-50 requests. Se ejecuta varias veces al dia.
 
-### Skills seleccionadas (30)
+#### 2. claude-plugins.dev — Firecrawl map con multiples search terms
 
-| Skill | Autor | Installs | Rol target |
-|---|---|---|---|
-| Frontend Design | anthropics/skills | 117K | disenador, founder |
-| Brainstorming | obra/superpowers | 38K | founder, consultor, otro |
-| Systematic Debugging | obra/superpowers | 21K | founder, otro |
-| PDF Toolkit | anthropics/skills | 26K | abogado, consultor |
-| DOCX Creator | anthropics/skills | 20K | abogado, consultor, otro |
-| XLSX Spreadsheets | anthropics/skills | 19K | consultor, marketer |
-| PPTX Presentations | anthropics/skills | 22K | consultor, founder |
-| MCP Builder | anthropics/skills | 15K | founder, otro |
-| Skill Creator | anthropics/skills | 58K | founder, otro |
-| Canvas Design | anthropics/skills | 13K | disenador |
-| Webapp Testing | anthropics/skills | 17K | founder, otro |
-| Find Skills | vercel-labs/skills | 388K | otro |
-| React Best Practices | vercel-labs/agent-skills | 186K | disenador, founder |
-| Web Design Guidelines | vercel-labs/agent-skills | 144K | disenador |
-| Agent Browser | vercel-labs/agent-browser | 71K | founder, otro |
-| SEO Audit | coreyhaines31/marketingskills | 31K | marketer |
-| Copywriting | coreyhaines31/marketingskills | 24K | marketer, consultor |
-| Content Strategy | coreyhaines31/marketingskills | 15K | marketer |
-| Marketing Psychology | coreyhaines31/marketingskills | 18K | marketer |
-| Social Content | coreyhaines31/marketingskills | 14K | marketer |
-| Pricing Strategy | coreyhaines31/marketingskills | 13K | founder, consultor |
-| Email Sequence | coreyhaines31/marketingskills | 11K | marketer |
-| Remotion Best Practices | remotion-dev/skills | 122K | disenador, founder |
-| Supabase Best Practices | supabase/agent-skills | 27K | founder, otro |
-| Better Auth | better-auth/skills | 18K | founder, otro |
-| UI/UX Pro Max | nextlevelbuilder | 45K | disenador |
-| Senior Architect | alirezarezvani | 752 | consultor, founder |
-| Browser Use | browser-use | 44K | founder, otro |
-| Writing Plans | obra/superpowers | 19K | consultor, founder |
-| Test Driven Development | obra/superpowers | 17K | founder, otro |
+No tiene API. Firecrawl map devuelve max 5K URLs por llamada, pero acepta un parametro `search` que filtra/ordena resultados:
 
-### Ejecución
+- Ejecutar un map por cada letra del alfabeto: `search: "a"`, `search: "b"`, etc.
+- Cada map devuelve hasta 5K URLs distintas
+- 26 maps x 5K = potencialmente 130K URLs (con mucha deduplicacion, pero capturaria las 52K)
+- **Parametrizar** con `letter` para hacer un map por invocacion
 
-Se usará el **insert tool** (no migraciones) para DELETE + INSERT ya que son operaciones de datos, no de esquema.
+#### 3. skills.sh — Misma estrategia Firecrawl que claude-plugins.dev
 
-### Impacto en el frontend
+- Maps con search terms alfabeticos
+- 26+ maps para cubrir el espacio de 84K skills
 
-No se necesitan cambios en el código del frontend: las páginas `/explorar` y `/skill/:slug` ya leen de la tabla `skills` via API. Los nuevos datos se mostrarán automáticamente.
+### Cambios al edge function `sync-skills`
+
+Reescribir `supabase/functions/sync-skills/index.ts` con estos cambios:
+
+1. **Nuevo parametro `letter`** en el body: permite procesar una sola letra por invocacion
+   - `{"source": "skillsmp", "letter": "a"}` — busca "a" en skillsmp paginando todo
+   - `{"source": "skillssh", "letter": "a"}` — Firecrawl map con search "a"
+   - `{"source": "claudeplugins", "letter": "a"}` — Firecrawl map con search "a"
+
+2. **skillsmp.com**: Paginar profundo (hasta 100 pages por query, no solo 2). Agregar queries por bigrama si una letra devuelve 10K+ resultados (hitting ceiling).
+
+3. **Firecrawl sources**: Hacer map con `search: letter` en vez de un solo map generico.
+
+4. **Batch insert**: Subir de 500 a 2000 por ejecucion, chunks de 100.
+
+5. **Nuevo parametro `offset`** para controlar desde donde insertar los nuevos skills (para no re-procesar).
+
+6. **Progreso tracking**: Guardar en la respuesta cuantos skills se descubrieron vs insertaron y cuantos quedan.
+
+### Flujo de ejecucion
+
+Para capturar todo:
+
+```text
+# Dia 1: skillsmp.com (500 req/dia)
+POST /sync-skills {"source":"skillsmp","letter":"a"}  # ~50 pages
+POST /sync-skills {"source":"skillsmp","letter":"b"}  # ~50 pages
+... (hasta agotar rate limit)
+
+# En paralelo: Firecrawl maps
+POST /sync-skills {"source":"skillssh","letter":"a"}
+POST /sync-skills {"source":"skillssh","letter":"b"}
+...
+POST /sync-skills {"source":"claudeplugins","letter":"a"}
+...
+
+# Repetir dias siguientes hasta cubrir a-z
+```
+
+### Estimacion de resultado
+
+| Fuente | Metodo | Skills esperados |
+|---|---|---|
+| skillsmp.com | API paginada x 26 letras | ~100K-200K (3-5 dias) |
+| skills.sh | Firecrawl maps x 26 | ~30K-84K |
+| claude-plugins.dev | Firecrawl maps x 26 | ~20K-52K |
+| **Total estimado** | | **150K-336K** |
+
+### Archivo a modificar
+
+- `supabase/functions/sync-skills/index.ts` — Reescribir las 3 fuentes con la estrategia por letra
 
