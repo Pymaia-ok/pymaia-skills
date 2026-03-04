@@ -56,21 +56,7 @@ const MarqueeStrip = ({
 
 const MarqueeSection = () => {
   return (
-    <section className="py-20 overflow-hidden">
-      <div className="max-w-5xl mx-auto px-6 mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          className="text-center"
-        >
-          <h2 className="section-title mb-4">Skills para cada profesión</h2>
-          <p className="text-muted-foreground text-lg">
-            No importa a qué te dediques. Hay una skill que transforma tu trabajo.
-          </p>
-        </motion.div>
-      </div>
-
+    <section className="pt-4 pb-20 overflow-hidden">
       {/* Roles marquee */}
       <div className="mb-6">
         <MarqueeStrip duration={35}>
@@ -87,16 +73,33 @@ const MarqueeSection = () => {
       </div>
 
       {/* Skills marquee (reverse direction) */}
-      <MarqueeStrip reverse duration={45}>
-        {skills.map((skill) => (
-          <div
-            key={skill}
-            className="px-6 py-4 rounded-2xl bg-foreground text-background whitespace-nowrap select-none font-medium text-base"
-          >
-            {skill}
-          </div>
-        ))}
-      </MarqueeStrip>
+      <div className="mb-14">
+        <MarqueeStrip reverse duration={45}>
+          {skills.map((skill) => (
+            <div
+              key={skill}
+              className="px-6 py-4 rounded-2xl bg-foreground text-background whitespace-nowrap select-none font-medium text-base"
+            >
+              {skill}
+            </div>
+          ))}
+        </MarqueeStrip>
+      </div>
+
+      {/* Title below the marquees */}
+      <div className="max-w-5xl mx-auto px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="text-center"
+        >
+          <h2 className="section-title mb-4">Skills para cada profesión</h2>
+          <p className="text-muted-foreground text-lg">
+            No importa a qué te dediques. Hay una skill que transforma tu trabajo.
+          </p>
+        </motion.div>
+      </div>
     </section>
   );
 };
