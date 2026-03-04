@@ -21,7 +21,9 @@ export interface SkillFromDB {
   slug: string;
   display_name: string;
   tagline: string;
+  tagline_es?: string | null;
   description_human: string;
+  description_human_es?: string | null;
   use_cases: unknown;
   target_roles: string[];
   install_command: string;

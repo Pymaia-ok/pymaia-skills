@@ -127,6 +127,7 @@ export type Database = {
           created_at: string
           creator_id: string | null
           description_human: string
+          description_human_es: string | null
           display_name: string
           github_url: string | null
           id: string
@@ -137,6 +138,7 @@ export type Database = {
           slug: string
           status: string
           tagline: string
+          tagline_es: string | null
           target_roles: string[]
           time_to_install_minutes: number
           updated_at: string
@@ -149,6 +151,7 @@ export type Database = {
           created_at?: string
           creator_id?: string | null
           description_human: string
+          description_human_es?: string | null
           display_name: string
           github_url?: string | null
           id?: string
@@ -159,6 +162,7 @@ export type Database = {
           slug: string
           status?: string
           tagline: string
+          tagline_es?: string | null
           target_roles?: string[]
           time_to_install_minutes?: number
           updated_at?: string
@@ -171,6 +175,7 @@ export type Database = {
           created_at?: string
           creator_id?: string | null
           description_human?: string
+          description_human_es?: string | null
           display_name?: string
           github_url?: string | null
           id?: string
@@ -181,6 +186,7 @@ export type Database = {
           slug?: string
           status?: string
           tagline?: string
+          tagline_es?: string | null
           target_roles?: string[]
           time_to_install_minutes?: number
           updated_at?: string

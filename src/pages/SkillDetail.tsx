@@ -48,6 +48,8 @@ const SkillDetail = () => {
   }
 
   const useCases = parseUseCases(skill.use_cases);
+  const tagline = (i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline;
+  const descriptionHuman = (i18n.language === "es" && skill.description_human_es) ? skill.description_human_es : skill.description_human;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(skill.install_command);
@@ -72,7 +74,7 @@ const SkillDetail = () => {
     { title: t("detail.step1Title"), description: t("detail.step1Desc") },
     { title: t("detail.step2Title"), description: t("detail.step2Desc") },
     { title: t("detail.step3Title"), description: t("detail.step3Desc"), command: skill.install_command },
-    { title: t("detail.step4Title"), description: (t("detail.step4Desc") as string).replace("{{tagline}}", skill.tagline.toLowerCase()) },
+    { title: t("detail.step4Title"), description: (t("detail.step4Desc") as string).replace("{{tagline}}", tagline.toLowerCase()) },
   ];
 
   return (
@@ -91,7 +93,7 @@ const SkillDetail = () => {
               ))}
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">{skill.display_name}</h1>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">{skill.tagline}</p>
+            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">{tagline}</p>
             <div className="flex flex-wrap items-center gap-4 mb-8">
               <button onClick={handleCopy} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">
                 {copied ? <Check className="w-5 h-5" /> : <Download className="w-5 h-5" />}
@@ -125,7 +127,7 @@ const SkillDetail = () => {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-16">
             <h2 className="text-2xl font-semibold mb-6">{t("detail.whatItDoes")}</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl">{skill.description_human}</p>
+            <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl">{descriptionHuman}</p>
             {useCases.length > 0 && (
               <>
                 <h3 className="text-lg font-semibold mb-4">{t("detail.useCases")}</h3>

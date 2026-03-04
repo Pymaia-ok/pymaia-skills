@@ -10,8 +10,9 @@ interface SkillCardProps {
 }
 
 const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const catLabel = t(`categories.${skill.category}`, skill.category);
+  const tagline = (i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline;
 
   return (
     <motion.div
@@ -41,7 +42,7 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
           {skill.display_name}
         </h3>
         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-          {skill.tagline}
+          {tagline}
         </p>
 
         <div className="flex items-center justify-between">
