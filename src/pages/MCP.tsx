@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 const MCP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server/mcp`;
 
 const mcpConfig = JSON.stringify(
-  { mcpServers: { skillhub: { type: "streamable-http", url: MCP_URL } } },
+  { mcpServers: { "pymaia-skills": { type: "streamable-http", url: MCP_URL } } },
   null,
   2
 );

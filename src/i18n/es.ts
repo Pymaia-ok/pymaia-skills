@@ -262,7 +262,7 @@ export default {
     step3Title: "Abrí Claude Code e iniciá sesión",
     step3Desc: "Una vez instalado, abrí la app e iniciá sesión con tu cuenta de Claude. Si no tenés una, podés crearla gratis.",
     step4Title: "Instalá tu primera skill",
-    step4Desc: "Volvé a SkillHub, elegí una skill que te sirva y seguí la guía de instalación. En 2 minutos tu Claude va a saber hacer cosas que antes no podía.",
+    step4Desc: "Volvé a Pymaia Skills, elegí una skill que te sirva y seguí la guía de instalación. En 2 minutos tu Claude va a saber hacer cosas que antes no podía.",
     exploreSkills: "Explorar skills",
   },
 
