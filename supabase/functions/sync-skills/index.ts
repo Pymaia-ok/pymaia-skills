@@ -49,215 +49,294 @@ function inferRoles(name: string, desc: string, category: string): string[] {
   if (text.match(/consult|strateg|proposal|research/)) roles.push("consultor");
   if (text.match(/startup|product|pitch|founder|mvp/)) roles.push("founder");
   if (text.match(/design|ui|ux|figma|css|frontend/)) roles.push("disenador");
-  if (roles.length === 0) {
-    if (category === "productividad" || category === "ia") roles.push("otro");
-    else roles.push("otro");
-  }
+  if (roles.length === 0) roles.push("otro");
   return roles;
 }
 
-// ─── SOURCE 1: skills.sh ───
-
-async function fetchSkillsSh(): Promise<ParsedSkill[]> {
-  console.log("[skills.sh] Fetching leaderboard...");
-  const res = await fetch("https://skills.sh/", {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
-  });
-  const html = await res.text();
-  console.log(`[skills.sh] HTML: ${html.length} chars`);
-
-  const skills: ParsedSkill[] = [];
-  const seen = new Set<string>();
-
-  // Try anchor-based extraction
-  const entryRegex = /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"[^>]*>[\s\S]*?<\/a>/g;
-  let match;
-
-  while ((match = entryRegex.exec(html)) !== null) {
-    const [fullMatch, owner, repo, name] = match;
-    if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) || name.includes(".") || owner.startsWith("_")) continue;
-
-    const key = `${owner}/${repo}/${name}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    let installCount = 0;
-    const countPatterns = fullMatch.match(/(\d[\d,.]*[KkMm])<\/(?:span|div|p|td)/g);
-    if (countPatterns) {
-      for (const cp of countPatterns) {
-        const numStr = cp.replace(/<\/(?:span|div|p|td)/, "");
-        if (numStr.match(/[KkMm]$/)) { installCount = parseInstallCount(numStr); break; }
-      }
-    }
-    if (installCount === 0) {
-      const plainCounts = fullMatch.match(/>(\d{1,3}(?:,\d{3})+(?:\.\d+)?)<\/(?:span|div)/g);
-      if (plainCounts) {
-        for (const pc of plainCounts) {
-          const numStr = pc.replace(/^>/, "").replace(/<\/(?:span|div)/, "");
-          const val = parseInstallCount(numStr);
-          if (val > 100) { installCount = val; break; }
-        }
-      }
-    }
-
-    skills.push({ name, owner, repo, installCount, stars: 0, description: "", source: "skills.sh" });
-  }
-
-  // Fallback
-  if (skills.length === 0) {
-    const hrefRegex = /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"/g;
-    while ((match = hrefRegex.exec(html)) !== null) {
-      const [, owner, repo, name] = match;
-      if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) || name.includes(".") || owner.startsWith("_")) continue;
-      const key = `${owner}/${repo}/${name}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      let installCount = 0;
-      const ahead = html.substring(match.index, match.index + 1000);
-      const kMatch = ahead.match(/>(\d[\d,.]*[KkMm])</);
-      if (kMatch) installCount = parseInstallCount(kMatch[1]);
-      skills.push({ name, owner, repo, installCount, stars: 0, description: "", source: "skills.sh" });
-    }
-  }
-
-  console.log(`[skills.sh] Parsed ${skills.length} skills`);
-  return skills;
-}
-
-// ─── SOURCE 2: skillsmp.com (via API) ───
+// ─── SOURCE 1: skillsmp.com (paginated API — 17K+ skills) ───
 
 async function fetchSkillsMP(): Promise<ParsedSkill[]> {
   const apiKey = Deno.env.get("SKILLSMP_API_KEY");
   if (!apiKey) {
-    console.log("[skillsmp.com] No API key configured, skipping");
+    console.log("[skillsmp.com] No API key, skipping");
     return [];
   }
 
-  console.log("[skillsmp.com] Fetching via API...");
+  console.log("[skillsmp.com] Fetching ALL skills via paginated API...");
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
 
-  // Search for skills across relevant categories (limited to avoid timeout)
-  const queries = ["agent skills", "design", "automation", "productivity"];
+  // Use fewer queries with limited pages to stay within edge function timeout
+  const queries = ["agent", "skill", "design", "marketing", "automation"];
 
   for (const query of queries) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout per request
+    let page = 1;
+    const maxPages = 2; // 2 pages * 100 = 200 per query
 
-      const res = await fetch(
-        `https://skillsmp.com/api/v1/skills/search?q=${encodeURIComponent(query)}&limit=50&sortBy=stars`,
-        {
-          headers: { "Authorization": `Bearer ${apiKey}`, "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)" },
+    while (page <= maxPages) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
+        const url = `https://skillsmp.com/api/v1/skills/search?q=${encodeURIComponent(query)}&page=${page}&limit=100&sortBy=stars`;
+        const res = await fetch(url, {
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)",
+          },
           signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) {
+          if (res.status === 401) { console.error("[skillsmp.com] Invalid API key"); return skills; }
+          if (res.status === 429) { console.log("[skillsmp.com] Rate limited, stopping"); return skills; }
+          break;
         }
-      );
-      clearTimeout(timeout);
-      if (!res.ok) {
-        const body = await res.text();
-        console.log(`[skillsmp.com] API ${res.status} for "${query}": ${body.substring(0, 200)}`);
-        if (res.status === 401) { console.error("[skillsmp.com] Invalid API key"); return skills; }
-        continue;
+
+        const json = await res.json();
+        const items = json?.data?.skills || json?.skills || json?.data || [];
+
+        if (!items || items.length === 0) break;
+
+        for (const item of items) {
+          const rawName = item.name || item.skillName || item.slug || "";
+          if (!rawName) continue;
+          const name = rawName.replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
+          const owner = item.owner || item.author || item.repoOwner || "";
+          const repo = item.repo || item.repoName || "";
+
+          const key = `${owner}/${repo}/${name}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          skills.push({
+            name, owner, repo,
+            installCount: item.stars || item.downloads || 0,
+            stars: item.stars || 0,
+            description: item.description || "",
+            source: "skillsmp.com",
+          });
+        }
+
+        // If less than 100 results, no more pages
+        if (items.length < 100) break;
+        page++;
+      } catch (e) {
+        console.error(`[skillsmp.com] Error q="${query}" p=${page}:`, (e as Error).message);
+        break;
       }
+    }
 
-      const json = await res.json();
-      const items = json?.data?.skills || json?.skills || json?.data || [];
+    // Log progress every few queries
+    if (skills.length % 500 < 100) {
+      console.log(`[skillsmp.com] Progress: ${skills.length} skills after query "${query}"`);
+    }
+  }
 
-      for (const item of items) {
-        const rawName = item.name || item.skillName || item.slug || "";
-        if (!rawName) continue;
-        const name = rawName.replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
-        const owner = item.owner || item.author || item.repoOwner || "";
-        const repo = item.repo || item.repoName || "";
+  console.log(`[skillsmp.com] Total: ${skills.length} skills`);
+  return skills;
+}
+
+// ─── SOURCE 2: skills.sh (via Firecrawl map — fast URL discovery) ───
+
+async function fetchSkillsShFirecrawl(): Promise<ParsedSkill[]> {
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) {
+    console.log("[skills.sh] No Firecrawl key, falling back to HTML scrape");
+    return fetchSkillsShHTML();
+  }
+
+  console.log("[skills.sh] Mapping site via Firecrawl...");
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+
+    const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: "https://skills.sh",
+        limit: 5000,
+        includeSubdomains: false,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (mapRes.ok) {
+      const mapJson = await mapRes.json();
+      const allLinks = mapJson?.links || [];
+      console.log(`[skills.sh] Map found ${allLinks.length} URLs`);
+
+      for (const link of allLinks) {
+        const match = link.match(/skills\.sh\/([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
+        if (!match) continue;
+        const [, owner, repo, name] = match;
+        if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner)) continue;
 
         const key = `${owner}/${repo}/${name}`;
         if (seen.has(key)) continue;
         seen.add(key);
 
-        skills.push({
-          name, owner, repo,
-          installCount: item.stars || item.downloads || 0,
-          stars: item.stars || 0,
-          description: item.description || "",
-          source: "skillsmp.com",
-        });
+        skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "skills.sh" });
       }
-    } catch (e) {
-      console.error(`[skillsmp.com] Error for "${query}":`, (e as Error).message);
+    } else {
+      console.error(`[skills.sh] Firecrawl map returned ${mapRes.status}`);
+      return fetchSkillsShHTML();
     }
+  } catch (e) {
+    console.error("[skills.sh] Map error:", (e as Error).message);
+    return fetchSkillsShHTML();
   }
 
-  console.log(`[skillsmp.com] Parsed ${skills.length} skills via API`);
+  console.log(`[skills.sh] Total: ${skills.length} skills`);
+  return skills.length > 0 ? skills : fetchSkillsShHTML();
+}
+
+// Fallback: raw HTML scrape for skills.sh
+async function fetchSkillsShHTML(): Promise<ParsedSkill[]> {
+  console.log("[skills.sh] Fetching via HTML scrape (fallback)...");
+  const res = await fetch("https://skills.sh/", {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
+  });
+  const html = await res.text();
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  const hrefRegex = /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"/g;
+  let match;
+  while ((match = hrefRegex.exec(html)) !== null) {
+    const [, owner, repo, name] = match;
+    if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) || name.includes(".") || owner.startsWith("_")) continue;
+    const key = `${owner}/${repo}/${name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "skills.sh" });
+  }
+
+  console.log(`[skills.sh] HTML fallback: ${skills.length} skills`);
   return skills;
 }
 
-// ─── SOURCE 3: claude-plugins.dev ───
+// ─── SOURCE 3: claude-plugins.dev (via Firecrawl) ───
 
 async function fetchClaudePlugins(): Promise<ParsedSkill[]> {
-  console.log("[claude-plugins.dev] Fetching skills...");
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) {
+    console.log("[claude-plugins.dev] No Firecrawl key, falling back to HTML");
+    return fetchClaudePluginsHTML();
+  }
+
+  console.log("[claude-plugins.dev] Fetching via Firecrawl...");
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  // Map the site first to find all skill URLs
+  try {
+    const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: "https://claude-plugins.dev/skills",
+        search: "skills",
+        limit: 5000,
+        includeSubdomains: false,
+      }),
+    });
+
+    if (mapRes.ok) {
+      const mapJson = await mapRes.json();
+      const allLinks = mapJson?.links || [];
+      console.log(`[claude-plugins.dev] Map found ${allLinks.length} URLs`);
+
+      for (const link of allLinks) {
+        // Pattern: /skills/@owner/repo/skill-name or /@owner/repo/skill-name
+        const match = link.match(/(?:skills\/)?\@([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
+        if (!match) continue;
+        const [, owner, repo, name] = match;
+
+        const key = `${owner}/${repo}/${name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
+      }
+    }
+  } catch (e) {
+    console.error("[claude-plugins.dev] Map error:", (e as Error).message);
+  }
+
+  // Also scrape the main skills page
+  try {
+    const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: "https://claude-plugins.dev/skills",
+        formats: ["markdown", "links"],
+        waitFor: 3000,
+      }),
+    });
+
+    if (scrapeRes.ok) {
+      const json = await scrapeRes.json();
+      const links = json?.data?.links || json?.links || [];
+
+      for (const link of links) {
+        const match = link.match(/(?:skills\/)?\@([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
+        if (!match) continue;
+        const [, owner, repo, name] = match;
+
+        const key = `${owner}/${repo}/${name}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
+      }
+    }
+  } catch (e) {
+    console.error("[claude-plugins.dev] Scrape error:", (e as Error).message);
+  }
+
+  console.log(`[claude-plugins.dev] Total: ${skills.length} skills`);
+  return skills.length > 0 ? skills : fetchClaudePluginsHTML();
+}
+
+// Fallback HTML scrape
+async function fetchClaudePluginsHTML(): Promise<ParsedSkill[]> {
+  console.log("[claude-plugins.dev] HTML fallback...");
   const res = await fetch("https://claude-plugins.dev/skills", {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
   });
   const html = await res.text();
-  console.log(`[claude-plugins.dev] HTML: ${html.length} chars`);
-
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
 
-  // Pattern from markdown: [skill-name\n@owner/repo\ndownloads\nstars\ndescription\nInstall](url)
-  const entryRegex = /\[([\w-]+)\\\\\n\\\\\n@([^/]+)\/([^\\\n]+)\\\\\n\\\\\n([\d,.]+[KkMm]?)\\\\\n\\\\\n([\d,.]+[KkMm]?)\\\\\n\\\\\n([\s\S]*?)\\\\\n\\\\\nInstall\]/g;
+  const hrefRegex = /href="(?:https:\/\/claude-plugins\.dev)?\/skills\/@([^/]+)\/([^/]+)\/([^"]+)"/g;
   let match;
-
-  while ((match = entryRegex.exec(html)) !== null) {
-    const [, name, owner, repo, downloadsRaw, starsRaw, description] = match;
+  while ((match = hrefRegex.exec(html)) !== null) {
+    const [, owner, repo, name] = match;
     const key = `${owner}/${repo}/${name}`;
     if (seen.has(key)) continue;
     seen.add(key);
-
-    const downloads = parseInstallCount(downloadsRaw);
-    const stars = parseInstallCount(starsRaw);
-
-    skills.push({
-      name, owner, repo: repo.trim(),
-      installCount: downloads,
-      stars,
-      description: description.replace(/\\/g, "").trim(),
-      source: "claude-plugins.dev",
-    });
+    skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
   }
 
-  // HTML fallback: look for skill card links
-  if (skills.length === 0) {
-    console.log("[claude-plugins.dev] Fallback: scanning href patterns");
-    const hrefRegex = /href="(?:https:\/\/claude-plugins\.dev)?\/skills\/@([^/]+)\/([^/]+)\/([^"]+)"/g;
-    while ((match = hrefRegex.exec(html)) !== null) {
-      const [, owner, repo, name] = match;
-      const key = `${owner}/${repo}/${name}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
-    }
-  }
-
-  console.log(`[claude-plugins.dev] Parsed ${skills.length} skills`);
+  console.log(`[claude-plugins.dev] HTML fallback: ${skills.length} skills`);
   return skills;
-}
-
-// ─── Fetch description from skills.sh detail page ───
-
-async function fetchSkillDescription(owner: string, repo: string, skillName: string): Promise<string> {
-  try {
-    const url = `https://skills.sh/${owner}/${repo}/${skillName}`;
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)" } });
-    if (!res.ok) { await res.text(); return ""; }
-    const html = await res.text();
-    const metaMatch = html.match(/name="description"\s+content="([^"]+)"/i);
-    if (metaMatch) return metaMatch[1];
-    const ogMatch = html.match(/property="og:description"\s+content="([^"]+)"/i);
-    if (ogMatch) return ogMatch[1];
-    return "";
-  } catch { return ""; }
 }
 
 // ─── MAIN HANDLER ───
@@ -273,24 +352,37 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    console.log("Starting multi-source skills sync...");
+    // Accept optional source parameter to sync one source at a time (avoids timeout)
+    let requestedSource = "all";
+    try {
+      const body = await req.json();
+      requestedSource = body?.source || "all";
+    } catch { /* no body = sync all */ }
 
-    // Fetch from all 3 sources in parallel
-    const [skillsShData, skillsMPData, claudePluginsData] = await Promise.all([
-      fetchSkillsSh().catch(e => { console.error("[skills.sh] Error:", e.message); return [] as ParsedSkill[]; }),
-      fetchSkillsMP().catch(e => { console.error("[skillsmp.com] Error:", e.message); return [] as ParsedSkill[]; }),
-      fetchClaudePlugins().catch(e => { console.error("[claude-plugins.dev] Error:", e.message); return [] as ParsedSkill[]; }),
-    ]);
+    console.log(`Syncing source: ${requestedSource}`);
 
-    console.log(`Sources: skills.sh=${skillsShData.length}, skillsmp.com=${skillsMPData.length}, claude-plugins.dev=${claudePluginsData.length}`);
+    let skillsMPData: ParsedSkill[] = [];
+    let skillsShData: ParsedSkill[] = [];
+    let claudePluginsData: ParsedSkill[] = [];
+
+    if (requestedSource === "all" || requestedSource === "skillsmp") {
+      skillsMPData = await fetchSkillsMP().catch(e => { console.error("[skillsmp.com] Error:", e.message); return [] as ParsedSkill[]; });
+    }
+    if (requestedSource === "all" || requestedSource === "skillssh") {
+      skillsShData = await fetchSkillsShFirecrawl().catch(e => { console.error("[skills.sh] Error:", e.message); return [] as ParsedSkill[]; });
+    }
+    if (requestedSource === "all" || requestedSource === "claudeplugins") {
+      claudePluginsData = await fetchClaudePlugins().catch(e => { console.error("[claude-plugins.dev] Error:", e.message); return [] as ParsedSkill[]; });
+    }
+
+    console.log(`Sources: skillsmp.com=${skillsMPData.length}, skills.sh=${skillsShData.length}, claude-plugins.dev=${claudePluginsData.length}`);
 
     // Merge: deduplicate by skill name, prefer highest install count
     const merged = new Map<string, ParsedSkill>();
 
-    for (const skill of [...skillsShData, ...skillsMPData, ...claudePluginsData]) {
+    for (const skill of [...skillsMPData, ...skillsShData, ...claudePluginsData]) {
       const existing = merged.get(skill.name);
       if (!existing || skill.installCount > existing.installCount) {
-        // Keep the best description
         if (existing?.description && !skill.description) {
           skill.description = existing.description;
         }
@@ -303,13 +395,24 @@ Deno.serve(async (req) => {
     const allSkills = Array.from(merged.values());
     console.log(`Merged unique skills: ${allSkills.length}`);
 
-    // Get existing skills from DB
-    const { data: existingSkills, error: fetchError } = await supabase
-      .from("skills")
-      .select("id, slug, install_count, display_name, description_human");
-    if (fetchError) throw fetchError;
+    // Get ALL existing skills from DB (paginate past 1000 row limit)
+    let existingSkills: any[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error: fetchError } = await supabase
+        .from("skills")
+        .select("id, slug, install_count, display_name, description_human")
+        .range(offset, offset + pageSize - 1);
+      if (fetchError) throw fetchError;
+      if (!data || data.length === 0) break;
+      existingSkills = existingSkills.concat(data);
+      if (data.length < pageSize) break;
+      offset += pageSize;
+    }
+    console.log(`Existing skills in DB: ${existingSkills.length}`);
 
-    const existingBySlug = new Map((existingSkills || []).map((s: any) => [s.slug, s]));
+    const existingBySlug = new Map(existingSkills.map((s: any) => [s.slug, s]));
 
     let updated = 0;
     let added = 0;
@@ -324,7 +427,7 @@ Deno.serve(async (req) => {
       if (ls.installCount > 0 && ls.installCount > existing.install_count) {
         updates.install_count = ls.installCount;
       }
-      if (ls.description && ls.description.length > existing.description_human?.length) {
+      if (ls.description && ls.description.length > (existing.description_human?.length || 0)) {
         updates.description_human = ls.description;
       }
 
@@ -337,54 +440,53 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Discover all new skills — no threshold, import everything
+    // Discover ALL new skills — no threshold
     const newSkills = allSkills.filter(ls => !existingBySlug.has(ls.name));
 
-    const toAdd = newSkills.slice(0, 100);
+    // Add in batches — keep small to avoid timeout
+    const toAdd = newSkills.slice(0, 500);
 
-    for (const ns of toAdd) {
-      let description = ns.description;
-      if (!description && ns.source === "skills.sh") {
-        description = await fetchSkillDescription(ns.owner, ns.repo, ns.name);
-      }
-
-      const displayName = ns.name.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-      const category = inferCategory(ns.name, description || "");
-      const targetRoles = inferRoles(ns.name, description || "", category);
-
-      const { error } = await supabase.from("skills").insert({
-        slug: ns.name,
-        display_name: displayName,
-        tagline: description || `Skill del ecosistema: ${displayName}`,
-        description_human: description || `${displayName} — Agent Skill popular del ecosistema open-source.`,
-        install_command: ns.source === "claude-plugins.dev"
-          ? `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`
-          : `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`,
-        github_url: `https://github.com/${ns.owner}/${ns.repo}`,
-        install_count: ns.installCount,
-        status: "approved",
-        industry: ["tecnologia"],
-        target_roles: targetRoles,
-        time_to_install_minutes: 2,
-        category,
+    // Bulk insert in chunks of 50
+    for (let i = 0; i < toAdd.length; i += 50) {
+      const chunk = toAdd.slice(i, i + 50).map(ns => {
+        const displayName = ns.name.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        const description = ns.description || `${displayName} — Agent Skill del ecosistema open-source.`;
+        const category = inferCategory(ns.name, description);
+        const targetRoles = inferRoles(ns.name, description, category);
+        return {
+          slug: ns.name,
+          display_name: displayName,
+          tagline: ns.description || `Skill del ecosistema: ${displayName}`,
+          description_human: description,
+          install_command: `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`,
+          github_url: ns.owner && ns.repo ? `https://github.com/${ns.owner}/${ns.repo}` : null,
+          install_count: ns.installCount,
+          status: "approved",
+          industry: ["tecnologia"],
+          target_roles: targetRoles,
+          time_to_install_minutes: 2,
+          category,
+        };
       });
 
-      if (!error) { added++; console.log(`Added [${ns.source}]: ${ns.name} (${ns.installCount})`); }
-      else console.error(`Error adding ${ns.name}:`, error.message);
+      const { error, data } = await supabase.from("skills").insert(chunk);
+      if (!error) added += chunk.length;
+      else console.error(`Bulk insert error (batch ${i}):`, error.message);
     }
 
     const summary = {
       success: true,
       sources: {
-        "skills.sh": skillsShData.length,
         "skillsmp.com": skillsMPData.length,
+        "skills.sh": skillsShData.length,
         "claude-plugins.dev": claudePluginsData.length,
       },
       mergedUnique: allSkills.length,
+      existingInDB: existingSkills?.length || 0,
       updated,
       updateDetails: updateDetails.slice(0, 20),
       added,
-      newCandidates: newSkills.length,
+      remainingCandidates: newSkills.length - toAdd.length,
       timestamp: new Date().toISOString(),
     };
 
