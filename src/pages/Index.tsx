@@ -45,9 +45,9 @@ const Index = () => {
       <Navbar />
       <div className="pt-14">
         <HeroSection />
+        <MarqueeSection />
         <HowItWorks />
         <StatsBar />
-        <MarqueeSection />
         <TwoPathsSection />
         <WizardSection allSkills={allSkills} />
         <PopularSkills />
