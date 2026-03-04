@@ -196,8 +196,22 @@ export default {
 
   auth: {
     title: "Sign in",
+    signupTitle: "Create your account",
     subtitle: "To leave reviews, publish skills and save your installations.",
     continueGoogle: "Continue with Google",
+    orEmail: "or with email",
+    emailPlaceholder: "you@email.com",
+    passwordPlaceholder: "Password (min. 6 characters)",
+    loginBtn: "Sign in",
+    signupBtn: "Create account",
+    noAccount: "Don't have an account?",
+    signupLink: "Sign up",
+    hasAccount: "Already have an account?",
+    loginLink: "Sign in",
+    checkEmail: "Check your email",
+    confirmSent: "We sent you a confirmation link.",
+    terms: "By continuing, you accept our",
+    and: "and",
   },
 
   mcp: {
