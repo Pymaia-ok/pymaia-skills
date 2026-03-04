@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
@@ -5,13 +6,17 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Clock, Languages } from "lucide-react";
+import { Check, X, Clock, Languages, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 const Admin = () => {
   const { user, loading } = useAuth();
   const queryClient = useQueryClient();
+  const [translating, setTranslating] = useState(false);
+  const abortRef = useRef(false);
+  const [batchProgress, setBatchProgress] = useState({ translated: 0, errors: 0 });
 
   const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -44,6 +49,50 @@ const Admin = () => {
     refetchInterval: 30000, // refresh every 30s to show progress
   });
 
+  const startTranslation = useCallback(async () => {
+    setTranslating(true);
+    abortRef.current = false;
+    setBatchProgress({ translated: 0, errors: 0 });
+
+    let totalTranslated = 0;
+    let consecutiveErrors = 0;
+
+    while (!abortRef.current) {
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-skills", {
+          body: { batchSize: 20 },
+        });
+        if (error) throw error;
+        
+        totalTranslated += data.translated ?? 0;
+        consecutiveErrors = 0;
+        setBatchProgress(p => ({ ...p, translated: totalTranslated }));
+        queryClient.invalidateQueries({ queryKey: ["translation-stats"] });
+
+        if ((data.remaining ?? 0) === 0) {
+          toast.success(`¡Traducción completa! ${totalTranslated} skills traducidas en esta sesión.`);
+          break;
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (e) {
+        consecutiveErrors++;
+        setBatchProgress(p => ({ ...p, errors: p.errors + 1 }));
+        if (consecutiveErrors >= 5) {
+          toast.error("Demasiados errores consecutivos. Deteniendo.");
+          break;
+        }
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+
+    setTranslating(false);
+  }, [queryClient]);
+
+  const stopTranslation = useCallback(() => {
+    abortRef.current = true;
+  }, []);
+
   if (loading || checkingAdmin) return null;
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) {
@@ -62,6 +111,7 @@ const Admin = () => {
   const approved = skills.filter(s => s.status === "approved");
   const rejected = skills.filter(s => s.status === "rejected");
   const totalInstalls = approved.reduce((sum, s) => sum + s.install_count, 0);
+
 
   const handleAction = async (skillId: string, status: "approved" | "rejected") => {
     try {
@@ -99,20 +149,34 @@ const Admin = () => {
             ))}
           </div>
 
-          {/* Auto Translation Status */}
+          {/* Translation Status + Manual Boost */}
           {translationStats && (
             <div className="p-5 rounded-2xl bg-secondary mb-12">
-              <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
-                <Languages className="w-5 h-5" />
-                Traducción automática
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Languages className="w-5 h-5" />
+                  Traducción automática
+                </h2>
+                {translationStats.untranslated > 0 && (
+                  <Button
+                    size="sm"
+                    variant={translating ? "destructive" : "default"}
+                    onClick={translating ? stopTranslation : startTranslation}
+                  >
+                    {translating ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Traducir todo</>}
+                  </Button>
+                )}
+              </div>
               <Progress value={translationPercent} className="h-2 mb-2" />
               <p className="text-sm text-muted-foreground">
                 {translatedCount.toLocaleString()} de {translationTotal.toLocaleString()} traducidas
                 {translationStats.untranslated > 0 && (
-                  <span> · {translationStats.untranslated.toLocaleString()} restantes (cron activo cada minuto)</span>
+                  <span> · {translationStats.untranslated.toLocaleString()} restantes</span>
                 )}
                 {translationStats.untranslated === 0 && " · ✓ Completo"}
+                {translating && (
+                  <span className="text-foreground font-medium"> · Traduciendo... ({batchProgress.translated} en esta sesión)</span>
+                )}
               </p>
             </div>
           )}
