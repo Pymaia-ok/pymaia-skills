@@ -23,7 +23,7 @@ const Footer = () => {
       <div className="max-w-5xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <Link to="/">
-            <img src={logoImg} alt="Pymaia Skills" className="h-7 w-auto" />
+            <img src={logoImg} alt="Pymaia Skills" className="h-9 w-auto" />
           </Link>
           <nav className="flex flex-wrap items-center justify-center gap-6">
             {links.map((link) => (
