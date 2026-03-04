@@ -2,13 +2,15 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Download, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const PrimerosPasos = () => {
   const { t } = useTranslation();
 
   const steps = [
     { title: t("gettingStarted.step1Title"), description: t("gettingStarted.step1Desc") },
-    { title: t("gettingStarted.step2Title"), description: t("gettingStarted.step2Desc") },
+    { title: t("gettingStarted.step2Title"), description: t("gettingStarted.step2Desc"), cta: { label: t("gettingStarted.downloadCta"), url: "https://claude.ai/download" } },
     { title: t("gettingStarted.step3Title"), description: t("gettingStarted.step3Desc") },
     { title: t("gettingStarted.step4Title"), description: t("gettingStarted.step4Desc") },
   ];
@@ -29,6 +31,15 @@ const PrimerosPasos = () => {
               <div className="flex-1 pb-8 border-b border-border last:border-0">
                 <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                {step.cta && (
+                  <a href={step.cta.url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block">
+                    <Button variant="default" size="sm" className="rounded-full gap-2">
+                      <Download className="w-4 h-4" />
+                      {step.cta.label}
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  </a>
+                )}
               </div>
             </motion.div>
           ))}
