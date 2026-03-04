@@ -23,7 +23,7 @@ const Index = () => {
 
   useSEO({
     title: "Pymaia Skills — Supercharge your work with AI",
-    description: "A directory with thousands of professional skills. Pick one, install it, and your AI becomes an expert.",
+    description: "A directory with thousands of professional skills. Pick one, install it in Claude, and your AI becomes an expert.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",
