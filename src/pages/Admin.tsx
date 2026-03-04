@@ -1,4 +1,3 @@
-import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
@@ -6,74 +5,14 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Clock, Languages, Square } from "lucide-react";
+import { Check, X, Clock, Languages } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
 const Admin = () => {
   const { user, loading } = useAuth();
   const queryClient = useQueryClient();
-  const [translating, setTranslating] = useState(false);
-  const [translated, setTranslated] = useState(0);
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const abortRef = useRef(false);
 
-  const startTranslation = useCallback(async () => {
-    setTranslating(true);
-    abortRef.current = false;
-    setTranslated(0);
-
-    // Get initial remaining count
-    const { count } = await supabase
-      .from("skills")
-      .select("id", { count: "exact", head: true })
-      .is("tagline_es", null)
-      .eq("status", "approved");
-    
-    const initialRemaining = count ?? 0;
-    setRemaining(initialRemaining);
-    if (initialRemaining === 0) {
-      toast.info("No hay skills pendientes de traducción");
-      setTranslating(false);
-      return;
-    }
-
-    let totalTranslated = 0;
-    let left = initialRemaining;
-
-    while (left > 0 && !abortRef.current) {
-      try {
-        const { data, error } = await supabase.functions.invoke("translate-skills", {
-          body: { batchSize: 20 },
-        });
-        if (error) throw error;
-        totalTranslated += data.translated ?? 0;
-        left = data.remaining ?? 0;
-        setTranslated(totalTranslated);
-        setRemaining(left);
-      } catch (e) {
-        toast.error("Error en traducción, reintentando en 3s...");
-        await new Promise(r => setTimeout(r, 3000));
-        continue;
-      }
-      // Pause between batches
-      if (left > 0 && !abortRef.current) {
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-
-    setTranslating(false);
-    if (abortRef.current) {
-      toast.info(`Traducción pausada. ${totalTranslated} skills traducidas.`);
-    } else {
-      toast.success(`¡Traducción completa! ${totalTranslated} skills traducidas.`);
-    }
-    queryClient.invalidateQueries({ queryKey: ["admin-skills"] });
-  }, [queryClient]);
-
-  const stopTranslation = () => {
-    abortRef.current = true;
-  };
   const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
     queryFn: () => checkIsAdmin(user!.id),
@@ -84,6 +23,25 @@ const Admin = () => {
     queryKey: ["admin-skills"],
     queryFn: fetchAllSkills,
     enabled: !!isAdmin,
+  });
+
+  // Count translated vs untranslated approved skills
+  const { data: translationStats } = useQuery({
+    queryKey: ["translation-stats"],
+    queryFn: async () => {
+      const { count: untranslated } = await supabase
+        .from("skills")
+        .select("id", { count: "exact", head: true })
+        .is("tagline_es", null)
+        .eq("status", "approved");
+      const { count: total } = await supabase
+        .from("skills")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved");
+      return { untranslated: untranslated ?? 0, total: total ?? 0 };
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000, // refresh every 30s to show progress
   });
 
   if (loading || checkingAdmin) return null;
@@ -115,6 +73,10 @@ const Admin = () => {
     }
   };
 
+  const translatedCount = translationStats ? translationStats.total - translationStats.untranslated : 0;
+  const translationTotal = translationStats?.total ?? 0;
+  const translationPercent = translationTotal > 0 ? (translatedCount / translationTotal) * 100 : 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -137,39 +99,25 @@ const Admin = () => {
             ))}
           </div>
 
-          {/* Translation */}
-          <div className="p-5 rounded-2xl bg-secondary mb-12">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
+          {/* Auto Translation Status */}
+          {translationStats && (
+            <div className="p-5 rounded-2xl bg-secondary mb-12">
+              <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
                 <Languages className="w-5 h-5" />
-                Traducción masiva
+                Traducción automática
               </h2>
-              {!translating ? (
-                <button
-                  onClick={startTranslation}
-                  className="px-4 py-2 rounded-xl bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  Traducir pendientes
-                </button>
-              ) : (
-                <button
-                  onClick={stopTranslation}
-                  className="px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
-                >
-                  <Square className="w-3 h-3" /> Detener
-                </button>
-              )}
+              <Progress value={translationPercent} className="h-2 mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {translatedCount.toLocaleString()} de {translationTotal.toLocaleString()} traducidas
+                {translationStats.untranslated > 0 && (
+                  <span> · {translationStats.untranslated.toLocaleString()} restantes (cron activo cada minuto)</span>
+                )}
+                {translationStats.untranslated === 0 && " · ✓ Completo"}
+              </p>
             </div>
-            {remaining !== null && (
-              <div className="space-y-2">
-                <Progress value={remaining + translated > 0 ? (translated / (translated + remaining)) * 100 : 0} className="h-2" />
-                <p className="text-sm text-muted-foreground">
-                  {translated} traducidas · {remaining} restantes
-                  {translating && " · Traduciendo..."}
-                </p>
-              </div>
-            )}
-          </div>
+          )}
+
+          {/* Pending Skills */}
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5" />
             Pendientes de aprobación ({pending.length})
