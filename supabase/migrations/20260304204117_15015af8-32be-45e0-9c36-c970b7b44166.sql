@@ -1,0 +1,1 @@
+ALTER TABLE public.skills ADD COLUMN github_stars integer NOT NULL DEFAULT 0;

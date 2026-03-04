@@ -33,6 +33,7 @@ export interface SkillFromDB {
   install_count: number;
   avg_rating: number;
   review_count: number;
+  github_stars: number;
   industry: string[];
   status: string;
   creator_id: string | null;
