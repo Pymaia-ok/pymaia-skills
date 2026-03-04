@@ -2,8 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface ParsedSkill {
@@ -11,6 +10,9 @@ interface ParsedSkill {
   owner: string;
   repo: string;
   installCount: number;
+  stars: number;
+  description: string;
+  source: string;
 }
 
 function parseInstallCount(raw: string): number {
@@ -24,127 +26,256 @@ function parseInstallCount(raw: string): number {
   return Math.round(num);
 }
 
-async function fetchLeaderboard(): Promise<ParsedSkill[]> {
+function inferCategory(name: string, desc: string): string {
+  const text = `${name} ${desc}`.toLowerCase();
+  if (text.match(/design|ui|ux|css|style|layout|figma/)) return "diseño";
+  if (text.match(/market|seo|content|copy|social|brand/)) return "marketing";
+  if (text.match(/automat|browser|scrape|crawl|workflow/)) return "automatización";
+  if (text.match(/legal|contract|compliance|law/)) return "legal";
+  if (text.match(/video|animation|creative|art|remotion/)) return "creatividad";
+  if (text.match(/data|analyt|chart|csv|excel|xlsx/)) return "datos";
+  if (text.match(/\bai\b|llm|agent|model|gpt|claude|prompt/)) return "ia";
+  if (text.match(/pitch|business|presentation|pptx|slide/)) return "negocios";
+  if (text.match(/productiv|brainstorm|organiz|todo|debug/)) return "productividad";
+  if (text.match(/doc|pdf|word|docx|document/)) return "productividad";
+  return "desarrollo";
+}
+
+function inferRoles(name: string, desc: string, category: string): string[] {
+  const text = `${name} ${desc}`.toLowerCase();
+  const roles: string[] = [];
+  if (text.match(/market|seo|content|copy|social|brand/)) roles.push("marketer");
+  if (text.match(/legal|contract|compliance|law/)) roles.push("abogado");
+  if (text.match(/consult|strateg|proposal|research/)) roles.push("consultor");
+  if (text.match(/startup|product|pitch|founder|mvp/)) roles.push("founder");
+  if (text.match(/design|ui|ux|figma|css|frontend/)) roles.push("disenador");
+  if (roles.length === 0) {
+    if (category === "productividad" || category === "ia") roles.push("otro");
+    else roles.push("otro");
+  }
+  return roles;
+}
+
+// ─── SOURCE 1: skills.sh ───
+
+async function fetchSkillsSh(): Promise<ParsedSkill[]> {
+  console.log("[skills.sh] Fetching leaderboard...");
   const res = await fetch("https://skills.sh/", {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)",
-      Accept: "text/html",
-    },
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
   });
   const html = await res.text();
-  console.log(`Fetched HTML: ${html.length} chars`);
+  console.log(`[skills.sh] HTML: ${html.length} chars`);
 
   const skills: ParsedSkill[] = [];
   const seen = new Set<string>();
 
-  // Each leaderboard entry is an <a> tag with href="/owner/repo/skill"
-  // containing the skill name, repo info, and install count
-  // We split by these anchor patterns and extract data from each block
-  const entryRegex =
-    /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"[^>]*>[\s\S]*?<\/a>/g;
-
+  // Try anchor-based extraction
+  const entryRegex = /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"[^>]*>[\s\S]*?<\/a>/g;
   let match;
+
   while ((match = entryRegex.exec(html)) !== null) {
     const [fullMatch, owner, repo, name] = match;
-
-    // Skip non-skill paths
-    if (
-      ["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) ||
-      name.includes(".") ||
-      owner.startsWith("_")
-    ) continue;
+    if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) || name.includes(".") || owner.startsWith("_")) continue;
 
     const key = `${owner}/${repo}/${name}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
-    // Extract install count: look for patterns like "390.9K" or "12,345"
-    // within this anchor block
     let installCount = 0;
-    const countPatterns = fullMatch.match(
-      /(\d[\d,.]*[KkMm])<\/(?:span|div|p|td)/g
-    );
+    const countPatterns = fullMatch.match(/(\d[\d,.]*[KkMm])<\/(?:span|div|p|td)/g);
     if (countPatterns) {
-      // The last numeric match with K/M suffix is likely the install count
-      // (first one is the ranking number)
       for (const cp of countPatterns) {
         const numStr = cp.replace(/<\/(?:span|div|p|td)/, "");
-        if (numStr.match(/[KkMm]$/)) {
-          installCount = parseInstallCount(numStr);
-          break;
-        }
+        if (numStr.match(/[KkMm]$/)) { installCount = parseInstallCount(numStr); break; }
       }
     }
-
-    // If no K/M suffix found, try plain formatted numbers
     if (installCount === 0) {
-      const plainCounts = fullMatch.match(
-        />(\d{1,3}(?:,\d{3})+(?:\.\d+)?)<\/(?:span|div)/g
-      );
+      const plainCounts = fullMatch.match(/>(\d{1,3}(?:,\d{3})+(?:\.\d+)?)<\/(?:span|div)/g);
       if (plainCounts) {
         for (const pc of plainCounts) {
           const numStr = pc.replace(/^>/, "").replace(/<\/(?:span|div)/, "");
           const val = parseInstallCount(numStr);
-          if (val > 100) {
-            // Skip small numbers (likely rankings)
-            installCount = val;
-            break;
-          }
+          if (val > 100) { installCount = val; break; }
         }
       }
     }
 
-    skills.push({ name, owner, repo, installCount });
+    skills.push({ name, owner, repo, installCount, stars: 0, description: "", source: "skills.sh" });
   }
 
-  // If the greedy </a> regex didn't work (minified HTML can be tricky),
-  // try a different approach: find all skill hrefs and their nearby context
+  // Fallback
   if (skills.length === 0) {
-    console.log("Fallback: scanning for skill hrefs individually");
     const hrefRegex = /href="\/([^\/\s"]+)\/([^\/\s"]+)\/([^\/\s"]+)"/g;
     while ((match = hrefRegex.exec(html)) !== null) {
       const [, owner, repo, name] = match;
-      if (
-        ["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) ||
-        name.includes(".") || owner.startsWith("_")
-      ) continue;
-
+      if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner) || name.includes(".") || owner.startsWith("_")) continue;
       const key = `${owner}/${repo}/${name}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
-      // Look ahead ~1000 chars for install count before next href
-      const ahead = html.substring(match.index, match.index + 1000);
-      const nextHref = ahead.indexOf('href="/', 10);
-      const block = nextHref > 0 ? ahead.substring(0, nextHref) : ahead;
-
       let installCount = 0;
-      // Match "XXX.XK" pattern
-      const kMatch = block.match(/>(\d[\d,.]*[KkMm])</);
-      if (kMatch) {
-        installCount = parseInstallCount(kMatch[1]);
-      }
-
-      skills.push({ name, owner, repo, installCount });
+      const ahead = html.substring(match.index, match.index + 1000);
+      const kMatch = ahead.match(/>(\d[\d,.]*[KkMm])</);
+      if (kMatch) installCount = parseInstallCount(kMatch[1]);
+      skills.push({ name, owner, repo, installCount, stars: 0, description: "", source: "skills.sh" });
     }
   }
 
+  console.log(`[skills.sh] Parsed ${skills.length} skills`);
   return skills;
 }
 
-async function fetchSkillDescription(
-  owner: string,
-  repo: string,
-  skillName: string
-): Promise<string> {
+// ─── SOURCE 2: skillsmp.com (SSR scraping) ───
+
+async function fetchSkillsMP(): Promise<ParsedSkill[]> {
+  console.log("[skillsmp.com] Fetching homepage...");
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  try {
+    const res = await fetch("https://skillsmp.com/", {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
+    });
+    const html = await res.text();
+    console.log(`[skillsmp.com] HTML: ${html.length} chars`);
+
+    // Try to extract __NEXT_DATA__ JSON blob
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (nextDataMatch) {
+      try {
+        const nextData = JSON.parse(nextDataMatch[1]);
+        // Navigate the Next.js data structure to find skills
+        const pageProps = nextData?.props?.pageProps;
+        const skillsList = pageProps?.skills || pageProps?.initialSkills || [];
+        console.log(`[skillsmp.com] Found ${skillsList.length} skills in __NEXT_DATA__`);
+
+        for (const item of skillsList) {
+          const name = (item.name || item.skillName || "").replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
+          if (!name) continue;
+          const owner = item.owner || item.author || item.repoOwner || "";
+          const repo = item.repo || item.repoName || "";
+          const key = `${owner}/${repo}/${name}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          skills.push({
+            name, owner, repo,
+            installCount: item.stars || item.downloads || 0,
+            stars: item.stars || 0,
+            description: item.description || "",
+            source: "skillsmp.com",
+          });
+        }
+      } catch (e) {
+        console.error("[skillsmp.com] Error parsing __NEXT_DATA__:", (e as Error).message);
+      }
+    }
+
+    // Fallback: extract from href patterns in SSR HTML
+    if (skills.length === 0) {
+      console.log("[skillsmp.com] Fallback: scanning href patterns");
+      const hrefRegex = /href="\/skills\/([\w-]+)"[^>]*>/g;
+      let match;
+      while ((match = hrefRegex.exec(html)) !== null) {
+        const slug = match[1];
+        if (seen.has(slug)) continue;
+        seen.add(slug);
+
+        // Extract description from nearby text
+        const ahead = html.substring(match.index, match.index + 2000);
+
+        // Try to extract stars count
+        let stars = 0;
+        const starsMatch = ahead.match(/([\d,.]+[KkMm])/);
+        if (starsMatch) stars = parseInstallCount(starsMatch[1]);
+
+        // Try to extract owner from avatar alt or "from" text
+        const ownerMatch = ahead.match(/alt="(\w+)"/);
+        const owner = ownerMatch ? ownerMatch[1] : "";
+
+        // Extract description text
+        const descMatch = ahead.match(/from &quot;[^&]+&quot;[^>]*>([^<]+)</);
+        const description = descMatch ? descMatch[1].trim() : "";
+
+        // Parse name from slug (format: owner-repo-skills-name-skill-md)
+        const parts = slug.split("-");
+        const name = parts.length > 2 ? parts.slice(-3, -2).join("-") : slug;
+
+        skills.push({
+          name, owner, repo: "",
+          installCount: stars, stars,
+          description, source: "skillsmp.com",
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[skillsmp.com] Fetch error:", (e as Error).message);
+  }
+
+  console.log(`[skillsmp.com] Parsed ${skills.length} skills`);
+  return skills;
+}
+
+// ─── SOURCE 3: claude-plugins.dev ───
+
+async function fetchClaudePlugins(): Promise<ParsedSkill[]> {
+  console.log("[claude-plugins.dev] Fetching skills...");
+  const res = await fetch("https://claude-plugins.dev/skills", {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)", Accept: "text/html" },
+  });
+  const html = await res.text();
+  console.log(`[claude-plugins.dev] HTML: ${html.length} chars`);
+
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  // Pattern from markdown: [skill-name\n@owner/repo\ndownloads\nstars\ndescription\nInstall](url)
+  const entryRegex = /\[([\w-]+)\\\\\n\\\\\n@([^/]+)\/([^\\\n]+)\\\\\n\\\\\n([\d,.]+[KkMm]?)\\\\\n\\\\\n([\d,.]+[KkMm]?)\\\\\n\\\\\n([\s\S]*?)\\\\\n\\\\\nInstall\]/g;
+  let match;
+
+  while ((match = entryRegex.exec(html)) !== null) {
+    const [, name, owner, repo, downloadsRaw, starsRaw, description] = match;
+    const key = `${owner}/${repo}/${name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const downloads = parseInstallCount(downloadsRaw);
+    const stars = parseInstallCount(starsRaw);
+
+    skills.push({
+      name, owner, repo: repo.trim(),
+      installCount: downloads,
+      stars,
+      description: description.replace(/\\/g, "").trim(),
+      source: "claude-plugins.dev",
+    });
+  }
+
+  // HTML fallback: look for skill card links
+  if (skills.length === 0) {
+    console.log("[claude-plugins.dev] Fallback: scanning href patterns");
+    const hrefRegex = /href="(?:https:\/\/claude-plugins\.dev)?\/skills\/@([^/]+)\/([^/]+)\/([^"]+)"/g;
+    while ((match = hrefRegex.exec(html)) !== null) {
+      const [, owner, repo, name] = match;
+      const key = `${owner}/${repo}/${name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "claude-plugins.dev" });
+    }
+  }
+
+  console.log(`[claude-plugins.dev] Parsed ${skills.length} skills`);
+  return skills;
+}
+
+// ─── Fetch description from skills.sh detail page ───
+
+async function fetchSkillDescription(owner: string, repo: string, skillName: string): Promise<string> {
   try {
     const url = `https://skills.sh/${owner}/${repo}/${skillName}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)" },
-    });
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; SkillStoreBot/1.0)" } });
     if (!res.ok) { await res.text(); return ""; }
     const html = await res.text();
-
     const metaMatch = html.match(/name="description"\s+content="([^"]+)"/i);
     if (metaMatch) return metaMatch[1];
     const ogMatch = html.match(/property="og:description"\s+content="([^"]+)"/i);
@@ -152,6 +283,8 @@ async function fetchSkillDescription(
     return "";
   } catch { return ""; }
 }
+
+// ─── MAIN HANDLER ───
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -164,107 +297,120 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    console.log("Starting skills sync from skills.sh...");
+    console.log("Starting multi-source skills sync...");
 
-    const leaderboardSkills = await fetchLeaderboard();
-    console.log(`Parsed ${leaderboardSkills.length} skills`);
+    // Fetch from all 3 sources in parallel
+    const [skillsShData, skillsMPData, claudePluginsData] = await Promise.all([
+      fetchSkillsSh().catch(e => { console.error("[skills.sh] Error:", e.message); return [] as ParsedSkill[]; }),
+      fetchSkillsMP().catch(e => { console.error("[skillsmp.com] Error:", e.message); return [] as ParsedSkill[]; }),
+      fetchClaudePlugins().catch(e => { console.error("[claude-plugins.dev] Error:", e.message); return [] as ParsedSkill[]; }),
+    ]);
 
-    // Log sample with install counts
-    const withInstalls = leaderboardSkills.filter((s) => s.installCount > 0);
-    console.log(`Skills with install counts: ${withInstalls.length}`);
-    console.log(
-      "Top 5:",
-      JSON.stringify(
-        leaderboardSkills
-          .slice(0, 5)
-          .map((s) => ({ n: s.name, i: s.installCount }))
-      )
-    );
+    console.log(`Sources: skills.sh=${skillsShData.length}, skillsmp.com=${skillsMPData.length}, claude-plugins.dev=${claudePluginsData.length}`);
 
-    // Get existing skills
+    // Merge: deduplicate by skill name, prefer highest install count
+    const merged = new Map<string, ParsedSkill>();
+
+    for (const skill of [...skillsShData, ...skillsMPData, ...claudePluginsData]) {
+      const existing = merged.get(skill.name);
+      if (!existing || skill.installCount > existing.installCount) {
+        // Keep the best description
+        if (existing?.description && !skill.description) {
+          skill.description = existing.description;
+        }
+        merged.set(skill.name, skill);
+      } else if (existing && skill.description && !existing.description) {
+        existing.description = skill.description;
+      }
+    }
+
+    const allSkills = Array.from(merged.values());
+    console.log(`Merged unique skills: ${allSkills.length}`);
+
+    // Get existing skills from DB
     const { data: existingSkills, error: fetchError } = await supabase
       .from("skills")
-      .select("id, slug, install_count, display_name");
+      .select("id, slug, install_count, display_name, description_human");
     if (fetchError) throw fetchError;
 
-    const existingBySlug = new Map(
-      (existingSkills || []).map((s: any) => [s.slug, s])
-    );
+    const existingBySlug = new Map((existingSkills || []).map((s: any) => [s.slug, s]));
 
     let updated = 0;
     let added = 0;
     const updateDetails: string[] = [];
 
-    // Update install counts
-    for (const ls of leaderboardSkills) {
+    // Update existing skills
+    for (const ls of allSkills) {
       const existing = existingBySlug.get(ls.name);
-      if (existing && ls.installCount > 0 && ls.installCount > existing.install_count) {
-        const { error } = await supabase
-          .from("skills")
-          .update({ install_count: ls.installCount })
-          .eq("id", existing.id);
+      if (!existing) continue;
+
+      const updates: any = {};
+      if (ls.installCount > 0 && ls.installCount > existing.install_count) {
+        updates.install_count = ls.installCount;
+      }
+      if (ls.description && ls.description.length > existing.description_human?.length) {
+        updates.description_human = ls.description;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.from("skills").update(updates).eq("id", existing.id);
         if (!error) {
           updated++;
-          updateDetails.push(`${ls.name}: ${existing.install_count}→${ls.installCount}`);
+          if (updates.install_count) updateDetails.push(`${ls.name}: ${existing.install_count}→${updates.install_count}`);
         }
       }
     }
 
-    // Discover new popular skills
-    const newSkills = leaderboardSkills.filter(
-      (ls) => !existingBySlug.has(ls.name) && ls.installCount >= 10000
-    );
-    const toAdd = newSkills.slice(0, 5);
+    // Discover new skills (>5K installs or from curated sources)
+    const newSkills = allSkills.filter(ls => {
+      if (existingBySlug.has(ls.name)) return false;
+      if (ls.source === "claude-plugins.dev") return true; // curated, always add
+      return ls.installCount >= 5000;
+    });
+
+    const toAdd = newSkills.slice(0, 10);
 
     for (const ns of toAdd) {
-      const description = await fetchSkillDescription(ns.owner, ns.repo, ns.name);
-      const displayName = ns.name
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
+      let description = ns.description;
+      if (!description && ns.source === "skills.sh") {
+        description = await fetchSkillDescription(ns.owner, ns.repo, ns.name);
+      }
 
-      // Infer category from name/description
-      const inferCategory = (name: string, desc: string): string => {
-        const text = `${name} ${desc}`.toLowerCase();
-        if (text.match(/design|ui|ux|css|style|layout/)) return "diseño";
-        if (text.match(/market|seo|content|copy|social/)) return "marketing";
-        if (text.match(/automat|browser|scrape|crawl/)) return "automatización";
-        if (text.match(/legal|contract|compliance|law/)) return "legal";
-        if (text.match(/video|animation|creative|art/)) return "creatividad";
-        if (text.match(/data|analyt|chart|csv|excel/)) return "datos";
-        if (text.match(/ai|llm|agent|model|gpt|claude/)) return "ia";
-        if (text.match(/pitch|business|presentation|slide/)) return "negocios";
-        if (text.match(/productiv|brainstorm|organiz|todo/)) return "productividad";
-        return "desarrollo";
-      };
-
-      const category = inferCategory(ns.name, description);
+      const displayName = ns.name.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      const category = inferCategory(ns.name, description || "");
+      const targetRoles = inferRoles(ns.name, description || "", category);
 
       const { error } = await supabase.from("skills").insert({
         slug: ns.name,
         display_name: displayName,
         tagline: description || `Skill del ecosistema: ${displayName}`,
         description_human: description || `${displayName} — Agent Skill popular del ecosistema open-source.`,
-        install_command: `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`,
+        install_command: ns.source === "claude-plugins.dev"
+          ? `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`
+          : `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`,
         github_url: `https://github.com/${ns.owner}/${ns.repo}`,
         install_count: ns.installCount,
         status: "approved",
         industry: ["tecnologia"],
-        target_roles: ["otro"],
+        target_roles: targetRoles,
         time_to_install_minutes: 2,
         category,
       });
 
-      if (!error) { added++; console.log(`Added: ${ns.name} (${ns.installCount})`); }
+      if (!error) { added++; console.log(`Added [${ns.source}]: ${ns.name} (${ns.installCount})`); }
       else console.error(`Error adding ${ns.name}:`, error.message);
     }
 
     const summary = {
       success: true,
-      parsed: leaderboardSkills.length,
-      withInstallCounts: withInstalls.length,
+      sources: {
+        "skills.sh": skillsShData.length,
+        "skillsmp.com": skillsMPData.length,
+        "claude-plugins.dev": claudePluginsData.length,
+      },
+      mergedUnique: allSkills.length,
       updated,
-      updateDetails,
+      updateDetails: updateDetails.slice(0, 20),
       added,
       newCandidates: newSkills.length,
       timestamp: new Date().toISOString(),
