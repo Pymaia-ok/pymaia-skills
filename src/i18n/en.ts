@@ -27,7 +27,7 @@ export default {
   landing: {
     heroBadge: "The #1 skill directory for Claude Code",
     heroTitle: "Supercharge your work\nwith Artificial Intelligence.",
-    heroSubtitle: "A directory with thousands of professional skills. Pick one, install it in Claude, and your AI becomes an expert.",
+    heroSubtitle: "A directory with thousands of professional skills. Pick one, install it in Claude, and it becomes an expert.",
     heroCtaExplore: "Explore skills",
     heroCtaLearn: "What is Claude Code?",
 
