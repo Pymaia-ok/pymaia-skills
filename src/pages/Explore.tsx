@@ -6,9 +6,18 @@ import { useTranslation } from "react-i18next";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchSkills, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
+import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
   const { t } = useTranslation();
+
+  useSEO({
+    title: "Explore Skills — Pymaia Skills",
+    description: "Browse thousands of skills for Claude Code. Filter by category, search by name, and find the perfect skill for your work.",
+    canonical: "https://pymaiaskills.lovable.app/explorar",
+  });
+
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

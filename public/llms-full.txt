@@ -1,0 +1,128 @@
+# Pymaia Skills — Full Documentation
+
+> The #1 skill directory for Claude Code. Give your Claude superpowers.
+
+## Overview
+
+Pymaia Skills is a curated marketplace where professionals discover, install, and share "skills" for Claude Code. A skill is a knowledge file that teaches Claude how to perform a specific professional task — from generating marketing briefs to reviewing legal contracts.
+
+No coding required. No terminal knowledge needed. Install any skill in 2 minutes with a single command.
+
+## Target Audience
+
+Pymaia Skills serves non-technical professionals who want to augment their AI capabilities:
+- **Marketers**: Content creation, campaign briefs, analytics
+- **Lawyers**: Contract review, legal document drafting, compliance
+- **Consultants**: Proposals, market research, presentations
+- **Founders**: Product definition, pitch decks, competitive analysis
+- **Designers**: Creative briefs, copy writing, design specs
+- **Any professional**: Productivity, writing, data analysis, automation
+
+## Skill Categories
+
+1. **AI (IA)** — Skills related to AI workflows and integrations
+2. **Development (Desarrollo)** — Coding and software development skills
+3. **Design (Diseño)** — Design and creative workflow skills
+4. **Marketing** — Marketing, content, and campaign skills
+5. **Automation (Automatización)** — Task automation and workflow skills
+6. **Data (Datos)** — Data analysis and visualization skills
+7. **Creativity (Creatividad)** — Creative writing and ideation skills
+8. **Productivity (Productividad)** — General productivity enhancement skills
+9. **Legal** — Legal document and compliance skills
+10. **Business (Negocios)** — Business strategy and operations skills
+
+## How Skills Work
+
+### Installation Process
+1. Browse the skill directory at /explorar
+2. Find a skill that matches your needs
+3. Click "Install skill" to copy the install command
+4. Paste the command in Claude Code and press Enter
+5. Claude now has expert knowledge for that task
+
+### What Makes a Good Skill
+- Clear, specific purpose (e.g., "Generate campaign briefs in 3 minutes")
+- Well-defined use cases with before/after scenarios
+- Fast installation (typically 2 minutes)
+- Community reviews and ratings
+
+## MCP Server
+
+The Pymaia Skills MCP Server enables Claude to automatically recommend relevant skills based on your conversation context.
+
+### Installation
+Add this to your Claude Code or Cursor MCP configuration:
+```json
+{
+  "mcpServers": {
+    "pymaia-skills": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/sse"]
+    }
+  }
+}
+```
+
+### Available Tools
+- **search_skills**: Searches for relevant skills based on task description
+- **get_skill_details**: Returns full skill information including description, use cases, and install command
+- **get_popular_skills**: Lists trending skills sorted by installs or rating
+
+### Example Conversations
+- "I need to prepare 10 campaign briefs by tomorrow" → Claude recommends Brief Generator and Campaign Planner
+- "I need to review a service contract" → Claude recommends Contract Reviewer
+- "What skills are marketers using most?" → Claude lists top marketing skills
+
+## Teams Plan
+
+For agencies and companies that want to standardize AI usage:
+- Private internal skills repository
+- Team management panel
+- Centralized installation for all members
+- Team-configured MCP Server
+- Guided onboarding for new members
+- Priority support
+
+## Real-World Impact
+
+### Marketing
+- **Before**: 2 hours researching, writing and formatting each brief manually
+- **After**: Complete brief in 3 minutes with research, objectives and KPIs included
+- **Time saved**: ~1.5 hours per brief
+
+### Legal
+- **Before**: Read each clause, compare with standards, note risks. 45 min per contract
+- **After**: Complete analysis with highlighted risk clauses in 5 minutes
+- **Time saved**: ~40 min per contract
+
+### Competitive Analysis
+- **Before**: Hours browsing sites, comparing features, building spreadsheets
+- **After**: Structured competitive analysis with pricing, features and gaps in 10 min
+- **Time saved**: ~3 hours per analysis
+
+## Publishing Skills
+
+Professionals can publish their own skills:
+1. Sign in to Pymaia Skills
+2. Go to /publicar
+3. Fill in skill details (name, description, use cases, install command)
+4. Submit for review
+5. Once approved, the skill appears in the public directory
+
+## Sitemap
+
+- `/` — Landing page with overview, how it works, and popular skills
+- `/explorar` — Full skill directory with search, filters, and pagination
+- `/skill/{slug}` — Individual skill detail page with reviews and install guide
+- `/primeros-pasos` — Getting started guide for new Claude Code users
+- `/mcp` — MCP Server documentation and installation
+- `/teams` — Teams plan features and pricing
+- `/publicar` — Skill submission form (requires authentication)
+- `/auth` — Sign in with Google
+- `/terminos` — Terms and conditions
+- `/privacidad` — Privacy policy
+
+## Contact
+
+- Email: info@pymaia.com
+- Website: https://pymaiaskills.lovable.app

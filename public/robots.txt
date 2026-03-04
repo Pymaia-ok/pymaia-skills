@@ -12,3 +12,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://pymaiaskills.lovable.app/sitemap.xml
+
+# LLM Discovery — https://llmstxt.org
+# llms.txt: https://pymaiaskills.lovable.app/llms.txt
+# llms-full.txt: https://pymaiaskills.lovable.app/llms-full.txt

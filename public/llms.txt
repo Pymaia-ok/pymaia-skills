@@ -1,0 +1,63 @@
+# Pymaia Skills
+
+> The #1 skill directory for Claude Code. Thousands of ready-to-install skills that give your AI superpowers.
+
+Pymaia Skills is a curated marketplace of "skills" - knowledge files that teach Claude Code how to perform specific professional tasks. Users browse, install, and review skills without any coding or terminal knowledge.
+
+## What is a Skill?
+
+A skill is a file that teaches Claude how to do a specific task in your work. It's not an app or plugin - it's expert knowledge that Claude uses automatically. Skills install in 2 minutes with a single command.
+
+## Key Features
+
+- **Skill Directory**: Browse 14,000+ skills across 10 categories (AI, Development, Design, Marketing, Automation, Data, Creativity, Productivity, Legal, Business)
+- **One-Command Install**: Copy a single command, paste it in Claude Code, done
+- **MCP Server**: Automatic skill recommendations based on what you're working on
+- **Reviews & Ratings**: Community-driven quality signals
+- **Teams**: Standardize AI usage across your organization with private skill repositories
+- **Multilingual**: Full Spanish and English support
+
+## Categories
+
+- AI (IA)
+- Development (Desarrollo)
+- Design (Diseño)
+- Marketing
+- Automation (Automatización)
+- Data (Datos)
+- Creativity (Creatividad)
+- Productivity (Productividad)
+- Legal
+- Business (Negocios)
+
+## Pages
+
+- Home: /
+- Explore Skills: /explorar
+- Skill Detail: /skill/{slug}
+- Getting Started: /primeros-pasos
+- MCP Server: /mcp
+- Teams & Pricing: /teams
+- Publish a Skill: /publicar
+
+## How It Works
+
+1. **Pick a skill** - Browse the directory and find the perfect skill for what you need
+2. **Copy a command** - One single command, paste it in Claude Code
+3. **Claude knows how** - Your Claude now has expert knowledge for that task
+
+## MCP Server Integration
+
+Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing. Compatible with Claude Code, Cursor, and more.
+
+## API
+
+The Pymaia Skills MCP Server provides these tools:
+- `search_skills`: Search for relevant skills based on your needs
+- `get_skill_details`: Get detailed information about a specific skill
+- `get_popular_skills`: List the most popular skills sorted by installs or rating
+
+## Contact
+
+- Email: info@pymaia.com
+- Website: https://pymaiaskills.lovable.app
