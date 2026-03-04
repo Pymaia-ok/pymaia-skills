@@ -417,8 +417,8 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
         updates.description_human = repoData.description;
         updates.tagline = repoData.description;
       }
-      if (repoData.stargazers_count > (skill.install_count || 0)) {
-        updates.install_count = repoData.stargazers_count;
+      if (repoData.stargazers_count > 0) {
+        updates.github_stars = repoData.stargazers_count;
       }
       // Infer category from topics
       if (repoData.topics && repoData.topics.length > 0) {
@@ -737,7 +737,8 @@ async function upsertSkills(supabase: ReturnType<typeof createClient>, discovere
           ? `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`
           : `npx skills add ${ns.name}`,
         github_url: ns.owner && ns.repo ? `https://github.com/${ns.owner}/${ns.repo}` : null,
-        install_count: ns.installCount,
+        github_stars: ns.stars,
+        install_count: 0,
         status: "approved",
         industry: ["tecnologia"],
         target_roles: targetRoles,

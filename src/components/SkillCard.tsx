@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, GitFork } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return n.toString();
+}
 
 interface SkillCardProps {
   skill: SkillFromDB;
@@ -46,17 +51,27 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
         </p>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Star className="w-3.5 h-3.5 fill-foreground text-foreground" />
-            <span className="text-sm font-medium">{Number(skill.avg_rating).toFixed(1)}</span>
-            <span className="text-xs text-muted-foreground">
-              ({skill.review_count})
-            </span>
+          <div className="flex items-center gap-3">
+            {skill.review_count > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 fill-foreground text-foreground" />
+                <span className="text-sm font-medium">{Number(skill.avg_rating).toFixed(1)}</span>
+                <span className="text-xs text-muted-foreground">({skill.review_count})</span>
+              </div>
+            )}
+            {skill.github_stars > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="w-3 h-3" />
+                <span>{formatCount(skill.github_stars)}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">
-              {skill.install_count.toLocaleString()} {t("skillCard.installations")}
-            </span>
+            {skill.install_count > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {skill.install_count.toLocaleString()} {t("skillCard.installations")}
+              </span>
+            )}
             <span className="text-xs text-muted-foreground">
               {skill.time_to_install_minutes} {t("skillCard.min")}
             </span>

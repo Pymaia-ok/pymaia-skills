@@ -31,7 +31,7 @@ const SkillDetail = () => {
 
   useSEO({
     title: skill ? `${skill.display_name} — ${tagline}` : "Loading...",
-    description: skill ? `${descriptionHuman.slice(0, 150)}. ⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count} installs.` : "",
+    description: skill ? `${descriptionHuman.slice(0, 150)}. ${skill.review_count > 0 ? `⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ` : ""}${skill.github_stars > 0 ? `★ ${skill.github_stars.toLocaleString()} GitHub stars · ` : ""}${skill.install_count > 0 ? `${skill.install_count} installs.` : ""}` : "",
     canonical: skill ? `https://pymaiaskills.lovable.app/skill/${skill.slug}` : "",
     jsonLd: skill ? {
       "@context": "https://schema.org",
@@ -39,13 +39,13 @@ const SkillDetail = () => {
       name: skill.display_name,
       description: descriptionHuman,
       applicationCategory: skill.category,
-      aggregateRating: {
+      aggregateRating: skill.review_count > 0 ? {
         "@type": "AggregateRating",
         ratingValue: Number(skill.avg_rating).toFixed(1),
         reviewCount: skill.review_count,
         bestRating: 5,
         worstRating: 1,
-      },
+      } : undefined,
       offers: {
         "@type": "Offer",
         price: "0",
@@ -128,12 +128,22 @@ const SkillDetail = () => {
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-6">
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 fill-foreground text-foreground" />
-                <span className="font-medium text-foreground">{Number(skill.avg_rating).toFixed(1)}</span>
-                <span>({skill.review_count} {t("detail.reviews")})</span>
-              </div>
-              <div className="flex items-center gap-1.5"><Download className="w-4 h-4" /><span>{skill.install_count.toLocaleString()} {t("detail.installs")}</span></div>
+              {skill.review_count > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-foreground text-foreground" />
+                  <span className="font-medium text-foreground">{Number(skill.avg_rating).toFixed(1)}</span>
+                  <span>({skill.review_count} {t("detail.reviews")})</span>
+                </div>
+              )}
+              {skill.github_stars > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4" />
+                  <span>{skill.github_stars.toLocaleString()} GitHub stars</span>
+                </div>
+              )}
+              {skill.install_count > 0 && (
+                <div className="flex items-center gap-1.5"><Download className="w-4 h-4" /><span>{skill.install_count.toLocaleString()} {t("detail.installs")}</span></div>
+              )}
               <div className="flex items-center gap-1.5"><Clock className="w-4 h-4" /><span>{skill.time_to_install_minutes} {t("detail.minToInstall")}</span></div>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-12">
