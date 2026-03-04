@@ -19,6 +19,40 @@ const taskIdsByRole: Record<string, string[]> = {
   otro: ["productividad", "escritura", "datos", "automatizar"],
 };
 
+// Map each task to relevant categories and industry keywords for filtering
+const taskFilters: Record<string, { categories: string[]; industries: string[]; keywords: string[] }> = {
+  // Marketer tasks
+  contenido: { categories: ["marketing", "creatividad"], industries: ["contenido", "marketing", "redes-sociales", "seo"], keywords: ["content", "copy", "write", "blog", "social"] },
+  analizar: { categories: ["marketing", "datos"], industries: ["marketing", "seo", "datos"], keywords: ["analytics", "metric", "seo", "track", "report"] },
+  clientes: { categories: ["marketing", "negocios"], industries: ["marketing", "email", "negocios"], keywords: ["crm", "client", "email", "lead", "customer"] },
+  reportes: { categories: ["datos", "marketing"], industries: ["datos", "marketing"], keywords: ["report", "dashboard", "metric", "chart", "data"] },
+  // Abogado tasks
+  contratos: { categories: ["legal"], industries: ["legal", "documentos"], keywords: ["contract", "legal", "agreement", "clause"] },
+  documentos: { categories: ["legal", "productividad"], industries: ["legal", "documentos"], keywords: ["document", "legal", "draft", "write"] },
+  jurisprudencia: { categories: ["legal"], industries: ["legal"], keywords: ["legal", "law", "research", "case", "jurisprudencia"] },
+  compliance: { categories: ["legal"], industries: ["legal", "seguridad"], keywords: ["compliance", "gdpr", "regulat", "audit", "policy"] },
+  // Consultor tasks
+  propuestas: { categories: ["negocios", "productividad"], industries: ["estrategia", "negocios", "documentos"], keywords: ["proposal", "propuesta", "pitch", "strategy"] },
+  investigacion: { categories: ["datos", "negocios"], industries: ["estrategia", "datos", "negocios"], keywords: ["research", "market", "analysis", "competitor", "trend"] },
+  presentaciones: { categories: ["negocios", "creatividad", "productividad"], industries: ["presentaciones", "estrategia", "negocios"], keywords: ["presentation", "slide", "deck", "pitch", "presentaci"] },
+  analisis: { categories: ["datos"], industries: ["datos", "estrategia", "finanzas"], keywords: ["data", "analysis", "excel", "sql", "chart", "dashboard"] },
+  // Founder tasks
+  producto: { categories: ["desarrollo", "negocios"], industries: ["tecnologia", "frontend", "backend"], keywords: ["product", "feature", "mvp", "build", "ship"] },
+  pitch: { categories: ["negocios"], industries: ["negocios", "estrategia", "finanzas", "presentaciones"], keywords: ["pitch", "investor", "fundrais", "deck", "startup"] },
+  competencia: { categories: ["negocios", "datos"], industries: ["estrategia", "negocios", "datos"], keywords: ["competitor", "market", "research", "benchmark"] },
+  metricas: { categories: ["datos", "negocios"], industries: ["datos", "finanzas", "negocios"], keywords: ["metric", "kpi", "analytics", "track", "dashboard"] },
+  // Diseñador tasks
+  briefs: { categories: ["diseño", "creatividad"], industries: ["diseno", "creatividad", "contenido"], keywords: ["brief", "creative", "design", "concept"] },
+  copy: { categories: ["marketing", "creatividad"], industries: ["contenido", "marketing", "diseno"], keywords: ["copy", "text", "write", "content", "ux writing"] },
+  feedback: { categories: ["diseño", "productividad"], industries: ["diseno", "ux"], keywords: ["feedback", "review", "critique", "iterate"] },
+  specs: { categories: ["diseño", "desarrollo"], industries: ["diseno", "frontend", "ux"], keywords: ["spec", "design system", "component", "ui", "css", "figma"] },
+  // Otro tasks
+  productividad: { categories: ["productividad", "automatización"], industries: ["productividad", "automatizacion"], keywords: ["productiv", "automat", "workflow", "efficien"] },
+  escritura: { categories: ["productividad", "creatividad"], industries: ["contenido", "documentos"], keywords: ["write", "edit", "grammar", "text", "document"] },
+  datos: { categories: ["datos"], industries: ["datos"], keywords: ["data", "excel", "csv", "sql", "analysis", "chart"] },
+  automatizar: { categories: ["automatización"], industries: ["automatizacion"], keywords: ["automat", "workflow", "scrape", "bot", "schedule", "cron"] },
+};
+
 interface WizardSectionProps {
   allSkills: SkillFromDB[];
 }
@@ -36,10 +70,35 @@ const WizardSection = ({ allSkills }: WizardSectionProps) => {
     else if (step === "results") { setStep("task"); setSelectedTask(""); }
   };
 
-  const recommendedSkills = allSkills
-    .filter((s) => s.target_roles.includes(selectedRole))
-    .sort((a, b) => Number(b.avg_rating) - Number(a.avg_rating))
-    .slice(0, 5);
+  const recommendedSkills = (() => {
+    const filter = taskFilters[selectedTask];
+    if (!filter) return [];
+
+    // Score each skill by how well it matches the task
+    const scored = allSkills
+      .filter((s) => s.status === "approved")
+      .map((s) => {
+        let score = 0;
+        // Role match
+        if (s.target_roles.includes(selectedRole)) score += 2;
+        // Category match
+        if (filter.categories.includes(s.category)) score += 3;
+        // Industry match
+        const industryMatches = s.industry.filter((ind) => filter.industries.includes(ind)).length;
+        score += industryMatches * 2;
+        // Keyword match in name + tagline + description
+        const text = `${s.display_name} ${s.tagline} ${s.tagline_es || ""} ${s.description_human}`.toLowerCase();
+        const keywordMatches = filter.keywords.filter((kw) => text.includes(kw)).length;
+        score += keywordMatches;
+        return { skill: s, score };
+      })
+      .filter((x) => x.score > 2)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map((x) => x.skill);
+
+    return scored;
+  })();
 
   return (
     <section className="py-24 bg-secondary/30">
