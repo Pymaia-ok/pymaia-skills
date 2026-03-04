@@ -355,4 +355,9 @@ export default {
     es: "ES",
     en: "EN",
   },
+
+  footer: {
+    terms: "Términos y Condiciones",
+    privacy: "Política de Privacidad",
+  },
 } as const;

@@ -53,6 +53,7 @@ const Navbar = () => {
 
           <button
             onClick={toggleLang}
+            aria-label={t("nav.switchLang", { lang: i18n.language === "es" ? "EN" : "ES" })}
             className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors"
           >
             <Globe className="w-3.5 h-3.5" />
@@ -69,6 +70,7 @@ const Navbar = () => {
               </span>
               <button
                 onClick={signOut}
+                aria-label={t("nav.signOut")}
                 className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
               >
                 <LogOut className="w-4 h-4" />
@@ -86,7 +88,7 @@ const Navbar = () => {
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
+        <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
