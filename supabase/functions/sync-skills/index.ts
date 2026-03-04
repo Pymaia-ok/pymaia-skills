@@ -337,14 +337,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Discover new skills (>500 installs or from curated sources)
-    const newSkills = allSkills.filter(ls => {
-      if (existingBySlug.has(ls.name)) return false;
-      if (ls.source === "claude-plugins.dev") return true; // curated, always add
-      return ls.installCount >= 500;
-    });
+    // Discover all new skills — no threshold, import everything
+    const newSkills = allSkills.filter(ls => !existingBySlug.has(ls.name));
 
-    const toAdd = newSkills.slice(0, 50);
+    const toAdd = newSkills.slice(0, 100);
 
     for (const ns of toAdd) {
       let description = ns.description;
