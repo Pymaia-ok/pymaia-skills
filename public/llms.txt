@@ -1,6 +1,6 @@
 # Pymaia Skills
 
-> The #1 skill directory for Claude Code. Thousands of ready-to-install skills that give your AI superpowers.
+> A directory with thousands of professional skills. Pick one, install it, and your AI becomes an expert.
 
 Pymaia Skills is a curated marketplace of "skills" - knowledge files that teach Claude Code how to perform specific professional tasks. Users browse, install, and review skills without any coding or terminal knowledge.
 
