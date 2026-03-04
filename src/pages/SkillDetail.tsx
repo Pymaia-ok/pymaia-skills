@@ -25,6 +25,35 @@ const SkillDetail = () => {
   const { data: reviews = [], refetch: refetchReviews } = useQuery({ queryKey: ["reviews", skill?.id], queryFn: () => fetchReviewsForSkill(skill!.id), enabled: !!skill?.id });
   const { data: creatorProfile } = useQuery({ queryKey: ["creator", skill?.creator_id], queryFn: () => fetchProfile(skill!.creator_id!), enabled: !!skill?.creator_id });
 
+  const useCases = skill ? parseUseCases(skill.use_cases) : [];
+  const tagline = skill ? ((i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline) : "";
+  const descriptionHuman = skill ? ((i18n.language === "es" && skill.description_human_es) ? skill.description_human_es : skill.description_human) : "";
+
+  useSEO({
+    title: skill ? `${skill.display_name} — ${tagline}` : "Loading...",
+    description: skill ? `${descriptionHuman.slice(0, 150)}. ⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count} installs.` : "",
+    canonical: skill ? `https://pymaiaskills.lovable.app/skill/${skill.slug}` : "",
+    jsonLd: skill ? {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: skill.display_name,
+      description: descriptionHuman,
+      applicationCategory: skill.category,
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: Number(skill.avg_rating).toFixed(1),
+        reviewCount: skill.review_count,
+        bestRating: 5,
+        worstRating: 1,
+      },
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+    } : undefined,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background"><Navbar />
@@ -47,35 +76,6 @@ const SkillDetail = () => {
       </div>
     );
   }
-
-  const useCases = parseUseCases(skill.use_cases);
-  const tagline = (i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline;
-  const descriptionHuman = (i18n.language === "es" && skill.description_human_es) ? skill.description_human_es : skill.description_human;
-
-  useSEO({
-    title: `${skill.display_name} — ${tagline}`,
-    description: `${descriptionHuman.slice(0, 150)}. ⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count} installs.`,
-    canonical: `https://pymaiaskills.lovable.app/skill/${skill.slug}`,
-    jsonLd: {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      name: skill.display_name,
-      description: descriptionHuman,
-      applicationCategory: skill.category,
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: Number(skill.avg_rating).toFixed(1),
-        reviewCount: skill.review_count,
-        bestRating: 5,
-        worstRating: 1,
-      },
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "USD",
-      },
-    },
-  });
 
   const handleCopy = () => {
     navigator.clipboard.writeText(skill.install_command);
