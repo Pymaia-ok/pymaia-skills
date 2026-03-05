@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.enroll-sequence]
 verify_jwt = false
+
+[functions.test-skill-playground]
+verify_jwt = false

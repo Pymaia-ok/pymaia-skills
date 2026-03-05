@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import SkillPlayground from "@/components/crear-skill/SkillPlayground";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { submitSkill } from "@/lib/api";
@@ -11,11 +12,11 @@ import SkillPublishConfig from "@/components/crear-skill/SkillPublishConfig";
 import type { Msg } from "@/lib/streaming";
 
 interface StepProps {
-  step: "chat" | "preview" | "publish";
-  setStep: (step: "chat" | "preview" | "publish") => void;
+  step: "chat" | "preview" | "playground" | "publish";
+  setStep: (step: "chat" | "preview" | "playground" | "publish") => void;
 }
 
-type Step = "chat" | "preview" | "publish";
+type Step = "chat" | "preview" | "playground" | "publish";
 
 interface GeneratedSkill {
   name: string;
@@ -187,10 +188,21 @@ const CrearSkill = () => {
                 onPublish={() => setStep("publish")}
                 onBack={() => setStep("chat")}
                 onRunTests={handleRunTests}
+                onPlayground={() => setStep("playground")}
                 isRefining={isRefining}
                 isTesting={isTesting}
               />
             </div>
+          </div>
+        )}
+
+        {step === "playground" && skill && (
+          <div className="flex-1 flex flex-col min-h-0">
+            <SkillPlayground
+              skill={skill}
+              onBack={() => setStep("preview")}
+              onRefine={() => setStep("preview")}
+            />
           </div>
         )}
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen } from "lucide-react";
+import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import SkillScoreCard from "./SkillScoreCard";
@@ -51,11 +51,12 @@ interface SkillPreviewProps {
   onPublish: () => void;
   onBack: () => void;
   onRunTests: () => void;
+  onPlayground: () => void;
   isRefining: boolean;
   isTesting: boolean;
 }
 
-export default function SkillPreview({ skill, quality, testResults, onRefine, onPublish, onBack, onRunTests, isRefining, isTesting }: SkillPreviewProps) {
+export default function SkillPreview({ skill, quality, testResults, onRefine, onPublish, onBack, onRunTests, onPlayground, isRefining, isTesting }: SkillPreviewProps) {
   const [refinement, setRefinement] = useState("");
 
   const handleRefine = async () => {
@@ -165,6 +166,14 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
 
       {/* Actions */}
       <div className="flex gap-3">
+        <Button
+          onClick={onPlayground}
+          variant="outline"
+          className="flex-1 rounded-full gap-2"
+          size="lg"
+        >
+          <FlaskConical className="w-4 h-4" /> Probar mi skill
+        </Button>
         <Button
           onClick={onPublish}
           disabled={!canPublish}
