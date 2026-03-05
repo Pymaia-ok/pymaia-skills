@@ -25,9 +25,7 @@ const Navbar = () => {
   ];
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+    <nav
       className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border"
     >
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -131,7 +129,7 @@ const Navbar = () => {
           )}
         </div>
       )}
-    </motion.nav>
+    </nav>
   );
 };
 
