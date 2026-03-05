@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.test-skill-playground]
 verify_jwt = false
+
+[functions.enrich-skills-ai]
+verify_jwt = false
