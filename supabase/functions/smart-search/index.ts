@@ -150,19 +150,87 @@ Examples:
       }
     }
 
-    // Sort by similarity and paginate
-    const allSkills = Array.from(skillMap.values()).sort(
-      (a, b) => b.similarity_score - a.similarity_score
-    );
+    // Re-rank candidates using AI for intent relevance
+    const candidates = Array.from(skillMap.values());
+    
+    let rankedSkills = candidates;
+    if (candidates.length > 0) {
+      const candidateSummaries = candidates.slice(0, 60).map((s, i) => 
+        `${i}: ${s.display_name} — ${s.tagline}`
+      ).join("\n");
+
+      const rerankResp = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              {
+                role: "system",
+                content: `You are a relevance ranker. Given a user's intent and a list of AI agent skills (index: name — tagline), return the indices of the most relevant skills ordered by relevance to the user's INTENT, not just keyword overlap. Only include skills that genuinely help accomplish what the user wants to do. Be strict — exclude loosely related results.`,
+              },
+              {
+                role: "user",
+                content: `User intent: "${query}"\n\nSkills:\n${candidateSummaries}`,
+              },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "rank_results",
+                  description: "Return skill indices ordered by relevance to user intent",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      ranked_indices: {
+                        type: "array",
+                        items: { type: "number" },
+                        description: "Skill indices ordered from most to least relevant",
+                      },
+                    },
+                    required: ["ranked_indices"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+            ],
+            tool_choice: {
+              type: "function",
+              function: { name: "rank_results" },
+            },
+          }),
+        }
+      );
+
+      if (rerankResp.ok) {
+        const rerankData = await rerankResp.json();
+        const rerankCall = rerankData.choices?.[0]?.message?.tool_calls?.[0];
+        if (rerankCall) {
+          try {
+            const { ranked_indices } = JSON.parse(rerankCall.function.arguments);
+            const slicedCandidates = candidates.slice(0, 60);
+            rankedSkills = ranked_indices
+              .filter((i: number) => i >= 0 && i < slicedCandidates.length)
+              .map((i: number) => slicedCandidates[i]);
+          } catch { /* fallback to original order */ }
+        }
+      }
+    }
 
     const pageSize = 24;
     const start = pageNum * pageSize;
-    const paged = allSkills.slice(start, start + pageSize);
+    const paged = rankedSkills.slice(start, start + pageSize);
 
     return new Response(
       JSON.stringify({
         data: paged,
-        count: allSkills.length,
+        count: rankedSkills.length,
         keywords,
         ai_category: aiCategory,
         mode: "smart",
