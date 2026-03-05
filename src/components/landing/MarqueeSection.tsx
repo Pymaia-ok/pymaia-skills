@@ -11,6 +11,9 @@ const roles = [
   { emoji: "🏥", label: "Salud" },
   { emoji: "🎓", label: "Educación" },
   { emoji: "🏗️", label: "Arquitectura" },
+  { emoji: "🔧", label: "Ingeniería" },
+  { emoji: "🏠", label: "Construcción" },
+  { emoji: "🩺", label: "Medicina" },
   { emoji: "📝", label: "Contenido" },
   { emoji: "🛒", label: "E-commerce" },
 ];
@@ -27,7 +30,12 @@ const skills = [
   "Auditoría legal",
   "Plan de negocios",
   "Dashboard de métricas",
-  "Propuesta de consultoría",
+  "Planos CAD",
+  "Revisión BIM",
+  "Historia clínica",
+  "Plan de obra",
+  "Cálculo estructural",
+  "Planificación de clases",
 ];
 
 const MarqueeStrip = ({

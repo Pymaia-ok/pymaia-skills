@@ -96,6 +96,10 @@ export default {
     consultor: { label: "Consultor", description: "Consultoría y estrategia" },
     founder: { label: "Founder", description: "Startups y producto" },
     disenador: { label: "Diseñador", description: "Diseño y creatividad" },
+    ingeniero: { label: "Ingeniero", description: "Ingeniería y cálculo" },
+    arquitecto: { label: "Arquitecto", description: "Arquitectura y diseño" },
+    medico: { label: "Médico", description: "Medicina y salud" },
+    profesor: { label: "Profesor", description: "Educación y formación" },
     otro: { label: "Otro", description: "Cualquier profesión" },
   },
 
@@ -129,6 +133,30 @@ export default {
       copy: "Escribir copy para diseños",
       feedback: "Estructurar feedback",
       specs: "Documentar specs de diseño",
+    },
+    ingeniero: {
+      calculos: "Automatizar cálculos técnicos",
+      planos: "Revisar planos y especificaciones",
+      normas: "Verificar cumplimiento de normas",
+      informes: "Generar informes técnicos",
+    },
+    arquitecto: {
+      cad: "Optimizar flujos CAD/BIM",
+      presupuestos: "Estimar presupuestos de obra",
+      renders: "Preparar presentaciones y renders",
+      normativa: "Verificar normativa urbana",
+    },
+    medico: {
+      historias: "Documentar historias clínicas",
+      diagnostico: "Apoyo en diagnóstico diferencial",
+      recetas: "Gestionar recetas y prescripciones",
+      papers: "Investigar papers médicos",
+    },
+    profesor: {
+      clases: "Planificar clases y currículum",
+      evaluaciones: "Crear evaluaciones y rúbricas",
+      material: "Generar material didáctico",
+      retroalimentacion: "Dar retroalimentación a alumnos",
     },
     otro: {
       productividad: "Ser más productivo",
@@ -365,6 +393,12 @@ export default {
     productividad: "Productividad",
     legal: "Legal",
     negocios: "Negocios",
+    arquitectura: "Arquitectura",
+    "ingeniería": "Ingeniería",
+    "construcción": "Construcción",
+    medicina: "Medicina",
+    "educación": "Educación",
+    tecnologia: "Tecnología",
   },
 
   // Language switcher

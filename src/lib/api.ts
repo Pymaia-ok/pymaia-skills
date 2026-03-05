@@ -55,9 +55,6 @@ export const SKILL_CATEGORIES = [
   { key: "productividad", label: "Productividad" },
   { key: "legal", label: "Legal" },
   { key: "negocios", label: "Negocios" },
-] as const;
-
-export const INDUSTRY_FILTERS = [
   { key: "arquitectura", label: "Arquitectura" },
   { key: "ingeniería", label: "Ingeniería" },
   { key: "construcción", label: "Construcción" },
@@ -123,7 +120,6 @@ export interface ProfileFromDB {
 // Skills
 export async function fetchSkills(filters?: {
   search?: string;
-  industry?: string;
   category?: string;
   sortBy?: "rating" | "installs";
   roles?: string[];
@@ -136,7 +132,7 @@ export async function fetchSkills(filters?: {
     const { data, error } = await supabase.rpc("search_skills", {
       search_query: filters.search,
       filter_category: filters.category || null,
-      filter_industry: filters.industry || null,
+      filter_industry: null,
       filter_roles: filters.roles && filters.roles.length > 0 ? filters.roles : null,
       sort_by: filters.sortBy || "rating",
       page_num: page,
@@ -179,8 +175,15 @@ export async function fetchSkills(filters?: {
   const to = from + PAGE_SIZE - 1;
 
   let query = supabase.from("skills").select("*", { count: "exact" }).eq("status", "approved");
-  if (filters?.category) query = query.eq("category", filters.category);
-  if (filters?.industry) query = query.contains("industry", [filters.industry]);
+  if (filters?.category) {
+    // Industries added as categories — search both columns
+    const industryKeys = ["arquitectura", "ingeniería", "construcción", "medicina", "educación", "tecnologia"];
+    if (industryKeys.includes(filters.category)) {
+      query = query.or(`category.eq.${filters.category},industry.cs.{${filters.category}}`);
+    } else {
+      query = query.eq("category", filters.category);
+    }
+  }
   if (filters?.roles && filters.roles.length > 0) query = query.overlaps("target_roles", filters.roles);
   if (filters?.sortBy === "installs") query = query.order("github_stars", { ascending: false });
   else query = query.order("avg_rating", { ascending: false });
