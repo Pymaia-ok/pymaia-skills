@@ -10,7 +10,7 @@ const Footer = () => {
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
     { to: "/mcp", label: t("nav.mcp") },
     { to: "/teams", label: t("nav.teams") },
-    { to: "/publicar", label: t("nav.publish") },
+    { to: "/crear-skill", label: t("nav.publish") },
   ];
 
   const legalLinks = [

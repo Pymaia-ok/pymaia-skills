@@ -2,14 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import SkillDetail from "./pages/SkillDetail";
 import PrimerosPasos from "./pages/PrimerosPasos";
 import Auth from "./pages/Auth";
-import Publicar from "./pages/Publicar";
+import CrearSkill from "./pages/CrearSkill";
 import UserProfile from "./pages/UserProfile";
 import Teams from "./pages/Teams";
 import MCP from "./pages/MCP";
@@ -35,7 +35,8 @@ const App = () => (
             <Route path="/skill/:slug" element={<SkillDetail />} />
             <Route path="/primeros-pasos" element={<PrimerosPasos />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/publicar" element={<Publicar />} />
+            <Route path="/crear-skill" element={<CrearSkill />} />
+            <Route path="/publicar" element={<Navigate to="/crear-skill" replace />} />
             <Route path="/u/:username" element={<UserProfile />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/mcp" element={<MCP />} />
