@@ -6,7 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GENERATE_PROMPT = `Sos un experto en crear skills para Claude Code siguiendo el estándar oficial Agent Skills de Anthropic. Basándote en la conversación de entrevista que te paso, generá una skill estructurada.
+const GENERATE_PROMPT = `Sos un experto en crear skills best-in-class para Claude Code siguiendo el estándar oficial Agent Skills de Anthropic. Estudiaste las mejores skills del ecosistema (webapp-testing, mcp-builder, pdf-tools, frontend-design) y aplicás sus patrones.
+
+Basándote en la conversación de entrevista, generá una skill estructurada.
 
 Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
@@ -20,7 +22,7 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estruc
     {
       "title": "Título del ejemplo",
       "input": "Lo que el usuario pide",
-      "output": "Lo que Claude debería responder/hacer"
+      "output": "Lo que Claude debería responder/hacer (con código si es técnica)"
     }
   ],
   "dont_do": ["lista de cosas que Claude NO debe hacer nunca"],
@@ -28,58 +30,106 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estruc
   "category": "una de: ia, desarrollo, diseño, marketing, automatización, datos, creatividad, productividad, legal, negocios",
   "industry": ["industrias relevantes de: Agencias, Legal, Consultoras, E-commerce, Startups, Educación, Finanzas"],
   "target_roles": ["roles objetivo de: marketer, abogado, consultor, founder, disenador, desarrollador, otro"],
-  "install_command": "El contenido completo del SKILL.md en formato estándar Agent Skills de Anthropic (ver abajo)"
+  "install_command": "El contenido completo del SKILL.md (ver formato abajo)"
 }
 
-IMPORTANTE: El campo "install_command" DEBE ser un archivo SKILL.md válido según el estándar oficial de Anthropic con este formato exacto:
+## FORMATO OBLIGATORIO del SKILL.md (campo install_command)
+
+El SKILL.md DEBE seguir estos patrones best-in-class de Anthropic:
+
+### 1. Frontmatter con description keyword-rich
+La description DEBE decir QUÉ hace + CUÁNDO usarla + keywords de matching:
 
 ---
 name: nombre-en-kebab-case
-description: Descripción concisa de qué hace la skill y cuándo usarla (max 1024 chars)
+description: "[QUÉ hace en 1 frase]. [CUÁNDO usarla]. Use when [keywords de activación]."
 compatibility: claude-code
 metadata:
   author: pymaia
   version: "1.0"
 ---
 
+### 2. Estructura del body (secciones obligatorias)
+
 # Nombre de la Skill
 
-[Instrucciones principales en markdown]
+[1-2 párrafos de overview: qué hace, para quién, qué problema resuelve]
 
-## Triggers
+## Decision Tree
 
-[Lista de triggers/situaciones que activan la skill]
+[Árbol de decisión en ASCII que ayude al agente a decidir CUÁNDO activar la skill]
+
+Ejemplo de formato:
+\`\`\`
+¿El usuario pide [trigger principal]?
+├── SÍ → Activar esta skill
+│   ├── ¿Es caso simple? → Seguir flujo estándar
+│   └── ¿Es caso complejo? → Aplicar variante extendida
+└── NO → No activar
+    ├── ¿Es [caso similar pero diferente]? → Sugerir skill alternativa
+    └── ¿Es otra cosa? → No aplica
+\`\`\`
+
+## Workflow
+
+[Pasos numerados exactos que Claude debe seguir, en orden]
+
+1. **Paso 1**: [descripción clara]
+2. **Paso 2**: [descripción clara]
+...
 
 ## Examples
 
-[Ejemplos concretos de input/output]
+[Mínimo 2 ejemplos con input/output concretos. Si es técnica, incluir bloques de código]
 
-## Guidelines
+### Example 1: [título descriptivo]
+**Input**: [lo que pide el usuario]
+**Output**: [lo que Claude produce, con código si aplica]
 
-[Reglas, restricciones y edge cases]
+## Best Practices
 
-## What NOT to do
+[Lista de mejores prácticas del dominio]
 
-[Lista explícita de restricciones]
+## Common Pitfalls
 
-El SKILL.md debe ser profesional, completo y directamente compatible con Claude Code y Claude.ai.`;
+[Errores frecuentes con formato visual ❌/✅]
 
-const JUDGE_PROMPT = `Sos un evaluador experto de skills para Claude Code. Evaluá la siguiente skill generada y dá un score de calidad del 1 al 10.
+❌ **Don't**: [error común que cometen los principiantes]
+✅ **Do**: [la forma correcta de hacerlo]
 
-Criterios de evaluación:
-- **Claridad** (2pts): ¿Las instrucciones son claras y sin ambigüedad?
-- **Completitud** (2pts): ¿Cubre triggers, instrucciones, ejemplos, edge cases y restricciones?
-- **Especificidad** (2pts): ¿Es específica o demasiado genérica? ¿Tiene ejemplos concretos?
-- **Utilidad** (2pts): ¿Resuelve un problema real? ¿Ahorra tiempo significativo?
-- **Calidad del SKILL.md** (2pts): ¿El install_command es un SKILL.md bien estructurado y profesional?
+❌ **Don't**: [otro error]
+✅ **Do**: [la corrección]
+
+## What NOT to Do
+
+[Lista explícita de restricciones absolutas]
+- NEVER [restricción 1]
+- NEVER [restricción 2]
+
+### 3. Reglas adicionales
+- El SKILL.md debe tener MENOS de 500 líneas (progressive disclosure)
+- Si necesita más detalle, referenciar archivos externos
+- Los ejemplos deben ser EJECUTABLES, no genéricos
+- El tono debe ser directo e imperativo (instrucciones para un agente, no documentación para humanos)
+- Usar markdown semántico: headers, listas, code blocks, bold para énfasis`;
+
+const JUDGE_PROMPT = `Sos un evaluador experto de skills para Claude Code, calibrado contra las mejores skills del ecosistema de Anthropic (webapp-testing, mcp-builder, pdf-tools). Evaluá la skill generada con estos criterios best-in-class:
+
+Criterios de evaluación (10 puntos total):
+- **Description keyword-rich** (1.5pts): ¿La description del frontmatter dice QUÉ hace + CUÁNDO usarla + keywords de matching? ¿Ayudaría a un agente a decidir si activarla?
+- **Decision tree** (1.5pts): ¿Tiene un árbol de decisión claro que ayude al agente a saber cuándo SÍ y cuándo NO activar la skill?
+- **Workflow estructurado** (2pts): ¿Los pasos son claros, ordenados y sin ambigüedad? ¿Un agente podría seguirlos mecánicamente?
+- **Ejemplos ejecutables** (2pts): ¿Los ejemplos tienen input/output concretos? ¿Incluyen código real si es técnica? ¿Son copy-pasteables?
+- **Common pitfalls ❌/✅** (1.5pts): ¿Tiene errores comunes con formato visual ❌ Don't / ✅ Do? ¿Son específicos del dominio?
+- **Progressive disclosure** (1.5pts): ¿El SKILL.md tiene menos de 500 líneas? ¿Usa referencias a archivos externos si necesita más detalle?
 
 Respondé SOLO con un JSON válido (sin markdown, sin backticks):
 
 {
   "score": <número del 1 al 10>,
-  "feedback": "Feedback específico de mejora en 2-3 oraciones. Sé constructivo y concreto.",
+  "feedback": "Feedback específico de mejora en 2-3 oraciones comparando contra el estándar best-in-class.",
   "strengths": ["lista de 2-3 fortalezas"],
-  "improvements": ["lista de 2-3 mejoras sugeridas"]
+  "improvements": ["lista de 2-3 mejoras concretas y accionables"]
 }`;
 
 serve(async (req) => {
