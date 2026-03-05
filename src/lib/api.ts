@@ -31,7 +31,7 @@ export async function smartSearch(filters: {
   if (result.error) throw new Error(result.error);
 
   const skills: SkillFromDB[] = (result.data || []).map((r: any) => ({
-    id: r.id, slug: r.slug, display_name: r.display_name,
+    id: r.id, slug: r.slug, display_name: r.display_name, display_name_es: r.display_name_es,
     tagline: r.tagline, tagline_es: r.tagline_es,
     description_human: r.description_human, description_human_es: r.description_human_es,
     category: r.category, industry: r.industry, target_roles: r.target_roles,
@@ -64,6 +64,7 @@ export interface SkillFromDB {
   id: string;
   slug: string;
   display_name: string;
+  display_name_es?: string | null;
   tagline: string;
   tagline_es?: string | null;
   description_human: string;
@@ -140,6 +141,7 @@ export async function fetchSkills(filters?: {
       id: r.id,
       slug: r.slug,
       display_name: r.display_name,
+      display_name_es: r.display_name_es,
       tagline: r.tagline,
       tagline_es: r.tagline_es,
       description_human: r.description_human,

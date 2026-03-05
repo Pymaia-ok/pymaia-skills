@@ -495,6 +495,7 @@ export type Database = {
           description_human: string
           description_human_es: string
           display_name: string
+          display_name_es: string
           github_stars: number
           github_url: string
           id: string

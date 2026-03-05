@@ -18,14 +18,14 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { batchSize = 20 } = await req.json().catch(() => ({}));
+    const { batchSize = 30 } = await req.json().catch(() => ({}));
 
-    // Fetch skills missing Spanish translations
+    // Fetch skills missing ANY Spanish translation (display_name_es, tagline_es, or description_human_es)
     const { data: skills, error: fetchError } = await supabase
       .from("skills")
-      .select("id, tagline, description_human")
-      .is("tagline_es", null)
+      .select("id, display_name, tagline, description_human, display_name_es, tagline_es, description_human_es")
       .eq("status", "approved")
+      .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null")
       .limit(batchSize);
 
     if (fetchError) throw fetchError;
@@ -35,10 +35,14 @@ serve(async (req) => {
       });
     }
 
-    // Build a single prompt with all skills for efficiency
-    const skillsText = skills.map((s, i) => 
-      `[${i}]\nTagline: ${s.tagline}\nDescription: ${s.description_human}`
-    ).join("\n\n");
+    // Build prompt - only include fields that need translation
+    const skillsText = skills.map((s, i) => {
+      const parts = [`[${i}]`];
+      if (!s.display_name_es) parts.push(`Name: ${s.display_name}`);
+      if (!s.tagline_es) parts.push(`Tagline: ${s.tagline}`);
+      if (!s.description_human_es) parts.push(`Description: ${s.description_human}`);
+      return parts.join("\n");
+    }).join("\n\n");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -51,7 +55,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a professional translator. Translate the following software tool taglines and descriptions from English to Spanish (Latin American). Keep technical terms, product names, and acronyms in English. Return ONLY a valid JSON array where each element has "index", "tagline_es", and "description_human_es". No markdown, no code fences.`,
+            content: `You are a professional translator. Translate the following software tool names, taglines and descriptions from English to Spanish (Latin American). Keep technical terms, product names, acronyms, and brand names in English. For tool names: translate descriptive names but keep proper nouns (e.g. "Code Reviewer" → "Revisor de Código", "Stripe Payment Setup" → "Configuración de Pagos con Stripe"). Return translations via the tool call.`,
           },
           { role: "user", content: skillsText },
         ],
@@ -70,10 +74,11 @@ serve(async (req) => {
                       type: "object",
                       properties: {
                         index: { type: "number" },
+                        display_name_es: { type: "string" },
                         tagline_es: { type: "string" },
                         description_human_es: { type: "string" },
                       },
-                      required: ["index", "tagline_es", "description_human_es"],
+                      required: ["index"],
                       additionalProperties: false,
                     },
                   },
@@ -100,14 +105,19 @@ serve(async (req) => {
 
     const { translations } = JSON.parse(toolCall.function.arguments);
 
-    // Update each skill
+    // Update each skill - only set fields that were missing
     let updated = 0;
     for (const t of translations) {
       const skill = skills[t.index];
       if (!skill) continue;
+      const updates: Record<string, string> = {};
+      if (!skill.display_name_es && t.display_name_es) updates.display_name_es = t.display_name_es;
+      if (!skill.tagline_es && t.tagline_es) updates.tagline_es = t.tagline_es;
+      if (!skill.description_human_es && t.description_human_es) updates.description_human_es = t.description_human_es;
+      if (Object.keys(updates).length === 0) continue;
       const { error: updateError } = await supabase
         .from("skills")
-        .update({ tagline_es: t.tagline_es, description_human_es: t.description_human_es })
+        .update(updates)
         .eq("id", skill.id);
       if (!updateError) updated++;
     }
@@ -116,8 +126,8 @@ serve(async (req) => {
     const { count } = await supabase
       .from("skills")
       .select("id", { count: "exact", head: true })
-      .is("tagline_es", null)
-      .eq("status", "approved");
+      .eq("status", "approved")
+      .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null");
 
     return new Response(
       JSON.stringify({ translated: updated, remaining: count ?? 0 }),
