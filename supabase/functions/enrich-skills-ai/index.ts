@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let batchSize = 10;
-    let mode = "enrich"; // "enrich" | "cleanup"
+    let mode = "enrich"; // "enrich" | "cleanup" | "detect-mcps"
     try {
       const body = await req.json();
       batchSize = body?.batchSize || 10;
@@ -63,6 +63,180 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true, mode: "cleanup",
         checked: residues.length, cleaned,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── MODE: detect-mcps — analyze skills to populate required_mcps ───
+    if (mode === "detect-mcps") {
+      console.log(`[detect-mcps] Starting batch of ${batchSize}...`);
+
+      // Find approved skills with empty or null required_mcps that have descriptions to analyze
+      const { data: skills, error } = await supabase
+        .from("skills")
+        .select("id, slug, display_name, description_human, readme_summary, readme_raw, category, install_command, github_url")
+        .eq("status", "approved")
+        .or("required_mcps.is.null,required_mcps.eq.[]")
+        .limit(batchSize);
+
+      if (error || !skills || skills.length === 0) {
+        console.log(`[detect-mcps] No skills to analyze (${error?.message || "0 found"})`);
+        return new Response(JSON.stringify({ success: true, mode: "detect-mcps", analyzed: 0, detected: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`[detect-mcps] Analyzing ${skills.length} skills...`);
+      let detected = 0;
+
+      for (const skill of skills) {
+        try {
+          // Build context from available data
+          const contextParts = [
+            `Name: ${skill.display_name}`,
+            `Category: ${skill.category}`,
+            `Description: ${skill.description_human || "none"}`,
+            skill.install_command ? `Install command: ${skill.install_command}` : "",
+            skill.github_url ? `GitHub: ${skill.github_url}` : "",
+            skill.readme_summary ? `README summary: ${skill.readme_summary.slice(0, 1500)}` : "",
+          ].filter(Boolean).join("\n");
+
+          const prompt = `You are an expert in MCP (Model Context Protocol) servers and developer tool dependencies.
+
+Analyze this AI skill/tool and determine if it requires any external MCP servers or tools to function properly.
+
+${contextParts}
+
+An MCP server is needed when the skill interacts with:
+- Email services (Gmail, Outlook, SMTP)
+- Messaging (Slack, Discord, WhatsApp, Telegram)
+- Cloud storage (Google Drive, Dropbox, S3)
+- Databases (PostgreSQL, MySQL, MongoDB)
+- Version control (GitHub, GitLab, Bitbucket)
+- Project management (Jira, Linear, Asana, Trello)
+- CRM (Salesforce, HubSpot)
+- Web scraping/browsing (Puppeteer, Playwright, Firecrawl)
+- File system access
+- Calendar (Google Calendar, Outlook Calendar)
+- Payment systems (Stripe)
+- CI/CD (GitHub Actions, Jenkins)
+- Cloud platforms (AWS, GCP, Azure)
+- Search engines (Brave Search, Exa)
+- Social media (Twitter/X, LinkedIn)
+- Any other external API or service
+
+If this skill is purely a prompt/instruction set that doesn't need external connections, return an empty array.
+Be precise — only include MCPs that are truly required based on the evidence.`;
+
+          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-lite",
+              messages: [{ role: "user", content: prompt }],
+              tools: [{
+                type: "function",
+                function: {
+                  name: "set_required_mcps",
+                  description: "Set the required MCP servers for this skill. Return empty array if none needed.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      requires_external: { type: "boolean", description: "Whether this skill requires any external MCP servers" },
+                      mcps: {
+                        type: "array",
+                        description: "List of required MCP servers. Empty if none needed.",
+                        items: {
+                          type: "object",
+                          properties: {
+                            name: { type: "string", description: "MCP server name, e.g. 'GitHub MCP'" },
+                            description: { type: "string", description: "What this MCP does for the skill, max 100 chars" },
+                            url: { type: "string", description: "GitHub repo URL of the MCP server if known, or empty string" },
+                            install_command: { type: "string", description: "Install command like 'npx @anthropic/mcp-server-github' or empty string" },
+                            required_tools: {
+                              type: "array",
+                              items: { type: "string" },
+                              description: "Specific tool names needed, e.g. ['send_email', 'search_inbox']"
+                            },
+                            credentials_needed: {
+                              type: "array",
+                              items: { type: "string" },
+                              description: "Credentials the user must provide, e.g. ['GitHub PAT', 'OAuth token']"
+                            },
+                            optional: { type: "boolean", description: "Whether this MCP is optional (false = required)" }
+                          },
+                          required: ["name", "description", "required_tools", "optional"],
+                          additionalProperties: false,
+                        },
+                      },
+                    },
+                    required: ["requires_external", "mcps"],
+                    additionalProperties: false,
+                  },
+                },
+              }],
+              tool_choice: { type: "function", function: { name: "set_required_mcps" } },
+            }),
+          });
+
+          if (aiRes.status === 429) {
+            console.log("[detect-mcps] Rate limited, stopping batch");
+            break;
+          }
+          if (!aiRes.ok) {
+            console.error(`[detect-mcps] AI error ${aiRes.status} for ${skill.slug}`);
+            continue;
+          }
+
+          const aiData = await aiRes.json();
+          const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+          if (!toolCall) { console.log(`[detect-mcps] No tool call for ${skill.slug}`); continue; }
+
+          const args = JSON.parse(toolCall.function.arguments);
+
+          if (args.requires_external && args.mcps && args.mcps.length > 0) {
+            // Clean up MCP entries
+            const cleanMcps = args.mcps.map((m: any) => ({
+              name: m.name || "Unknown MCP",
+              description: (m.description || "").slice(0, 200),
+              url: m.url || "",
+              install_command: m.install_command || "",
+              required_tools: Array.isArray(m.required_tools) ? m.required_tools : [],
+              credentials_needed: Array.isArray(m.credentials_needed) ? m.credentials_needed : [],
+              optional: !!m.optional,
+            }));
+
+            const { error: updateErr } = await supabase
+              .from("skills")
+              .update({ required_mcps: cleanMcps })
+              .eq("id", skill.id);
+
+            if (!updateErr) {
+              detected++;
+              console.log(`[detect-mcps] ${skill.slug}: ${cleanMcps.length} MCP(s) detected`);
+            } else {
+              console.error(`[detect-mcps] Update error for ${skill.slug}:`, updateErr.message);
+            }
+          } else {
+            // Mark as analyzed (empty array) so we don't re-process
+            await supabase.from("skills").update({ required_mcps: [] }).eq("id", skill.id);
+            console.log(`[detect-mcps] ${skill.slug}: no MCPs needed`);
+          }
+
+          await new Promise(r => setTimeout(r, 300));
+        } catch (e) {
+          console.error(`[detect-mcps] Error for ${skill.slug}:`, (e as Error).message);
+        }
+      }
+
+      console.log(`[detect-mcps] Detected MCPs in ${detected}/${skills.length} skills`);
+      return new Response(JSON.stringify({
+        success: true, mode: "detect-mcps",
+        analyzed: skills.length, detected,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
