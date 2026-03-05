@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
-import { fetchSkills, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
+import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
@@ -19,7 +19,6 @@ const Explore = () => {
     canonical: "https://pymaiaskills.lovable.app/explorar",
   });
 
-  // Initialize state from URL params
   const initialSearch = searchParams.get("q") || "";
   const initialCategory = searchParams.get("cat") || null;
   const initialSort = (searchParams.get("sort") as "rating" | "installs") || "rating";
@@ -31,7 +30,8 @@ const Explore = () => {
   const [sortBy, setSortBy] = useState<"rating" | "installs">(initialSort);
   const [page, setPage] = useState(initialPage);
 
-  // Sync state to URL params
+  const isSmartMode = isIntentQuery(debouncedSearch);
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
@@ -48,10 +48,11 @@ const Explore = () => {
     debounceRef[0] = setTimeout(() => {
       setDebouncedSearch(val);
       setPage(0);
-    }, 350);
+    }, isIntentQuery(val) ? 600 : 350);
   }, [debounceRef]);
 
-  const { data: result, isLoading } = useQuery({
+  // Standard keyword search
+  const { data: keywordResult, isLoading: keywordLoading } = useQuery({
     queryKey: ["skills", selectedCategory, sortBy, page, debouncedSearch],
     queryFn: () =>
       fetchSkills({
@@ -60,11 +61,30 @@ const Explore = () => {
         page,
         search: debouncedSearch || undefined,
       }),
+    enabled: !isSmartMode,
   });
+
+  // Smart AI-powered search
+  const { data: smartResult, isLoading: smartLoading } = useQuery({
+    queryKey: ["smart-search", selectedCategory, sortBy, page, debouncedSearch],
+    queryFn: () =>
+      smartSearch({
+        query: debouncedSearch,
+        category: selectedCategory || undefined,
+        sortBy,
+        page,
+      }),
+    enabled: isSmartMode,
+    retry: 1,
+  });
+
+  const result = isSmartMode ? smartResult : keywordResult;
+  const isLoading = isSmartMode ? smartLoading : keywordLoading;
 
   const skills = result?.data ?? [];
   const totalCount = result?.count ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const smartKeywords = isSmartMode && smartResult?.keywords ? smartResult.keywords : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,16 +98,38 @@ const Explore = () => {
             </p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative mb-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative mb-2">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder={t("explore.searchPlaceholder")}
+              placeholder={t("explore.searchPlaceholderSmart", "Search by name or describe what you want to do...")}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-4 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
             />
           </motion.div>
+
+          <AnimatePresence>
+            {isSmartMode && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 mb-6 px-1"
+              >
+                <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-sm text-muted-foreground">
+                  {smartLoading
+                    ? t("explore.smartSearching", "Understanding what you need...")
+                    : smartKeywords
+                    ? t("explore.smartResults", "AI-powered results") + ` · ${smartKeywords.join(", ")}`
+                    : t("explore.smartResults", "AI-powered results")}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {!isSmartMode && <div className="mb-6" />}
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
             <button
