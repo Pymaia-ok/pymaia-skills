@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +9,11 @@ import SkillChat from "@/components/crear-skill/SkillChat";
 import SkillPreview from "@/components/crear-skill/SkillPreview";
 import SkillPublishConfig from "@/components/crear-skill/SkillPublishConfig";
 import type { Msg } from "@/lib/streaming";
+
+interface StepProps {
+  step: "chat" | "preview" | "publish";
+  setStep: (step: "chat" | "preview" | "publish") => void;
+}
 
 type Step = "chat" | "preview" | "publish";
 
@@ -157,55 +161,51 @@ const CrearSkill = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="pt-14 flex-1 flex flex-col">
+      <div className="pt-14 flex-1 flex flex-col min-h-0">
         {step === "chat" && (
-          <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
-            <div className="px-4 pt-6 pb-2">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <h1 className="text-xl font-semibold text-foreground">Crear Skill</h1>
-                <p className="text-sm text-muted-foreground">Contanos sobre tu expertise — podés escribir, adjuntar archivos o pegar links</p>
-              </motion.div>
-            </div>
-            <div className="flex-1 flex flex-col min-h-0">
-              <SkillChat
-                messages={messages}
-                setMessages={setMessages}
-                onGenerate={handleGenerate}
-                isGenerating={isGenerating}
-                userId={user.id}
+          <div className="flex-1 flex flex-col min-h-0">
+            <SkillChat
+              messages={messages}
+              setMessages={setMessages}
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              userId={user.id}
+            />
+          </div>
+        )}
+
+        {step === "preview" && skill && quality && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-12">
+              <SkillPreview
+                skill={skill}
+                quality={quality}
+                testResults={testResults}
+                onRefine={handleRefine}
+                onPublish={() => setStep("publish")}
+                onBack={() => setStep("chat")}
+                onRunTests={handleRunTests}
+                isRefining={isRefining}
+                isTesting={isTesting}
               />
             </div>
           </div>
         )}
 
-        {step === "preview" && skill && quality && (
-          <div className="max-w-2xl mx-auto w-full px-4 pt-6">
-            <SkillPreview
-              skill={skill}
-              quality={quality}
-              testResults={testResults}
-              onRefine={handleRefine}
-              onPublish={() => setStep("publish")}
-              onBack={() => setStep("chat")}
-              onRunTests={handleRunTests}
-              isRefining={isRefining}
-              isTesting={isTesting}
-            />
-          </div>
-        )}
-
         {step === "publish" && skill && (
-          <div className="max-w-2xl mx-auto w-full px-4 pt-6">
-            <SkillPublishConfig
-              initialCategory={skill.category}
-              initialIndustry={skill.industry}
-              initialRoles={skill.target_roles}
-              onPublish={handlePublish}
-              onBack={() => setStep("preview")}
-              isPublishing={isPublishing}
-            />
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-12">
+              <SkillPublishConfig
+                initialCategory={skill.category}
+                initialIndustry={skill.industry}
+                initialRoles={skill.target_roles}
+                onPublish={handlePublish}
+                onBack={() => setStep("preview")}
+                isPublishing={isPublishing}
+              />
+            </div>
           </div>
         )}
       </div>
