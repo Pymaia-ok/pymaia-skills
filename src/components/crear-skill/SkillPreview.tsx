@@ -4,6 +4,7 @@ import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen } from "
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import SkillScoreCard from "./SkillScoreCard";
+import SkillTestResults from "./SkillTestResults";
 
 interface GeneratedSkill {
   name: string;
@@ -27,16 +28,34 @@ interface Quality {
   improvements: string[];
 }
 
+interface TestResults {
+  test_results: {
+    case_number: number;
+    title: string;
+    input: string;
+    simulated_output: string;
+    passed: boolean;
+    score: number;
+    feedback: string;
+  }[];
+  overall_score: number;
+  overall_feedback: string;
+  critical_gaps: string[];
+}
+
 interface SkillPreviewProps {
   skill: GeneratedSkill;
   quality: Quality;
+  testResults: TestResults | null;
   onRefine: (request: string) => Promise<void>;
   onPublish: () => void;
   onBack: () => void;
+  onRunTests: () => void;
   isRefining: boolean;
+  isTesting: boolean;
 }
 
-export default function SkillPreview({ skill, quality, onRefine, onPublish, onBack, isRefining }: SkillPreviewProps) {
+export default function SkillPreview({ skill, quality, testResults, onRefine, onPublish, onBack, onRunTests, isRefining, isTesting }: SkillPreviewProps) {
   const [refinement, setRefinement] = useState("");
 
   const handleRefine = async () => {
@@ -44,6 +63,8 @@ export default function SkillPreview({ skill, quality, onRefine, onPublish, onBa
     await onRefine(refinement.trim());
     setRefinement("");
   };
+
+  const canPublish = !testResults || testResults.overall_score >= 7;
 
   return (
     <div className="space-y-6 pb-8">
@@ -58,6 +79,9 @@ export default function SkillPreview({ skill, quality, onRefine, onPublish, onBa
       </div>
 
       <SkillScoreCard quality={quality} />
+
+      {/* Test Results */}
+      <SkillTestResults results={testResults} onRunTests={onRunTests} isTesting={isTesting} />
 
       {/* Description */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="rounded-2xl border border-border bg-card p-5">
@@ -114,7 +138,7 @@ export default function SkillPreview({ skill, quality, onRefine, onPublish, onBa
           <ul className="space-y-1.5">
             {skill.dont_do.map((d, i) => (
               <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                <span className="text-red-500 mt-0.5">✕</span> {d}
+                <span className="text-destructive mt-0.5">✕</span> {d}
               </li>
             ))}
           </ul>
@@ -141,10 +165,21 @@ export default function SkillPreview({ skill, quality, onRefine, onPublish, onBa
 
       {/* Actions */}
       <div className="flex gap-3">
-        <Button onClick={onPublish} className="flex-1 rounded-full gap-2" size="lg">
+        <Button
+          onClick={onPublish}
+          disabled={!canPublish}
+          className="flex-1 rounded-full gap-2"
+          size="lg"
+        >
           <Sparkles className="w-4 h-4" /> Publicar skill
         </Button>
       </div>
+
+      {!canPublish && testResults && (
+        <p className="text-xs text-center text-muted-foreground">
+          El score de testing es menor a 7/10. Mejorá tu skill antes de publicar.
+        </p>
+      )}
     </div>
   );
 }

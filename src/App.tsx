@@ -14,6 +14,7 @@ import UserProfile from "./pages/UserProfile";
 import Teams from "./pages/Teams";
 import MCP from "./pages/MCP";
 import Admin from "./pages/Admin";
+import MisSkills from "./pages/MisSkills";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/crear-skill" element={<CrearSkill />} />
             <Route path="/publicar" element={<Navigate to="/crear-skill" replace />} />
+            <Route path="/mis-skills" element={<MisSkills />} />
             <Route path="/u/:username" element={<UserProfile />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/mcp" element={<MCP />} />
