@@ -384,6 +384,7 @@ export type Database = {
           readme_raw: string | null
           readme_summary: string | null
           review_count: number
+          search_vector: unknown
           slug: string
           status: string
           tagline: string
@@ -414,6 +415,7 @@ export type Database = {
           readme_raw?: string | null
           readme_summary?: string | null
           review_count?: number
+          search_vector?: unknown
           slug: string
           status?: string
           tagline: string
@@ -444,6 +446,7 @@ export type Database = {
           readme_raw?: string | null
           readme_summary?: string | null
           review_count?: number
+          search_vector?: unknown
           slug?: string
           status?: string
           tagline?: string
