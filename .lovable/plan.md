@@ -1,52 +1,38 @@
 
 
-## Plan: Importar skills de CAD/BIM reales + scraper de awesome-lists + nuevas industrias
+## Analysis: Skills without `github_url`
 
-### Fase 1: Insertar 5 skills reales de CAD/BIM
+**Current state of the 1,205 skills without `github_url`:**
+- **1,083** already have descriptions >100 characters (good quality, from SKILL.md source files)
+- **122** have short/garbage descriptions (<100 chars) — includes Chinese text, broken parses, placeholder content
+- **935** come from skills.sh via `npx skills add`
 
-Crear una migración SQL que inserte los 5 repositorios verificados de GitHub con datos reales extraidos de sus READMEs:
+**Key finding:** The `install_command` column contains embedded GitHub repo URLs even though `github_url` is null. For example:
+```
+npx skills add https://github.com/openclaw/ --skill healthcheck
+npx skills add https://github.com/microsoft/ --skill update-screenshots
+```
 
-| Skill | Repo | Industry | Target Roles |
-|-------|------|----------|-------------|
-| AutoCAD MCP | ngk0/autocad-mcp | arquitectura, ingeniería | arquitecto, ingeniero civil |
-| Revit MCP | SamllPigYanDong/revit_mcp | arquitectura, ingeniería | arquitecto, ingeniero civil |
-| Revit MCP Commandset | revit-mcp/revit-mcp-commandset | arquitectura, ingeniería | arquitecto, ingeniero civil |
-| Revit Automation (Autodesk) | autodesk-platform-services/aps-sample-mcp-server-revit-automation | arquitectura, ingeniería | arquitecto, ingeniero civil |
-| Artifex (FreeCAD) | islamnurdin/Artifex | arquitectura, diseño | arquitecto, diseñador 3D |
+This means we can extract the GitHub owner/repo from the install command and populate `github_url`, which would then let the existing `fetch-readme-auto` cron enrich them with README content and AI summaries.
 
-Antes de insertar, se consultará el README de cada repo via GitHub API para obtener descripciones reales (tagline y description_human).
+## Plan
 
-### Fase 2: Agregar awesome-lists grandes como fuente de sync
+### 1. Migration: Backfill `github_url` from `install_command`
+Run a SQL update to extract GitHub URLs from install commands:
+```sql
+UPDATE skills
+SET github_url = regexp_replace(install_command, '^.*?(https://github\.com/[^/]+/?).*$', '\1')
+WHERE github_url IS NULL
+  AND install_command LIKE '%github.com/%'
+  AND status = 'approved';
+```
+This would populate `github_url` for ~935 skills, making them eligible for the existing `fetch-readme-auto` cron.
 
-Actualizar `sync-skills/index.ts` para agregar dos nuevas fuentes:
+### 2. AI enrichment for the remaining ~122 with poor descriptions
+These are already covered by the `enrich-skills-ai-auto` cron. We just need to ensure they're being picked up (descriptions <50 chars should qualify).
 
-1. **`voltagent-awesome`**: Parsea `VoltAgent/awesome-agent-skills` README
-2. **`travisvn-awesome`**: Parsea `travisvn/awesome-claude-skills` README
+### 3. Cleanup garbage entries
+The 122 short-description skills include broken parses (Chinese-only text, `@Type:WebSite`, single-word nonsense). These should be flagged as `pending` or deleted since they're not real skills.
 
-Reutiliza la misma lógica de `fetchAwesomeLists()` existente (SOURCE 10), simplemente agregando estos dos repos a la lista. Luego se agrega un case en el switch para invocarlos individualmente o todos juntos.
-
-### Fase 3: Expandir industrias en la UI
-
-Actualizar `SKILL_CATEGORIES` en `src/lib/api.ts` o agregar un filtro de industria visible en `/explorar` con las nuevas opciones:
-- arquitectura
-- ingeniería
-- construcción
-- medicina
-- educación
-
-Esto permite que usuarios busquen skills por profesión, no solo por categoría técnica.
-
-### Archivos a modificar
-
-1. **Nueva migración SQL** — INSERT de los 5 skills CAD/BIM con datos reales de sus READMEs
-2. **`supabase/functions/sync-skills/index.ts`** — Agregar `VoltAgent/awesome-agent-skills` y `travisvn/awesome-claude-skills` a la lista de awesome-lists en `fetchAwesomeLists()`
-3. **`src/lib/api.ts`** — Agregar industrias nuevas al array de categorías o crear un array de industrias para filtro
-4. **`src/pages/Explore.tsx`** — Agregar filtro de industria si no existe
-
-### Orden de ejecución
-
-1. Fetch de los READMEs de los 5 repos CAD/BIM para obtener descripciones reales
-2. Migración SQL con los INSERTs
-3. Actualizar sync-skills con las nuevas awesome-lists
-4. Actualizar UI con filtros de industria
+**Net result:** After the backfill, the fetch-readme cron will automatically process ~935 additional skills with full README documentation and AI summaries, without creating any new infrastructure.
 
