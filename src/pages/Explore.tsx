@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchSkills, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
@@ -10,6 +11,7 @@ import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useSEO({
     title: "Explore Skills — Pymaia Skills",
@@ -17,12 +19,27 @@ const Explore = () => {
     canonical: "https://pymaiaskills.lovable.app/explorar",
   });
 
+  // Initialize state from URL params
+  const initialSearch = searchParams.get("q") || "";
+  const initialCategory = searchParams.get("cat") || null;
+  const initialSort = (searchParams.get("sort") as "rating" | "installs") || "rating";
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<"rating" | "installs">("rating");
-  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
+  const [sortBy, setSortBy] = useState<"rating" | "installs">(initialSort);
+  const [page, setPage] = useState(initialPage);
+
+  // Sync state to URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (selectedCategory) params.set("cat", selectedCategory);
+    if (sortBy !== "rating") params.set("sort", sortBy);
+    if (page > 0) params.set("page", String(page));
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, selectedCategory, sortBy, page, setSearchParams]);
 
   const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = useCallback((val: string) => {
