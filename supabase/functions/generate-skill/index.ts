@@ -30,7 +30,18 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estruc
   "category": "una de: ia, desarrollo, diseño, marketing, automatización, datos, creatividad, productividad, legal, negocios",
   "industry": ["industrias relevantes de: Agencias, Legal, Consultoras, E-commerce, Startups, Educación, Finanzas"],
   "target_roles": ["roles objetivo de: marketer, abogado, consultor, founder, disenador, desarrollador, otro"],
-  "install_command": "El contenido completo del SKILL.md (ver formato abajo)"
+  "install_command": "El contenido completo del SKILL.md (ver formato abajo)",
+  "required_mcps": [
+    {
+      "name": "Nombre del MCP Server requerido",
+      "description": "Qué hace este MCP",
+      "url": "URL del repositorio del MCP",
+      "install_command": "Comando de instalación (ej: npx @anthropic/mcp-server-gmail init)",
+      "required_tools": ["lista de tools específicas que usa la skill"],
+      "credentials_needed": ["credenciales necesarias (ej: Gmail OAuth, API Key)"],
+      "optional": false
+    }
+  ]
 }
 
 ## FORMATO OBLIGATORIO del SKILL.md (campo install_command)
@@ -106,7 +117,29 @@ Ejemplo de formato:
 - NEVER [restricción 1]
 - NEVER [restricción 2]
 
-### 3. Reglas adicionales
+### 3. Sección ## Dependencies (SOLO si la skill necesita MCPs externos)
+
+Si la skill requiere interacción con sistemas externos (email, WhatsApp, APIs, bases de datos, archivos en la nube, etc.), DEBE incluir una sección Dependencies en el SKILL.md Y llenar el campo required_mcps con los MCPs necesarios.
+
+Si la skill NO necesita MCPs (solo trabaja con archivos locales, código o texto), dejar required_mcps como array vacío [].
+
+Ejemplo de sección Dependencies en el SKILL.md:
+
+## Dependencies
+
+This skill requires the following MCP servers:
+
+### Gmail MCP (required)
+- **Install**: \`npx @anthropic/mcp-server-gmail init\`
+- **Tools used**: send_email, search_inbox
+- **Credentials**: Gmail OAuth token
+
+Before executing, verify MCP availability:
+1. Check if tools are accessible via \`mcp__gmail__send_email\`
+2. If not found, run the install command above
+3. Add to ~/.claude/mcp_servers.json and restart
+
+### 4. Reglas adicionales
 - El SKILL.md debe tener MENOS de 500 líneas (progressive disclosure)
 - Si necesita más detalle, referenciar archivos externos
 - Los ejemplos deben ser EJECUTABLES, no genéricos
@@ -217,8 +250,25 @@ serve(async (req) => {
             industry: { type: "array", items: { type: "string" } },
             target_roles: { type: "array", items: { type: "string" } },
             install_command: { type: "string", description: "Full SKILL.md content following Anthropic Agent Skills standard" },
+            required_mcps: { 
+              type: "array", 
+              items: { 
+                type: "object", 
+                properties: { 
+                  name: { type: "string", description: "MCP server name" },
+                  description: { type: "string", description: "What this MCP does" },
+                  url: { type: "string", description: "Repository URL" },
+                  install_command: { type: "string", description: "Installation command" },
+                  required_tools: { type: "array", items: { type: "string" }, description: "Specific tools used" },
+                  credentials_needed: { type: "array", items: { type: "string" }, description: "Required credentials" },
+                  optional: { type: "boolean", description: "Whether this MCP is optional" }
+                },
+                required: ["name", "description", "required_tools", "optional"]
+              },
+              description: "MCP servers required by this skill. Empty array if none needed."
+            },
           },
-          required: ["name", "tagline", "description", "triggers", "instructions", "examples", "dont_do", "edge_cases", "category", "industry", "target_roles", "install_command"],
+          required: ["name", "tagline", "description", "triggers", "instructions", "examples", "dont_do", "edge_cases", "category", "industry", "target_roles", "install_command", "required_mcps"],
           additionalProperties: false,
         },
       },

@@ -218,8 +218,9 @@ export async function submitSkill(skill: {
   time_to_install_minutes: number;
   industry: string[];
   creator_id: string;
+  required_mcps?: any[];
 }) {
-  const { error } = await supabase.from("skills").insert(skill);
+  const { error } = await supabase.from("skills").insert(skill as any);
   if (error) throw error;
 }
 

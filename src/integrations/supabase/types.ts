@@ -383,6 +383,7 @@ export type Database = {
           pricing_model: string
           readme_raw: string | null
           readme_summary: string | null
+          required_mcps: Json | null
           review_count: number
           search_vector: unknown
           slug: string
@@ -414,6 +415,7 @@ export type Database = {
           pricing_model?: string
           readme_raw?: string | null
           readme_summary?: string | null
+          required_mcps?: Json | null
           review_count?: number
           search_vector?: unknown
           slug: string
@@ -445,6 +447,7 @@ export type Database = {
           pricing_model?: string
           readme_raw?: string | null
           readme_summary?: string | null
+          required_mcps?: Json | null
           review_count?: number
           search_vector?: unknown
           slug?: string

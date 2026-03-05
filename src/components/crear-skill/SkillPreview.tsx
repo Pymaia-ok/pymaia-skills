@@ -7,6 +7,16 @@ import SkillScoreCard from "./SkillScoreCard";
 import SkillTestResults from "./SkillTestResults";
 import { toast } from "sonner";
 
+interface RequiredMcp {
+  name: string;
+  description: string;
+  url?: string;
+  install_command?: string;
+  required_tools: string[];
+  credentials_needed?: string[];
+  optional: boolean;
+}
+
 interface GeneratedSkill {
   name: string;
   tagline: string;
@@ -20,6 +30,7 @@ interface GeneratedSkill {
   industry: string[];
   target_roles: string[];
   install_command: string;
+  required_mcps?: RequiredMcp[];
 }
 
 interface Quality {
@@ -153,6 +164,35 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
               </li>
             ))}
           </ul>
+        </motion.div>
+      )}
+
+      {/* Required MCPs */}
+      {skill.required_mcps && skill.required_mcps.length > 0 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.27 }} className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            🔌 Dependencias externas
+          </h3>
+          <div className="space-y-3">
+            {skill.required_mcps.map((mcp, i) => (
+              <div key={i} className="bg-secondary rounded-xl p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-foreground">{mcp.name}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${mcp.optional ? "bg-muted text-muted-foreground" : "bg-foreground/10 text-foreground font-medium"}`}>
+                    {mcp.optional ? "opcional" : "requerido"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{mcp.description}</p>
+                {mcp.required_tools.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {mcp.required_tools.map((tool, ti) => (
+                      <code key={ti} className="text-[10px] px-1.5 py-0.5 rounded bg-background text-muted-foreground">{tool}</code>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </motion.div>
       )}
 
