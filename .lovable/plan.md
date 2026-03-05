@@ -1,55 +1,58 @@
 
 
-## Análisis del repositorio `anthropics/skills`
+## Plan: Integrar lógica best-in-class del skill-creator de Anthropic
 
-### Qué es
+### Hallazgos clave del análisis
 
-Es el **repositorio oficial de Anthropic** (84K+ stars) que define el estándar **Agent Skills** -- el formato que Claude usa para cargar skills dinámicamente. Contiene:
+Después de estudiar la spec oficial de agentskills.io y las ~15 skills de ejemplo del repo de Anthropic, identifiqué los patrones que hacen que una skill sea "best in class" y que nuestro creator no aplica:
 
-1. **La especificación oficial** del formato `SKILL.md` (frontmatter YAML + markdown)
-2. **~15 skills de ejemplo** (algorithmic-art, brand-guidelines, canvas-design, claude-api, doc-coauthoring, frontend-design, internal-comms, mcp-builder, pdf, pptx, docx, xlsx, skill-creator, slack-gif-creator, theme-factory, web-artifacts-builder, webapp-testing)
-3. **Un template** básico para crear skills nuevas
-4. **Las document skills** que potencian las capacidades de documentos de Claude.ai
+1. **Descriptions keyword-rich**: Las buenas descriptions dicen QUE hace + CUANDO usarla con keywords que ayudan al agente a hacer matching (ej: "Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF documents...")
+2. **Decision trees**: Las skills top (webapp-testing, mcp-builder) incluyen árboles de decisión en formato ASCII que guían al agente
+3. **Patrón ❌/✅**: Common pitfalls con formato visual explícito (❌ Don't / ✅ Do)
+4. **Código ejecutable**: Ejemplos con bloques de código reales, no solo texto descriptivo
+5. **Progressive disclosure**: SKILL.md < 500 líneas, con referencias a archivos externos para detalles
+6. **Secciones estructuradas**: Overview → Process/Workflow → Examples → Best Practices → Common Pitfalls → Reference Files
 
-### El formato oficial SKILL.md
+### Cambios a implementar
 
-```text
----
-name: skill-name              # kebab-case, max 64 chars
-description: Qué hace y cuándo usarla  # max 1024 chars
-license: Apache-2.0           # opcional
-compatibility: claude-code    # opcional
-metadata:                     # opcional
-  author: org-name
-  version: "1.0"
----
+#### 1. Actualizar `GENERATE_PROMPT` en `supabase/functions/generate-skill/index.ts`
 
-# Instrucciones en Markdown
+Reescribir el prompt de generación para que produzca SKILL.md con los patrones de Anthropic:
+- Description: obligar formato "Qué hace. Cuándo usarla. Keywords."
+- Body con secciones: Overview → Decision Tree (cuando aplica) → Step-by-step Process → Examples (con código cuando es técnica) → Best Practices → Common Pitfalls (formato ❌/✅) → What NOT to do
+- Limitar a < 500 líneas
+- Agregar sección de Guidelines con edge cases integrados
 
-## Examples
-## Guidelines
-```
+#### 2. Actualizar `SYSTEM_PROMPT` en `supabase/functions/skill-interviewer/index.ts`
 
-### Nos sirve? SI, mucho
+Mejorar la entrevista para extraer la información que necesitan las mejores skills:
+- Preguntar explícitamente por **decision tree**: "¿Cuándo SÍ y cuándo NO debería activarse?"
+- Preguntar por **common pitfalls**: "¿Cuáles son los errores más comunes que la gente comete?"
+- Preguntar por **código/output concreto**: "¿Podés darme un ejemplo real de input y exactamente qué debería producir?"
+- Preguntar por **flujo paso a paso**: "¿Cuáles son los pasos exactos, en orden?"
 
-Nuestro proyecto genera skills con un formato propietario (`install_command` como string). Podemos alinearnos al estándar oficial de Anthropic para que las skills generadas en PyMaia sean **directamente compatibles** con Claude Code, Claude.ai y la API de Claude.
+#### 3. Actualizar `JUDGE_PROMPT` en `supabase/functions/generate-skill/index.ts`
 
-### Plan: Alinear generación de skills al estándar Agent Skills
+Alinear los criterios de evaluación a los patrones de Anthropic:
+- Evaluar si tiene decision tree o workflow claro
+- Evaluar calidad de la description (keywords, WHAT + WHEN)
+- Evaluar si tiene common pitfalls con formato ❌/✅
+- Evaluar progressive disclosure (< 500 líneas, referencias cuando necesario)
+- Evaluar si los ejemplos son concretos y ejecutables
 
-**Cambios principales:**
+#### 4. Actualizar `TEST_PROMPT` en `supabase/functions/test-skill/index.ts`
 
-1. **Actualizar el prompt de `generate-skill`** para que el `install_command` genere un SKILL.md con frontmatter YAML válido según la spec (name en kebab-case, description max 1024 chars, body en markdown con instrucciones, ejemplos y guidelines)
-
-2. **Mejorar la preview** para mostrar el SKILL.md renderizado con su frontmatter, y agregar un botón de "Copiar SKILL.md" que copie el contenido listo para pegar en un proyecto
-
-3. **Agregar instrucciones de instalación** en la UI post-publicación que expliquen cómo usar la skill en Claude Code (`/plugin install`) y Claude.ai (subir archivo)
-
-4. **Importar skills de ejemplo** del repo de Anthropic como skills "oficiales" en el catálogo de PyMaia, dando contenido real al marketplace
+Mejorar los tests para que evalúen contra los estándares de calidad de Anthropic:
+- Testear que la description sea keyword-rich y actionable
+- Testear que los pitfalls sean claros
+- Simular casos donde el agente necesita decidir si activar la skill o no (testing del decision tree)
 
 ### Archivos a modificar
 
-- `supabase/functions/generate-skill/index.ts` -- actualizar `GENERATE_PROMPT` para que genere SKILL.md con frontmatter YAML según spec oficial
-- `src/components/crear-skill/SkillPreview.tsx` -- mostrar preview del SKILL.md formateado + botón copiar
-- `src/components/crear-skill/SkillPublishConfig.tsx` -- agregar instrucciones de instalación para Claude Code/Claude.ai
-- Opcionalmente: edge function para importar skills del repo de Anthropic al catálogo
+- `supabase/functions/skill-interviewer/index.ts` -- mejorar SYSTEM_PROMPT con preguntas best-in-class
+- `supabase/functions/generate-skill/index.ts` -- reescribir GENERATE_PROMPT y JUDGE_PROMPT
+- `supabase/functions/test-skill/index.ts` -- mejorar TEST_PROMPT
+
+### Sin cambios necesarios en frontend
+La UI actual (SkillPreview, SkillChat, SkillPublishConfig) ya soporta bien estos cambios porque el contenido mejorado va dentro del `install_command` (SKILL.md) y los campos existentes del JSON.
 
