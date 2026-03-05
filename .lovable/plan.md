@@ -1,35 +1,55 @@
 
 
-## Plan: Playground de prueba interactiva de Skills
+## Análisis del repositorio `anthropics/skills`
 
-Agregar un paso de "Probar skill" en el flujo de creación, entre la preview y la publicación, donde el usuario puede chatear con su skill en tiempo real para validar que funcione como espera.
+### Qué es
 
-### Cómo funciona
+Es el **repositorio oficial de Anthropic** (84K+ stars) que define el estándar **Agent Skills** -- el formato que Claude usa para cargar skills dinámicamente. Contiene:
 
-1. **Nuevo botón "Probar mi skill"** en `SkillPreview.tsx` — abre un playground inline
-2. **Componente `SkillPlayground.tsx`** — chat embebido donde el usuario escribe inputs y la IA responde simulando ser Claude con esa skill activa
-3. **Edge Function `test-skill-playground`** — recibe el `instructions` + `triggers` + `dont_do` de la skill como system prompt, y el mensaje del usuario. Responde en streaming como si fuera Claude ejecutando la skill
-4. **Flujo refinamiento**: desde el playground el usuario puede volver a la preview para refinar y re-probar
+1. **La especificación oficial** del formato `SKILL.md` (frontmatter YAML + markdown)
+2. **~15 skills de ejemplo** (algorithmic-art, brand-guidelines, canvas-design, claude-api, doc-coauthoring, frontend-design, internal-comms, mcp-builder, pdf, pptx, docx, xlsx, skill-creator, slack-gif-creator, theme-factory, web-artifacts-builder, webapp-testing)
+3. **Un template** básico para crear skills nuevas
+4. **Las document skills** que potencian las capacidades de documentos de Claude.ai
 
-### Flujo del usuario
+### El formato oficial SKILL.md
 
 ```text
-Chat entrevista → Preview + Score → 🆕 Playground (probar) → Publish
-                       ↑__________________________|
-                       (refinar y volver a probar)
+---
+name: skill-name              # kebab-case, max 64 chars
+description: Qué hace y cuándo usarla  # max 1024 chars
+license: Apache-2.0           # opcional
+compatibility: claude-code    # opcional
+metadata:                     # opcional
+  author: org-name
+  version: "1.0"
+---
+
+# Instrucciones en Markdown
+
+## Examples
+## Guidelines
 ```
 
-### Cambios
+### Nos sirve? SI, mucho
 
-- **Crear** `src/components/crear-skill/SkillPlayground.tsx` — interfaz de chat minimalista con el system prompt de la skill, input fijo abajo, mensajes con bubbles
-- **Crear** `supabase/functions/test-skill-playground/index.ts` — toma `skill.instructions`, `skill.triggers`, `skill.dont_do`, `skill.examples` como system prompt y hace streaming de respuesta vía Lovable AI gateway
-- **Editar** `src/components/crear-skill/SkillPreview.tsx` — agregar botón "Probar mi skill" que alterna entre preview y playground
-- **Editar** `src/pages/CrearSkill.tsx` — agregar estado `playground` como paso opcional dentro de preview
+Nuestro proyecto genera skills con un formato propietario (`install_command` como string). Podemos alinearnos al estándar oficial de Anthropic para que las skills generadas en PyMaia sean **directamente compatibles** con Claude Code, Claude.ai y la API de Claude.
 
-### Detalle del playground
+### Plan: Alinear generación de skills al estándar Agent Skills
 
-- System prompt construido dinámicamente: "Sos un asistente que sigue estas instrucciones: {skill.instructions}. Triggers: {triggers}. No hagas: {dont_do}."
-- Streaming de respuesta igual que el chat de entrevista
-- Botón flotante para volver a la preview con opción de refinar
-- Indicador visual claro de que estás "probando" la skill (badge/banner)
+**Cambios principales:**
+
+1. **Actualizar el prompt de `generate-skill`** para que el `install_command` genere un SKILL.md con frontmatter YAML válido según la spec (name en kebab-case, description max 1024 chars, body en markdown con instrucciones, ejemplos y guidelines)
+
+2. **Mejorar la preview** para mostrar el SKILL.md renderizado con su frontmatter, y agregar un botón de "Copiar SKILL.md" que copie el contenido listo para pegar en un proyecto
+
+3. **Agregar instrucciones de instalación** en la UI post-publicación que expliquen cómo usar la skill en Claude Code (`/plugin install`) y Claude.ai (subir archivo)
+
+4. **Importar skills de ejemplo** del repo de Anthropic como skills "oficiales" en el catálogo de PyMaia, dando contenido real al marketplace
+
+### Archivos a modificar
+
+- `supabase/functions/generate-skill/index.ts` -- actualizar `GENERATE_PROMPT` para que genere SKILL.md con frontmatter YAML según spec oficial
+- `src/components/crear-skill/SkillPreview.tsx` -- mostrar preview del SKILL.md formateado + botón copiar
+- `src/components/crear-skill/SkillPublishConfig.tsx` -- agregar instrucciones de instalación para Claude Code/Claude.ai
+- Opcionalmente: edge function para importar skills del repo de Anthropic al catálogo
 
