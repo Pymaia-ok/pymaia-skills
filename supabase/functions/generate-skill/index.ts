@@ -118,17 +118,48 @@ serve(async (req) => {
 
     const sanitizeJson = (str: string): string => {
       // Strip markdown code fences if present
-      let cleaned = str.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
-      // Fix unescaped newlines/tabs inside JSON string values by replacing
-      // all real newlines with \\n and real tabs with \\t, then restore
-      // structural JSON newlines (those between properties)
-      cleaned = cleaned
-        .replace(/\r\n/g, '\\n')
-        .replace(/\r/g, '\\n')
-        .replace(/\n/g, '\\n')
-        .replace(/\t/g, '\\t')
-        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
-      return cleaned;
+      let cleaned = str.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      
+      // Fix unescaped control characters inside JSON string values
+      // Walk through the string and only escape chars inside quoted strings
+      let result = '';
+      let inString = false;
+      let escape = false;
+      
+      for (let i = 0; i < cleaned.length; i++) {
+        const ch = cleaned[i];
+        
+        if (escape) {
+          result += ch;
+          escape = false;
+          continue;
+        }
+        
+        if (ch === '\\' && inString) {
+          result += ch;
+          escape = true;
+          continue;
+        }
+        
+        if (ch === '"') {
+          inString = !inString;
+          result += ch;
+          continue;
+        }
+        
+        if (inString) {
+          // Escape control characters inside strings
+          if (ch === '\n') { result += '\\n'; continue; }
+          if (ch === '\r') { result += '\\r'; continue; }
+          if (ch === '\t') { result += '\\t'; continue; }
+          const code = ch.charCodeAt(0);
+          if (code < 0x20) { continue; } // skip other control chars
+        }
+        
+        result += ch;
+      }
+      
+      return result;
     };
 
     if (action === "generate") {
