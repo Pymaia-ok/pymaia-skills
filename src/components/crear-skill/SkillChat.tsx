@@ -200,7 +200,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   };
 
   const userMessageCount = messages.filter((m) => m.role === "user").length;
-  const canGenerate = userMessageCount >= 3 && !streaming;
+  const canGenerate = userMessageCount >= 5 && !streaming;
   const isEmpty = messages.length === 0;
 
   return (
