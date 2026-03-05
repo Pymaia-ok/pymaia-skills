@@ -37,8 +37,8 @@ const Admin = () => {
       const { count: untranslated } = await supabase
         .from("skills")
         .select("id", { count: "exact", head: true })
-        .is("tagline_es", null)
-        .eq("status", "approved");
+        .eq("status", "approved")
+        .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null");
       const { count: total } = await supabase
         .from("skills")
         .select("id", { count: "exact", head: true })
@@ -60,7 +60,7 @@ const Admin = () => {
     while (!abortRef.current) {
       try {
         const { data, error } = await supabase.functions.invoke("translate-skills", {
-          body: { batchSize: 20 },
+          body: { batchSize: 30 },
         });
         if (error) throw error;
         
@@ -69,7 +69,7 @@ const Admin = () => {
         setBatchProgress(p => ({ ...p, translated: totalTranslated }));
         queryClient.invalidateQueries({ queryKey: ["translation-stats"] });
 
-        if ((data.remaining ?? 0) === 0) {
+        if (data.remaining === 0) {
           toast.success(`¡Traducción completa! ${totalTranslated} skills traducidas en esta sesión.`);
           break;
         }
