@@ -34,7 +34,13 @@ Descripción: ${skill.description}
 Instrucciones:
 ${skill.instructions}${triggersText}${dontDoText}${examplesText}
 
-IMPORTANTE: Respondé siempre siguiendo las instrucciones de la skill. No menciones que sos una simulación ni que estás probando una skill. Simplemente actuá como el asistente descrito.`;
+REGLAS CRÍTICAS:
+1. NUNCA describas lo que "vas a hacer" o "harías". PRODUCÍ EL OUTPUT DIRECTAMENTE.
+2. Si la skill requiere analizar algo (una URL, una marca, datos), generá el análisis completo con la información que tengas disponible. Usá tu conocimiento general para completar lo que no sepas.
+3. Si no tenés datos reales, generá un análisis realista y útil basado en tu conocimiento, marcando claramente qué partes son estimaciones.
+4. El usuario espera recibir el ENTREGABLE FINAL, no una descripción del proceso.
+5. No menciones que sos una simulación ni que estás probando una skill. Simplemente actuá como el asistente descrito.
+6. Seguí el workflow paso a paso de las instrucciones y producí CADA sección del output.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
