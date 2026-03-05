@@ -381,6 +381,8 @@ export type Database = {
           install_count: number
           price_amount: number | null
           pricing_model: string
+          readme_raw: string | null
+          readme_summary: string | null
           review_count: number
           slug: string
           status: string
@@ -409,6 +411,8 @@ export type Database = {
           install_count?: number
           price_amount?: number | null
           pricing_model?: string
+          readme_raw?: string | null
+          readme_summary?: string | null
           review_count?: number
           slug: string
           status?: string
@@ -437,6 +441,8 @@ export type Database = {
           install_count?: number
           price_amount?: number | null
           pricing_model?: string
+          readme_raw?: string | null
+          readme_summary?: string | null
           review_count?: number
           slug?: string
           status?: string

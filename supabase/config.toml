@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.enrich-skills-ai]
 verify_jwt = false
+
+[functions.fetch-readme]
+verify_jwt = false

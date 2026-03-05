@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -19,6 +20,7 @@ const SkillDetail = () => {
   const [copied, setCopied] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showEmailGate, setShowEmailGate] = useState(false);
+  const [showFullReadme, setShowFullReadme] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTimeSaved, setReviewTimeSaved] = useState("");
   const [reviewComment, setReviewComment] = useState("");
@@ -195,6 +197,14 @@ const SkillDetail = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-16">
             <h2 className="text-2xl font-semibold mb-6">{t("detail.whatItDoes")}</h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl">{descriptionHuman}</p>
+            
+            {/* AI-generated summary */}
+            {(skill as any).readme_summary && (
+              <div className="mb-8 prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground">
+                <ReactMarkdown>{(skill as any).readme_summary}</ReactMarkdown>
+              </div>
+            )}
+
             {useCases.length > 0 && (
               <>
                 <h3 className="text-lg font-semibold mb-4">{t("detail.useCases")}</h3>
@@ -209,6 +219,25 @@ const SkillDetail = () => {
               </>
             )}
           </motion.div>
+
+          {/* Full README documentation */}
+          {(skill as any).readme_raw && (skill as any).readme_raw.length > 10 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-16">
+              <button
+                onClick={() => setShowFullReadme(!showFullReadme)}
+                className="flex items-center gap-2 text-lg font-semibold mb-4 hover:text-muted-foreground transition-colors"
+              >
+                <BookOpen className="w-5 h-5" />
+                {t("detail.fullDocs", "Full documentation")}
+                {showFullReadme ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {showFullReadme && (
+                <div className="p-6 rounded-2xl bg-secondary prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background overflow-x-auto">
+                  <ReactMarkdown>{(skill as any).readme_raw}</ReactMarkdown>
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {(reviews.length > 0 || user) && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-20">
