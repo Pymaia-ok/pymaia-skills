@@ -68,17 +68,114 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── MODE: bulk-mark-no-mcp — mark skills without external tool keywords ───
+    if (mode === "bulk-mark-no-mcp") {
+      console.log(`[bulk-mark] Marking non-candidate skills...`);
+      // Keywords that suggest external tool usage
+      const keywords = ['github','slack','email','gmail','smtp','database','postgres','mysql','mongo','stripe','webhook','whatsapp','telegram','discord','jira','linear','notion','google drive','dropbox','s3','aws','gcp','azure','puppeteer','playwright','firecrawl','brave search','calendar','oauth','salesforce','hubspot','twitter','linkedin','trello','asana','jenkins','ci/cd','filesystem','file system','api key','docker','kubernetes','redis','elasticsearch','supabase','firebase'];
+      
+      // Find skills with empty mcps that DON'T match any keyword
+      const { data: nonCandidates, error } = await supabase.rpc('exec_sql', { sql: '' }); // Can't do complex NOT ILIKE ANY via JS client
+      
+      // Use a simpler approach: fetch batch, check keywords locally, mark non-matches
+      const { data: skills, error: fetchErr } = await supabase
+        .from("skills")
+        .select("id, slug, description_human, readme_summary")
+        .eq("status", "approved")
+        .eq("required_mcps", '[]')
+        .limit(batchSize);
+      
+      if (fetchErr || !skills || skills.length === 0) {
+        return new Response(JSON.stringify({ success: true, mode: "bulk-mark-no-mcp", marked: 0, skipped: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let marked = 0;
+      let skipped = 0;
+      const ids: string[] = [];
+      
+      for (const skill of skills) {
+        const text = `${skill.description_human || ""} ${skill.readme_summary || ""}`.toLowerCase();
+        const hasKeyword = keywords.some(kw => text.includes(kw));
+        if (!hasKeyword) {
+          ids.push(skill.id);
+        } else {
+          skipped++;
+        }
+      }
+
+      // Bulk update non-candidates in chunks of 200
+      if (ids.length > 0) {
+        for (let i = 0; i < ids.length; i += 200) {
+          const chunk = ids.slice(i, i + 200);
+          const { error: updateErr } = await supabase
+            .from("skills")
+            .update({ required_mcps: null })
+            .in("id", chunk);
+          if (!updateErr) marked += chunk.length;
+          else console.error(`[bulk-mark] Update error:`, updateErr.message);
+        }
+      }
+
+      console.log(`[bulk-mark] Marked ${marked} as no-MCP, skipped ${skipped} candidates`);
+      return new Response(JSON.stringify({ success: true, mode: "bulk-mark-no-mcp", checked: skills.length, marked, skipped }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── MODE: detect-mcps — analyze skills to populate required_mcps ───
     if (mode === "detect-mcps") {
       console.log(`[detect-mcps] Starting batch of ${batchSize}...`);
 
-      // Find approved skills with empty or null required_mcps that have descriptions to analyze
-      const { data: skills, error } = await supabase
+      // Only fetch skills with empty array (candidates) — null means already marked as no-MCP
+      const keywords = ['github','slack','email','gmail','smtp','database','postgres','mysql','mongo','stripe','webhook','whatsapp','telegram','discord','jira','linear','notion','google drive','dropbox','s3','aws','gcp','azure','puppeteer','playwright','firecrawl','calendar','oauth','salesforce','hubspot','twitter','linkedin','trello','asana','jenkins','docker','kubernetes','redis','elasticsearch','supabase','firebase','api key','filesystem','file system'];
+      
+      const { data: allSkills, error } = await supabase
         .from("skills")
         .select("id, slug, display_name, description_human, readme_summary, readme_raw, category, install_command, github_url")
         .eq("status", "approved")
-        .or("required_mcps.is.null,required_mcps.eq.[]")
-        .limit(batchSize);
+        .eq("required_mcps", '[]')
+        .limit(batchSize * 3); // fetch more, filter locally
+
+      if (error || !allSkills || allSkills.length === 0) {
+        console.log(`[detect-mcps] No skills to analyze (${error?.message || "0 found"})`);
+        return new Response(JSON.stringify({ success: true, mode: "detect-mcps", analyzed: 0, detected: 0, marked_no_mcp: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Split into candidates (have keywords) and non-candidates
+      const candidates: typeof allSkills = [];
+      const nonCandidateIds: string[] = [];
+      
+      for (const skill of allSkills) {
+        const text = `${skill.description_human || ""} ${skill.readme_summary || ""}`.toLowerCase();
+        if (keywords.some(kw => text.includes(kw))) {
+          if (candidates.length < batchSize) candidates.push(skill);
+        } else {
+          nonCandidateIds.push(skill.id);
+        }
+      }
+
+      // Bulk mark non-candidates as null (no MCPs needed, skip in future)
+      let markedNoMcp = 0;
+      if (nonCandidateIds.length > 0) {
+        const { error: markErr } = await supabase
+          .from("skills")
+          .update({ required_mcps: null })
+          .in("id", nonCandidateIds);
+        if (!markErr) markedNoMcp = nonCandidateIds.length;
+      }
+
+      if (candidates.length === 0) {
+        console.log(`[detect-mcps] No candidates in batch, marked ${markedNoMcp} as no-MCP`);
+        return new Response(JSON.stringify({ success: true, mode: "detect-mcps", analyzed: 0, detected: 0, marked_no_mcp: markedNoMcp }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const skills = candidates;
 
       if (error || !skills || skills.length === 0) {
         console.log(`[detect-mcps] No skills to analyze (${error?.message || "0 found"})`);
@@ -222,8 +319,8 @@ Be precise — only include MCPs that are truly required based on the evidence.`
               console.error(`[detect-mcps] Update error for ${skill.slug}:`, updateErr.message);
             }
           } else {
-            // Mark as analyzed (empty array) so we don't re-process
-            await supabase.from("skills").update({ required_mcps: [] }).eq("id", skill.id);
+            // Mark as analyzed — set null to distinguish from "not yet analyzed" ([])
+            await supabase.from("skills").update({ required_mcps: null }).eq("id", skill.id);
             console.log(`[detect-mcps] ${skill.slug}: no MCPs needed`);
           }
 
@@ -233,10 +330,10 @@ Be precise — only include MCPs that are truly required based on the evidence.`
         }
       }
 
-      console.log(`[detect-mcps] Detected MCPs in ${detected}/${skills.length} skills`);
+      console.log(`[detect-mcps] Detected MCPs in ${detected}/${skills.length} skills, marked ${markedNoMcp} as no-MCP`);
       return new Response(JSON.stringify({
         success: true, mode: "detect-mcps",
-        analyzed: skills.length, detected,
+        analyzed: skills.length, detected, marked_no_mcp: markedNoMcp,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
