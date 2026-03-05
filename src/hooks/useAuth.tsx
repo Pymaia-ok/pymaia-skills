@@ -23,10 +23,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Enroll new signups in welcome sequence
+        if (event === "SIGNED_IN" && session?.user?.email) {
+          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+          fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: session.user.email,
+              sequence_name: "welcome",
+              metadata: {
+                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
+              },
+            }),
+          }).catch(() => {});
+        }
       }
     );
 

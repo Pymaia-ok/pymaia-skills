@@ -20,3 +20,12 @@ verify_jwt = false
 
 [functions.test-skill]
 verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = false
+
+[functions.enroll-sequence]
+verify_jwt = false

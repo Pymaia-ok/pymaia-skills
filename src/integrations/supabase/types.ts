@@ -14,6 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_logs: {
+        Row: {
+          clicked_at: string | null
+          created_at: string
+          id: string
+          opened_at: string | null
+          resend_id: string | null
+          sequence_name: string | null
+          status: string
+          step_index: number | null
+          subject: string
+          to_email: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          resend_id?: string | null
+          sequence_name?: string | null
+          status: string
+          step_index?: number | null
+          subject: string
+          to_email: string
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          resend_id?: string | null
+          sequence_name?: string | null
+          status?: string
+          step_index?: number | null
+          subject?: string
+          to_email?: string
+        }
+        Relationships: []
+      }
+      email_queue: {
+        Row: {
+          created_at: string
+          error: string | null
+          html_body: string
+          id: string
+          metadata: Json | null
+          scheduled_at: string
+          sent_at: string | null
+          sequence_id: string | null
+          status: string
+          step_index: number | null
+          subject: string
+          to_email: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          html_body: string
+          id?: string
+          metadata?: Json | null
+          scheduled_at?: string
+          sent_at?: string | null
+          sequence_id?: string | null
+          status?: string
+          step_index?: number | null
+          subject: string
+          to_email: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          html_body?: string
+          id?: string
+          metadata?: Json | null
+          scheduled_at?: string
+          sent_at?: string | null
+          sequence_id?: string | null
+          status?: string
+          step_index?: number | null
+          subject?: string
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_queue_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequences: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          steps: Json
+          trigger_event: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          steps?: Json
+          trigger_event: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          steps?: Json
+          trigger_event?: string
+        }
+        Relationships: []
+      }
       installations: {
         Row: {
           created_at: string
@@ -36,6 +158,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "installations_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          converted_at: string | null
+          created_at: string
+          email: string
+          id: string
+          skill_id: string | null
+          source: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          skill_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          skill_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_skill_id_fkey"
             columns: ["skill_id"]
             isOneToOne: false
             referencedRelation: "skills"
@@ -116,6 +279,47 @@ export type Database = {
             columns: ["skill_id"]
             isOneToOne: false
             referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          current_step: number
+          email: string
+          enrolled_at: string
+          id: string
+          metadata: Json | null
+          sequence_id: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          current_step?: number
+          email: string
+          enrolled_at?: string
+          id?: string
+          metadata?: Json | null
+          sequence_id: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          current_step?: number
+          email?: string
+          enrolled_at?: string
+          id?: string
+          metadata?: Json | null
+          sequence_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
             referencedColumns: ["id"]
           },
         ]
