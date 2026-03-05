@@ -54,9 +54,11 @@ interface Quality {
 interface TestResults {
   test_results: {
     case_number: number;
+    case_type: string;
     title: string;
     input: string;
-    simulated_output: string;
+    real_output: string;
+    full_output?: string;
     passed: boolean;
     score: number;
     feedback: string;
