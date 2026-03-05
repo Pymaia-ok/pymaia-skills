@@ -1,105 +1,63 @@
 
 
-## Plan: Sistema de Dependencias MCP para Skills
+## Plan: Evolucionar Pymaia Skills a plataforma integral de "expertise instalable"
 
-### Alcance
+### Visión
 
-Dos frentes: (A) soporte en la base de datos + UI de detalle para skills existentes, y (B) integración en SkillForge para que skills nuevas declaren y auto-instalen MCPs.
+La misión es **"Convertir a cualquier profesional en experto con IA en 2 minutos"**, y la segunda cara de la moneda: **"Compartir tu conocimiento con miles de profesionales"**. Las Skills son conocimiento experto; los MCPs son las herramientas que las potencian. No se venden por separado sino como un ecosistema integrado.
 
----
+### Cambios propuestos
 
-### A. Skills existentes — Campo `required_mcps` + UI
+#### 1. Repositorio de MCPs (nuevo)
 
-**1. Migración SQL**
-- Agregar columna `required_mcps jsonb DEFAULT '[]'::jsonb` a la tabla `skills`
-- Sin índices especiales necesarios (es metadata, no se busca por ella)
+Crear una sección `/conectores` (no "MCPs" -- lenguaje amigable) con un directorio de conectores/herramientas que las skills pueden usar.
 
-**2. UI en `SkillDetail.tsx`**
-- Nueva sección "Requiere" entre la descripción y los use cases
-- Cada MCP como card con: nombre, descripción corta, link al repo, lista de tools requeridas
-- Badge visual "Requiere configuración externa" si `required_mcps` no está vacío
-- Diferenciación visual entre MCPs obligatorios y opcionales
+- **Nueva tabla `mcp_servers`**: `id`, `name`, `slug`, `description`, `description_es`, `category` (gmail, github, slack, databases, etc.), `install_command`, `config_json`, `credentials_needed[]`, `docs_url`, `icon_url`, `install_count`, `status`.
+- **Nueva página `/conectores`**: Directorio visual con cards, búsqueda, categorías (Comunicación, Datos, APIs, Desarrollo).
+- **Detalle `/conector/:slug`**: Instrucciones de instalación, skills compatibles (join con `required_mcps`), qué credenciales necesita.
+- **Enlace bidireccional**: En el detalle de skill, los MCPs requeridos linkan a `/conector/:slug`. En el detalle de conector, se listan las skills que lo usan.
 
-**3. Tipos**
-- Actualizar tipos TS después de la migración (automático)
+#### 2. Actualizar copy/posicionamiento en toda la app
 
----
+- **Hero**: Cambiar de "Potenciá tu trabajo con Inteligencia Artificial" a algo como **"Tu expertise, escalado con IA."** con subtítulo enfocado en resultados concretos, no en tecnología.
+- **Badge del hero**: Cambiar "El directorio #1 de skills para Claude Code" por algo menos técnico como "Conocimiento experto para tu IA".
+- **Navbar**: Renombrar "MCP" a "Conectores" (o "Herramientas"). Agregar el link a `/conectores`.
+- **Ocultar jerga**: En toda la UI, reemplazar "Claude Code" por "tu IA" donde sea posible, excepto en la página de primeros pasos donde sí es necesario el nombre técnico.
+- **CTA principal**: Orientar a resultados -- "Encontrá expertise para tu trabajo" en vez de "Explorar skills".
 
-### B. SkillForge — Creación de skills con MCPs
+#### 3. SkillForge: integración de conectores al crear skills
 
-**1. Actualizar `generate-skill` edge function**
-- Agregar `required_mcps` al tool schema del skill generator
-- Actualizar el prompt `GENERATE_PROMPT` para que:
-  - Detecte cuándo la skill necesita interacción con sistemas externos (email, WhatsApp, APIs, bases de datos)
-  - Sugiera MCPs conocidos del ecosistema o declare MCPs custom
-  - Genere una sección `## Dependencies` en el SKILL.md con instrucciones de auto-setup
+- En el flujo de creación de skill (entrevista SkillChat), cuando el AI detecta que la skill necesita interactuar con herramientas externas (Gmail, Slack, APIs), sugerir automáticamente los conectores disponibles del repositorio.
+- Al generar el `SKILL.md`, poblar automáticamente el campo `required_mcps` con los conectores elegidos, incluyendo instrucciones de instalación y credenciales.
+- Esto permite crear skills "más completas que hagan cosas" como pedís.
 
-**2. Estructura del campo `required_mcps`**
-```json
-[
-  {
-    "name": "Gmail MCP",
-    "description": "Read and send emails",
-    "url": "https://github.com/anthropics/gmail-mcp",
-    "install_command": "npx @anthropic/mcp-server-gmail init",
-    "required_tools": ["send_email", "search_inbox"],
-    "credentials_needed": ["Gmail OAuth"],
-    "optional": false
-  }
-]
-```
+#### 4. Navegación por rol/resultado (mejora Explore)
 
-**3. Sección `## Dependencies` en el SKILL.md generado**
-- Auto-detección de MCPs disponibles al arrancar la skill
-- Instrucciones de instalación automática si no están presentes
-- Guía para configurar credenciales
-- Ejemplo del bloque que se agregaría al SKILL.md:
+- Agregar tabs o filtros prominentes por rol ("Soy marketer", "Soy abogado") además de las categorías técnicas actuales.
+- Mostrar en cada card de skill un badge con el tiempo ahorrado estimado (cuando esté disponible).
 
-```text
-## Dependencies
+#### 5. Página MCP actual → Redireccionar
 
-This skill requires the following MCP servers:
+- La página `/mcp` actual (instrucciones del MCP Server de Pymaia) se mantiene pero se renombra en la nav como "Auto-recomendaciones" o se mueve a una subsección de `/primeros-pasos`.
+- `/conectores` es la nueva sección principal.
 
-### Gmail MCP (required)
-- **Install**: `npx @anthropic/mcp-server-gmail init`
-- **Tools used**: send_email, search_inbox
-- **Credentials**: Gmail OAuth token
+### Resumen de cambios técnicos
 
-Before executing, verify MCP availability:
-1. Check if tools are accessible via `mcp__gmail__send_email`
-2. If not found, run the install command above
-3. Add to ~/.claude/mcp_servers.json and restart
-```
+| Cambio | Archivos afectados |
+|--------|-------------------|
+| Nueva tabla `mcp_servers` | Migración SQL |
+| Nueva página `/conectores` + detalle | `src/pages/Conectores.tsx`, `src/pages/ConectorDetail.tsx`, `App.tsx` |
+| Actualizar Navbar | `src/components/Navbar.tsx`, `es.ts`, `en.ts` |
+| Actualizar Hero + landing copy | `es.ts`, `en.ts`, `HeroSection.tsx` |
+| SkillForge: sugerencia de conectores | `skill-interviewer` edge function, `SkillChat.tsx` |
+| Links bidireccionales skill↔conector | `SkillDetail.tsx`, `ConectorDetail.tsx` |
+| Seed data de conectores populares | Migración SQL o edge function |
 
-**4. UI en `SkillPublishConfig.tsx`**
-- Nueva sección "Dependencias externas" antes del pricing
-- Mostrar MCPs sugeridos por la IA (editables)
-- Botón para agregar MCPs custom (nombre, URL, tools, credenciales)
-- Toggle obligatorio/opcional por cada MCP
+### Orden de implementación sugerido
 
-**5. UI en `SkillPreview.tsx`**
-- Mostrar sección de MCPs requeridos en la preview
-- Verificar que la sección Dependencies existe en el SKILL.md generado
-
-**6. Flujo de `CrearSkill.tsx`**
-- Pasar `required_mcps` del skill generado al publish config
-- Incluirlo en el `submitSkill` call
-
-**7. Actualizar `submitSkill` en `lib/api.ts`**
-- Agregar campo `required_mcps` al payload de publicación
-
----
-
-### Resumen de archivos a modificar
-
-| Archivo | Cambio |
-|---|---|
-| Migración SQL | Agregar columna `required_mcps` |
-| `generate-skill/index.ts` | Prompt + tool schema + sección Dependencies en SKILL.md |
-| `SkillDetail.tsx` | Sección "Requiere" con MCPs |
-| `SkillPreview.tsx` | Mostrar MCPs detectados |
-| `SkillPublishConfig.tsx` | Editor de MCPs requeridos |
-| `CrearSkill.tsx` | Pasar `required_mcps` en el flujo |
-| `lib/api.ts` | Campo `required_mcps` en submitSkill |
-| `i18n/es.ts` + `en.ts` | Traducciones nuevas |
+1. Actualizar copy/posicionamiento (rápido, alto impacto)
+2. Crear tabla y página de conectores
+3. Enlace bidireccional skill↔conector
+4. Integrar conectores en SkillForge
+5. Reorganizar navegación por rol
 
