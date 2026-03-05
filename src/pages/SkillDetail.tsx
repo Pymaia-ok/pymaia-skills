@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -197,6 +197,57 @@ const SkillDetail = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-16">
             <h2 className="text-2xl font-semibold mb-6">{t("detail.whatItDoes")}</h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl">{descriptionHuman}</p>
+
+            {/* Required MCPs Section */}
+            {(() => {
+              const requiredMcps = (skill as any).required_mcps;
+              if (!requiredMcps || !Array.isArray(requiredMcps) || requiredMcps.length === 0) return null;
+              return (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Plug className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold">{t("detail.requiresMcps", "Requiere configuración externa")}</h3>
+                  </div>
+                  <div className="grid gap-3">
+                    {requiredMcps.map((mcp: any, i: number) => (
+                      <div key={i} className="p-4 rounded-2xl border border-border bg-card">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">{mcp.name}</span>
+                            {mcp.url && (
+                              <a href={mcp.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${mcp.optional ? "bg-secondary text-muted-foreground" : "bg-foreground/10 text-foreground"}`}>
+                            {mcp.optional ? t("detail.mcpOptional", "Opcional") : t("detail.mcpRequired", "Requerido")}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-3">{mcp.description}</p>
+                        {mcp.required_tools && mcp.required_tools.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {mcp.required_tools.map((tool: string, ti: number) => (
+                              <code key={ti} className="text-xs px-2 py-0.5 rounded-md bg-secondary text-muted-foreground">{tool}</code>
+                            ))}
+                          </div>
+                        )}
+                        {mcp.install_command && (
+                          <div className="mt-2 p-2.5 rounded-xl bg-secondary">
+                            <code className="text-xs text-foreground font-mono">{mcp.install_command}</code>
+                          </div>
+                        )}
+                        {mcp.credentials_needed && mcp.credentials_needed.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            🔑 {t("detail.mcpCredentials", "Credenciales")}: {mcp.credentials_needed.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             
             {/* AI-generated summary */}
             {(skill as any).readme_summary && (

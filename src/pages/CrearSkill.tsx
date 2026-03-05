@@ -18,6 +18,16 @@ interface StepProps {
 
 type Step = "chat" | "preview" | "playground" | "publish";
 
+interface RequiredMcp {
+  name: string;
+  description: string;
+  url?: string;
+  install_command?: string;
+  required_tools: string[];
+  credentials_needed?: string[];
+  optional: boolean;
+}
+
 interface GeneratedSkill {
   name: string;
   tagline: string;
@@ -31,6 +41,7 @@ interface GeneratedSkill {
   industry: string[];
   target_roles: string[];
   install_command: string;
+  required_mcps?: RequiredMcp[];
 }
 
 interface Quality {
@@ -129,6 +140,7 @@ const CrearSkill = () => {
     target_roles: string[];
     pricing_model: string;
     price_amount: number | null;
+    required_mcps?: RequiredMcp[];
   }) => {
     if (!skill || !user) return;
     setIsPublishing(true);
@@ -151,6 +163,7 @@ const CrearSkill = () => {
         time_to_install_minutes: 2,
         industry: config.industry,
         creator_id: user.id,
+        required_mcps: config.required_mcps || skill.required_mcps || [],
       });
 
       toast.success("¡Skill publicada! Será revisada antes de aparecer en el marketplace.");
@@ -213,6 +226,7 @@ const CrearSkill = () => {
                 initialCategory={skill.category}
                 initialIndustry={skill.industry}
                 initialRoles={skill.target_roles}
+                initialMcps={skill.required_mcps || []}
                 onPublish={handlePublish}
                 onBack={() => setStep("preview")}
                 isPublishing={isPublishing}

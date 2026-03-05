@@ -1,0 +1,1 @@
+ALTER TABLE public.skills ADD COLUMN required_mcps jsonb DEFAULT '[]'::jsonb;
