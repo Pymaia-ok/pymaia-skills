@@ -151,6 +151,21 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
         )}
       </div>
 
+      {/* Installation instructions */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">📦 Cómo instalar después de publicar</h3>
+        <div className="space-y-3">
+          <div className="bg-secondary rounded-xl p-3">
+            <p className="text-xs font-medium text-foreground mb-1">Claude Code</p>
+            <p className="text-xs text-muted-foreground">Copiá el SKILL.md y pegalo en la carpeta <code className="bg-background px-1 py-0.5 rounded text-[10px]">.claude/skills/</code> de tu proyecto.</p>
+          </div>
+          <div className="bg-secondary rounded-xl p-3">
+            <p className="text-xs font-medium text-foreground mb-1">Claude.ai</p>
+            <p className="text-xs text-muted-foreground">Subí el archivo SKILL.md directamente en una conversación o agregalo a un proyecto como conocimiento.</p>
+          </div>
+        </div>
+      </div>
+
       <Button
         onClick={() => onPublish({ 
           category, 
