@@ -27,7 +27,7 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
     >
       <Link
         to={`/skill/${skill.slug}`}
-        className="block p-6 rounded-2xl bg-secondary hover:bg-accent transition-all group"
+        className="flex flex-col h-full p-6 rounded-2xl bg-secondary hover:bg-accent transition-all group"
       >
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
@@ -43,14 +43,14 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
           ))}
         </div>
 
-        <h3 className="text-lg font-semibold mb-1.5 group-hover:text-foreground transition-colors">
+        <h3 className="text-lg font-semibold mb-1.5 group-hover:text-foreground transition-colors truncate">
           {skill.display_name}
         </h3>
-        <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+        <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2 min-h-[2.5rem]">
           {tagline}
         </p>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-auto">
           <div className="flex items-center gap-3">
             {skill.review_count > 0 && (
               <div className="flex items-center gap-1.5">
