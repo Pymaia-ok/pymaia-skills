@@ -1,0 +1,192 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function inferCategory(name: string, desc: string): string {
+  const text = `${name} ${desc}`.toLowerCase();
+  if (text.match(/\b(legal|lawyer|law\b|contract|compliance|regulat|gdpr|hipaa|attorney)/)) return "legal";
+  if (text.match(/\b(marketing|seo\b|sem\b|adwords|campaign|newsletter|social.?media|brand|copywriting|advertising|hubspot)/)) return "marketing";
+  if (text.match(/\b(design|figma|sketch|adobe|ui.?kit|ux\b|wireframe|prototype|tailwind|css|style|layout|responsive)/)) return "diseño";
+  if (text.match(/\b(database|sql\b|postgres|mysql|mongo|redis|bigquery|snowflake|data.?warehouse|etl\b|csv|excel|xlsx|tableau|power.?bi|grafana|analytics|metric|dashboard|pandas|dataframe|dbt\b)/)) return "datos";
+  if (text.match(/\b(automat|workflow|zapier|n8n|scrape|crawl|puppeteer|playwright|selenium|cron|schedul|webhook|integration|sync\b|orchestrat|trigger|batch|queue)/)) return "automatización";
+  if (text.match(/\b(video|audio|music|sound|animation|3d\b|render|image.?gen|dall.?e|stable.?diffus|midjourney|creative|art\b|photo|podcast|youtube|tiktok)/)) return "creatividad";
+  if (text.match(/\b(slack|discord|teams|notion|obsidian|todoist|trello|jira|asana|linear|calendar|email|gmail|pdf\b|document|note|wiki|translat|meeting|zoom)/)) return "productividad";
+  if (text.match(/\b(business|finance|invoice|payment|stripe|paypal|shopify|e.?commerce|sales|crm|salesforce|pitch|investor|startup|revenue|pricing|accounting)/)) return "negocios";
+  if (text.match(/\b(github|gitlab|docker|kubernetes|aws\b|azure|gcp\b|terraform|ci.?cd|deploy|server|api\b|rest\b|graphql|typescript|javascript|python|rust|golang|node|npm|lint|test|debug|git\b|commit|code.?review|webpack|vite\b|build)/)) return "desarrollo";
+  if (text.match(/\b(ai\b|llm|language.?model|gpt|claude|gemini|openai|anthropic|embedding|vector|rag\b|chat.?bot|prompt|agent|copilot|assistant)/)) return "ia";
+  if (text.match(/\b(mcp|server|tool|plugin|extension)/)) return "desarrollo";
+  return "desarrollo";
+}
+
+function inferRoles(name: string, desc: string, category: string): string[] {
+  const text = `${name} ${desc}`.toLowerCase();
+  const roles: string[] = [];
+  if (category === "marketing") roles.push("marketer");
+  if (category === "legal") roles.push("abogado");
+  if (category === "diseño") roles.push("disenador");
+  if (category === "negocios") roles.push("founder");
+  if (category === "datos") roles.push("consultor");
+  if (category === "desarrollo" || category === "ia") roles.push("developer");
+  if (text.match(/\b(market|seo|content|copy|social|brand)/)) roles.push("marketer");
+  if (text.match(/\b(legal|contract|compliance|law\b)/)) roles.push("abogado");
+  if (text.match(/\b(consult|strateg|proposal|research|analys)/)) roles.push("consultor");
+  if (text.match(/\b(startup|product|pitch|founder|mvp|business)/)) roles.push("founder");
+  if (text.match(/\b(design|ui|ux|figma|css|frontend)/)) roles.push("disenador");
+  const unique = [...new Set(roles)];
+  return unique.length > 0 ? unique : ["otro"];
+}
+
+function inferIndustry(bizCats: string): string[] {
+  const cats = bizCats ? bizCats.split("|").map(c => c.trim()).filter(Boolean) : [];
+  return cats.length > 0 ? cats : ["tecnologia"];
+}
+
+function formatDisplayName(name: string): string {
+  return name
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/\bMcp\b/g, "MCP")
+    .replace(/\bApi\b/g, "API")
+    .replace(/\bUi\b/g, "UI")
+    .replace(/\bUx\b/g, "UX")
+    .replace(/\bAi\b/g, "AI")
+    .replace(/\bSql\b/g, "SQL")
+    .replace(/\bCss\b/g, "CSS")
+    .replace(/\bHtml\b/g, "HTML");
+}
+
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    const { csv_url, offset = 0, limit = 2000 } = await req.json();
+    if (!csv_url) return new Response(JSON.stringify({ error: "No csv_url" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    console.log(`Fetching CSV from ${csv_url}, offset=${offset}, limit=${limit}`);
+    const csvRes = await fetch(csv_url);
+    if (!csvRes.ok) throw new Error(`Failed to fetch CSV: ${csvRes.status}`);
+    const csvText = await csvRes.text();
+
+    const lines = csvText.split("\n").filter((l: string) => l.trim().length > 0);
+    const startIdx = lines[0]?.startsWith("id,") ? 1 : 0;
+    
+    // Apply offset and limit
+    const sliceStart = startIdx + offset;
+    const sliceEnd = Math.min(sliceStart + limit, lines.length);
+    const chunk = lines.slice(sliceStart, sliceEnd);
+    
+    console.log(`Processing lines ${sliceStart}-${sliceEnd} of ${lines.length} total`);
+
+    const skills: any[] = [];
+    const seenSlugs = new Set<string>();
+
+    for (const line of chunk) {
+      const fields = parseCSVLine(line);
+      if (fields.length < 10) continue;
+
+      const [_id, name, description, _author, sourceUrl, installCommand, bizCategories, _techCategories, _useCases, _tags, _platforms, installs, stars] = fields;
+
+      if (!name || name.trim().length === 0) continue;
+      const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
+      if (slug.length < 2 || slug.length > 200) continue;
+      if (seenSlugs.has(slug)) continue;
+      seenSlugs.add(slug);
+
+      const category = inferCategory(name, description || "");
+      const targetRoles = inferRoles(name, description || "", category);
+      const industry = inferIndustry(bizCategories || "");
+      const displayName = formatDisplayName(name);
+      const tagline = (description || "").length > 200 ? (description || "").slice(0, 197) + "..." : (description || displayName);
+
+      const githubMatch = (sourceUrl || "").match(/(https:\/\/github\.com\/[^\s,]+)/);
+      const githubUrl = githubMatch ? githubMatch[1] : null;
+
+      skills.push({
+        slug,
+        display_name: displayName,
+        tagline: tagline || displayName,
+        description_human: description || `${displayName} — herramienta del ecosistema open-source de Agent Skills.`,
+        category,
+        industry,
+        target_roles: targetRoles,
+        install_command: installCommand || `npx skills add ${slug}`,
+        github_url: githubUrl,
+        github_stars: parseInt(stars || "0") || 0,
+        install_count: parseInt(installs || "0") || 0,
+        status: "approved",
+        use_cases: [],
+        time_to_install_minutes: 2,
+        avg_rating: 0,
+        review_count: 0,
+      });
+    }
+
+    // Batch upsert with ON CONFLICT DO NOTHING
+    let inserted = 0;
+    let errors = 0;
+    const batchSize = 200;
+
+    for (let i = 0; i < skills.length; i += batchSize) {
+      const batch = skills.slice(i, i + batchSize);
+      const { error, count } = await supabase
+        .from("skills")
+        .upsert(batch, { onConflict: "slug", ignoreDuplicates: true, count: "exact" });
+
+      if (error) {
+        console.error(`Batch error at ${i}:`, error.message);
+        errors++;
+      } else {
+        inserted += count || 0;
+      }
+    }
+
+    const totalLines = lines.length - startIdx;
+    const hasMore = sliceEnd < lines.length;
+
+    return new Response(
+      JSON.stringify({
+        total_lines: totalLines,
+        chunk_processed: chunk.length,
+        parsed: skills.length,
+        inserted,
+        errors,
+        next_offset: hasMore ? offset + limit : null,
+        has_more: hasMore,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    console.error("Import error:", (e as Error).message);
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
