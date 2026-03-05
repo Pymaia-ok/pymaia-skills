@@ -131,9 +131,40 @@ serve(async (req) => {
           if (text && text.length > 50 && !text.includes('\x00')) {
             extractedText = `[Contenido de documento: ${fileName}]\n\n${text.slice(0, 15000)}`;
           } else {
-            // Binary PDF - use base64 with AI
+            // Binary PDF - send to Gemini which supports PDF natively
             const base64 = await arrayBufferToBase64(await fileData.arrayBuffer());
-            extractedText = `[Documento PDF subido: ${fileName}]\n\nEl archivo PDF fue subido correctamente. Pedile al usuario que copie y pegue el contenido más relevante del documento, o que describa los pasos/procesos que contiene.`;
+            const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  {
+                    role: "system",
+                    content: "Extraé todo el contenido relevante de este documento PDF. Incluí: títulos, secciones, textos, tablas, listas, procesos, pasos, instrucciones, reglas, ejemplos. Respondé en español con el contenido extraído de forma estructurada y completa.",
+                  },
+                  {
+                    role: "user",
+                    content: [
+                      { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
+                      { type: "text", text: `Extraé todo el contenido de este PDF "${fileName}" para crear una skill de Claude.` },
+                    ],
+                  },
+                ],
+              }),
+            });
+
+            if (!response.ok) {
+              const errText = await response.text();
+              console.error("PDF Vision API error:", response.status, errText);
+              extractedText = `[Documento PDF subido: ${fileName}]\n\nNo se pudo procesar el PDF automáticamente. Pedile al usuario que copie y pegue el contenido más relevante.`;
+            } else {
+              const data = await response.json();
+              extractedText = `[Contenido extraído de PDF: ${fileName}]\n\n${data.choices[0].message.content}`;
+            }
           }
         } else {
           // Text-based files
