@@ -142,7 +142,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const callAI = async (messages: any[], model = "google/gemini-2.5-flash") => {
+    const callAI = async (messages: any[], model = "google/gemini-2.5-flash", tools?: any[], tool_choice?: any) => {
+      const body: any = { model, messages };
+      if (tools) { body.tools = tools; body.tool_choice = tool_choice; }
+      
       const response = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
@@ -151,7 +154,7 @@ serve(async (req) => {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ model, messages }),
+          body: JSON.stringify(body),
         }
       );
 
@@ -163,75 +166,79 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      const msg = data.choices[0].message;
+      
+      // If tool call, return parsed arguments
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        return JSON.parse(msg.tool_calls[0].function.arguments);
+      }
+      return msg.content;
     };
 
     const sanitizeJson = (str: string): string => {
-      // Strip markdown code fences if present
       let cleaned = str.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-      
-      // Fix unescaped control characters inside JSON string values
-      // Walk through the string and only escape chars inside quoted strings
       let result = '';
       let inString = false;
       let escape = false;
-      
       for (let i = 0; i < cleaned.length; i++) {
         const ch = cleaned[i];
-        
-        if (escape) {
-          result += ch;
-          escape = false;
-          continue;
-        }
-        
-        if (ch === '\\' && inString) {
-          result += ch;
-          escape = true;
-          continue;
-        }
-        
-        if (ch === '"') {
-          inString = !inString;
-          result += ch;
-          continue;
-        }
-        
+        if (escape) { result += ch; escape = false; continue; }
+        if (ch === '\\' && inString) { result += ch; escape = true; continue; }
+        if (ch === '"') { inString = !inString; result += ch; continue; }
         if (inString) {
-          // Escape control characters inside strings
           if (ch === '\n') { result += '\\n'; continue; }
           if (ch === '\r') { result += '\\r'; continue; }
           if (ch === '\t') { result += '\\t'; continue; }
-          const code = ch.charCodeAt(0);
-          if (code < 0x20) { continue; } // skip other control chars
+          if (ch.charCodeAt(0) < 0x20) { continue; }
         }
-        
         result += ch;
       }
-      
       return result;
     };
 
+    // Tool definition for structured skill generation
+    const skillTool = {
+      type: "function",
+      function: {
+        name: "create_skill",
+        description: "Create a structured skill from the interview conversation",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Short descriptive name" },
+            tagline: { type: "string", description: "One line description, max 100 chars" },
+            description: { type: "string", description: "Detailed 2-3 paragraph description" },
+            triggers: { type: "array", items: { type: "string" }, description: "Situations that activate the skill" },
+            instructions: { type: "string", description: "Step by step instructions in markdown" },
+            examples: { type: "array", items: { type: "object", properties: { title: { type: "string" }, input: { type: "string" }, output: { type: "string" } }, required: ["title", "input", "output"] } },
+            dont_do: { type: "array", items: { type: "string" }, description: "Things Claude must NEVER do" },
+            edge_cases: { type: "array", items: { type: "string" }, description: "Special situations" },
+            category: { type: "string", enum: ["ia", "desarrollo", "diseño", "marketing", "automatización", "datos", "creatividad", "productividad", "legal", "negocios"] },
+            industry: { type: "array", items: { type: "string" } },
+            target_roles: { type: "array", items: { type: "string" } },
+            install_command: { type: "string", description: "Full SKILL.md content following Anthropic Agent Skills standard" },
+          },
+          required: ["name", "tagline", "description", "triggers", "instructions", "examples", "dont_do", "edge_cases", "category", "industry", "target_roles", "install_command"],
+          additionalProperties: false,
+        },
+      },
+    };
+
     if (action === "generate") {
-      // Step 1: Generate the skill from conversation
+      // Step 1: Generate the skill from conversation using tool calling
       const conversationText = conversation
         .map((m: any) => `${m.role === "user" ? "Usuario" : "Entrevistador"}: ${m.content}`)
         .join("\n\n");
 
-      const skillRaw = await callAI([
-        { role: "system", content: GENERATE_PROMPT },
-        { role: "user", content: `Conversación de entrevista:\n\n${conversationText}` },
-      ]);
-
-      let skill;
-      try {
-        skill = JSON.parse(sanitizeJson(skillRaw));
-      } catch {
-        // Try to extract JSON from response
-        const match = skillRaw.match(/\{[\s\S]*\}/);
-        if (match) skill = JSON.parse(sanitizeJson(match[0]));
-        else throw new Error("No se pudo parsear la skill generada");
-      }
+      const skill = await callAI(
+        [
+          { role: "system", content: GENERATE_PROMPT },
+          { role: "user", content: `Conversación de entrevista:\n\n${conversationText}` },
+        ],
+        "google/gemini-2.5-flash",
+        [skillTool],
+        { type: "function", function: { name: "create_skill" } }
+      );
 
       // Step 2: Judge the skill quality
       const judgeRaw = await callAI(
@@ -258,22 +265,18 @@ serve(async (req) => {
     }
 
     if (action === "refine") {
-      // Refine an existing skill based on user feedback
-      const refinePrompt = `Tenés esta skill existente:\n\n${JSON.stringify(skill)}\n\nEl usuario pidió este cambio: "${refinement_request}"\n\nModificá la skill según lo pedido y devolvé el JSON completo actualizado con la misma estructura. Respondé SOLO con JSON válido, sin markdown ni backticks.`;
+      // Refine an existing skill based on user feedback using tool calling
+      const refinePrompt = `Tenés esta skill existente:\n\n${JSON.stringify(skill)}\n\nEl usuario pidió este cambio: "${refinement_request}"\n\nModificá la skill según lo pedido y devolvé la skill completa actualizada.`;
 
-      const refinedRaw = await callAI([
-        { role: "system", content: GENERATE_PROMPT },
-        { role: "user", content: refinePrompt },
-      ]);
-
-      let refined;
-      try {
-        refined = JSON.parse(sanitizeJson(refinedRaw));
-      } catch {
-        const match = refinedRaw.match(/\{[\s\S]*\}/);
-        if (match) refined = JSON.parse(sanitizeJson(match[0]));
-        else throw new Error("No se pudo parsear la skill refinada");
-      }
+      const refined = await callAI(
+        [
+          { role: "system", content: GENERATE_PROMPT },
+          { role: "user", content: refinePrompt },
+        ],
+        "google/gemini-2.5-flash",
+        [skillTool],
+        { type: "function", function: { name: "create_skill" } }
+      );
 
       // Re-judge
       const judgeRaw = await callAI(
@@ -286,10 +289,10 @@ serve(async (req) => {
 
       let judge;
       try {
-        judge = JSON.parse(judgeRaw);
+        judge = JSON.parse(sanitizeJson(judgeRaw));
       } catch {
         const match = judgeRaw.match(/\{[\s\S]*\}/);
-        if (match) judge = JSON.parse(match[0]);
+        if (match) judge = JSON.parse(sanitizeJson(match[0]));
         else judge = { score: 7, feedback: "No se pudo evaluar.", strengths: [], improvements: [] };
       }
 
