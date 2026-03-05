@@ -1,58 +1,52 @@
 
 
-## Plan: Integrar lógica best-in-class del skill-creator de Anthropic
+## Plan: Importar skills de CAD/BIM reales + scraper de awesome-lists + nuevas industrias
 
-### Hallazgos clave del análisis
+### Fase 1: Insertar 5 skills reales de CAD/BIM
 
-Después de estudiar la spec oficial de agentskills.io y las ~15 skills de ejemplo del repo de Anthropic, identifiqué los patrones que hacen que una skill sea "best in class" y que nuestro creator no aplica:
+Crear una migración SQL que inserte los 5 repositorios verificados de GitHub con datos reales extraidos de sus READMEs:
 
-1. **Descriptions keyword-rich**: Las buenas descriptions dicen QUE hace + CUANDO usarla con keywords que ayudan al agente a hacer matching (ej: "Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF documents...")
-2. **Decision trees**: Las skills top (webapp-testing, mcp-builder) incluyen árboles de decisión en formato ASCII que guían al agente
-3. **Patrón ❌/✅**: Common pitfalls con formato visual explícito (❌ Don't / ✅ Do)
-4. **Código ejecutable**: Ejemplos con bloques de código reales, no solo texto descriptivo
-5. **Progressive disclosure**: SKILL.md < 500 líneas, con referencias a archivos externos para detalles
-6. **Secciones estructuradas**: Overview → Process/Workflow → Examples → Best Practices → Common Pitfalls → Reference Files
+| Skill | Repo | Industry | Target Roles |
+|-------|------|----------|-------------|
+| AutoCAD MCP | ngk0/autocad-mcp | arquitectura, ingeniería | arquitecto, ingeniero civil |
+| Revit MCP | SamllPigYanDong/revit_mcp | arquitectura, ingeniería | arquitecto, ingeniero civil |
+| Revit MCP Commandset | revit-mcp/revit-mcp-commandset | arquitectura, ingeniería | arquitecto, ingeniero civil |
+| Revit Automation (Autodesk) | autodesk-platform-services/aps-sample-mcp-server-revit-automation | arquitectura, ingeniería | arquitecto, ingeniero civil |
+| Artifex (FreeCAD) | islamnurdin/Artifex | arquitectura, diseño | arquitecto, diseñador 3D |
 
-### Cambios a implementar
+Antes de insertar, se consultará el README de cada repo via GitHub API para obtener descripciones reales (tagline y description_human).
 
-#### 1. Actualizar `GENERATE_PROMPT` en `supabase/functions/generate-skill/index.ts`
+### Fase 2: Agregar awesome-lists grandes como fuente de sync
 
-Reescribir el prompt de generación para que produzca SKILL.md con los patrones de Anthropic:
-- Description: obligar formato "Qué hace. Cuándo usarla. Keywords."
-- Body con secciones: Overview → Decision Tree (cuando aplica) → Step-by-step Process → Examples (con código cuando es técnica) → Best Practices → Common Pitfalls (formato ❌/✅) → What NOT to do
-- Limitar a < 500 líneas
-- Agregar sección de Guidelines con edge cases integrados
+Actualizar `sync-skills/index.ts` para agregar dos nuevas fuentes:
 
-#### 2. Actualizar `SYSTEM_PROMPT` en `supabase/functions/skill-interviewer/index.ts`
+1. **`voltagent-awesome`**: Parsea `VoltAgent/awesome-agent-skills` README
+2. **`travisvn-awesome`**: Parsea `travisvn/awesome-claude-skills` README
 
-Mejorar la entrevista para extraer la información que necesitan las mejores skills:
-- Preguntar explícitamente por **decision tree**: "¿Cuándo SÍ y cuándo NO debería activarse?"
-- Preguntar por **common pitfalls**: "¿Cuáles son los errores más comunes que la gente comete?"
-- Preguntar por **código/output concreto**: "¿Podés darme un ejemplo real de input y exactamente qué debería producir?"
-- Preguntar por **flujo paso a paso**: "¿Cuáles son los pasos exactos, en orden?"
+Reutiliza la misma lógica de `fetchAwesomeLists()` existente (SOURCE 10), simplemente agregando estos dos repos a la lista. Luego se agrega un case en el switch para invocarlos individualmente o todos juntos.
 
-#### 3. Actualizar `JUDGE_PROMPT` en `supabase/functions/generate-skill/index.ts`
+### Fase 3: Expandir industrias en la UI
 
-Alinear los criterios de evaluación a los patrones de Anthropic:
-- Evaluar si tiene decision tree o workflow claro
-- Evaluar calidad de la description (keywords, WHAT + WHEN)
-- Evaluar si tiene common pitfalls con formato ❌/✅
-- Evaluar progressive disclosure (< 500 líneas, referencias cuando necesario)
-- Evaluar si los ejemplos son concretos y ejecutables
+Actualizar `SKILL_CATEGORIES` en `src/lib/api.ts` o agregar un filtro de industria visible en `/explorar` con las nuevas opciones:
+- arquitectura
+- ingeniería
+- construcción
+- medicina
+- educación
 
-#### 4. Actualizar `TEST_PROMPT` en `supabase/functions/test-skill/index.ts`
-
-Mejorar los tests para que evalúen contra los estándares de calidad de Anthropic:
-- Testear que la description sea keyword-rich y actionable
-- Testear que los pitfalls sean claros
-- Simular casos donde el agente necesita decidir si activar la skill o no (testing del decision tree)
+Esto permite que usuarios busquen skills por profesión, no solo por categoría técnica.
 
 ### Archivos a modificar
 
-- `supabase/functions/skill-interviewer/index.ts` -- mejorar SYSTEM_PROMPT con preguntas best-in-class
-- `supabase/functions/generate-skill/index.ts` -- reescribir GENERATE_PROMPT y JUDGE_PROMPT
-- `supabase/functions/test-skill/index.ts` -- mejorar TEST_PROMPT
+1. **Nueva migración SQL** — INSERT de los 5 skills CAD/BIM con datos reales de sus READMEs
+2. **`supabase/functions/sync-skills/index.ts`** — Agregar `VoltAgent/awesome-agent-skills` y `travisvn/awesome-claude-skills` a la lista de awesome-lists en `fetchAwesomeLists()`
+3. **`src/lib/api.ts`** — Agregar industrias nuevas al array de categorías o crear un array de industrias para filtro
+4. **`src/pages/Explore.tsx`** — Agregar filtro de industria si no existe
 
-### Sin cambios necesarios en frontend
-La UI actual (SkillPreview, SkillChat, SkillPublishConfig) ya soporta bien estos cambios porque el contenido mejorado va dentro del `install_command` (SKILL.md) y los campos existentes del JSON.
+### Orden de ejecución
+
+1. Fetch de los READMEs de los 5 repos CAD/BIM para obtener descripciones reales
+2. Migración SQL con los INSERTs
+3. Actualizar sync-skills con las nuevas awesome-lists
+4. Actualizar UI con filtros de industria
 
