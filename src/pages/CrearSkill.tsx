@@ -35,6 +35,21 @@ interface Quality {
   improvements: string[];
 }
 
+interface TestResults {
+  test_results: {
+    case_number: number;
+    title: string;
+    input: string;
+    simulated_output: string;
+    passed: boolean;
+    score: number;
+    feedback: string;
+  }[];
+  overall_score: number;
+  overall_feedback: string;
+  critical_gaps: string[];
+}
+
 const CrearSkill = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -42,8 +57,10 @@ const CrearSkill = () => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [skill, setSkill] = useState<GeneratedSkill | null>(null);
   const [quality, setQuality] = useState<Quality | null>(null);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
   if (loading) return null;
@@ -58,6 +75,7 @@ const CrearSkill = () => {
       if (error) throw error;
       setSkill(data.skill);
       setQuality(data.quality);
+      setTestResults(null);
       setStep("preview");
     } catch (e) {
       console.error(e);
@@ -76,6 +94,7 @@ const CrearSkill = () => {
       if (error) throw error;
       setSkill(data.skill);
       setQuality(data.quality);
+      setTestResults(null);
       toast.success("Skill actualizada");
     } catch {
       toast.error("Error al refinar la skill.");
@@ -83,7 +102,29 @@ const CrearSkill = () => {
     setIsRefining(false);
   };
 
-  const handlePublish = async (config: { category: string; industry: string[]; target_roles: string[] }) => {
+  const handleRunTests = async () => {
+    if (!skill) return;
+    setIsTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-skill", {
+        body: { skill },
+      });
+      if (error) throw error;
+      setTestResults(data);
+      toast.success(`Tests completados: ${data.test_results.filter((t: any) => t.passed).length}/${data.test_results.length} pasaron`);
+    } catch {
+      toast.error("Error al correr los tests.");
+    }
+    setIsTesting(false);
+  };
+
+  const handlePublish = async (config: { 
+    category: string; 
+    industry: string[]; 
+    target_roles: string[];
+    pricing_model: string;
+    price_amount: number | null;
+  }) => {
     if (!skill || !user) return;
     setIsPublishing(true);
     try {
@@ -108,7 +149,7 @@ const CrearSkill = () => {
       });
 
       toast.success("¡Skill publicada! Será revisada antes de aparecer en el marketplace.");
-      navigate("/explorar");
+      navigate("/mis-skills");
     } catch {
       toast.error("Error al publicar. Intentá de nuevo.");
     }
@@ -124,7 +165,7 @@ const CrearSkill = () => {
             <div className="px-4 pt-6 pb-2">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <h1 className="text-xl font-semibold text-foreground">Crear Skill</h1>
-                <p className="text-sm text-muted-foreground">Contanos sobre tu expertise y generamos la skill por vos</p>
+                <p className="text-sm text-muted-foreground">Contanos sobre tu expertise — podés escribir, adjuntar archivos o pegar links</p>
               </motion.div>
             </div>
             <div className="flex-1 flex flex-col min-h-0">
@@ -133,6 +174,7 @@ const CrearSkill = () => {
                 setMessages={setMessages}
                 onGenerate={handleGenerate}
                 isGenerating={isGenerating}
+                userId={user.id}
               />
             </div>
           </div>
@@ -143,10 +185,13 @@ const CrearSkill = () => {
             <SkillPreview
               skill={skill}
               quality={quality}
+              testResults={testResults}
               onRefine={handleRefine}
               onPublish={() => setStep("publish")}
               onBack={() => setStep("chat")}
+              onRunTests={handleRunTests}
               isRefining={isRefining}
+              isTesting={isTesting}
             />
           </div>
         )}

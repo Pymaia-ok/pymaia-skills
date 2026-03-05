@@ -4,14 +4,25 @@ import { ArrowLeft, Loader2, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SKILL_CATEGORIES } from "@/lib/api";
 
-const industryOptions = ["Agencias", "Legal", "Consultoras", "E-commerce", "Startups", "Educación", "Finanzas"];
-const roleOptions = ["marketer", "abogado", "consultor", "founder", "disenador", "desarrollador", "otro"];
+const industryOptions = ["Agencias", "Legal", "Consultoras", "E-commerce", "Startups", "Educación", "Finanzas", "Salud", "Tecnología"];
+const roleOptions = ["marketer", "abogado", "consultor", "founder", "disenador", "desarrollador", "médico", "product manager", "otro"];
+const pricingModels = [
+  { key: "free", label: "Gratis", description: "Acceso libre para todos" },
+  { key: "subscription", label: "Suscripción", description: "Cobro mensual recurrente" },
+  { key: "pay_per_use", label: "Por uso", description: "Se cobra por cada ejecución" },
+];
 
 interface SkillPublishConfigProps {
   initialCategory: string;
   initialIndustry: string[];
   initialRoles: string[];
-  onPublish: (config: { category: string; industry: string[]; target_roles: string[] }) => Promise<void>;
+  onPublish: (config: { 
+    category: string; 
+    industry: string[]; 
+    target_roles: string[];
+    pricing_model: string;
+    price_amount: number | null;
+  }) => Promise<void>;
   onBack: () => void;
   isPublishing: boolean;
 }
@@ -20,6 +31,8 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
   const [category, setCategory] = useState(initialCategory);
   const [industry, setIndustry] = useState<string[]>(initialIndustry);
   const [roles, setRoles] = useState<string[]>(initialRoles);
+  const [pricingModel, setPricingModel] = useState("free");
+  const [priceAmount, setPriceAmount] = useState<string>("");
 
   const toggle = (arr: string[], item: string) =>
     arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
@@ -32,7 +45,7 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
         </Button>
         <div>
           <h2 className="text-xl font-semibold text-foreground">Configurar publicación</h2>
-          <p className="text-sm text-muted-foreground">Revisá los metadatos antes de publicar</p>
+          <p className="text-sm text-muted-foreground">Revisá los metadatos y pricing antes de publicar</p>
         </div>
       </div>
 
@@ -93,9 +106,60 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
         </div>
       </div>
 
+      {/* Pricing */}
+      <div>
+        <label className="text-sm font-medium mb-3 block">Modelo de precio</label>
+        <div className="grid grid-cols-3 gap-3">
+          {pricingModels.map((pm) => (
+            <button
+              key={pm.key}
+              type="button"
+              onClick={() => setPricingModel(pm.key)}
+              className={`rounded-2xl border p-4 text-left transition-colors ${
+                pricingModel === pm.key
+                  ? "border-foreground bg-foreground/5"
+                  : "border-border bg-card hover:bg-secondary/50"
+              }`}
+            >
+              <p className="text-sm font-semibold text-foreground">{pm.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">{pm.description}</p>
+            </button>
+          ))}
+        </div>
+
+        {pricingModel !== "free" && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4">
+            <label className="text-sm font-medium mb-2 block">
+              Precio (USD) {pricingModel === "subscription" ? "/ mes" : "/ uso"}
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">$</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={priceAmount}
+                onChange={(e) => setPriceAmount(e.target.value)}
+                placeholder="29"
+                className="w-32 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              💡 Skills similares cobran entre $9 y $49/mes
+            </p>
+          </motion.div>
+        )}
+      </div>
+
       <Button
-        onClick={() => onPublish({ category, industry, target_roles: roles })}
-        disabled={isPublishing || !category || roles.length === 0}
+        onClick={() => onPublish({ 
+          category, 
+          industry, 
+          target_roles: roles,
+          pricing_model: pricingModel,
+          price_amount: pricingModel !== "free" && priceAmount ? parseFloat(priceAmount) : null,
+        })}
+        disabled={isPublishing || !category || roles.length === 0 || (pricingModel !== "free" && !priceAmount)}
         className="w-full rounded-full gap-2"
         size="lg"
       >

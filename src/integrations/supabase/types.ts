@@ -129,6 +129,7 @@ export type Database = {
           quality_feedback: string | null
           quality_score: number | null
           status: string
+          test_results: Json | null
           updated_at: string
           user_id: string
         }
@@ -140,6 +141,7 @@ export type Database = {
           quality_feedback?: string | null
           quality_score?: number | null
           status?: string
+          test_results?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -151,6 +153,7 @@ export type Database = {
           quality_feedback?: string | null
           quality_score?: number | null
           status?: string
+          test_results?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -171,6 +174,8 @@ export type Database = {
           industry: string[]
           install_command: string
           install_count: number
+          price_amount: number | null
+          pricing_model: string
           review_count: number
           slug: string
           status: string
@@ -196,6 +201,8 @@ export type Database = {
           industry?: string[]
           install_command: string
           install_count?: number
+          price_amount?: number | null
+          pricing_model?: string
           review_count?: number
           slug: string
           status?: string
@@ -221,6 +228,8 @@ export type Database = {
           industry?: string[]
           install_command?: string
           install_count?: number
+          price_amount?: number | null
+          pricing_model?: string
           review_count?: number
           slug?: string
           status?: string
