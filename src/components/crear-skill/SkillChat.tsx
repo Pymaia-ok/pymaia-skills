@@ -387,7 +387,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
                 onKeyDown={handleKeyDown}
                 placeholder="Escribí tu respuesta..."
                 disabled={streaming || isGenerating}
-                className="w-full resize-none rounded-xl border border-border bg-secondary/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow appearance-none"
+                className="w-full resize-none rounded-xl border border-border bg-secondary/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow appearance-none overflow-hidden"
                 rows={1}
                 style={{ minHeight: "44px", maxHeight: "160px", WebkitAppearance: "none" }}
               />
