@@ -13,12 +13,12 @@ const StatsBar = () => {
 
   const totalSkills = data?.count ?? 0;
   // Estimate total installs from first page
-  const totalInstalls = data?.data?.reduce((sum, s) => sum + s.install_count, 0) ?? 0;
+  const totalFavs = data?.data?.reduce((sum, s) => sum + s.github_stars, 0) ?? 0;
   const totalCategories = SKILL_CATEGORIES.length;
 
   const stats = [
     { value: totalSkills.toLocaleString(), label: t("landing.statsSkills") },
-    { value: totalInstalls.toLocaleString()+"+", label: t("landing.statsInstalls") },
+    { value: totalFavs > 0 ? totalFavs.toLocaleString()+"+" : "0", label: t("landing.statsFavs") },
     { value: totalCategories.toString(), label: t("landing.statsCategories") },
   ];
 
