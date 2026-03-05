@@ -1,36 +1,28 @@
 
 
-## Plan: Unificar filtros y actualizar landing
+## Problema
 
-### 1. Unificar categorias e industrias en una sola fila de filtros
+Con 16 categorías en una fila horizontal con `overflow-x-auto`, no hay indicación visual de que hay más opciones fuera de la vista. El usuario no sabe que puede scrollear.
 
-Actualmente hay dos filas: `SKILL_CATEGORIES` (10 items: IA, Desarrollo, Diseño...) y `INDUSTRY_FILTERS` (6 items: Arquitectura, Ingeniería...). Se fusionan en un solo array `SKILL_CATEGORIES` que incluye las industrias como categorias adicionales.
+## Opciones
 
-**Cambios en `src/lib/api.ts`:**
-- Agregar Arquitectura, Ingeniería, Construcción, Medicina, Educación, Tecnología al array `SKILL_CATEGORIES`
-- Eliminar `INDUSTRY_FILTERS`
-- En `fetchSkills`, usar solo el filtro `category` (ya no `industry` separado)
+1. **Fade gradient + flechas de scroll** — Agregar un degradado semitransparente en el borde derecho (y izquierdo cuando se scrollea) que indica que hay más contenido. Opcionalmente, flechas `<` `>` para navegar.
 
-**Cambios en `src/pages/Explore.tsx`:**
-- Eliminar la segunda fila de filtros de industria
-- Eliminar el state `selectedIndustry`
-- Quitar la referencia a `INDUSTRY_FILTERS`
+2. **Wrap en múltiples filas** — Cambiar de scroll horizontal a `flex-wrap` para que todas las categorías sean visibles. Puede ocupar más espacio vertical pero elimina el problema completamente.
 
-### 2. Actualizar la landing con más roles y skills
+3. **Dropdown/Select para categorías** — Reemplazar los chips por un `<Select>` cuando hay muchas opciones. Más compacto pero pierde la visibilidad directa.
 
-**Cambios en `src/components/landing/MarqueeSection.tsx`:**
-- Agregar roles nuevos que reflejen las industrias expandidas: Ingeniería, Construcción, etc.
-- Agregar skills relevantes a las nuevas profesiones: "Planos CAD", "Revisión BIM", "Historia clínica", etc.
+## Recomendación: Opción 1 (Fade + flechas)
 
-**Cambios en `src/data/skills.ts`:**
-- Agregar roles nuevos como "ingeniero", "medico", "profesor", "arquitecto"
-- Agregar tareas correspondientes en `tasksByRole`
+Es el patrón más usado en apps como Airbnb, YouTube, etc. Mantiene el diseño limpio en una línea y da la pista visual de que hay más.
 
-**Cambios en `src/components/landing/WizardSection.tsx`:**
-- Incluir los nuevos roleIds y sus tareas en el wizard
-- Agregar `taskFilters` para las nuevas tareas
+### Cambios
 
-### 3. Ajuste de query en `fetchSkills`
+**`src/pages/Explore.tsx`:**
+- Envolver la fila de categorías en un contenedor `relative` con `overflow-hidden`
+- Agregar gradientes CSS en los bordes izquierdo/derecho que aparecen/desaparecen según la posición de scroll
+- Agregar botones `ChevronLeft`/`ChevronRight` sobre los gradientes para scroll programático
+- Usar un `ref` + `onScroll` para detectar si hay contenido a la izquierda/derecha y mostrar/ocultar los indicadores
 
-La columna `industry` en la DB se usaba como filtro separado. Ahora las industrias se tratan como categorias, asi que el filtro `industry` se convierte en un OR entre `category` e `industry` columns cuando se selecciona una de las nuevas categorias (Arquitectura, etc.), o simplemente se unifica el filtrado buscando en ambas columnas.
+El resultado: los chips se ven igual, pero con flechas sutiles y un fade que indica claramente que hay más categorías disponibles.
 
