@@ -6,12 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const TEST_PROMPT = `Sos un evaluador de skills de Claude Code. Te voy a dar una skill completa (con instrucciones, triggers, ejemplos) y necesito que la testees simulando 5 casos de uso reales.
+const TEST_PROMPT = `Sos un evaluador de skills de Claude Code calibrado contra el estándar best-in-class de Anthropic. Te voy a dar una skill completa y necesito que la testees con 5 casos diseñados para validar calidad real.
 
-Para cada caso de prueba:
-1. Inventá un input realista basado en los triggers y el dominio de la skill
-2. Simulá qué respondería Claude siguiendo las instrucciones de la skill
-3. Evaluá si la respuesta sería útil, correcta y completa
+## Tipos de casos a simular:
+
+1. **Caso happy path**: Un uso estándar donde la skill debería activarse y funcionar perfectamente
+2. **Caso edge**: Una situación límite o inusual que la skill debería manejar
+3. **Caso de NO activación**: Una situación similar pero donde la skill NO debería activarse (testea el decision tree)
+4. **Caso de pitfall**: Simulá un error común que la skill debería prevenir (testea los common pitfalls)
+5. **Caso complejo**: Un uso avanzado que requiera seguir el workflow completo paso a paso
+
+## Para cada caso evaluá:
+- ¿La description de la skill ayudaría al agente a decidir correctamente si activarla?
+- ¿El decision tree cubre este caso?
+- ¿Las instrucciones son suficientes para producir un output de calidad?
+- ¿Los common pitfalls previenen errores reales?
 
 Respondé SOLO con JSON válido (sin markdown, sin backticks):
 
@@ -19,17 +28,18 @@ Respondé SOLO con JSON válido (sin markdown, sin backticks):
   "test_results": [
     {
       "case_number": 1,
+      "case_type": "happy_path|edge_case|no_activation|pitfall|complex",
       "title": "Título descriptivo del caso",
       "input": "Lo que el usuario pediría",
       "simulated_output": "Lo que Claude respondería con la skill (resumen de 2-3 líneas)",
       "passed": true/false,
       "score": <1-10>,
-      "feedback": "Por qué pasó o falló, qué se podría mejorar"
+      "feedback": "Por qué pasó o falló. Si falló, qué sección de la skill necesita mejora (decision tree, workflow, pitfalls, etc.)"
     }
   ],
   "overall_score": <promedio 1-10>,
-  "overall_feedback": "Evaluación general en 2-3 oraciones",
-  "critical_gaps": ["lista de gaps críticos encontrados, si hay"]
+  "overall_feedback": "Evaluación general comparando contra estándares best-in-class de Anthropic",
+  "critical_gaps": ["lista de gaps críticos: ¿falta decision tree? ¿faltan pitfalls ❌/✅? ¿description no es keyword-rich? ¿ejemplos no son ejecutables?"]
 }`;
 
 serve(async (req) => {
