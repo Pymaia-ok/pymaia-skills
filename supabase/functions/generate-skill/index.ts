@@ -116,6 +116,21 @@ serve(async (req) => {
       return data.choices[0].message.content;
     };
 
+    const sanitizeJson = (str: string): string => {
+      // Strip markdown code fences if present
+      let cleaned = str.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+      // Fix unescaped newlines/tabs inside JSON string values by replacing
+      // all real newlines with \\n and real tabs with \\t, then restore
+      // structural JSON newlines (those between properties)
+      cleaned = cleaned
+        .replace(/\r\n/g, '\\n')
+        .replace(/\r/g, '\\n')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t')
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+      return cleaned;
+    };
+
     if (action === "generate") {
       // Step 1: Generate the skill from conversation
       const conversationText = conversation
@@ -129,11 +144,11 @@ serve(async (req) => {
 
       let skill;
       try {
-        skill = JSON.parse(skillRaw);
+        skill = JSON.parse(sanitizeJson(skillRaw));
       } catch {
         // Try to extract JSON from response
         const match = skillRaw.match(/\{[\s\S]*\}/);
-        if (match) skill = JSON.parse(match[0]);
+        if (match) skill = JSON.parse(sanitizeJson(match[0]));
         else throw new Error("No se pudo parsear la skill generada");
       }
 
@@ -148,10 +163,10 @@ serve(async (req) => {
 
       let judge;
       try {
-        judge = JSON.parse(judgeRaw);
+        judge = JSON.parse(sanitizeJson(judgeRaw));
       } catch {
         const match = judgeRaw.match(/\{[\s\S]*\}/);
-        if (match) judge = JSON.parse(match[0]);
+        if (match) judge = JSON.parse(sanitizeJson(match[0]));
         else judge = { score: 7, feedback: "No se pudo evaluar automáticamente.", strengths: [], improvements: [] };
       }
 
@@ -172,10 +187,10 @@ serve(async (req) => {
 
       let refined;
       try {
-        refined = JSON.parse(refinedRaw);
+        refined = JSON.parse(sanitizeJson(refinedRaw));
       } catch {
         const match = refinedRaw.match(/\{[\s\S]*\}/);
-        if (match) refined = JSON.parse(match[0]);
+        if (match) refined = JSON.parse(sanitizeJson(match[0]));
         else throw new Error("No se pudo parsear la skill refinada");
       }
 
