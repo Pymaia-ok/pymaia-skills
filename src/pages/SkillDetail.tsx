@@ -5,9 +5,11 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import Navbar from "@/components/Navbar";
+import EmailGateDialog from "@/components/EmailGateDialog";
 import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 
 const SkillDetail = () => {
@@ -16,6 +18,7 @@ const SkillDetail = () => {
   const { t, i18n } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showEmailGate, setShowEmailGate] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTimeSaved, setReviewTimeSaved] = useState("");
   const [reviewComment, setReviewComment] = useState("");
@@ -77,11 +80,41 @@ const SkillDetail = () => {
     );
   }
 
-  const handleCopy = () => {
+  const performCopy = () => {
     navigator.clipboard.writeText(skill.install_command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    if (user) trackInstallation(skill.id, user.id).catch(() => {});
+    toast.success(t("detail.commandCopied", "Comando copiado"));
+  };
+
+  const handleCopy = async () => {
+    if (user) {
+      // Authenticated user: copy directly, track, and enroll in post_install
+      performCopy();
+      trackInstallation(skill.id, user.id).catch(() => {});
+      // Enroll authenticated user in post_install sequence
+      const userEmail = user.email;
+      if (userEmail) {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: userEmail,
+            sequence_name: "post_install",
+            metadata: { skill_name: skill.display_name, skill_slug: skill.slug },
+          }),
+        }).catch(() => {});
+      }
+    } else {
+      // Non-authenticated: show email gate
+      setShowEmailGate(true);
+    }
+  };
+
+  const handleEmailCaptured = (email: string) => {
+    performCopy();
+    toast.success(t("emailGate.success", "¡Listo! Revisá tu email para tips de uso."));
   };
 
   const handleSubmitReview = async () => {
@@ -258,6 +291,15 @@ const SkillDetail = () => {
               </div>
             </div>
           </motion.div>
+
+          <EmailGateDialog
+            open={showEmailGate}
+            onOpenChange={setShowEmailGate}
+            skillId={skill.id}
+            skillName={skill.display_name}
+            skillSlug={skill.slug}
+            onEmailCaptured={handleEmailCaptured}
+          />
         </div>
       </div>
     </div>
