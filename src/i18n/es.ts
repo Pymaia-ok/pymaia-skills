@@ -47,7 +47,7 @@ export default {
     howstep3Desc: "Tu Claude ahora tiene conocimiento experto. Solo pedile la tarea y la ejecuta solo.",
 
     statsSkills: "skills disponibles",
-    statsInstalls: "instalaciones",
+    statsFavs: "favoritos",
     statsCategories: "categorías",
 
     pathsTitle: "¿Dónde estás hoy?",

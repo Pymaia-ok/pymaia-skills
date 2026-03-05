@@ -44,7 +44,7 @@ export default {
     howstep3Desc: "Your Claude now has expert knowledge. Just ask it to do the task and it executes automatically.",
 
     statsSkills: "skills available",
-    statsInstalls: "installations",
+    statsFavs: "favorites",
     statsCategories: "categories",
 
     pathsTitle: "Where are you today?",
