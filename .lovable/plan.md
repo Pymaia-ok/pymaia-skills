@@ -1,112 +1,35 @@
 
 
-# Plan: Creador de Skills con Chat Conversacional + IA
+## Plan: Playground de prueba interactiva de Skills
 
-## Resumen
+Agregar un paso de "Probar skill" en el flujo de creación, entre la preview y la publicación, donde el usuario puede chatear con su skill en tiempo real para validar que funcione como espera.
 
-Reemplazar el formulario actual de `/publicar` con una experiencia conversacional donde la IA entrevista al usuario para extraer su expertise, genera una skill estructurada, la evalúa con un score de calidad, y permite publicarla en el marketplace existente.
+### Cómo funciona
 
-## Flujo del usuario
+1. **Nuevo botón "Probar mi skill"** en `SkillPreview.tsx` — abre un playground inline
+2. **Componente `SkillPlayground.tsx`** — chat embebido donde el usuario escribe inputs y la IA responde simulando ser Claude con esa skill activa
+3. **Edge Function `test-skill-playground`** — recibe el `instructions` + `triggers` + `dont_do` de la skill como system prompt, y el mensaje del usuario. Responde en streaming como si fuera Claude ejecutando la skill
+4. **Flujo refinamiento**: desde el playground el usuario puede volver a la preview para refinar y re-probar
+
+### Flujo del usuario
 
 ```text
-/crear-skill
-  ┌─────────────────────────────────────────┐
-  │  1. CHAT (Skill Interviewer)            │
-  │     IA pregunta sobre expertise,        │
-  │     triggers, casos edge, ejemplos      │
-  │     El usuario responde en natural      │
-  │     (máx ~8 preguntas)                  │
-  │                                         │
-  │  [Botón: "Generar mi Skill"]            │
-  └──────────────┬──────────────────────────┘
-                 ▼
-  ┌─────────────────────────────────────────┐
-  │  2. PREVIEW + SCORE                     │
-  │     Vista amigable de la skill:         │
-  │     - Nombre, descripción, triggers     │
-  │     - Ejemplos input/output             │
-  │     - Score de calidad (1-10)           │
-  │     - Feedback de mejora                │
-  │     - Edición en lenguaje natural       │
-  │                                         │
-  │  [Botón: "Publicar"] [Botón: "Mejorar"] │
-  └──────────────┬──────────────────────────┘
-                 ▼
-  ┌─────────────────────────────────────────┐
-  │  3. CONFIGURACIÓN DE PUBLICACIÓN        │
-  │     Categoría, industria, roles target  │
-  │     (pre-llenado por la IA)             │
-  │                                         │
-  │  [Publicar en marketplace]              │
-  └─────────────────────────────────────────┘
+Chat entrevista → Preview + Score → 🆕 Playground (probar) → Publish
+                       ↑__________________________|
+                       (refinar y volver a probar)
 ```
 
-## Componentes técnicos
+### Cambios
 
-### 1. Base de datos — Nueva tabla `skill_drafts`
+- **Crear** `src/components/crear-skill/SkillPlayground.tsx` — interfaz de chat minimalista con el system prompt de la skill, input fijo abajo, mensajes con bubbles
+- **Crear** `supabase/functions/test-skill-playground/index.ts` — toma `skill.instructions`, `skill.triggers`, `skill.dont_do`, `skill.examples` como system prompt y hace streaming de respuesta vía Lovable AI gateway
+- **Editar** `src/components/crear-skill/SkillPreview.tsx` — agregar botón "Probar mi skill" que alterna entre preview y playground
+- **Editar** `src/pages/CrearSkill.tsx` — agregar estado `playground` como paso opcional dentro de preview
 
-Almacena el borrador de la skill mientras el usuario la crea, incluyendo el historial del chat y el SKILL.md generado.
+### Detalle del playground
 
-```sql
-CREATE TABLE public.skill_drafts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  conversation jsonb NOT NULL DEFAULT '[]',
-  generated_skill jsonb DEFAULT NULL,
-  quality_score numeric DEFAULT NULL,
-  quality_feedback text DEFAULT NULL,
-  status text NOT NULL DEFAULT 'interviewing',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE public.skill_drafts ENABLE ROW LEVEL SECURITY;
-
--- RLS: Users only see/edit their own drafts
-CREATE POLICY "Users can manage own drafts" ON public.skill_drafts
-  FOR ALL TO authenticated USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-```
-
-### 2. Edge Function — `skill-interviewer`
-
-Chat conversacional con streaming. Usa Lovable AI (`google/gemini-2.5-flash`) con un system prompt especializado que:
-- Actúa como consultor que ayuda a empaquetar expertise
-- Hace preguntas inteligentes según el dominio (máx 8)
-- Extrae: triggers, instrucciones, casos edge, ejemplos, qué NO hacer
-- Tono cálido y profesional, en español
-
-### 3. Edge Function — `generate-skill`
-
-Recibe la conversación completa y genera:
-- Skill estructurada (JSON con nombre, descripción, triggers, instrucciones, ejemplos)
-- Score de calidad (1-10) usando un segundo prompt como "juez"
-- Feedback específico de mejora
-- Metadatos sugeridos (categoría, industria, roles)
-
-Usa `google/gemini-2.5-pro` para mayor calidad en la generación.
-
-### 4. Páginas y componentes nuevos
-
-- **`/crear-skill`** — Página principal del creador (reemplaza `/publicar`)
-- **`SkillChat.tsx`** — Interfaz de chat con streaming, estilo conversacional
-- **`SkillPreview.tsx`** — Vista amigable de la skill generada (no muestra SKILL.md crudo)
-- **`SkillScoreCard.tsx`** — Score visual con feedback
-- **`SkillPublishConfig.tsx`** — Formulario de metadatos pre-llenado para publicar
-
-### 5. Integración con marketplace existente
-
-Al publicar, se inserta en la tabla `skills` existente con `status: 'pending'` (pasa por aprobación admin como ya funciona). El `install_command` se genera automáticamente basado en el SKILL.md.
-
-### 6. Ruta y navegación
-
-- Nueva ruta `/crear-skill` en App.tsx
-- Actualizar links en Navbar y landing que apuntan a `/publicar`
-- Mantener `/publicar` como redirect a `/crear-skill`
-
-## Configuración necesaria
-
-- `LOVABLE_API_KEY` ya existe como secret (confirmado)
-- `verify_jwt = false` en config.toml para ambas edge functions (validación en código)
-- No se necesitan secrets adicionales
+- System prompt construido dinámicamente: "Sos un asistente que sigue estas instrucciones: {skill.instructions}. Triggers: {triggers}. No hagas: {dont_do}."
+- Streaming de respuesta igual que el chat de entrevista
+- Botón flotante para volver a la preview con opción de refinar
+- Indicador visual claro de que estás "probando" la skill (badge/banner)
 
