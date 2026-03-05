@@ -622,6 +622,8 @@ async function fetchAwesomeLists(): Promise<ParsedSkill[]> {
     "punkpeye/awesome-mcp-servers",
     "wong2/awesome-mcp-servers",
     "appcypher/awesome-mcp-servers",
+    "VoltAgent/awesome-agent-skills",
+    "travisvn/awesome-claude-skills",
   ];
 
   for (const repoPath of repos) {

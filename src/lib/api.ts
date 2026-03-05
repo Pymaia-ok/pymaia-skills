@@ -57,6 +57,15 @@ export const SKILL_CATEGORIES = [
   { key: "negocios", label: "Negocios" },
 ] as const;
 
+export const INDUSTRY_FILTERS = [
+  { key: "arquitectura", label: "Arquitectura" },
+  { key: "ingeniería", label: "Ingeniería" },
+  { key: "construcción", label: "Construcción" },
+  { key: "medicina", label: "Medicina" },
+  { key: "educación", label: "Educación" },
+  { key: "tecnologia", label: "Tecnología" },
+] as const;
+
 export const PAGE_SIZE = 24;
 
 export interface SkillFromDB {

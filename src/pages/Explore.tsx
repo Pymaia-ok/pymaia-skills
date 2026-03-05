@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
-import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
+import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, INDUSTRY_FILTERS, PAGE_SIZE } from "@/lib/api";
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
@@ -27,6 +27,7 @@ const Explore = () => {
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
+  const [selectedIndustry, setSelectedIndustry] = useState<string | null>(searchParams.get("ind") || null);
   const [sortBy, setSortBy] = useState<"rating" | "installs">(initialSort);
   const [page, setPage] = useState(initialPage);
 
@@ -36,10 +37,11 @@ const Explore = () => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (selectedCategory) params.set("cat", selectedCategory);
+    if (selectedIndustry) params.set("ind", selectedIndustry);
     if (sortBy !== "rating") params.set("sort", sortBy);
     if (page > 0) params.set("page", String(page));
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, selectedCategory, sortBy, page, setSearchParams]);
+  }, [debouncedSearch, selectedCategory, selectedIndustry, sortBy, page, setSearchParams]);
 
   const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = useCallback((val: string) => {
@@ -53,10 +55,11 @@ const Explore = () => {
 
   // Standard keyword search
   const { data: keywordResult, isLoading: keywordLoading } = useQuery({
-    queryKey: ["skills", selectedCategory, sortBy, page, debouncedSearch],
+    queryKey: ["skills", selectedCategory, selectedIndustry, sortBy, page, debouncedSearch],
     queryFn: () =>
       fetchSkills({
         category: selectedCategory || undefined,
+        industry: selectedIndustry || undefined,
         sortBy,
         page,
         search: debouncedSearch || undefined,
@@ -145,6 +148,19 @@ const Explore = () => {
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
               >
                 {t(`categories.${cat.key}`, cat.label)}
+              </button>
+            ))}
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }} className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+            <span className="px-3 py-1.5 text-xs font-medium text-muted-foreground whitespace-nowrap flex-shrink-0 self-center">{t("explore.industry", "Industria")}:</span>
+            {INDUSTRY_FILTERS.map((ind) => (
+              <button
+                key={ind.key}
+                onClick={() => { setSelectedIndustry(ind.key === selectedIndustry ? null : ind.key); setPage(0); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedIndustry === ind.key ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}
+              >
+                {t(`industries.${ind.key}`, ind.label)}
               </button>
             ))}
           </motion.div>
