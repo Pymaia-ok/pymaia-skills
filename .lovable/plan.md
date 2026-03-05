@@ -1,42 +1,112 @@
 
 
-## Análisis: Origen de los datos
+# Plan: Creador de Skills con Chat Conversacional + IA
 
-**Estado actual:**
-- **`install_count`**: Ya es dato real. Viene de GitHub stars (vía `githubEnrich`) o descargas de skillsmp.com. Es el dato más confiable.
-- **`avg_rating` / `review_count`**: Son 100% internos. Empiezan en 0 y solo suben cuando un usuario de tu plataforma deja una review. Por eso casi todas muestran "0.0 (0)".
+## Resumen
 
-**El problema visible**: Mostrar "0.0" como rating cuando no hay reviews es confuso — parece una calificación negativa cuando en realidad es "sin datos".
+Reemplazar el formulario actual de `/publicar` con una experiencia conversacional donde la IA entrevista al usuario para extraer su expertise, genera una skill estructurada, la evalúa con un score de calidad, y permite publicarla en el marketplace existente.
 
-## Plan propuesto
+## Flujo del usuario
 
-### 1. Ocultar rating cuando no hay reviews internas
-En `SkillCard.tsx` y `SkillDetail.tsx`: si `review_count === 0`, no mostrar la estrella ni el "0.0". Solo mostrar el rating cuando haya al menos 1 review real de un usuario.
+```text
+/crear-skill
+  ┌─────────────────────────────────────────┐
+  │  1. CHAT (Skill Interviewer)            │
+  │     IA pregunta sobre expertise,        │
+  │     triggers, casos edge, ejemplos      │
+  │     El usuario responde en natural      │
+  │     (máx ~8 preguntas)                  │
+  │                                         │
+  │  [Botón: "Generar mi Skill"]            │
+  └──────────────┬──────────────────────────┘
+                 ▼
+  ┌─────────────────────────────────────────┐
+  │  2. PREVIEW + SCORE                     │
+  │     Vista amigable de la skill:         │
+  │     - Nombre, descripción, triggers     │
+  │     - Ejemplos input/output             │
+  │     - Score de calidad (1-10)           │
+  │     - Feedback de mejora                │
+  │     - Edición en lenguaje natural       │
+  │                                         │
+  │  [Botón: "Publicar"] [Botón: "Mejorar"] │
+  └──────────────┬──────────────────────────┘
+                 ▼
+  ┌─────────────────────────────────────────┐
+  │  3. CONFIGURACIÓN DE PUBLICACIÓN        │
+  │     Categoría, industria, roles target  │
+  │     (pre-llenado por la IA)             │
+  │                                         │
+  │  [Publicar en marketplace]              │
+  └─────────────────────────────────────────┘
+```
 
-### 2. Mostrar GitHub stars como métrica de popularidad
-Agregar columna `github_stars` a la tabla `skills` (separada de `install_count`) para tener el dato real de estrellas. Mostrarla como badge secundario en las cards (ej: "⭐ 2.3k" de GitHub).
+## Componentes técnicos
 
-Actualmente `install_count` ya se sobreescribe con `stargazers_count` en el enrich, pero mezcla dos conceptos. Separarlos permite:
-- `github_stars` = dato real de GitHub (credibilidad externa)
-- `install_count` = instalaciones reales desde la plataforma
-- `avg_rating` = reviews de usuarios de la app (solo se muestra si > 0)
+### 1. Base de datos — Nueva tabla `skill_drafts`
 
-### 3. Actualizar sync para poblar `github_stars`
-En `sync-skills/index.ts`, durante el `githubEnrich`, guardar `stargazers_count` en `github_stars` en vez de sobreescribir `install_count`.
+Almacena el borrador de la skill mientras el usuario la crea, incluyendo el historial del chat y el SKILL.md generado.
 
-### Cambios técnicos
+```sql
+CREATE TABLE public.skill_drafts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  conversation jsonb NOT NULL DEFAULT '[]',
+  generated_skill jsonb DEFAULT NULL,
+  quality_score numeric DEFAULT NULL,
+  quality_feedback text DEFAULT NULL,
+  status text NOT NULL DEFAULT 'interviewing',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-| Archivo | Cambio |
-|---|---|
-| **Migración SQL** | `ALTER TABLE skills ADD COLUMN github_stars integer NOT NULL DEFAULT 0` |
-| **`sync-skills/index.ts`** | En `githubEnrich`, escribir `github_stars` en vez de `install_count`. En upsert de skills nuevas, mapear `stars` → `github_stars` |
-| **`SkillCard.tsx`** | Ocultar rating si `review_count === 0`. Mostrar `github_stars` como badge "⭐ X" si > 0. Mostrar `install_count` solo si > 0 |
-| **`SkillDetail.tsx`** | Mismo tratamiento: ocultar rating sin reviews, mostrar GitHub stars como indicador de popularidad |
-| **`src/lib/api.ts`** | Agregar `github_stars` al tipo `SkillFromDB` |
+ALTER TABLE public.skill_drafts ENABLE ROW LEVEL SECURITY;
 
-### Resultado
-- Sin más datos "0.0" confusos
-- GitHub stars como señal de calidad real y verificable
-- Rating solo aparece cuando hay feedback genuino de usuarios
-- Install count se reserva para acciones reales en la plataforma
+-- RLS: Users only see/edit their own drafts
+CREATE POLICY "Users can manage own drafts" ON public.skill_drafts
+  FOR ALL TO authenticated USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+```
+
+### 2. Edge Function — `skill-interviewer`
+
+Chat conversacional con streaming. Usa Lovable AI (`google/gemini-2.5-flash`) con un system prompt especializado que:
+- Actúa como consultor que ayuda a empaquetar expertise
+- Hace preguntas inteligentes según el dominio (máx 8)
+- Extrae: triggers, instrucciones, casos edge, ejemplos, qué NO hacer
+- Tono cálido y profesional, en español
+
+### 3. Edge Function — `generate-skill`
+
+Recibe la conversación completa y genera:
+- Skill estructurada (JSON con nombre, descripción, triggers, instrucciones, ejemplos)
+- Score de calidad (1-10) usando un segundo prompt como "juez"
+- Feedback específico de mejora
+- Metadatos sugeridos (categoría, industria, roles)
+
+Usa `google/gemini-2.5-pro` para mayor calidad en la generación.
+
+### 4. Páginas y componentes nuevos
+
+- **`/crear-skill`** — Página principal del creador (reemplaza `/publicar`)
+- **`SkillChat.tsx`** — Interfaz de chat con streaming, estilo conversacional
+- **`SkillPreview.tsx`** — Vista amigable de la skill generada (no muestra SKILL.md crudo)
+- **`SkillScoreCard.tsx`** — Score visual con feedback
+- **`SkillPublishConfig.tsx`** — Formulario de metadatos pre-llenado para publicar
+
+### 5. Integración con marketplace existente
+
+Al publicar, se inserta en la tabla `skills` existente con `status: 'pending'` (pasa por aprobación admin como ya funciona). El `install_command` se genera automáticamente basado en el SKILL.md.
+
+### 6. Ruta y navegación
+
+- Nueva ruta `/crear-skill` en App.tsx
+- Actualizar links en Navbar y landing que apuntan a `/publicar`
+- Mantener `/publicar` como redirect a `/crear-skill`
+
+## Configuración necesaria
+
+- `LOVABLE_API_KEY` ya existe como secret (confirmado)
+- `verify_jwt = false` en config.toml para ambas edge functions (validación en código)
+- No se necesitan secrets adicionales
 
