@@ -29,11 +29,12 @@ const SkillDetail = () => {
   const { data: creatorProfile } = useQuery({ queryKey: ["creator", skill?.creator_id], queryFn: () => fetchProfile(skill!.creator_id!), enabled: !!skill?.creator_id });
 
   const useCases = skill ? parseUseCases(skill.use_cases) : [];
+  const displayName = skill ? ((i18n.language === "es" && skill.display_name_es) ? skill.display_name_es : skill.display_name) : "";
   const tagline = skill ? ((i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline) : "";
   const descriptionHuman = skill ? ((i18n.language === "es" && skill.description_human_es) ? skill.description_human_es : skill.description_human) : "";
 
   useSEO({
-    title: skill ? `${skill.display_name} — ${tagline}` : "Loading...",
+    title: skill ? `${displayName} — ${tagline}` : "Loading...",
     description: skill ? `${descriptionHuman.slice(0, 150)}. ${skill.review_count > 0 ? `⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ` : ""}${skill.github_stars > 0 ? `★ ${skill.github_stars.toLocaleString()} GitHub stars · ` : ""}${skill.install_count > 0 ? `${skill.install_count} installs.` : ""}` : "",
     canonical: skill ? `https://pymaiaskills.lovable.app/skill/${skill.slug}` : "",
     jsonLd: skill ? {
@@ -151,7 +152,7 @@ const SkillDetail = () => {
                 <span key={ind} className="text-xs font-medium px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">{ind}</span>
               ))}
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">{skill.display_name}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">{displayName}</h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">{tagline}</p>
             <div className="flex flex-wrap items-center gap-4 mb-8">
               <button onClick={handleCopy} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">

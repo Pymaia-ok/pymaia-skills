@@ -17,6 +17,7 @@ interface SkillCardProps {
 const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
   const { t, i18n } = useTranslation();
   const catLabel = t(`categories.${skill.category}`, skill.category);
+  const displayName = (i18n.language === "es" && skill.display_name_es) ? skill.display_name_es : skill.display_name;
   const tagline = (i18n.language === "es" && skill.tagline_es) ? skill.tagline_es : skill.tagline;
 
   return (
@@ -44,7 +45,7 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
         </div>
 
         <h3 className="text-lg font-semibold mb-1.5 group-hover:text-foreground transition-colors truncate">
-          {skill.display_name}
+          {displayName}
         </h3>
         <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2 min-h-[2.5rem]">
           {tagline}
