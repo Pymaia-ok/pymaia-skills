@@ -6,9 +6,10 @@ import RoleCard from "@/components/RoleCard";
 import SkillCard from "@/components/SkillCard";
 import type { SkillFromDB } from "@/lib/api";
 
-const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "otro"] as const;
+const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "otro"] as const;
 const roleIcons: Record<string, string> = {
-  marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨", otro: "✨",
+  marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨",
+  ingeniero: "🔧", arquitecto: "🏗️", medico: "🩺", profesor: "🎓", otro: "✨",
 };
 const taskIdsByRole: Record<string, string[]> = {
   marketer: ["contenido", "analizar", "clientes", "reportes"],
@@ -16,6 +17,10 @@ const taskIdsByRole: Record<string, string[]> = {
   consultor: ["propuestas", "investigacion", "presentaciones", "analisis"],
   founder: ["producto", "pitch", "competencia", "metricas"],
   disenador: ["briefs", "copy", "feedback", "specs"],
+  ingeniero: ["calculos", "planos", "normas", "informes"],
+  arquitecto: ["cad", "presupuestos", "renders", "normativa"],
+  medico: ["historias", "diagnostico", "recetas", "papers"],
+  profesor: ["clases", "evaluaciones", "material", "retroalimentacion"],
   otro: ["productividad", "escritura", "datos", "automatizar"],
 };
 
@@ -46,6 +51,26 @@ const taskFilters: Record<string, { categories: string[]; industries: string[]; 
   copy: { categories: ["marketing", "creatividad"], industries: ["contenido", "marketing", "diseno"], keywords: ["copy", "text", "write", "content", "ux writing"] },
   feedback: { categories: ["diseño", "productividad"], industries: ["diseno", "ux"], keywords: ["feedback", "review", "critique", "iterate"] },
   specs: { categories: ["diseño", "desarrollo"], industries: ["diseno", "frontend", "ux"], keywords: ["spec", "design system", "component", "ui", "css", "figma"] },
+  // Ingeniero tasks
+  calculos: { categories: ["datos", "desarrollo"], industries: ["ingeniería", "tecnologia"], keywords: ["calcul", "engineer", "math", "formula", "simulation"] },
+  planos: { categories: ["diseño", "datos"], industries: ["ingeniería", "construcción", "arquitectura"], keywords: ["plan", "blueprint", "cad", "spec", "drawing"] },
+  normas: { categories: ["legal", "productividad"], industries: ["ingeniería", "construcción"], keywords: ["norm", "standard", "regulat", "iso", "compliance"] },
+  informes: { categories: ["productividad", "datos"], industries: ["ingeniería"], keywords: ["report", "technical", "document", "informe"] },
+  // Arquitecto tasks
+  cad: { categories: ["diseño", "desarrollo"], industries: ["arquitectura", "construcción"], keywords: ["cad", "bim", "revit", "autocad", "3d", "model"] },
+  presupuestos: { categories: ["negocios", "datos"], industries: ["arquitectura", "construcción"], keywords: ["budget", "cost", "estimat", "presupuesto", "price"] },
+  renders: { categories: ["diseño", "creatividad"], industries: ["arquitectura"], keywords: ["render", "present", "visual", "3d", "design"] },
+  normativa: { categories: ["legal"], industries: ["arquitectura", "construcción"], keywords: ["urban", "zoning", "regulat", "normativ", "code"] },
+  // Médico tasks
+  historias: { categories: ["productividad"], industries: ["medicina"], keywords: ["clinic", "patient", "history", "medical", "record", "historia"] },
+  diagnostico: { categories: ["ia", "datos"], industries: ["medicina"], keywords: ["diagnos", "symptom", "disease", "clinical", "differential"] },
+  recetas: { categories: ["productividad"], industries: ["medicina"], keywords: ["prescri", "receta", "medication", "drug", "pharma"] },
+  papers: { categories: ["datos", "productividad"], industries: ["medicina", "educación"], keywords: ["paper", "research", "pubmed", "study", "journal"] },
+  // Profesor tasks
+  clases: { categories: ["productividad", "creatividad"], industries: ["educación"], keywords: ["lesson", "plan", "curriculum", "class", "teach", "clase"] },
+  evaluaciones: { categories: ["productividad"], industries: ["educación"], keywords: ["exam", "test", "quiz", "rubric", "evalua", "grade"] },
+  material: { categories: ["creatividad", "productividad"], industries: ["educación"], keywords: ["material", "didact", "resource", "content", "exercise"] },
+  retroalimentacion: { categories: ["productividad"], industries: ["educación"], keywords: ["feedback", "student", "comment", "review", "grade"] },
   // Otro tasks
   productividad: { categories: ["productividad", "automatización"], industries: ["productividad", "automatizacion"], keywords: ["productiv", "automat", "workflow", "efficien"] },
   escritura: { categories: ["productividad", "creatividad"], industries: ["contenido", "documentos"], keywords: ["write", "edit", "grammar", "text", "document"] },
@@ -117,7 +142,7 @@ const WizardSection = ({ allSkills }: WizardSectionProps) => {
           {step === "role" && (
             <motion.div key="role" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <p className="text-center text-sm text-muted-foreground mb-8 font-medium uppercase tracking-wider">{t("home.whatDoYouDo")}</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {roleIds.map((id) => (
                   <RoleCard key={id} icon={roleIcons[id]} label={t(`roles.${id}.label`)} description={t(`roles.${id}.description`)} onClick={() => handleRoleSelect(id)} />
                 ))}

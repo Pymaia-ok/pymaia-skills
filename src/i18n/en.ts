@@ -93,6 +93,10 @@ export default {
     consultor: { label: "Consultant", description: "Consulting & strategy" },
     founder: { label: "Founder", description: "Startups & product" },
     disenador: { label: "Designer", description: "Design & creativity" },
+    ingeniero: { label: "Engineer", description: "Engineering & calculations" },
+    arquitecto: { label: "Architect", description: "Architecture & design" },
+    medico: { label: "Doctor", description: "Medicine & health" },
+    profesor: { label: "Teacher", description: "Education & training" },
     otro: { label: "Other", description: "Any profession" },
   },
 
@@ -126,6 +130,30 @@ export default {
       copy: "Write copy for designs",
       feedback: "Structure feedback",
       specs: "Document design specs",
+    },
+    ingeniero: {
+      calculos: "Automate technical calculations",
+      planos: "Review blueprints & specs",
+      normas: "Verify standards compliance",
+      informes: "Generate technical reports",
+    },
+    arquitecto: {
+      cad: "Optimize CAD/BIM workflows",
+      presupuestos: "Estimate construction budgets",
+      renders: "Prepare presentations & renders",
+      normativa: "Verify urban regulations",
+    },
+    medico: {
+      historias: "Document clinical histories",
+      diagnostico: "Support differential diagnosis",
+      recetas: "Manage prescriptions",
+      papers: "Research medical papers",
+    },
+    profesor: {
+      clases: "Plan classes & curriculum",
+      evaluaciones: "Create assessments & rubrics",
+      material: "Generate teaching materials",
+      retroalimentacion: "Give student feedback",
     },
     otro: {
       productividad: "Be more productive",
@@ -352,6 +380,12 @@ export default {
     productividad: "Productivity",
     legal: "Legal",
     negocios: "Business",
+    arquitectura: "Architecture",
+    "ingeniería": "Engineering",
+    "construcción": "Construction",
+    medicina: "Medicine",
+    "educación": "Education",
+    tecnologia: "Technology",
   },
 
   lang: {

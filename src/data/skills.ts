@@ -23,6 +23,10 @@ export const roles = [
   { id: "consultor", label: "Consultor", icon: "💼", description: "Consultoría y estrategia" },
   { id: "founder", label: "Founder", icon: "🚀", description: "Startups y producto" },
   { id: "disenador", label: "Diseñador", icon: "🎨", description: "Diseño y creatividad" },
+  { id: "ingeniero", label: "Ingeniero", icon: "🔧", description: "Ingeniería y cálculo" },
+  { id: "arquitecto", label: "Arquitecto", icon: "🏗️", description: "Arquitectura y diseño" },
+  { id: "medico", label: "Médico", icon: "🩺", description: "Medicina y salud" },
+  { id: "profesor", label: "Profesor", icon: "🎓", description: "Educación y formación" },
   { id: "otro", label: "Otro", icon: "✨", description: "Cualquier profesión" },
 ];
 
@@ -56,6 +60,30 @@ export const tasksByRole: Record<string, { id: string; label: string }[]> = {
     { id: "copy", label: "Escribir copy para diseños" },
     { id: "feedback", label: "Estructurar feedback" },
     { id: "specs", label: "Documentar specs de diseño" },
+  ],
+  ingeniero: [
+    { id: "calculos", label: "Automatizar cálculos técnicos" },
+    { id: "planos", label: "Revisar planos y especificaciones" },
+    { id: "normas", label: "Verificar cumplimiento de normas" },
+    { id: "informes", label: "Generar informes técnicos" },
+  ],
+  arquitecto: [
+    { id: "cad", label: "Optimizar flujos CAD/BIM" },
+    { id: "presupuestos", label: "Estimar presupuestos de obra" },
+    { id: "renders", label: "Preparar presentaciones y renders" },
+    { id: "normativa", label: "Verificar normativa urbana" },
+  ],
+  medico: [
+    { id: "historias", label: "Documentar historias clínicas" },
+    { id: "diagnostico", label: "Apoyo en diagnóstico diferencial" },
+    { id: "recetas", label: "Gestionar recetas y prescripciones" },
+    { id: "papers", label: "Investigar papers médicos" },
+  ],
+  profesor: [
+    { id: "clases", label: "Planificar clases y currículum" },
+    { id: "evaluaciones", label: "Crear evaluaciones y rúbricas" },
+    { id: "material", label: "Generar material didáctico" },
+    { id: "retroalimentacion", label: "Dar retroalimentación a alumnos" },
   ],
   otro: [
     { id: "productividad", label: "Ser más productivo" },
