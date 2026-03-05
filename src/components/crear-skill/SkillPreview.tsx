@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical } from "lucide-react";
+import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical, Copy, Check, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import SkillScoreCard from "./SkillScoreCard";
 import SkillTestResults from "./SkillTestResults";
+import { toast } from "sonner";
 
 interface GeneratedSkill {
   name: string;
@@ -58,6 +59,15 @@ interface SkillPreviewProps {
 
 export default function SkillPreview({ skill, quality, testResults, onRefine, onPublish, onBack, onRunTests, onPlayground, isRefining, isTesting }: SkillPreviewProps) {
   const [refinement, setRefinement] = useState("");
+  const [showSkillMd, setShowSkillMd] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copySkillMd = () => {
+    navigator.clipboard.writeText(skill.install_command);
+    setCopied(true);
+    toast.success("SKILL.md copiado al portapapeles");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleRefine = async () => {
     if (!refinement.trim()) return;
@@ -145,6 +155,32 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
           </ul>
         </motion.div>
       )}
+
+      {/* SKILL.md Preview */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <FileCode className="w-3.5 h-3.5" /> SKILL.md
+          </h3>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowSkillMd(!showSkillMd)} className="text-xs h-7">
+              {showSkillMd ? "Ocultar" : "Ver archivo"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={copySkillMd} className="text-xs h-7 gap-1">
+              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              {copied ? "Copiado" : "Copiar"}
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mb-2">
+          Archivo compatible con el estándar oficial Agent Skills de Anthropic. Funciona directo en Claude Code y Claude.ai.
+        </p>
+        {showSkillMd && (
+          <pre className="mt-3 p-4 bg-secondary rounded-xl text-xs text-foreground overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap font-mono">
+            {skill.install_command}
+          </pre>
+        )}
+      </motion.div>
 
       {/* Refine input */}
       <div className="rounded-2xl border border-border bg-card p-5">

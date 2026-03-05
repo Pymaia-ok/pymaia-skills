@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GENERATE_PROMPT = `Sos un experto en crear skills para Claude Code. Basándote en la conversación de entrevista que te paso, generá una skill estructurada.
+const GENERATE_PROMPT = `Sos un experto en crear skills para Claude Code siguiendo el estándar oficial Agent Skills de Anthropic. Basándote en la conversación de entrevista que te paso, generá una skill estructurada.
 
 Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
@@ -28,10 +28,41 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estruc
   "category": "una de: ia, desarrollo, diseño, marketing, automatización, datos, creatividad, productividad, legal, negocios",
   "industry": ["industrias relevantes de: Agencias, Legal, Consultoras, E-commerce, Startups, Educación, Finanzas"],
   "target_roles": ["roles objetivo de: marketer, abogado, consultor, founder, disenador, desarrollador, otro"],
-  "install_command": "El contenido completo del SKILL.md que se instalaría en Claude"
+  "install_command": "El contenido completo del SKILL.md en formato estándar Agent Skills de Anthropic (ver abajo)"
 }
 
-El install_command debe ser un SKILL.md completo y profesional en formato markdown que incluya todas las instrucciones, triggers, ejemplos y restricciones extraídas de la conversación.`;
+IMPORTANTE: El campo "install_command" DEBE ser un archivo SKILL.md válido según el estándar oficial de Anthropic con este formato exacto:
+
+---
+name: nombre-en-kebab-case
+description: Descripción concisa de qué hace la skill y cuándo usarla (max 1024 chars)
+compatibility: claude-code
+metadata:
+  author: pymaia
+  version: "1.0"
+---
+
+# Nombre de la Skill
+
+[Instrucciones principales en markdown]
+
+## Triggers
+
+[Lista de triggers/situaciones que activan la skill]
+
+## Examples
+
+[Ejemplos concretos de input/output]
+
+## Guidelines
+
+[Reglas, restricciones y edge cases]
+
+## What NOT to do
+
+[Lista explícita de restricciones]
+
+El SKILL.md debe ser profesional, completo y directamente compatible con Claude Code y Claude.ai.`;
 
 const JUDGE_PROMPT = `Sos un evaluador experto de skills para Claude Code. Evaluá la siguiente skill generada y dá un score de calidad del 1 al 10.
 
