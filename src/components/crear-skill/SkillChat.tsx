@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { streamChat, type Msg } from "@/lib/streaming";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +49,15 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
   useEffect(scrollToBottom, [messages]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 160) + "px";
+    }
+  }, [input]);
+
   const startConversation = async () => {
     setStreaming(true);
     let assistantText = "";
@@ -75,14 +83,10 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         if (error) throw error;
         return data.extracted_text || "";
       } else if (attachment.file && userId) {
-        // Upload to storage first
-        const ext = attachment.name.split(".").pop() || "bin";
         const storagePath = `${userId}/${Date.now()}-${attachment.name}`;
-        
         const { error: uploadError } = await supabase.storage
           .from("skill-uploads")
           .upload(storagePath, attachment.file);
-
         if (uploadError) throw uploadError;
 
         const { data, error } = await supabase.functions.invoke("process-attachment", {
@@ -102,7 +106,6 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     const newAttachments: Attachment[] = Array.from(files).map((file) => ({
       id: crypto.randomUUID(),
       type: "file" as const,
@@ -110,7 +113,6 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       file,
       processing: false,
     }));
-
     setAttachments((prev) => [...prev, ...newAttachments]);
     e.target.value = "";
   };
@@ -118,7 +120,6 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const addUrl = () => {
     const url = urlInput.trim();
     if (!url) return;
-
     const attachment: Attachment = {
       id: crypto.randomUUID(),
       type: "url",
@@ -126,7 +127,6 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       url,
       processing: false,
     };
-
     setAttachments((prev) => [...prev, attachment]);
     setUrlInput("");
     setShowUrlInput(false);
@@ -140,18 +140,15 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     const text = input.trim();
     if ((!text && attachments.length === 0) || streaming) return;
 
-    // Process attachments
     let contextParts: string[] = [];
     if (attachments.length > 0) {
       toast.info("Procesando archivos adjuntos...");
-      
       for (const att of attachments) {
         const extracted = await processAttachment(att);
         if (extracted) contextParts.push(extracted);
       }
     }
 
-    // Build message with context
     let fullMessage = text;
     if (contextParts.length > 0) {
       const context = contextParts.join("\n\n---\n\n");
@@ -161,13 +158,12 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     }
 
     const userMsg: Msg = { role: "user", content: fullMessage };
-    const displayMsg: Msg = { 
-      role: "user", 
-      content: text + (attachments.length > 0 ? `\n\n📎 ${attachments.map(a => a.name).join(", ")}` : "")
+    const displayMsg: Msg = {
+      role: "user",
+      content: text + (attachments.length > 0 ? `\n\n📎 ${attachments.map((a) => a.name).join(", ")}` : ""),
     };
-    
+
     const newMessages = [...messages, userMsg];
-    // For display, show the friendly version
     const displayMessages = [...messages, displayMsg];
     setMessages(displayMessages);
     setInput("");
@@ -177,10 +173,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     let assistantText = "";
     const updateAssistant = (chunk: string) => {
       assistantText += chunk;
-      setMessages([
-        ...displayMessages,
-        { role: "assistant", content: assistantText },
-      ]);
+      setMessages([...displayMessages, { role: "assistant", content: assistantText }]);
     };
 
     await streamChat({
@@ -208,6 +201,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
   const userMessageCount = messages.filter((m) => m.role === "user").length;
   const canGenerate = userMessageCount >= 3 && !streaming;
+  const isEmpty = messages.length === 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -221,151 +215,191 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         className="hidden"
       />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        <AnimatePresence initial={false}>
-          {messages.map((msg, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 text-sm ${
-                  msg.role === "user"
-                    ? "bg-foreground text-background rounded-br-md"
-                    : "bg-secondary text-foreground rounded-bl-md"
-                }`}
+      {/* Messages area — takes all available space */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto w-full px-4">
+          {/* Empty state: vertically centered hero */}
+          {isEmpty && (
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-center"
               >
-                {msg.role === "assistant" ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {streaming && (
-          <div className="flex justify-start">
-            <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-secondary mb-4">
+                  <Sparkles className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">Crear Skill</h1>
+                <p className="text-muted-foreground text-sm md:text-base max-w-md">
+                  Contanos sobre tu expertise — podés escribir, adjuntar archivos o pegar links
+                </p>
+              </motion.div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={bottomRef} />
+          {/* Messages */}
+          {!isEmpty && (
+            <div className="py-8 space-y-5">
+              <AnimatePresence initial={false}>
+                {messages.map((msg, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-5 py-3.5 text-[15px] leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-foreground text-background rounded-br-lg"
+                          : "bg-secondary text-foreground rounded-bl-lg"
+                      }`}
+                    >
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-3 [&>p:last-child]:mb-0 [&>ul]:mb-3 [&>ol]:mb-3">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {streaming && messages[messages.length - 1]?.role !== "assistant" && (
+                <div className="flex justify-start">
+                  <div className="bg-secondary rounded-2xl rounded-bl-lg px-5 py-3.5">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+
+              <div ref={bottomRef} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Generate button */}
-      {canGenerate && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="px-4 pb-2"
-        >
-          <Button
-            onClick={onGenerate}
-            disabled={isGenerating}
-            className="w-full rounded-full gap-2"
-            size="lg"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            {isGenerating ? "Generando skill..." : "Generar mi Skill"}
-          </Button>
-        </motion.div>
-      )}
+      {/* Bottom bar — pinned to bottom */}
+      <div className="shrink-0 border-t border-border bg-background">
+        <div className="max-w-2xl mx-auto w-full px-4">
+          {/* Generate CTA */}
+          {canGenerate && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="pt-3"
+            >
+              <Button
+                onClick={onGenerate}
+                disabled={isGenerating}
+                className="w-full rounded-full gap-2 h-12 text-sm font-medium"
+                size="lg"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                {isGenerating ? "Generando skill..." : "Generar mi Skill"}
+              </Button>
+            </motion.div>
+          )}
 
-      {/* Attachments preview */}
-      {attachments.length > 0 && (
-        <div className="px-4 pb-2 flex flex-wrap gap-2">
-          {attachments.map((att) => (
-            <div key={att.id} className="flex items-center gap-1.5 bg-secondary rounded-full px-3 py-1.5 text-xs">
-              {getAttachmentIcon(att.name)}
-              <span className="max-w-[120px] truncate">{att.name}</span>
-              <button onClick={() => removeAttachment(att.id)} className="text-muted-foreground hover:text-foreground">
-                <X className="w-3 h-3" />
+          {/* Attachments preview */}
+          {attachments.length > 0 && (
+            <div className="pt-3 flex flex-wrap gap-2">
+              {attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-1.5 bg-secondary rounded-full px-3 py-1.5 text-xs"
+                >
+                  {getAttachmentIcon(att.name)}
+                  <span className="max-w-[120px] truncate">{att.name}</span>
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* URL input */}
+          {showUrlInput && (
+            <div className="pt-3">
+              <div className="flex gap-2 items-center bg-secondary rounded-xl p-2.5">
+                <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addUrl()}
+                  placeholder="https://..."
+                  className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
+                  autoFocus
+                />
+                <Button size="sm" variant="ghost" onClick={addUrl} className="h-7 px-2 text-xs">
+                  Agregar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowUrlInput(false)}
+                  className="h-7 px-2"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Input area */}
+          <div className="flex gap-2 items-end py-3">
+            <div className="flex gap-0.5 shrink-0">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={streaming || isGenerating}
+                className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40"
+                title="Adjuntar archivo"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setShowUrlInput(!showUrlInput)}
+                disabled={streaming || isGenerating}
+                className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40"
+                title="Agregar link"
+              >
+                <Link2 className="w-5 h-5" />
               </button>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* URL input */}
-      {showUrlInput && (
-        <div className="px-4 pb-2">
-          <div className="flex gap-2 items-center bg-secondary rounded-xl p-2">
-            <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
-            <input
-              type="url"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addUrl()}
-              placeholder="https://youtube.com/watch?v=... o cualquier URL"
-              className="flex-1 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
-              autoFocus
-            />
-            <Button size="sm" variant="ghost" onClick={addUrl} className="h-7 px-2 text-xs">
-              Agregar
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowUrlInput(false)} className="h-7 px-2">
-              <X className="w-3 h-3" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="border-t border-border p-4">
-        <div className="flex gap-2 items-end">
-          <div className="flex gap-1 shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl h-[44px] w-[44px]"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={streaming || isGenerating}
-              title="Adjuntar archivo (PDF, imagen, video, documento)"
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Escribí tu respuesta..."
+                disabled={streaming || isGenerating}
+                className="w-full resize-none rounded-xl border border-border bg-secondary/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow appearance-none"
+                rows={1}
+                style={{ minHeight: "44px", maxHeight: "160px", WebkitAppearance: "none" }}
+              />
+            </div>
+            <button
+              onClick={sendMessage}
+              disabled={(!input.trim() && attachments.length === 0) || streaming || isGenerating}
+              className="p-2.5 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-30 shrink-0"
             >
-              <Paperclip className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl h-[44px] w-[44px]"
-              onClick={() => setShowUrlInput(!showUrlInput)}
-              disabled={streaming || isGenerating}
-              title="Agregar link (YouTube, sitio web, red social)"
-            >
-              <Link2 className="w-4 h-4" />
-            </Button>
+              <Send className="w-5 h-5" />
+            </button>
           </div>
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Escribí tu respuesta, adjuntá archivos o pegá un link..."
-            disabled={streaming || isGenerating}
-            className="min-h-[44px] max-h-[120px] resize-none rounded-xl border-border"
-            rows={1}
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={(!input.trim() && attachments.length === 0) || streaming || isGenerating}
-            size="icon"
-            className="rounded-xl shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </div>
