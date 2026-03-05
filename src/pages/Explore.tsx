@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,9 @@ import { useSEO } from "@/hooks/useSEO";
 const Explore = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   useSEO({
     title: "Explore Skills — Pymaia Skills",
@@ -30,6 +33,23 @@ const Explore = () => {
   
   const [sortBy, setSortBy] = useState<"rating" | "installs">(initialSort);
   const [page, setPage] = useState(initialPage);
+
+  const updateScrollIndicators = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    updateScrollIndicators();
+    window.addEventListener("resize", updateScrollIndicators);
+    return () => window.removeEventListener("resize", updateScrollIndicators);
+  }, [updateScrollIndicators]);
+
+  const scrollCategories = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
 
   const isSmartMode = isIntentQuery(debouncedSearch);
 
@@ -133,26 +153,51 @@ const Explore = () => {
 
           {!isSmartMode && <div className="mb-6" />}
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => { setSelectedCategory(null); setPage(0); }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${!selectedCategory ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="relative mb-4">
+            {canScrollLeft && (
+              <>
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+                <button
+                  onClick={() => scrollCategories("left")}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-accent transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4 text-foreground" />
+                </button>
+              </>
+            )}
+            {canScrollRight && (
+              <>
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+                <button
+                  onClick={() => scrollCategories("right")}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 p-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-accent transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4 text-foreground" />
+                </button>
+              </>
+            )}
+            <div
+              ref={scrollRef}
+              onScroll={updateScrollIndicators}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
             >
-              {t("explore.all")}
-            </button>
-            {SKILL_CATEGORIES.map((cat) => (
               <button
-                key={cat.key}
-                onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                onClick={() => { setSelectedCategory(null); setPage(0); }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${!selectedCategory ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
               >
-                {t(`categories.${cat.key}`, cat.label)}
+                {t("explore.all")}
               </button>
-            ))}
+              {SKILL_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t(`categories.${cat.key}`, cat.label)}
+                </button>
+              ))}
+            </div>
           </motion.div>
-
-
-
 
           <div className="flex gap-4 mb-8 text-sm">
             <button
