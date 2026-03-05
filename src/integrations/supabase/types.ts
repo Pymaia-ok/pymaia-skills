@@ -120,6 +120,42 @@ export type Database = {
           },
         ]
       }
+      skill_drafts: {
+        Row: {
+          conversation: Json
+          created_at: string
+          generated_skill: Json | null
+          id: string
+          quality_feedback: string | null
+          quality_score: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation?: Json
+          created_at?: string
+          generated_skill?: Json | null
+          id?: string
+          quality_feedback?: string | null
+          quality_score?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation?: Json
+          created_at?: string
+          generated_skill?: Json | null
+          id?: string
+          quality_feedback?: string | null
+          quality_score?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       skills: {
         Row: {
           avg_rating: number

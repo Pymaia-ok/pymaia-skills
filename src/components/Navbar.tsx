@@ -62,7 +62,7 @@ const Navbar = () => {
 
           {user ? (
             <div className="flex items-center gap-3">
-              <Link to="/publicar" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/crear-skill" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 {t("nav.publish")}
               </Link>
               <span className="text-sm text-muted-foreground">
@@ -117,7 +117,7 @@ const Navbar = () => {
           </button>
           {user ? (
             <>
-              <Link to="/publicar" onClick={() => setMobileOpen(false)} className="block text-sm py-1 text-muted-foreground">
+              <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="block text-sm py-1 text-muted-foreground">
                 {t("nav.publishSkill")}
               </Link>
               <button onClick={() => { signOut(); setMobileOpen(false); }} className="text-sm text-muted-foreground">
