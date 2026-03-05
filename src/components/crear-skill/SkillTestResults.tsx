@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 
 interface TestCase {
   case_number: number;
+  case_type: string;
   title: string;
   input: string;
-  simulated_output: string;
+  real_output: string;
+  full_output?: string;
   passed: boolean;
   score: number;
   feedback: string;
@@ -33,7 +35,7 @@ export default function SkillTestResults({ results, onRunTests, isTesting }: Ski
           <FlaskConical className="w-3.5 h-3.5" /> Testing automático
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Corremos 5 casos de prueba reales contra tu skill para validar que funcione correctamente antes de publicar.
+          Ejecutamos 5 casos de prueba reales contra tu skill: generamos inputs, obtenemos el output real del modelo, y un evaluador AI califica los resultados.
         </p>
         <Button onClick={onRunTests} disabled={isTesting} variant="outline" className="rounded-full gap-2">
           {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlaskConical className="w-4 h-4" />}
@@ -83,10 +85,19 @@ export default function SkillTestResults({ results, onRunTests, isTesting }: Ski
                 {test.score}/10
               </span>
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground space-y-1.5">
               <p><span className="font-medium">Input:</span> {test.input}</p>
-              <p className="mt-1"><span className="font-medium">Output simulado:</span> {test.simulated_output}</p>
-              {!test.passed && <p className="mt-1 text-yellow-600 dark:text-yellow-400">{test.feedback}</p>}
+              <details className="mt-1">
+                <summary className="cursor-pointer font-medium text-foreground/80">Output real del modelo</summary>
+                <p className="mt-1 whitespace-pre-wrap bg-background/50 rounded-lg p-2 max-h-48 overflow-y-auto">
+                  {test.full_output || test.real_output}
+                </p>
+              </details>
+              {test.feedback && (
+                <p className={`mt-1 ${test.passed ? "text-muted-foreground" : "text-yellow-600 dark:text-yellow-400"}`}>
+                  <span className="font-medium">Evaluación:</span> {test.feedback}
+                </p>
+              )}
             </div>
           </motion.div>
         ))}
