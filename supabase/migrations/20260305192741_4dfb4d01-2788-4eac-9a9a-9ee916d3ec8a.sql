@@ -1,0 +1,1 @@
+ALTER TABLE public.skills ADD COLUMN IF NOT EXISTS display_name_es text;

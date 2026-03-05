@@ -18,9 +18,9 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { batchSize = 30 } = await req.json().catch(() => ({}));
+    const { batchSize = 15 } = await req.json().catch(() => ({}));
 
-    // Fetch skills missing ANY Spanish translation (display_name_es, tagline_es, or description_human_es)
+    // Fetch skills missing ANY Spanish translation
     const { data: skills, error: fetchError } = await supabase
       .from("skills")
       .select("id, display_name, tagline, description_human, display_name_es, tagline_es, description_human_es")
@@ -35,12 +35,12 @@ serve(async (req) => {
       });
     }
 
-    // Build prompt - only include fields that need translation
+    // Build prompt - only include fields that need translation, truncate long descriptions
     const skillsText = skills.map((s, i) => {
       const parts = [`[${i}]`];
       if (!s.display_name_es) parts.push(`Name: ${s.display_name}`);
-      if (!s.tagline_es) parts.push(`Tagline: ${s.tagline}`);
-      if (!s.description_human_es) parts.push(`Description: ${s.description_human}`);
+      if (!s.tagline_es) parts.push(`Tagline: ${(s.tagline || "").slice(0, 200)}`);
+      if (!s.description_human_es) parts.push(`Description: ${(s.description_human || "").slice(0, 300)}`);
       return parts.join("\n");
     }).join("\n\n");
 
@@ -55,7 +55,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a professional translator. Translate the following software tool names, taglines and descriptions from English to Spanish (Latin American). Keep technical terms, product names, acronyms, and brand names in English. For tool names: translate descriptive names but keep proper nouns (e.g. "Code Reviewer" → "Revisor de Código", "Stripe Payment Setup" → "Configuración de Pagos con Stripe"). Return translations via the tool call.`,
+            content: `Translate software tool names, taglines and descriptions to Spanish (Latin American). Keep technical terms, product names, acronyms in English. For names: translate descriptive parts but keep proper nouns. Return via tool call. Be concise.`,
           },
           { role: "user", content: skillsText },
         ],
@@ -64,26 +64,26 @@ serve(async (req) => {
             type: "function",
             function: {
               name: "return_translations",
-              description: "Return the translated skills",
+              description: "Return translated skills",
               parameters: {
                 type: "object",
                 properties: {
-                  translations: {
+                  t: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        index: { type: "number" },
-                        display_name_es: { type: "string" },
-                        tagline_es: { type: "string" },
-                        description_human_es: { type: "string" },
+                        i: { type: "number", description: "index" },
+                        n: { type: "string", description: "display_name_es" },
+                        tl: { type: "string", description: "tagline_es" },
+                        d: { type: "string", description: "description_human_es" },
                       },
-                      required: ["index"],
+                      required: ["i"],
                       additionalProperties: false,
                     },
                   },
                 },
-                required: ["translations"],
+                required: ["t"],
                 additionalProperties: false,
               },
             },
@@ -103,34 +103,29 @@ serve(async (req) => {
     const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No tool call in AI response");
 
-    const { translations } = JSON.parse(toolCall.function.arguments);
+    const parsed = JSON.parse(toolCall.function.arguments);
+    const translations = parsed.t || parsed.translations || [];
 
-    // Update each skill - only set fields that were missing
+    // Batch update using Promise.all for speed
     let updated = 0;
-    for (const t of translations) {
-      const skill = skills[t.index];
-      if (!skill) continue;
+    const updatePromises = translations.map((tr: any) => {
+      const idx = tr.i ?? tr.index;
+      const skill = skills[idx];
+      if (!skill) return Promise.resolve();
       const updates: Record<string, string> = {};
-      if (!skill.display_name_es && t.display_name_es) updates.display_name_es = t.display_name_es;
-      if (!skill.tagline_es && t.tagline_es) updates.tagline_es = t.tagline_es;
-      if (!skill.description_human_es && t.description_human_es) updates.description_human_es = t.description_human_es;
-      if (Object.keys(updates).length === 0) continue;
-      const { error: updateError } = await supabase
-        .from("skills")
-        .update(updates)
-        .eq("id", skill.id);
-      if (!updateError) updated++;
-    }
+      if (!skill.display_name_es && (tr.n || tr.display_name_es)) updates.display_name_es = tr.n || tr.display_name_es;
+      if (!skill.tagline_es && (tr.tl || tr.tagline_es)) updates.tagline_es = tr.tl || tr.tagline_es;
+      if (!skill.description_human_es && (tr.d || tr.description_human_es)) updates.description_human_es = tr.d || tr.description_human_es;
+      if (Object.keys(updates).length === 0) return Promise.resolve();
+      return supabase.from("skills").update(updates).eq("id", skill.id).then(({ error }) => {
+        if (!error) updated++;
+      });
+    });
 
-    // Check remaining
-    const { count } = await supabase
-      .from("skills")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "approved")
-      .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null");
+    await Promise.all(updatePromises);
 
     return new Response(
-      JSON.stringify({ translated: updated, remaining: count ?? 0 }),
+      JSON.stringify({ translated: updated, remaining: -1 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

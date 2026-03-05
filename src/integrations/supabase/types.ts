@@ -372,6 +372,7 @@ export type Database = {
           description_human: string
           description_human_es: string | null
           display_name: string
+          display_name_es: string | null
           github_stars: number
           github_url: string | null
           id: string
@@ -399,6 +400,7 @@ export type Database = {
           description_human: string
           description_human_es?: string | null
           display_name: string
+          display_name_es?: string | null
           github_stars?: number
           github_url?: string | null
           id?: string
@@ -426,6 +428,7 @@ export type Database = {
           description_human?: string
           description_human_es?: string | null
           display_name?: string
+          display_name_es?: string | null
           github_stars?: number
           github_url?: string | null
           id?: string
