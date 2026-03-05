@@ -380,12 +380,12 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
   const token = Deno.env.get("GITHUB_TOKEN");
   if (!token) { console.log("[github-enrich] No GITHUB_TOKEN"); return { enriched: 0 }; }
 
-  // Find skills with github_url but missing/generic description or no github_stars
+  // Find skills with github_url but missing/generic/short description or no github_stars
   const { data: skills, error } = await supabase
     .from("skills")
-    .select("id, slug, github_url, description_human, install_count, github_stars")
+    .select("id, slug, github_url, description_human, tagline, install_count, github_stars")
     .not("github_url", "is", null)
-    .or("description_human.ilike.%ecosistema open-source%,github_stars.eq.0")
+    .or("description_human.ilike.%ecosistema open-source%,github_stars.eq.0,tagline.ilike.%skill del ecosistema%")
     .limit(batchSize);
 
   if (error || !skills || skills.length === 0) {
@@ -413,10 +413,20 @@ async function githubEnrich(supabase: ReturnType<typeof createClient>, batchSize
       const repoData = await res.json();
       const updates: Record<string, unknown> = {};
 
-      // Use GitHub description as fallback for generic or missing descriptions
-      const isGenericDesc = !skill.description_human || skill.description_human.includes("ecosistema open-source") || skill.description_human.length < 20;
+      // Use GitHub description as fallback for generic, short, or residue descriptions
+      const descLen = (skill.description_human || "").length;
+      const isGenericDesc = !skill.description_human
+        || skill.description_human.includes("ecosistema open-source")
+        || descLen < 40
+        || /^[|>!\-\s]{1,3}$/.test(skill.description_human.trim());
+      const isGenericTagline = !skill.tagline
+        || skill.tagline.includes("Skill del ecosistema")
+        || (skill.tagline || "").length < 10;
+
       if (repoData.description && isGenericDesc) {
         updates.description_human = repoData.description;
+      }
+      if (repoData.description && isGenericTagline) {
         updates.tagline = repoData.description;
       }
       if (repoData.stargazers_count > 0) {
