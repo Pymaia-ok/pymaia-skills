@@ -259,47 +259,53 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
-        {/* ─── Section 4: MCPs / Conectores ─── */}
+        {/* ─── Section 4: Ecosistema de extensiones ─── */}
         <section id="mcps" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
           <motion.div {...fadeUp}>
-            <SectionBadge icon={Plug} label={isEs ? "Conectores" : "Connectors"} />
+            <SectionBadge icon={Plug} label={isEs ? "Extensiones" : "Extensions"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "Skills vs. MCPs vs. Conectores" : "Skills vs. MCPs vs. Connectors"}
+              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Plugins" : "Claude's ecosystem:\nSkills, Connectors & Plugins"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Hay varios conceptos que extienden las capacidades de Claude. Acá te explicamos cada uno:"
-                : "There are several concepts that extend Claude's capabilities. Here's what each one means:"}
+                ? "Hay 3 formas de extender lo que Claude puede hacer. Cada una tiene un propósito distinto:"
+                : "There are 3 ways to extend what Claude can do. Each serves a different purpose:"}
             </p>
 
             <div className="space-y-4 mb-8">
               {[
                 {
                   icon: FileText,
-                  name: isEs ? "Skill" : "Skill",
+                  emoji: "🧠",
+                  name: "Skill",
                   what: isEs ? "Archivo de conocimiento (SKILL.md)" : "Knowledge file (SKILL.md)",
                   does: isEs
-                    ? "Le enseña a Claude CÓMO hacer una tarea. Es como darle un manual de experto."
-                    : "Teaches Claude HOW to do a task. Like giving it an expert manual.",
+                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento."
+                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge.",
                   example: isEs ? "Skill de briefs → Claude sabe hacer briefs profesionales" : "Brief skill → Claude knows how to write professional briefs",
+                  category: isEs ? "Conocimiento" : "Knowledge",
                 },
                 {
                   icon: Plug,
-                  name: "MCP Server",
-                  what: isEs ? "Servidor que conecta Claude con herramientas externas" : "Server connecting Claude to external tools",
+                  emoji: "🔌",
+                  name: isEs ? "MCP / Conector" : "MCP / Connector",
+                  what: isEs ? "Servidor que conecta Claude con herramientas externas (MCP = Model Context Protocol)" : "Server connecting Claude to external tools (MCP = Model Context Protocol)",
                   does: isEs
-                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real (Slack, GitHub, bases de datos, etc.)."
-                    : "Gives Claude ACCESS to real-time data and services (Slack, GitHub, databases, etc.).",
-                  example: isEs ? "MCP de Slack → Claude puede leer y enviar mensajes en Slack" : "Slack MCP → Claude can read and send messages in Slack",
+                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. Un MCP Server y un conector son lo mismo: un puente entre Claude y una herramienta externa como Slack, GitHub, Google Drive, bases de datos, etc."
+                    : "Gives Claude ACCESS to real-time data and services. An MCP Server and a connector are the same thing: a bridge between Claude and an external tool like Slack, GitHub, Google Drive, databases, etc.",
+                  example: isEs ? "Conector de Slack → Claude puede leer y enviar mensajes en Slack" : "Slack connector → Claude can read and send messages in Slack",
+                  category: isEs ? "Acceso" : "Access",
                 },
                 {
-                  icon: Puzzle,
-                  name: isEs ? "Conector" : "Connector",
-                  what: isEs ? "Un MCP Server listo para instalar" : "An MCP Server ready to install",
+                  icon: Bot,
+                  emoji: "🧩",
+                  name: "Plugin",
+                  what: isEs ? "Extensión que agrega funcionalidad a la interfaz de Claude" : "Extension that adds functionality to Claude's interface",
                   does: isEs
-                    ? "Es lo mismo que un MCP Server, pero empaquetado y listo para instalar. Nosotros los llamamos 'conectores'."
-                    : "Same as an MCP Server, but packaged and ready to install. We call them 'connectors'.",
-                  example: isEs ? "Conector de Google Drive → Claude accede a tus documentos" : "Google Drive connector → Claude accesses your documents",
+                    ? "Los plugins son extensiones que modifican cómo funciona la interfaz de Claude. A diferencia de los conectores (que dan acceso a datos), los plugins agregan capacidades nuevas como generación de imágenes, análisis de código, o herramientas interactivas dentro de la conversación."
+                    : "Plugins are extensions that modify how Claude's interface works. Unlike connectors (which give data access), plugins add new capabilities like image generation, code analysis, or interactive tools within the conversation.",
+                  example: isEs ? "Plugin de Artifacts → Claude puede crear y renderizar código, diagramas y documentos interactivos" : "Artifacts plugin → Claude can create and render code, diagrams and interactive documents",
+                  category: isEs ? "Funcionalidad" : "Functionality",
                 },
               ].map((concept) => (
                 <div key={concept.name} className="p-6 rounded-2xl bg-secondary border border-border">
@@ -307,12 +313,15 @@ const PrimerosPasos = () => {
                     <div className="p-2 rounded-lg bg-background border border-border">
                       <concept.icon className="w-5 h-5 text-foreground" />
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{concept.name}</h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{concept.name}</h3>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent text-muted-foreground">{concept.category}</span>
+                      </div>
                       <p className="text-xs text-muted-foreground">{concept.what}</p>
                     </div>
                   </div>
-                  <p className="text-muted-foreground leading-relaxed mb-2">{concept.does}</p>
+                  <p className="text-muted-foreground leading-relaxed mb-3">{concept.does}</p>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-xs font-medium text-muted-foreground">{isEs ? "Ejemplo:" : "Example:"}</span>
                     <span className="text-xs text-foreground bg-accent px-2.5 py-1 rounded-full">{concept.example}</span>
@@ -324,20 +333,24 @@ const PrimerosPasos = () => {
             {/* Visual comparison */}
             <div className="p-6 rounded-2xl bg-foreground text-background">
               <h3 className="font-semibold mb-4 text-lg">{isEs ? "En resumen" : "In summary"}</h3>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-3 gap-3">
                 <div className="p-4 rounded-xl bg-background/10">
                   <p className="font-semibold mb-1">🧠 Skills</p>
-                  <p className="text-sm opacity-80">{isEs ? "Le enseñan a Claude CÓMO hacer algo" : "Teach Claude HOW to do something"}</p>
+                  <p className="text-sm opacity-80">{isEs ? "Le enseñan CÓMO hacer algo" : "Teach HOW to do something"}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background/10">
                   <p className="font-semibold mb-1">🔌 MCPs / Conectores</p>
-                  <p className="text-sm opacity-80">{isEs ? "Le dan a Claude ACCESO a herramientas externas" : "Give Claude ACCESS to external tools"}</p>
+                  <p className="text-sm opacity-80">{isEs ? "Le dan ACCESO a herramientas" : "Give ACCESS to tools"}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-background/10">
+                  <p className="font-semibold mb-1">🧩 Plugins</p>
+                  <p className="text-sm opacity-80">{isEs ? "Le agregan FUNCIONALIDAD nueva" : "Add new FUNCTIONALITY"}</p>
                 </div>
               </div>
               <p className="text-sm opacity-70 mt-4">
                 {isEs
-                  ? "💡 Lo más potente: combinar ambos. Ej: Skill de análisis + Conector de Google Sheets = Claude analiza tus datos directamente."
-                  : "💡 Most powerful: combine both. E.g.: Analysis skill + Google Sheets connector = Claude analyzes your data directly."}
+                  ? "💡 Lo más potente: combinar los tres. Ej: Skill de análisis + Conector de Google Sheets + Plugin de visualización = Claude analiza tus datos y te muestra gráficos."
+                  : "💡 Most powerful: combine all three. E.g.: Analysis skill + Google Sheets connector + Visualization plugin = Claude analyzes your data and shows you charts."}
               </p>
             </div>
           </motion.div>
