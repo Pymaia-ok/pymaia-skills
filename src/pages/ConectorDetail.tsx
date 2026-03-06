@@ -93,7 +93,6 @@ const ConectorDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-3xl mx-auto px-6 py-16">
           <div className="h-8 w-48 bg-secondary animate-pulse rounded mb-4" />
           <div className="h-4 w-96 bg-secondary animate-pulse rounded" />
