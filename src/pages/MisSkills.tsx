@@ -112,35 +112,66 @@ export default function MisSkills() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                 >
-                  <Link to={`/skill/${skill.slug}`}>
-                    <div className="rounded-2xl border border-border bg-card p-4 hover:bg-secondary/50 transition-colors">
+                  <div className="rounded-2xl border border-border bg-card p-4 hover:bg-secondary/50 transition-colors">
                       <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
+                        <Link to={`/skill/${skill.slug}`} className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-foreground truncate">{skill.display_name}</h3>
                             <Badge variant="outline" className={`shrink-0 text-[10px] ${status.className}`}>
                               {status.label}
                             </Badge>
+                            {(skill as any).is_public === false && (
+                              <Badge variant="outline" className="shrink-0 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                <Lock className="w-2.5 h-2.5 mr-1" /> Privada
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground truncate">{skill.tagline}</p>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
-                          <div className="flex items-center gap-1" title="Instalaciones">
-                            <Download className="w-3 h-3" />
-                            {skill.github_stars || skill.install_count}
+                        </Link>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1" title="Instalaciones">
+                              <Download className="w-3 h-3" />
+                              {skill.github_stars || skill.install_count}
+                            </div>
+                            <div className="flex items-center gap-1" title="Rating">
+                              <Star className="w-3 h-3" />
+                              {skill.avg_rating}
+                            </div>
+                            <div className="flex items-center gap-1" title="Fecha">
+                              <Clock className="w-3 h-3" />
+                              {new Date(skill.created_at).toLocaleDateString("es")}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1" title="Rating">
-                            <Star className="w-3 h-3" />
-                            {skill.avg_rating}
-                          </div>
-                          <div className="flex items-center gap-1" title="Fecha">
-                            <Clock className="w-3 h-3" />
-                            {new Date(skill.created_at).toLocaleDateString("es")}
-                          </div>
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const newPublic = !(skill as any).is_public !== false;
+                              const updates: any = { is_public: !((skill as any).is_public !== false) };
+                              // If making private and no share_token, generate one
+                              if (updates.is_public === false && !(skill as any).share_token) {
+                                updates.share_token = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+                              }
+                              const { error } = await supabase.from("skills").update(updates).eq("id", skill.id);
+                              if (error) {
+                                toast.error("Error al cambiar visibilidad");
+                                return;
+                              }
+                              setSkills(prev => prev.map(s => s.id === skill.id ? { ...s, ...updates } : s));
+                              toast.success(updates.is_public ? "Skill ahora es pública" : "Skill ahora es privada");
+                            }}
+                            className="p-2 rounded-xl hover:bg-secondary transition-colors"
+                            title={(skill as any).is_public !== false ? "Hacer privada" : "Hacer pública"}
+                          >
+                            {(skill as any).is_public !== false
+                              ? <Globe className="w-4 h-4 text-muted-foreground" />
+                              : <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            }
+                          </button>
                         </div>
                       </div>
                     </div>
-                  </Link>
                 </motion.div>
               );
             })}
