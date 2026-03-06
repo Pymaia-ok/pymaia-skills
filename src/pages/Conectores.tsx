@@ -46,6 +46,7 @@ const Conectores = () => {
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community">("all");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -138,7 +139,10 @@ const Conectores = () => {
       c.name.toLowerCase().includes(q) ||
       c.slug.toLowerCase().includes(q);
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesOfficial = officialFilter === "all" || 
+      (officialFilter === "official" && c.is_official) ||
+      (officialFilter === "community" && !c.is_official);
+    return matchesSearch && matchesCategory && matchesOfficial;
   }).sort((a, b) => {
     // Curated first, then by icon presence, then by use count
     const sa = a.source === "curated" ? 0 : 1;
@@ -240,6 +244,24 @@ const Conectores = () => {
             </div>
           </div>
 
+          {/* Official / Community filter */}
+          <div className="flex gap-2 mb-6">
+            {(["all", "official", "community"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setOfficialFilter(f)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  officialFilter === f
+                    ? "bg-foreground text-background"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f === "official" && <BadgeCheck className="w-3.5 h-3.5" />}
+                {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : (isEs ? "Comunitarios" : "Community")}
+              </button>
+            ))}
+          </div>
+
           {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -264,11 +286,23 @@ const Conectores = () => {
                   >
                     <div className="flex items-start gap-4 mb-3 flex-shrink-0">
                       {connector.icon_url ? (
-                        <img
-                          src={connector.icon_url}
-                          alt={connector.name}
-                          className="w-10 h-10 rounded-lg flex-shrink-0 object-contain"
-                        />
+                        <>
+                          <img
+                            src={connector.icon_url}
+                            alt={connector.name}
+                            className="w-10 h-10 rounded-lg flex-shrink-0 object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                              if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                            }}
+                          />
+                          <div className={`w-10 h-10 rounded-lg ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} items-center justify-center flex-shrink-0 hidden`}>
+                            <span className="text-lg font-bold text-white">
+                              {connector.name[0]?.toUpperCase()}
+                            </span>
+                          </div>
+                        </>
                       ) : (
                         <div className={`w-10 h-10 rounded-lg ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center flex-shrink-0`}>
                           <span className="text-lg font-bold text-white">
