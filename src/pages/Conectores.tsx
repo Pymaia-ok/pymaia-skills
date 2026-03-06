@@ -47,7 +47,7 @@ const Conectores = () => {
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community">("all");
+  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">("all");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
