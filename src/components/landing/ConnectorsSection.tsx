@@ -3,18 +3,40 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ArrowRight, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const FEATURED_CONNECTORS = [
-  { emoji: "📧", name: "Gmail", slug: "gmail" },
-  { emoji: "💬", name: "Slack", slug: "slack" },
-  { emoji: "🐙", name: "GitHub", slug: "github" },
-  { emoji: "📊", name: "Google Sheets", slug: "google-sheets" },
-  { emoji: "🗄️", name: "PostgreSQL", slug: "postgresql" },
-  { emoji: "📁", name: "Google Drive", slug: "google-drive" },
-];
+const CATEGORY_EMOJIS: Record<string, string> = {
+  communication: "💬",
+  development: "🛠️",
+  databases: "🗄️",
+  productivity: "📋",
+  search: "🔍",
+  automation: "⚡",
+  apis: "🔌",
+  cloud: "☁️",
+  ai: "🤖",
+  design: "🎨",
+  storage: "📁",
+  general: "🔧",
+};
 
 const ConnectorsSection = () => {
   const { t } = useTranslation();
+
+  const { data: connectors = [] } = useQuery({
+    queryKey: ["landing-connectors"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("mcp_servers")
+        .select("name, slug, category, external_use_count")
+        .eq("status", "approved")
+        .order("external_use_count", { ascending: false })
+        .limit(12);
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
   return (
     <section className="py-24">
@@ -36,7 +58,7 @@ const ConnectorsSection = () => {
         </motion.div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-10">
-          {FEATURED_CONNECTORS.map((c, i) => (
+          {connectors.map((c, i) => (
             <motion.div
               key={c.slug}
               initial={{ opacity: 0, y: 16 }}
@@ -48,8 +70,10 @@ const ConnectorsSection = () => {
                 to={`/conector/${c.slug}`}
                 className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-secondary hover:bg-accent border border-border transition-all group"
               >
-                <span className="text-3xl">{c.emoji}</span>
-                <span className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">
+                <span className="text-3xl">
+                  {CATEGORY_EMOJIS[c.category] || "🔧"}
+                </span>
+                <span className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors truncate max-w-full">
                   {c.name}
                 </span>
               </Link>
