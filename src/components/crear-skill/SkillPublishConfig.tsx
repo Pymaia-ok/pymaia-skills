@@ -51,6 +51,7 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
   const [priceAmount, setPriceAmount] = useState<string>("");
   const [mcps, setMcps] = useState<RequiredMcp[]>(initialMcps);
   const [newToolInput, setNewToolInput] = useState<Record<number, string>>({});
+  const [isPublic, setIsPublic] = useState(true);
 
   const toggle = (arr: string[], item: string) =>
     arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
