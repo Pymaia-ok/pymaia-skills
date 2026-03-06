@@ -55,6 +55,15 @@ export const SKILL_CATEGORIES = [
   { key: "legal", label: "Legal" },
   { key: "negocios", label: "Negocios" },
   { key: "creatividad", label: "Creatividad" },
+  { key: "ventas", label: "Ventas" },
+  { key: "producto", label: "Producto" },
+  { key: "finanzas", label: "Finanzas" },
+  { key: "rrhh", label: "RRHH" },
+  { key: "soporte", label: "Soporte" },
+  { key: "salud", label: "Salud" },
+  { key: "educación", label: "Educación" },
+  { key: "ecommerce", label: "E-commerce" },
+  { key: "operaciones", label: "Operaciones" },
 ] as const;
 
 export const PAGE_SIZE = 24;

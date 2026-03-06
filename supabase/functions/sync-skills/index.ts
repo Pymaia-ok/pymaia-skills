@@ -20,34 +20,61 @@ interface ParsedSkill {
 function inferCategory(name: string, desc: string): string {
   const text = `${name} ${desc}`.toLowerCase();
 
-  // 1. Legal — very specific domain
+  // 1. Salud — very specific domain, check first
+  if (text.match(/\b(health|medical|clinic|hospital|patient|diagnosis|symptom|pharma|drug|therapist|psycholog|psychiatr|dentist|nurse|doctor|surgeon|wellness|fitness|nutrition|diet|mental.?health|telemedicine|ehr\b|fhir\b|dicom)/)) return "salud";
+
+  // 2. Educación
+  if (text.match(/\b(education|learning|teaching|teacher|student|course|curriculum|tutor|school|university|academic|quiz|exam|grading|lms\b|e.?learning|classroom|lecture|training|onboard)/)) return "educación";
+
+  // 3. RRHH
+  if (text.match(/\b(hr\b|human.?resource|recruit|hiring|talent|candidate|interview|resume|cv\b|onboard|payroll|employee|workforce|people.?ops|performance.?review|compensation|benefits)/)) return "rrhh";
+
+  // 4. Legal — very specific domain
   if (text.match(/\b(legal|lawyer|law\b|contract|compliance|regulat|gdpr|hipaa|attorney|litigation|arbitrat)/)) return "legal";
 
-  // 2. Marketing — broad but specific keywords
-  if (text.match(/\b(marketing|seo\b|sem\b|adwords|analytics|campaign|newsletter|email.?market|social.?media|brand|copywriting|advertising|ads\b|hubspot|mailchimp|google.?ads)/)) return "marketing";
+  // 5. E-commerce
+  if (text.match(/\b(e.?commerce|shopify|woocommerce|magento|cart|checkout|product.?catalog|inventory|warehouse|shipping|fulfillment|order.?manage|marketplace|amazon.?sell|dropship|retail)/)) return "ecommerce";
 
-  // 3. Design — visual/UI tools
+  // 6. Finanzas
+  if (text.match(/\b(finance|financial|accounting|bookkeep|tax\b|taxes|invoice|billing|payment|stripe|paypal|banking|loan|mortgage|invest|portfolio|stock|trading|crypto|blockchain|wallet|budget|forecast|expense|revenue|profit|cashflow|ledger|quickbooks|xero)/)) return "finanzas";
+
+  // 7. Ventas
+  if (text.match(/\b(sales|selling|lead.?gen|prospect|pipeline|deal|quota|commission|crm|salesforce|hubspot.?crm|cold.?email|outreach|pitch|demo|closing|b2b|b2c|account.?exec|sdr\b|bdr\b)/)) return "ventas";
+
+  // 8. Producto
+  if (text.match(/\b(product.?manage|roadmap|feature.?request|backlog|sprint|agile|scrum|kanban|user.?story|stakeholder|prioriti|mvp|release|launch|product.?analytics|a.?b.?test|experiment|feedback|survey|nps\b)/)) return "producto";
+
+  // 9. Soporte
+  if (text.match(/\b(support|helpdesk|help.?desk|ticket|zendesk|freshdesk|intercom|live.?chat|customer.?service|troubleshoot|faq|knowledge.?base|incident|escalat|sla\b|response.?time|csat\b|customer.?success)/)) return "soporte";
+
+  // 10. Operaciones
+  if (text.match(/\b(operations|ops\b|devops|sre\b|monitor|observ|logging|alert|uptime|incident.?manage|infra.?manage|capacity|provision|scaling|load.?balanc|ci.?cd|deploy.?pipeline|gitops|terraform|ansible|kubernetes.?ops|docker.?ops|supply.?chain|logistics|procurement)/)) return "operaciones";
+
+  // 11. Marketing — broad but specific keywords
+  if (text.match(/\b(marketing|seo\b|sem\b|adwords|analytics|campaign|newsletter|email.?market|social.?media|brand|copywriting|advertising|ads\b|hubspot|mailchimp|google.?ads|content.?market)/)) return "marketing";
+
+  // 12. Design — visual/UI tools
   if (text.match(/\b(design|figma|sketch|adobe|photoshop|illustrat|canva|ui.?kit|ux\b|wireframe|prototype|color.?palette|typography|tailwind|css|style|layout|responsive)/)) return "diseño";
 
-  // 4. Data — analytics, databases, data processing
-  if (text.match(/\b(database|sql\b|postgres|mysql|mongo|redis|elasticsearch|bigquery|snowflake|data.?warehouse|etl\b|csv|excel|xlsx|parquet|arrow|tableau|power.?bi|grafana|analytics|metric|dashboard|chart|visualiz|pandas|dataframe|dbt\b|pipeline)/)) return "datos";
+  // 13. Data — analytics, databases, data processing
+  if (text.match(/\b(database|sql\b|postgres|mysql|mongo|redis|elasticsearch|bigquery|snowflake|data.?warehouse|etl\b|csv|excel|xlsx|parquet|arrow|tableau|power.?bi|grafana|metric|dashboard|chart|visualiz|pandas|dataframe|dbt\b|data.?pipeline)/)) return "datos";
 
-  // 5. Automation — workflow, scraping, integration
+  // 14. Automation — workflow, scraping, integration
   if (text.match(/\b(automat|workflow|zapier|n8n|scrape|crawl|puppeteer|playwright|selenium|cron|schedul|webhook|integration|connect|sync\b|orchestrat|pipeline|trigger|batch|queue|worker)/)) return "automatización";
 
-  // 6. Creativity — media creation
+  // 15. Creativity — media creation
   if (text.match(/\b(video|audio|music|sound|animation|3d\b|render|image.?gen|dall.?e|stable.?diffus|midjourney|creative|art\b|photo|camera|podcast|stream|youtube|tiktok|instagram)/)) return "creatividad";
 
-  // 7. Productivity — communication, docs, organization
-  if (text.match(/\b(slack|discord|teams|notion|obsidian|roam|todoist|trello|jira|asana|linear|calendar|email|gmail|outlook|pdf\b|document|note|wiki|knowledge.?base|bookmark|clipboard|translat|meeting|zoom|organiz)/)) return "productividad";
+  // 16. Productivity — communication, docs, organization
+  if (text.match(/\b(slack|discord|teams|notion|obsidian|roam|todoist|trello|jira|asana|linear|calendar|email|gmail|outlook|pdf\b|document|note|wiki|bookmark|clipboard|translat|meeting|zoom|organiz)/)) return "productividad";
 
-  // 8. Business — finance, sales, strategy
-  if (text.match(/\b(business|finance|invoice|payment|stripe|paypal|shopify|e.?commerce|sales|crm|salesforce|pitch|investor|startup|revenue|pricing|accounting|tax\b|budget|forecast|report)/)) return "negocios";
+  // 17. Business — general business (after specific biz categories)
+  if (text.match(/\b(business|startup|entrepreneur|pitch|investor|strategy|consult|proposal)/)) return "negocios";
 
-  // 9. Development — code, devtools, infrastructure
+  // 18. Development — code, devtools, infrastructure
   if (text.match(/\b(github|gitlab|bitbucket|docker|kubernetes|aws\b|azure|gcp\b|terraform|ci.?cd|deploy|server|api\b|rest\b|graphql|grpc|typescript|javascript|python|rust|golang|node|npm|package|lint|test|debug|compiler|ide\b|vscode|terminal|shell|bash|git\b|commit|pull.?request|code.?review|webpack|vite\b|build|infra)/)) return "desarrollo";
 
-  // 10. AI — only if nothing more specific matched above
+  // 19. AI — only if nothing more specific matched above
   if (text.match(/\b(ai\b|artificial.?intellig|llm|language.?model|gpt|claude|gemini|openai|anthropic|embedding|vector|rag\b|retriev|chat.?bot|conversati|prompt|fine.?tun|train|inference|neural|transformer|token|context.?window|agent|copilot|assistant)/)) return "ia";
 
   // Default: check if it mentions "mcp" or "server" generically — likely a dev tool
