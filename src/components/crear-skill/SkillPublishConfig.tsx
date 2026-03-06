@@ -175,6 +175,35 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
         </Button>
       </div>
 
+      {/* Visibility */}
+      <div>
+        <label className="text-sm font-medium mb-3 block">Visibilidad</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setIsPublic(true)}
+            className={`rounded-2xl border p-4 text-left transition-colors flex items-center gap-3 ${isPublic ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-secondary/50"}`}
+          >
+            <Globe className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Pública</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Visible en el marketplace</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsPublic(false)}
+            className={`rounded-2xl border p-4 text-left transition-colors flex items-center gap-3 ${!isPublic ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-secondary/50"}`}
+          >
+            <Lock className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Privada</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Solo accesible con link</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Pricing */}
       <div>
         <label className="text-sm font-medium mb-3 block">Modelo de precio</label>
