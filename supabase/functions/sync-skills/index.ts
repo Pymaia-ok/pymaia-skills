@@ -621,6 +621,73 @@ async function fetchPulseMCPCrawl(): Promise<ParsedSkill[]> {
   return skills;
 }
 
+// ─── SOURCE 11: GitHub Code Search — find repos with SKILL.md ───
+
+async function fetchGitHubCodeSearch(query: string): Promise<ParsedSkill[]> {
+  const token = Deno.env.get("GITHUB_TOKEN");
+  if (!token) { console.log("[github-code-search] No GITHUB_TOKEN, skipping"); return []; }
+
+  console.log(`[github-code-search] Searching query="${query}"...`);
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+  const perPage = 100;
+  const maxPages = 10;
+
+  for (let page = 1; page <= maxPages; page++) {
+    try {
+      const url = `https://api.github.com/search/code?q=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}`;
+      const res = await fetch(url, {
+        headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "SkillStoreBot/1.0",
+        },
+      });
+
+      if (res.status === 403 || res.status === 422) {
+        console.log(`[github-code-search] Rate limited at page ${page}`);
+        break;
+      }
+      if (!res.ok) { console.error(`[github-code-search] HTTP ${res.status}`); break; }
+
+      const json = await res.json();
+      const items = json?.items || [];
+      if (items.length === 0) break;
+
+      for (const item of items) {
+        const owner = item.repository?.owner?.login || "";
+        const repo = item.repository?.name || "";
+        if (!owner || !repo) continue;
+
+        const key = `${owner}/${repo}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const name = slugFromName(repo);
+        skills.push({
+          name,
+          owner,
+          repo,
+          installCount: 0,
+          stars: item.repository?.stargazers_count || 0,
+          description: item.repository?.description || "",
+          source: "github-code-search",
+        });
+      }
+
+      if (items.length < perPage) break;
+      // GitHub Code Search has stricter rate limits
+      await new Promise(r => setTimeout(r, 2000));
+    } catch (e) {
+      console.error(`[github-code-search] Error page=${page}:`, (e as Error).message);
+      break;
+    }
+  }
+
+  console.log(`[github-code-search] query="${query}": ${skills.length} repos`);
+  return skills;
+}
+
 // ─── SOURCE 10: Awesome Lists — scrape README.md for repo links ───
 
 async function fetchAwesomeLists(): Promise<ParsedSkill[]> {
