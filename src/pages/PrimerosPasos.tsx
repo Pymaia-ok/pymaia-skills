@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
