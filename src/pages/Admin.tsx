@@ -331,6 +331,38 @@ const Admin = () => {
             </p>
           </div>
 
+          {/* Security Verification */}
+          <div className="p-5 rounded-2xl bg-secondary mb-12">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5" />
+                Verificación de seguridad
+              </h2>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  toast.info("Verificando repos...");
+                  let totalProcessed = 0;
+                  for (let i = 0; i < 10; i++) {
+                    const { data, error } = await supabase.functions.invoke("verify-security", { body: { batchSize: 30 } });
+                    if (error) { toast.error("Error verificando"); break; }
+                    totalProcessed += data.processed ?? 0;
+                    if ((data.processed ?? 0) === 0) break;
+                    await new Promise(r => setTimeout(r, 1000));
+                  }
+                  toast.success(`${totalProcessed} repos verificados`);
+                  queryClient.invalidateQueries({ queryKey: ["admin-skills"] });
+                }}
+              >
+                <Play className="w-3 h-3 mr-1" /> Verificar repos
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Verifica licencia, README, actividad y estado de archivo de los repos en GitHub.
+            </p>
+          </div>
+
           {/* Pending Skills */}
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5" />
