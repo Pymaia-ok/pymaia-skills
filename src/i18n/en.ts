@@ -86,6 +86,10 @@ export default {
     bafounderAfter: "Structured competitive analysis with pricing, features and gaps in 10 min.",
     bafounderTime: "Saves ~3hrs per analysis",
 
+    mcpTitle: "Not sure which skill to use?",
+    mcpSubtitle: "Install our MCP connector and let your AI recommend and install the right skills for you.",
+    mcpCta: "View connector",
+
     ctaTitle: "Get started in 2 minutes.",
     ctaSubtitle: "Thousands of professionals already use skills to work faster with Claude. It's free.",
     ctaExplore: "Explore skills",
