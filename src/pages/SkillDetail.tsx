@@ -49,7 +49,15 @@ const SkillDetail = () => {
       "@type": "SoftwareApplication",
       name: skill.display_name,
       description: descriptionHuman,
+      url: `https://pymaiaskills.lovable.app/skill/${skill.slug}`,
       applicationCategory: skill.category,
+      operatingSystem: "Web",
+      installUrl: `https://pymaiaskills.lovable.app/skill/${skill.slug}`,
+      interactionStatistic: {
+        "@type": "InteractionCounter",
+        interactionType: "https://schema.org/InstallAction",
+        userInteractionCount: skill.install_count,
+      },
       aggregateRating: skill.review_count > 0 ? {
         "@type": "AggregateRating",
         ratingValue: Number(skill.avg_rating).toFixed(1),
