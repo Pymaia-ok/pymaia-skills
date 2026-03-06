@@ -141,7 +141,8 @@ const Conectores = () => {
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
     const matchesOfficial = officialFilter === "all" || 
       (officialFilter === "official" && c.is_official) ||
-      (officialFilter === "community" && !c.is_official);
+      (officialFilter === "community" && !c.is_official) ||
+      (officialFilter === "verified" && (c as any).security_status === "verified");
     return matchesSearch && matchesCategory && matchesOfficial;
   }).sort((a, b) => {
     // Curated first, then by icon presence, then by use count
