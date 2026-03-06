@@ -4,7 +4,6 @@ import { Search, ChevronLeft, ChevronRight, Sparkles, Plug, Bot, ShieldCheck, He
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
 import { useSEO } from "@/hooks/useSEO";
@@ -122,7 +121,6 @@ const Explore = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14">
         <div className="max-w-5xl mx-auto px-6 py-16">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">

@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,7 +155,6 @@ const Admin = () => {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24 text-center">
           <h1 className="section-title mb-4">Acceso denegado</h1>
           <p className="text-muted-foreground">No tenés permisos de administrador.</p>
@@ -187,7 +185,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14 max-w-5xl mx-auto px-6 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="section-title mb-8">Panel de admin</h1>

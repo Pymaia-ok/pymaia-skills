@@ -4,7 +4,6 @@ import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersH
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -169,7 +168,6 @@ const Conectores = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14">
         <div className="max-w-5xl mx-auto px-6 py-16">
           <motion.div

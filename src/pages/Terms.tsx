@@ -1,4 +1,3 @@
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/landing/Footer";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +6,6 @@ const Terms = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
       <main className="max-w-3xl mx-auto px-6 pt-28 pb-20">
         <h1 className="text-3xl font-bold mb-2">Términos y Condiciones</h1>
         <p className="text-sm text-muted-foreground mb-8">Última actualización: 4 de marzo de 2026</p>

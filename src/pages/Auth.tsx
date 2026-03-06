@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,7 +56,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14 min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-6">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

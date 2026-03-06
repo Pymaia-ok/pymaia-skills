@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,7 +179,6 @@ const CrearSkill = () => {
 
   return (
     <div className="min-h-screen h-screen bg-background flex flex-col overflow-hidden">
-      <Navbar />
       <div className="pt-14 flex-1 flex flex-col min-h-0">
         {step === "chat" && (
           <div className="flex-1 flex flex-col min-h-0">

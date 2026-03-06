@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github } from "lucide-react";
 import { useState, useCallback } from "react";
-import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -94,7 +93,6 @@ const ConectorDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-3xl mx-auto px-6 py-16">
           <div className="h-8 w-48 bg-secondary animate-pulse rounded mb-4" />
           <div className="h-4 w-96 bg-secondary animate-pulse rounded" />
@@ -106,7 +104,6 @@ const ConectorDetail = () => {
   if (!connector) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-muted-foreground text-lg">Connector not found</p>
           <Link to="/conectores" className="text-primary hover:underline mt-4 inline-block">
@@ -119,7 +116,6 @@ const ConectorDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14">
         <div className="max-w-3xl mx-auto px-6 py-16">
           <button

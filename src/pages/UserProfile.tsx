@@ -1,7 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchProfileByUsername, fetchUserSkills, fetchUserReviews } from "@/lib/api";
 import { Star } from "lucide-react";
@@ -30,7 +29,6 @@ const UserProfile = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24">
           <div className="h-20 w-20 rounded-full bg-secondary animate-pulse mb-4" />
           <div className="h-8 w-48 bg-secondary rounded animate-pulse" />
@@ -42,7 +40,6 @@ const UserProfile = () => {
   if (!profile) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24 text-center">
           <h1 className="section-title mb-4">Usuario no encontrado</h1>
           <Link to="/explorar" className="text-muted-foreground hover:text-foreground">← Volver</Link>
@@ -53,7 +50,6 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14 max-w-4xl mx-auto px-6 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
           <div className="flex items-center gap-6 mb-6">

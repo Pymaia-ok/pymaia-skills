@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import Navbar from "@/components/Navbar";
 import EmailGateDialog from "@/components/EmailGateDialog";
 import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,7 +74,7 @@ const SkillDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background"><Navbar />
+      <div className="min-h-screen bg-background">
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24">
           <div className="h-8 w-48 bg-secondary rounded animate-pulse mb-4" />
           <div className="h-12 w-96 bg-secondary rounded animate-pulse mb-4" />
@@ -87,7 +86,7 @@ const SkillDetail = () => {
 
   if (!skill) {
     return (
-      <div className="min-h-screen bg-background"><Navbar />
+      <div className="min-h-screen bg-background">
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24 text-center">
           <h1 className="section-title mb-4">{t("detail.notFound")}</h1>
           <Link to="/explorar" className="text-muted-foreground hover:text-foreground">← {t("detail.backToDirectory")}</Link>
@@ -154,7 +153,6 @@ const SkillDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14">
         <div className="max-w-4xl mx-auto px-6 py-16">
           <Link to="/explorar" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-10">

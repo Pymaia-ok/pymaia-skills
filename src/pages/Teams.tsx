@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -48,7 +47,6 @@ const Teams = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14 max-w-5xl mx-auto px-6 py-24">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <h1 className="hero-title mb-6 whitespace-pre-line">{t("teams.heroTitle")}</h1>
