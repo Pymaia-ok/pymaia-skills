@@ -139,7 +139,10 @@ const Conectores = () => {
       c.name.toLowerCase().includes(q) ||
       c.slug.toLowerCase().includes(q);
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesOfficial = officialFilter === "all" || 
+      (officialFilter === "official" && c.is_official) ||
+      (officialFilter === "community" && !c.is_official);
+    return matchesSearch && matchesCategory && matchesOfficial;
   }).sort((a, b) => {
     // Curated first, then by icon presence, then by use count
     const sa = a.source === "curated" ? 0 : 1;
