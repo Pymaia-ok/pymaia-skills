@@ -33,7 +33,7 @@ const McpBannerSection = () => {
             </div>
 
             <Link
-              to="/conectores/pymaia-skills"
+              to="/conector/pymaia-skills"
               className="flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               {t("landing.mcpCta")}

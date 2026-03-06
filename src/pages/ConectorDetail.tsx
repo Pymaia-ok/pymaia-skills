@@ -162,39 +162,46 @@ const ConectorDetail = () => {
             </div>
 
             {/* Credentials */}
-            {connector.credentials_needed && connector.credentials_needed.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-sm font-semibold text-foreground mb-3">
-                  {t("connectors.credentials")}
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {connector.credentials_needed.map((cred: string) => (
-                    <span key={cred} className="px-3 py-1.5 rounded-lg bg-secondary text-sm font-mono text-foreground">
-                      {cred}
-                    </span>
-                  ))}
+            {connector.credentials_needed && connector.credentials_needed.length > 0 ? (
+              <>
+                <div className="mb-8">
+                  <h2 className="text-sm font-semibold text-foreground mb-3">
+                    {t("connectors.credentials")}
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {connector.credentials_needed.map((cred: string) => (
+                      <span key={cred} className="px-3 py-1.5 rounded-lg bg-secondary text-sm font-mono text-foreground">
+                        {cred}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+
+                {/* How to setup */}
+                <div className="mb-8 p-6 rounded-2xl bg-secondary/50 border border-border">
+                  <h2 className="font-semibold text-foreground mb-4">{t("connectors.howToSetup")}</h2>
+                  <ol className="space-y-3 text-sm text-muted-foreground">
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">1</span>
+                      {t("connectors.setupStep1")}
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">2</span>
+                      {t("connectors.setupStep2")}
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">3</span>
+                      {t("connectors.setupStep3")}
+                    </li>
+                  </ol>
+                </div>
+              </>
+            ) : (
+              <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                <Check className="w-4 h-4" />
+                {t("connectors.noApiKey")}
               </div>
             )}
-
-            {/* How to setup */}
-            <div className="mb-8 p-6 rounded-2xl bg-secondary/50 border border-border">
-              <h2 className="font-semibold text-foreground mb-4">{t("connectors.howToSetup")}</h2>
-              <ol className="space-y-3 text-sm text-muted-foreground">
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">1</span>
-                  {t("connectors.setupStep1")}
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">2</span>
-                  {t("connectors.setupStep2")}
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold">3</span>
-                  {t("connectors.setupStep3")}
-                </li>
-              </ol>
-            </div>
 
             {/* Docs link */}
             {connector.docs_url && (

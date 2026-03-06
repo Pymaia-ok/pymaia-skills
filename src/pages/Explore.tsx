@@ -265,7 +265,7 @@ const Explore = () => {
               </div>
             </div>
             <Link
-              to="/conectores/pymaia-skills"
+              to="/conector/pymaia-skills"
               className="px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               {t("explore.mcpBannerCta")}
