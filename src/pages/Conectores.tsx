@@ -81,7 +81,7 @@ const Conectores = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mcp_servers")
-        .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count")
+        .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source")
         .eq("status", "approved")
         .order("external_use_count", { ascending: false })
         .limit(3000);
@@ -90,13 +90,49 @@ const Conectores = () => {
     },
   });
 
-  const filtered = connectors.filter((c) => {
+  // Deduplicate: prefer curated > official-registry > others, by base brand name
+  const deduped = (() => {
+    const SOURCE_PRIORITY: Record<string, number> = {
+      curated: 0, "canva.dev": 1, "official-registry": 2, smithery: 3, glama: 4, "awesome-mcp-servers": 5, "0x7c2f": 6, manual: 7,
+    };
+    // Group by normalized brand name to detect dupes
+    const seen = new Map<string, typeof connectors[0]>();
+    const sorted = [...connectors].sort((a, b) => {
+      const pa = SOURCE_PRIORITY[a.source || ""] ?? 99;
+      const pb = SOURCE_PRIORITY[b.source || ""] ?? 99;
+      return pa - pb;
+    });
+    for (const c of sorted) {
+      // Normalize: "GitHub" and "Github MCP Server" -> "github"
+      const baseName = c.name.toLowerCase()
+        .replace(/\bmcp\b/gi, "").replace(/\bserver\b/gi, "").replace(/\btool\b/gi, "")
+        .replace(/[-_]/g, " ").trim().replace(/\s+/g, " ");
+      // Use slug for curated, baseName for others
+      const key = c.source === "curated" ? c.slug : baseName;
+      if (!seen.has(key)) {
+        seen.set(key, c);
+      }
+    }
+    return Array.from(seen.values());
+  })();
+
+  const filtered = deduped.filter((c) => {
+    const q = search.toLowerCase();
     const matchesSearch =
       !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.description.toLowerCase().includes(search.toLowerCase());
+      c.name.toLowerCase().includes(q) ||
+      c.slug.toLowerCase().includes(q);
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
     return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    // Curated first, then by icon presence, then by use count
+    const sa = a.source === "curated" ? 0 : 1;
+    const sb = b.source === "curated" ? 0 : 1;
+    if (sa !== sb) return sa - sb;
+    const ia = a.icon_url ? 0 : 1;
+    const ib = b.icon_url ? 0 : 1;
+    if (ia !== ib) return ia - ib;
+    return (b.external_use_count || 0) - (a.external_use_count || 0);
   });
 
   const isEs = i18n.language === "es";
