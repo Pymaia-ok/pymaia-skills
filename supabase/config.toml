@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.translate-connectors]
 verify_jwt = false
+
+[functions.fetch-connector-icons]
+verify_jwt = false
