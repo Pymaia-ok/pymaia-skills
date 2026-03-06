@@ -453,6 +453,13 @@ export default {
     setupStep3: "¡Listo! Las skills que lo usen van a funcionar automáticamente",
   },
 
+  trust: {
+    verified: "Verificado",
+    active: "Activo",
+    flagged: "Revisar",
+    unverified: "Sin verificar",
+  },
+
   // Language switcher
   lang: {
     es: "ES",

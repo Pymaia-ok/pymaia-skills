@@ -440,6 +440,13 @@ export default {
     setupStep3: "Done! Skills that use it will work automatically",
   },
 
+  trust: {
+    verified: "Verified",
+    active: "Active",
+    flagged: "Flagged",
+    unverified: "Unverified",
+  },
+
   lang: {
     es: "ES",
     en: "EN",
