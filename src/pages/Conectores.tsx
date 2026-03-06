@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersHorizontal, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -45,10 +45,20 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const Conectores = () => {
   const { t, i18n } = useTranslation();
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get("cat") || null);
+  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">((searchParams.get("filter") as any) || "all");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Sync state to URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (selectedCategory) params.set("cat", selectedCategory);
+    if (officialFilter !== "all") params.set("filter", officialFilter);
+    setSearchParams(params, { replace: true });
+  }, [search, selectedCategory, officialFilter, setSearchParams]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -285,26 +295,36 @@ const Conectores = () => {
                         ? connector.description_es
                         : connector.description}
                     </p>
-                    {/* Trust metrics */}
-                    {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0) && (
-                      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
-                        {(connector.github_stars ?? 0) > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Star className="w-3 h-3" />
-                            {connector.github_stars?.toLocaleString()}
-                          </span>
-                        )}
-                        {(connector.external_use_count ?? 0) > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Download className="w-3 h-3" />
-                            {connector.external_use_count?.toLocaleString()}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground/60 ml-auto capitalize">
-                          {connector.source === 'curated' ? '' : connector.source?.replace(/-/g, ' ')}
+                    {/* Trust metrics - always show */}
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50 flex-wrap">
+                      {connector.is_official ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold">
+                          <BadgeCheck className="w-3 h-3" />
+                          {isEs ? "Oficial" : "Official"}
                         </span>
-                      </div>
-                    )}
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-muted-foreground text-[10px] font-semibold">
+                          {isEs ? "Comunitario" : "Community"}
+                        </span>
+                      )}
+                      {(connector as any).security_status === "verified" && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
+                          <ShieldCheck className="w-3 h-3" />
+                        </span>
+                      )}
+                      {(connector.github_stars ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Star className="w-3 h-3" />
+                          {connector.github_stars?.toLocaleString()}
+                        </span>
+                      )}
+                      {(connector.external_use_count ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Download className="w-3 h-3" />
+                          {connector.external_use_count?.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </Link>
                 </motion.div>
               ))}

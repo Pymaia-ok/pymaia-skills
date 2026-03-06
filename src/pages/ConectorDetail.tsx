@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,8 +27,17 @@ const CATEGORY_COLORS: Record<string, string> = {
 const ConectorDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const isEs = i18n.language === "es";
+
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/conectores");
+    }
+  }, [navigate]);
 
   const { data: connector, isLoading } = useQuery({
     queryKey: ["connector", slug],
@@ -113,13 +122,13 @@ const ConectorDetail = () => {
       <Navbar />
       <div className="pt-14">
         <div className="max-w-3xl mx-auto px-6 py-16">
-          <Link
-            to="/conectores"
+          <button
+            onClick={handleBack}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             {t("connectors.backToConnectors")}
-          </Link>
+          </button>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-4 mb-6">
