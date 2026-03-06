@@ -1,63 +1,32 @@
 
 
-## Plan: Evolucionar Pymaia Skills a plataforma integral de "expertise instalable"
+## Plan: Nuevo tagline + decisión sobre navegación Skills/Conectores
 
-### Visión
+### 1. Nuevo tagline
 
-La misión es **"Convertir a cualquier profesional en experto con IA en 2 minutos"**, y la segunda cara de la moneda: **"Compartir tu conocimiento con miles de profesionales"**. Las Skills son conocimiento experto; los MCPs son las herramientas que las potencian. No se venden por separado sino como un ecosistema integrado.
+Cambiar el hero title de `"Tu expertise,\nescalado con IA."` a **`"Trabajá como un\nexperto en minutos."`** en `es.ts` y su equivalente en `en.ts` (`"Work like an\nexpert in minutes."`).
 
-### Cambios propuestos
+### 2. Skills y Conectores: ¿juntos o separados?
 
-#### 1. Repositorio de MCPs (nuevo)
+**Recomendación: mantenerlos separados, pero con cross-links visibles.**
 
-Crear una sección `/conectores` (no "MCPs" -- lenguaje amigable) con un directorio de conectores/herramientas que las skills pueden usar.
+Razones:
+- **Son cosas distintas conceptualmente**: una skill es conocimiento que instalás, un conector es una herramienta que conectás. Mezclarlos en una grilla con un filtro tipo/conector agrega fricción cognitiva ("¿qué estoy mirando?").
+- **El flujo de uso es diferente**: buscás una skill por lo que querés hacer → la instalás → te dice qué conector necesita. No al revés.
+- **La confusión mata la conversión**: si un usuario nuevo llega a Explorar y ve cards de skills mezcladas con cards de conectores (que se ven distinto, tienen datos distintos), se pierde.
 
-- **Nueva tabla `mcp_servers`**: `id`, `name`, `slug`, `description`, `description_es`, `category` (gmail, github, slack, databases, etc.), `install_command`, `config_json`, `credentials_needed[]`, `docs_url`, `icon_url`, `install_count`, `status`.
-- **Nueva página `/conectores`**: Directorio visual con cards, búsqueda, categorías (Comunicación, Datos, APIs, Desarrollo).
-- **Detalle `/conector/:slug`**: Instrucciones de instalación, skills compatibles (join con `required_mcps`), qué credenciales necesita.
-- **Enlace bidireccional**: En el detalle de skill, los MCPs requeridos linkan a `/conector/:slug`. En el detalle de conector, se listan las skills que lo usan.
+**Lo que sí tiene sentido agregar:**
+- En `/explorar`, una **banner o sección chica** al final o arriba que diga "¿Tu skill necesita conectarse a herramientas? → Ver Conectores" con link a `/conectores`.
+- En cada **card de skill** que tenga `required_mcps`, mostrar un **chip/badge** sutil con los conectores que usa (ej: "Gmail · GitHub") que linkee al conector.
+- En `/conectores`, mostrar **"Skills que usan este conector"** (ya existe en el detalle).
 
-#### 2. Actualizar copy/posicionamiento en toda la app
+### Cambios técnicos
 
-- **Hero**: Cambiar de "Potenciá tu trabajo con Inteligencia Artificial" a algo como **"Tu expertise, escalado con IA."** con subtítulo enfocado en resultados concretos, no en tecnología.
-- **Badge del hero**: Cambiar "El directorio #1 de skills para Claude Code" por algo menos técnico como "Conocimiento experto para tu IA".
-- **Navbar**: Renombrar "MCP" a "Conectores" (o "Herramientas"). Agregar el link a `/conectores`.
-- **Ocultar jerga**: En toda la UI, reemplazar "Claude Code" por "tu IA" donde sea posible, excepto en la página de primeros pasos donde sí es necesario el nombre técnico.
-- **CTA principal**: Orientar a resultados -- "Encontrá expertise para tu trabajo" en vez de "Explorar skills".
+| Cambio | Archivos |
+|--------|----------|
+| Actualizar hero title ES | `src/i18n/es.ts` |
+| Actualizar hero title EN | `src/i18n/en.ts` |
+| Agregar banner de cross-link en Explore | `src/pages/Explore.tsx` |
 
-#### 3. SkillForge: integración de conectores al crear skills
-
-- En el flujo de creación de skill (entrevista SkillChat), cuando el AI detecta que la skill necesita interactuar con herramientas externas (Gmail, Slack, APIs), sugerir automáticamente los conectores disponibles del repositorio.
-- Al generar el `SKILL.md`, poblar automáticamente el campo `required_mcps` con los conectores elegidos, incluyendo instrucciones de instalación y credenciales.
-- Esto permite crear skills "más completas que hagan cosas" como pedís.
-
-#### 4. Navegación por rol/resultado (mejora Explore)
-
-- Agregar tabs o filtros prominentes por rol ("Soy marketer", "Soy abogado") además de las categorías técnicas actuales.
-- Mostrar en cada card de skill un badge con el tiempo ahorrado estimado (cuando esté disponible).
-
-#### 5. Página MCP actual → Redireccionar
-
-- La página `/mcp` actual (instrucciones del MCP Server de Pymaia) se mantiene pero se renombra en la nav como "Auto-recomendaciones" o se mueve a una subsección de `/primeros-pasos`.
-- `/conectores` es la nueva sección principal.
-
-### Resumen de cambios técnicos
-
-| Cambio | Archivos afectados |
-|--------|-------------------|
-| Nueva tabla `mcp_servers` | Migración SQL |
-| Nueva página `/conectores` + detalle | `src/pages/Conectores.tsx`, `src/pages/ConectorDetail.tsx`, `App.tsx` |
-| Actualizar Navbar | `src/components/Navbar.tsx`, `es.ts`, `en.ts` |
-| Actualizar Hero + landing copy | `es.ts`, `en.ts`, `HeroSection.tsx` |
-| SkillForge: sugerencia de conectores | `skill-interviewer` edge function, `SkillChat.tsx` |
-| Links bidireccionales skill↔conector | `SkillDetail.tsx`, `ConectorDetail.tsx` |
-| Seed data de conectores populares | Migración SQL o edge function |
-
-### Orden de implementación sugerido
-
-1. Actualizar copy/posicionamiento (rápido, alto impacto)
-2. Crear tabla y página de conectores
-3. Enlace bidireccional skill↔conector
-4. Integrar conectores en SkillForge
-5. Reorganizar navegación por rol
+Son cambios menores de copy y un componente visual pequeño.
 
