@@ -363,6 +363,31 @@ mcp.tool("get_install_command", {
   },
 });
 
+// ─── RATE LIMITER ───
+
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 30; // max requests per window per IP
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+// Cleanup stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  }
+}, 300_000);
+
 // Bind transport
 const transport = new StreamableHttpTransport();
 const httpHandler = transport.bind(mcp);
@@ -370,9 +395,23 @@ const httpHandler = transport.bind(mcp);
 const app = new Hono();
 const mcpApp = new Hono();
 
+// Rate limit middleware for MCP endpoint
+mcpApp.use("/mcp", async (c, next) => {
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    c.req.header("x-real-ip") || "unknown";
+  if (!checkRateLimit(ip)) {
+    return c.json(
+      { error: "Rate limit exceeded. Max 30 requests per minute." },
+      429
+    );
+  }
+  await next();
+});
+
 mcpApp.get("/", (c) => c.json({
   message: "SkillHub MCP Server",
   version: "2.0.0",
+  rateLimit: "30 requests/minute per IP",
   tools: [
     "search_skills", "get_skill_details",
     "list_popular_skills", "list_new_skills",
