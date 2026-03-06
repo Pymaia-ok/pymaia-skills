@@ -207,8 +207,12 @@ export async function fetchAllSkills() {
   return (data || []) as SkillFromDB[];
 }
 
-export async function fetchSkillBySlug(slug: string) {
-  const { data, error } = await supabase.from("skills").select("*").eq("slug", slug).maybeSingle();
+export async function fetchSkillBySlug(slug: string, shareToken?: string) {
+  let query = supabase.from("skills").select("*").eq("slug", slug);
+  if (shareToken) {
+    query = query.eq("share_token", shareToken);
+  }
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data as SkillFromDB | null;
 }
