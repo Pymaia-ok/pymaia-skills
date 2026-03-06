@@ -184,7 +184,7 @@ export async function fetchSkills(filters?: {
   let query = supabase.from("skills").select("*", { count: "exact" }).eq("status", "approved");
   if (filters?.category) {
     // Industries added as categories — search both columns
-    const industryKeys = ["arquitectura", "ingeniería", "construcción", "medicina", "educación", "tecnologia"];
+    const industryKeys = ["arquitectura", "ingeniería", "salud", "educación", "tecnologia"];
     if (industryKeys.includes(filters.category)) {
       query = query.or(`category.eq.${filters.category},industry.cs.{${filters.category}}`);
     } else {
