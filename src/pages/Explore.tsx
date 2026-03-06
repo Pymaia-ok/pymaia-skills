@@ -125,11 +125,35 @@ const Explore = () => {
       <Navbar />
       <div className="pt-14">
         <div className="max-w-5xl mx-auto px-6 py-16">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <h1 className="section-title mb-4">{t("explore.title")}</h1>
             <p className="text-muted-foreground max-w-lg mx-auto">
               {(t("explore.subtitle") as string).replace("{{count}}", totalCount.toLocaleString())}
             </p>
+          </motion.div>
+
+          {/* New to Claude banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-8 p-4 rounded-2xl bg-secondary border border-border flex flex-col sm:flex-row items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-accent">
+                <HelpCircle className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{t("explore.newToClaude", "New to Claude?")}</span>
+                {" "}{t("explore.newToClaudeDesc", "These skills are for Claude Code. Learn what it is and how to install it.")}
+              </p>
+            </div>
+            <Link
+              to="/primeros-pasos"
+              className="px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
+              {t("explore.newToClaudeCta", "Getting started guide")}
+            </Link>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative mb-2">
