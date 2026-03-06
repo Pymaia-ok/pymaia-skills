@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { batchSize = 30 } = await req.json().catch(() => ({}));
+    const { batchSize = 80 } = await req.json().catch(() => ({}));
 
     const { data: pending, error: fetchErr } = await supabase
       .from("skills")
