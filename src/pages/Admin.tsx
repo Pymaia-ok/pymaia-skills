@@ -253,6 +253,24 @@ const Admin = () => {
               >
                 {syncingConnectors ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Sync</>}
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  toast.info("Traduciendo conectores...");
+                  let total = 0;
+                  for (let i = 0; i < 20; i++) {
+                    const { data, error } = await supabase.functions.invoke("translate-connectors", { body: { batchSize: 20 } });
+                    if (error) { toast.error("Error traduciendo"); break; }
+                    total += data.translated ?? 0;
+                    if (data.remaining === 0) break;
+                    await new Promise(r => setTimeout(r, 1000));
+                  }
+                  toast.success(`${total} conectores traducidos`);
+                }}
+              >
+                <Languages className="w-3 h-3 mr-1" /> Traducir
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground">
               {connectorStats?.total.toLocaleString() ?? "..."} conectores en la base
