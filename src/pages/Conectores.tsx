@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersHorizontal, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
