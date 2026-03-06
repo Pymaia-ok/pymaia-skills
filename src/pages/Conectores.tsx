@@ -260,7 +260,7 @@ const Conectores = () => {
                 >
                   <Link
                     to={`/conector/${connector.slug}`}
-                    className="p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[180px] flex flex-col"
+                    className="p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[200px] flex flex-col"
                   >
                     <div className="flex items-start gap-4 mb-3 flex-shrink-0">
                       {connector.icon_url ? (
@@ -277,9 +277,14 @@ const Conectores = () => {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                          {connector.name}
-                        </h3>
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                            {connector.name}
+                          </h3>
+                          {connector.is_official && (
+                            <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" />
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground capitalize">
                           {t(`connectors.${connector.category}`, connector.category)}
                         </span>
@@ -290,6 +295,26 @@ const Conectores = () => {
                         ? connector.description_es
                         : connector.description}
                     </p>
+                    {/* Trust metrics */}
+                    {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0) && (
+                      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
+                        {(connector.github_stars ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Star className="w-3 h-3" />
+                            {connector.github_stars?.toLocaleString()}
+                          </span>
+                        )}
+                        {(connector.external_use_count ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Download className="w-3 h-3" />
+                            {connector.external_use_count?.toLocaleString()}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground/60 ml-auto capitalize">
+                          {connector.source === 'curated' ? '' : connector.source?.replace(/-/g, ' ')}
+                        </span>
+                      </div>
+                    )}
                   </Link>
                 </motion.div>
               ))}
