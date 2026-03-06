@@ -49,17 +49,22 @@ export const SKILL_CATEGORIES = [
   { key: "desarrollo", label: "Desarrollo" },
   { key: "diseño", label: "Diseño" },
   { key: "marketing", label: "Marketing" },
+  { key: "ventas", label: "Ventas" },
+  { key: "producto", label: "Producto" },
+  { key: "finanzas", label: "Finanzas" },
+  { key: "rrhh", label: "Recursos Humanos" },
+  { key: "ecommerce", label: "E-commerce" },
+  { key: "operaciones", label: "Operaciones" },
+  { key: "soporte", label: "Soporte" },
   { key: "automatización", label: "Automatización" },
   { key: "datos", label: "Datos" },
-  { key: "creatividad", label: "Creatividad" },
   { key: "productividad", label: "Productividad" },
   { key: "legal", label: "Legal" },
   { key: "negocios", label: "Negocios" },
+  { key: "salud", label: "Salud" },
+  { key: "educación", label: "Educación" },
   { key: "arquitectura", label: "Arquitectura" },
   { key: "ingeniería", label: "Ingeniería" },
-  { key: "construcción", label: "Construcción" },
-  { key: "medicina", label: "Medicina" },
-  { key: "educación", label: "Educación" },
   { key: "tecnologia", label: "Tecnología" },
 ] as const;
 
@@ -179,7 +184,7 @@ export async function fetchSkills(filters?: {
   let query = supabase.from("skills").select("*", { count: "exact" }).eq("status", "approved");
   if (filters?.category) {
     // Industries added as categories — search both columns
-    const industryKeys = ["arquitectura", "ingeniería", "construcción", "medicina", "educación", "tecnologia"];
+    const industryKeys = ["arquitectura", "ingeniería", "salud", "educación", "tecnologia"];
     if (industryKeys.includes(filters.category)) {
       query = query.or(`category.eq.${filters.category},industry.cs.{${filters.category}}`);
     } else {
