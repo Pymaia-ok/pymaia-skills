@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import {
   Download, ExternalLink, Terminal, MessageSquare, Code2, Sparkles,
   ArrowRight, BookOpen, Plug, Puzzle, Zap, Monitor, Globe, Brain,
-  FileText, Bot, CheckCircle2, ChevronRight, Lightbulb, Shield
+  FileText, Bot, CheckCircle2, ChevronRight, Lightbulb, Shield,
+  Laptop, Chrome, Layout, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSEO } from "@/hooks/useSEO";
@@ -68,7 +69,7 @@ const PrimerosPasos = () => {
                 { icon: Brain, label: isEs ? "¿Qué es Claude?" : "What is Claude?", href: "#claude" },
                 { icon: Monitor, label: isEs ? "Modos de Claude" : "Claude Modes", href: "#modes" },
                 { icon: Sparkles, label: isEs ? "¿Qué son las Skills?" : "What are Skills?", href: "#skills" },
-                { icon: Plug, label: isEs ? "Skills, Conectores y Plugins" : "Skills, Connectors & Plugins", href: "#mcps" },
+                { icon: Plug, label: isEs ? "Skills, Conectores y Extensiones" : "Skills, Connectors & Extensions", href: "#mcps" },
                 { icon: Download, label: isEs ? "Instalá Claude Code" : "Install Claude Code", href: "#install" },
                 { icon: Zap, label: isEs ? "Tu primera skill en 2 minutos" : "Your first skill in 2 minutes", href: "#first-skill" },
               ].map((item) => (
@@ -128,51 +129,54 @@ const PrimerosPasos = () => {
           <motion.div {...fadeUp}>
             <SectionBadge icon={Monitor} label={isEs ? "Interfaces" : "Interfaces"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "Los modos de Claude" : "Claude's modes"}
+              {isEs ? "Las formas de usar Claude" : "Ways to use Claude"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Claude se puede usar de distintas formas. Cada una tiene sus ventajas."
-                : "Claude can be used in different ways. Each one has its advantages."}
+                ? "Claude se puede usar de distintas formas. Cada una tiene un propósito diferente."
+                : "Claude can be used in different ways. Each serves a different purpose."}
             </p>
 
             <div className="space-y-4">
               {[
                 {
                   icon: MessageSquare,
-                  name: "claude.ai",
-                  tag: isEs ? "Chat web" : "Web chat",
+                  name: "Chat (claude.ai)",
+                  tag: isEs ? "Conversación" : "Conversation",
                   desc: isEs
-                    ? "La forma más simple. Abrís claude.ai en el navegador y chateás. Ideal para preguntas rápidas, brainstorming, redacción y análisis de documentos."
-                    : "The simplest way. Open claude.ai in your browser and chat. Ideal for quick questions, brainstorming, writing and document analysis.",
+                    ? "La forma clásica de usar Claude. Abrís claude.ai o la app de escritorio, y chateás. Ideal para preguntas rápidas, brainstorming, redacción, análisis de documentos y búsquedas web."
+                    : "The classic way to use Claude. Open claude.ai or the desktop app, and chat. Ideal for quick questions, brainstorming, writing, document analysis and web search.",
+                  color: "bg-secondary",
+                },
+                {
+                  icon: Layout,
+                  name: "Cowork",
+                  tag: isEs ? "Trabajo autónomo · Nuevo" : "Autonomous work · New",
+                  desc: isEs
+                    ? "El modo más nuevo de Claude. Cowork permite que Claude trabaje de forma autónoma en tareas largas mientras vos hacés otra cosa. Claude puede leer archivos, navegar la web, conectarse a herramientas externas y entregar resultados completos. Pensalo como un asistente que trabaja en paralelo."
+                    : "Claude's newest mode. Cowork lets Claude work autonomously on long tasks while you do other things. Claude can read files, browse the web, connect to external tools and deliver complete results. Think of it as an assistant working in parallel.",
                   color: "bg-secondary",
                 },
                 {
                   icon: Terminal,
                   name: "Claude Code",
-                  tag: isEs ? "Terminal · El más potente" : "Terminal · The most powerful",
+                  tag: isEs ? "El más potente · Para skills" : "Most powerful · For skills",
                   desc: isEs
-                    ? "Claude en tu computadora, con acceso a tus archivos. Puede leer proyectos, modificar documentos, ejecutar comandos y usar skills. Es el modo que usamos en Pymaia Skills."
-                    : "Claude on your computer, with access to your files. It can read projects, modify documents, run commands and use skills. This is the mode we use in Pymaia Skills.",
+                    ? "Claude en tu computadora, con acceso total a tus archivos y terminal. Puede leer proyectos, modificar documentos, ejecutar comandos y usar skills. Es el modo que usamos en Pymaia Skills. Disponible en 5 superficies: Terminal (CLI), app de escritorio, VS Code, JetBrains, y la web."
+                    : "Claude on your computer, with full access to your files and terminal. It can read projects, modify documents, run commands and use skills. This is the mode we use in Pymaia Skills. Available on 5 surfaces: Terminal (CLI), desktop app, VS Code, JetBrains, and the web.",
                   color: "bg-foreground/5 border-2 border-foreground/20",
                   highlight: true,
-                },
-                {
-                  icon: Code2,
-                  name: "Claude en IDEs",
-                  tag: isEs ? "Cursor, Windsurf, etc." : "Cursor, Windsurf, etc.",
-                  desc: isEs
-                    ? "Claude integrado dentro de editores de código como Cursor o Windsurf. Para desarrolladores que quieren IA mientras programan."
-                    : "Claude integrated within code editors like Cursor or Windsurf. For developers who want AI while coding.",
-                  color: "bg-secondary",
+                  surfaces: isEs
+                    ? ["Terminal (CLI)", "App de escritorio", "VS Code / Cursor", "JetBrains", "Web (claude.ai/code)"]
+                    : ["Terminal (CLI)", "Desktop app", "VS Code / Cursor", "JetBrains", "Web (claude.ai/code)"],
                 },
                 {
                   icon: Globe,
                   name: "API",
                   tag: isEs ? "Para desarrolladores" : "For developers",
                   desc: isEs
-                    ? "Acceso programático a Claude para construir apps y automatizaciones. Requiere conocimiento técnico."
-                    : "Programmatic access to Claude for building apps and automations. Requires technical knowledge.",
+                    ? "Acceso programático a Claude para construir apps, automatizaciones y agentes personalizados. Incluye el Agent SDK para crear workflows avanzados."
+                    : "Programmatic access to Claude for building apps, automations and custom agents. Includes the Agent SDK for advanced workflows.",
                   color: "bg-secondary",
                 },
               ].map((mode) => (
@@ -184,16 +188,32 @@ const PrimerosPasos = () => {
                     <mode.icon className="w-6 h-6 text-foreground" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-semibold">{mode.name}</h3>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${mode.highlight ? "bg-foreground text-background" : "bg-accent text-muted-foreground"}`}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${(mode as any).highlight ? "bg-foreground text-background" : "bg-accent text-muted-foreground"}`}>
                         {mode.tag}
                       </span>
                     </div>
                     <p className="text-muted-foreground leading-relaxed">{mode.desc}</p>
+                    {(mode as any).surfaces && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {(mode as any).surfaces.map((s: string) => (
+                          <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-background border border-border text-muted-foreground">{s}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Pricing note */}
+            <div className="mt-6 p-4 rounded-xl bg-secondary border border-border">
+              <p className="text-sm text-muted-foreground">
+                {isEs
+                  ? "💡 Chat es gratis con límites. Claude Code y Cowork requieren un plan Pro ($20/mes) o Max ($100/mes). Todos los planes incluyen skills."
+                  : "💡 Chat is free with limits. Claude Code and Cowork require a Pro ($20/mo) or Max ($100/mo) plan. All plans include skills."}
+              </p>
             </div>
           </motion.div>
         </section>
@@ -264,7 +284,7 @@ const PrimerosPasos = () => {
           <motion.div {...fadeUp}>
             <SectionBadge icon={Plug} label={isEs ? "Extensiones" : "Extensions"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Plugins" : "Claude's ecosystem:\nSkills, Connectors & Plugins"}
+              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Extensiones" : "Claude's ecosystem:\nSkills, Connectors & Extensions"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
@@ -280,8 +300,8 @@ const PrimerosPasos = () => {
                   name: "Skill",
                   what: isEs ? "Archivo de conocimiento (SKILL.md)" : "Knowledge file (SKILL.md)",
                   does: isEs
-                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento."
-                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge.",
+                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento. Las skills son archivos Markdown que Claude lee automáticamente cuando detecta que son relevantes."
+                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge. Skills are Markdown files that Claude reads automatically when it detects they're relevant.",
                   example: isEs ? "Skill de briefs → Claude sabe hacer briefs profesionales" : "Brief skill → Claude knows how to write professional briefs",
                   category: isEs ? "Conocimiento" : "Knowledge",
                 },
@@ -291,20 +311,20 @@ const PrimerosPasos = () => {
                   name: isEs ? "MCP / Conector" : "MCP / Connector",
                   what: isEs ? "Servidor que conecta Claude con herramientas externas (MCP = Model Context Protocol)" : "Server connecting Claude to external tools (MCP = Model Context Protocol)",
                   does: isEs
-                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. Un MCP Server y un conector son lo mismo: un puente entre Claude y una herramienta externa como Slack, GitHub, Google Drive, bases de datos, etc."
-                    : "Gives Claude ACCESS to real-time data and services. An MCP Server and a connector are the same thing: a bridge between Claude and an external tool like Slack, GitHub, Google Drive, databases, etc.",
+                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. MCP es un estándar abierto creado por Anthropic. Un MCP Server y un conector son lo mismo: un puente entre Claude y herramientas como Slack, GitHub, Google Drive, bases de datos, etc."
+                    : "Gives Claude ACCESS to real-time data and services. MCP is an open standard created by Anthropic. An MCP Server and a connector are the same thing: a bridge between Claude and tools like Slack, GitHub, Google Drive, databases, etc.",
                   example: isEs ? "Conector de Slack → Claude puede leer y enviar mensajes en Slack" : "Slack connector → Claude can read and send messages in Slack",
                   category: isEs ? "Acceso" : "Access",
                 },
                 {
-                  icon: Bot,
+                  icon: Chrome,
                   emoji: "🧩",
-                  name: "Plugin",
-                  what: isEs ? "Extensión que agrega funcionalidad a la interfaz de Claude" : "Extension that adds functionality to Claude's interface",
+                  name: isEs ? "Extensión" : "Extension",
+                  what: isEs ? "Extensiones oficiales que amplían las capacidades de Claude" : "Official extensions that expand Claude's capabilities",
                   does: isEs
-                    ? "Los plugins son extensiones que modifican cómo funciona la interfaz de Claude. A diferencia de los conectores (que dan acceso a datos), los plugins agregan capacidades nuevas como generación de imágenes, análisis de código, o herramientas interactivas dentro de la conversación."
-                    : "Plugins are extensions that modify how Claude's interface works. Unlike connectors (which give data access), plugins add new capabilities like image generation, code analysis, or interactive tools within the conversation.",
-                  example: isEs ? "Plugin de Artifacts → Claude puede crear y renderizar código, diagramas y documentos interactivos" : "Artifacts plugin → Claude can create and render code, diagrams and interactive documents",
+                    ? "Las extensiones agregan capacidades nuevas directamente en la interfaz de Claude. Por ejemplo: Claude en Chrome para debuggear páginas web, Claude en Excel/PowerPoint para trabajar con datos, o conectores nativos de Google Workspace y Slack para acceder a tus archivos y mensajes."
+                    : "Extensions add new capabilities directly in Claude's interface. For example: Claude in Chrome for debugging web pages, Claude in Excel/PowerPoint for working with data, or native Google Workspace and Slack connectors to access your files and messages.",
+                  example: isEs ? "Claude en Chrome → Debuggea y modifica páginas web directamente" : "Claude in Chrome → Debug and modify web pages directly",
                   category: isEs ? "Funcionalidad" : "Functionality",
                 },
               ].map((concept) => (
@@ -343,14 +363,14 @@ const PrimerosPasos = () => {
                   <p className="text-sm opacity-80">{isEs ? "Le dan ACCESO a herramientas" : "Give ACCESS to tools"}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background/10">
-                  <p className="font-semibold mb-1">🧩 Plugins</p>
+                  <p className="font-semibold mb-1">🧩 Extensiones</p>
                   <p className="text-sm opacity-80">{isEs ? "Le agregan FUNCIONALIDAD nueva" : "Add new FUNCTIONALITY"}</p>
                 </div>
               </div>
               <p className="text-sm opacity-70 mt-4">
                 {isEs
-                  ? "💡 Lo más potente: combinar los tres. Ej: Skill de análisis + Conector de Google Sheets + Plugin de visualización = Claude analiza tus datos y te muestra gráficos."
-                  : "💡 Most powerful: combine all three. E.g.: Analysis skill + Google Sheets connector + Visualization plugin = Claude analyzes your data and shows you charts."}
+                  ? "💡 Lo más potente: combinar los tres. Ej: Skill de análisis + Conector de Google Sheets = Claude analiza tus datos directamente."
+                  : "💡 Most powerful: combine all three. E.g.: Analysis skill + Google Sheets connector = Claude analyzes your data directly."}
               </p>
             </div>
           </motion.div>
