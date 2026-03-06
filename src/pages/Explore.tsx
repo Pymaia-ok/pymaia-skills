@@ -4,7 +4,6 @@ import { Search, ChevronLeft, ChevronRight, Sparkles, Plug, Bot, ShieldCheck, He
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
 import { useSEO } from "@/hooks/useSEO";
