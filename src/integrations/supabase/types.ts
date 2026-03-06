@@ -463,6 +463,7 @@ export type Database = {
           industry: string[]
           install_command: string
           install_count: number
+          is_public: boolean
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
@@ -474,6 +475,7 @@ export type Database = {
           security_checked_at: string | null
           security_notes: string | null
           security_status: string
+          share_token: string | null
           slug: string
           status: string
           tagline: string
@@ -499,6 +501,7 @@ export type Database = {
           industry?: string[]
           install_command: string
           install_count?: number
+          is_public?: boolean
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
@@ -510,6 +513,7 @@ export type Database = {
           security_checked_at?: string | null
           security_notes?: string | null
           security_status?: string
+          share_token?: string | null
           slug: string
           status?: string
           tagline: string
@@ -535,6 +539,7 @@ export type Database = {
           industry?: string[]
           install_command?: string
           install_count?: number
+          is_public?: boolean
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
@@ -546,6 +551,7 @@ export type Database = {
           security_checked_at?: string | null
           security_notes?: string | null
           security_status?: string
+          share_token?: string | null
           slug?: string
           status?: string
           tagline?: string
