@@ -181,23 +181,42 @@ const ConectorDetail = () => {
             )}
 
             {/* Install command */}
-            <div className="mb-8">
-              <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Terminal className="w-4 h-4" />
-                {t("connectors.installCommand")}
-              </h2>
-              <div
-                onClick={handleCopy}
-                className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer hover:bg-accent transition-colors group"
-              >
-                <code className="text-sm text-foreground font-mono">{connector.install_command}</code>
-                {copied ? (
-                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                ) : (
-                  <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
+            {connector.install_command ? (
+              <div className="mb-8">
+                <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Terminal className="w-4 h-4" />
+                  {t("connectors.installCommand")}
+                </h2>
+                <div
+                  onClick={handleCopy}
+                  className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer hover:bg-accent transition-colors group"
+                >
+                  <code className="text-sm text-foreground font-mono">{connector.install_command}</code>
+                  {copied ? (
+                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-8 p-5 rounded-2xl border border-dashed border-border bg-secondary/30">
+                <p className="text-sm text-muted-foreground mb-3">
+                  {t("connectors.noMcpYet", "No hay servidor MCP disponible aún para esta herramienta.")}
+                </p>
+                {connector.homepage && (
+                  <a
+                    href={connector.homepage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+                  >
+                    {t("connectors.visitWebsite", "Visitar sitio oficial")}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                 )}
               </div>
-            </div>
+            )}
 
             {/* Credentials */}
             {connector.credentials_needed && connector.credentials_needed.length > 0 ? (
