@@ -194,6 +194,9 @@ export default {
     mcpBannerTitle: "¿No sabés qué skill usar?",
     mcpBannerSubtitle: "Instalá nuestro conector MCP y preguntale a tu IA qué skills necesitás. Ella te recomienda y te instala todo.",
     mcpBannerCta: "Ver conector",
+    newToClaude: "¿Nuevo en Claude?",
+    newToClaudeDesc: "Estas skills son para Claude Code. Aprendé qué es y cómo instalarlo.",
+    newToClaudeCta: "Guía de primeros pasos",
   },
 
   // Skill Card
