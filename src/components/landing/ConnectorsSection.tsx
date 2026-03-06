@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// Curated list of well-known connectors to show on landing
+const FEATURED_SLUGS = [
+  "gmail", "slack", "smithery-ai-github", "notion",
+  "googlesheets", "stripe", "instagram", "discord",
+  "googledrive", "googlecalendar", "tacticlaunch-mcp-linear", "shopify",
+];
+
 const CATEGORY_EMOJIS: Record<string, string> = {
   communication: "💬",
   development: "🛠️",
@@ -25,17 +32,21 @@ const ConnectorsSection = () => {
   const { t } = useTranslation();
 
   const { data: connectors = [] } = useQuery({
-    queryKey: ["landing-connectors"],
+    queryKey: ["landing-connectors-featured"],
     queryFn: async () => {
       const { data } = await supabase
         .from("mcp_servers")
-        .select("name, slug, category, external_use_count")
+        .select("name, slug, category, icon_url, external_use_count")
         .eq("status", "approved")
-        .order("external_use_count", { ascending: false })
-        .limit(12);
-      return data ?? [];
+        .in("slug", FEATURED_SLUGS);
+
+      if (!data) return [];
+      // Sort by the curated order
+      return FEATURED_SLUGS
+        .map(s => data.find(c => c.slug === s))
+        .filter(Boolean) as typeof data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
   });
 
   return (
@@ -70,9 +81,28 @@ const ConnectorsSection = () => {
                 to={`/conector/${c.slug}`}
                 className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-secondary hover:bg-accent border border-border transition-all group"
               >
-                <span className="text-3xl">
-                  {CATEGORY_EMOJIS[c.category] || "🔧"}
-                </span>
+                {c.icon_url ? (
+                  <img
+                    src={c.icon_url}
+                    alt={c.name}
+                    className="w-8 h-8 object-contain"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent) {
+                        const span = document.createElement("span");
+                        span.className = "text-3xl";
+                        span.textContent = CATEGORY_EMOJIS[c.category] || "🔧";
+                        parent.insertBefore(span, e.target as HTMLImageElement);
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-3xl">
+                    {CATEGORY_EMOJIS[c.category] || "🔧"}
+                  </span>
+                )}
                 <span className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors truncate max-w-full">
                   {c.name}
                 </span>
