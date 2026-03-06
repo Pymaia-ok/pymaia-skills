@@ -209,7 +209,7 @@ const Conectores = () => {
                 >
                   <Link
                     to={`/conector/${connector.slug}`}
-                    className="p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[180px] flex flex-col overflow-hidden"
+                    className="p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[180px] flex flex-col"
                   >
                     <div className="flex items-start gap-4 mb-3 flex-shrink-0">
                       {connector.icon_url ? (
