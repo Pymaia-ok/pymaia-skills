@@ -187,6 +187,9 @@ export default {
     connectorsBannerTitle: "¿Necesitás conectar herramientas externas?",
     connectorsBannerSubtitle: "Gmail, Slack, GitHub y más. Explorá los conectores disponibles.",
     connectorsBannerCta: "Ver Conectores",
+    mcpBannerTitle: "¿No sabés qué skill usar?",
+    mcpBannerSubtitle: "Instalá nuestro conector MCP y preguntale a tu IA qué skills necesitás. Ella te recomienda y te instala todo.",
+    mcpBannerCta: "Ver conector",
   },
 
   // Skill Card

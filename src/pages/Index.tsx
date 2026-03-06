@@ -55,6 +55,7 @@ const Index = () => {
         <PopularSkills />
         <ConnectorsSection />
         <BeforeAfterSection />
+        <McpBannerSection />
         <FinalCTA />
         <Footer />
       </div>
