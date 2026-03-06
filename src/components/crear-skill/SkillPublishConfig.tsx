@@ -35,6 +35,7 @@ interface SkillPublishConfigProps {
     pricing_model: string;
     price_amount: number | null;
     required_mcps?: RequiredMcp[];
+    is_public: boolean;
   }) => Promise<void>;
   onBack: () => void;
   isPublishing: boolean;
