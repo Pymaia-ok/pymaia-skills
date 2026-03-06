@@ -828,7 +828,7 @@ async function upsertSkills(supabase: ReturnType<typeof createClient>, discovere
       };
     });
 
-    const { error } = await supabase.from("skills").insert(chunk);
+    const { error } = await supabase.from("skills").upsert(chunk, { onConflict: "slug", ignoreDuplicates: true });
     if (!error) added += chunk.length;
     else console.error(`Insert error (batch ${i}):`, error.message);
   }
