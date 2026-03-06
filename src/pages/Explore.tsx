@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight, Sparkles, Plug, Bot } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Sparkles, Plug, Bot, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
