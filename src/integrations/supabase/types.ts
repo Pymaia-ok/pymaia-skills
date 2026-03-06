@@ -215,12 +215,15 @@ export type Database = {
           description: string
           description_es: string | null
           docs_url: string | null
+          external_use_count: number | null
+          homepage: string | null
           icon_url: string | null
           id: string
           install_command: string
           install_count: number
           name: string
           slug: string
+          source: string | null
           status: string
           updated_at: string
         }
@@ -232,12 +235,15 @@ export type Database = {
           description?: string
           description_es?: string | null
           docs_url?: string | null
+          external_use_count?: number | null
+          homepage?: string | null
           icon_url?: string | null
           id?: string
           install_command?: string
           install_count?: number
           name: string
           slug: string
+          source?: string | null
           status?: string
           updated_at?: string
         }
@@ -249,12 +255,15 @@ export type Database = {
           description?: string
           description_es?: string | null
           docs_url?: string | null
+          external_use_count?: number | null
+          homepage?: string | null
           icon_url?: string | null
           id?: string
           install_command?: string
           install_count?: number
           name?: string
           slug?: string
+          source?: string | null
           status?: string
           updated_at?: string
         }

@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Clock, Languages, Play, Square } from "lucide-react";
+import { Check, X, Clock, Languages, Play, Square, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ const Admin = () => {
   const [translating, setTranslating] = useState(false);
   const abortRef = useRef(false);
   const [batchProgress, setBatchProgress] = useState({ translated: 0, errors: 0 });
+  const [syncingConnectors, setSyncingConnectors] = useState(false);
+  const syncAbortRef = useRef(false);
+  const [syncProgress, setSyncProgress] = useState({ imported: 0, pages: 0, errors: 0 });
 
   const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -48,6 +51,61 @@ const Admin = () => {
     enabled: !!isAdmin,
     refetchInterval: 30000, // refresh every 30s to show progress
   });
+
+  // Connector stats
+  const { data: connectorStats } = useQuery({
+    queryKey: ["connector-stats"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("mcp_servers")
+        .select("id", { count: "exact", head: true });
+      return { total: count ?? 0 };
+    },
+    enabled: !!isAdmin,
+  });
+
+  const startConnectorSync = useCallback(async () => {
+    setSyncingConnectors(true);
+    syncAbortRef.current = false;
+    setSyncProgress({ imported: 0, pages: 0, errors: 0 });
+
+    let currentPage = 1;
+    let totalImported = 0;
+
+    while (!syncAbortRef.current) {
+      try {
+        const { data, error } = await supabase.functions.invoke("sync-connectors", {
+          body: { page: currentPage, pageSize: 50, maxPages: 5 },
+        });
+        if (error) throw error;
+
+        totalImported += data.imported ?? 0;
+        currentPage = data.next_page ?? currentPage + 5;
+        setSyncProgress(p => ({ imported: totalImported, pages: p.pages + (data.pages_processed ?? 0), errors: p.errors + (data.errors ?? 0) }));
+        queryClient.invalidateQueries({ queryKey: ["connector-stats"] });
+
+        if ((data.pages_processed ?? 0) === 0 || data.imported === 0) {
+          toast.success(`¡Sync completo! ${totalImported} conectores importados.`);
+          break;
+        }
+
+        await new Promise(r => setTimeout(r, 500));
+      } catch (e) {
+        setSyncProgress(p => ({ ...p, errors: p.errors + 1 }));
+        if (syncProgress.errors >= 3) {
+          toast.error("Demasiados errores. Deteniendo sync.");
+          break;
+        }
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+    setSyncingConnectors(false);
+  }, [queryClient]);
+
+  const stopConnectorSync = useCallback(() => {
+    syncAbortRef.current = true;
+  }, []);
 
   const startTranslation = useCallback(async () => {
     setTranslating(true);
@@ -180,6 +238,30 @@ const Admin = () => {
               </p>
             </div>
           )}
+
+          {/* Connector Sync */}
+          <div className="p-5 rounded-2xl bg-secondary mb-12">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" />
+                Sincronizar conectores (Smithery)
+              </h2>
+              <Button
+                size="sm"
+                variant={syncingConnectors ? "destructive" : "default"}
+                onClick={syncingConnectors ? stopConnectorSync : startConnectorSync}
+              >
+                {syncingConnectors ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Sync</>}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {connectorStats?.total.toLocaleString() ?? "..."} conectores en la base
+              {syncingConnectors && (
+                <span className="text-foreground font-medium"> · Importando... ({syncProgress.imported} nuevos, {syncProgress.pages} páginas)</span>
+              )}
+              {syncProgress.errors > 0 && <span className="text-destructive"> · {syncProgress.errors} errores</span>}
+            </p>
+          </div>
 
           {/* Pending Skills */}
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
