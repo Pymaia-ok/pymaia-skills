@@ -153,7 +153,6 @@ const SkillDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14">
         <div className="max-w-4xl mx-auto px-6 py-16">
           <Link to="/explorar" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-10">

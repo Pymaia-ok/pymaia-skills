@@ -185,7 +185,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14 max-w-5xl mx-auto px-6 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="section-title mb-8">Panel de admin</h1>
