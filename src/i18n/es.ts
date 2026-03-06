@@ -446,6 +446,7 @@ export default {
     compatibleSkills: "Skills compatibles",
     noCompatibleSkills: "Aún no hay skills que usen este conector.",
     backToConnectors: "Conectores",
+    noApiKey: "No requiere API key — copiá y usá",
     howToSetup: "Cómo configurarlo",
     setupStep1: "Instalá el conector con el comando de arriba",
     setupStep2: "Configurá las credenciales necesarias",

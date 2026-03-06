@@ -433,6 +433,7 @@ export default {
     compatibleSkills: "Compatible skills",
     noCompatibleSkills: "No skills use this connector yet.",
     backToConnectors: "Connectors",
+    noApiKey: "No API key required — just copy and use",
     howToSetup: "How to set up",
     setupStep1: "Install the connector with the command above",
     setupStep2: "Configure the required credentials",
