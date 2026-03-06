@@ -224,7 +224,11 @@ export type Database = {
           install_command: string
           install_count: number
           is_official: boolean
+          last_commit_at: string | null
           name: string
+          security_checked_at: string | null
+          security_notes: string | null
+          security_status: string
           slug: string
           source: string | null
           status: string
@@ -247,7 +251,11 @@ export type Database = {
           install_command?: string
           install_count?: number
           is_official?: boolean
+          last_commit_at?: string | null
           name: string
+          security_checked_at?: string | null
+          security_notes?: string | null
+          security_status?: string
           slug: string
           source?: string | null
           status?: string
@@ -270,7 +278,11 @@ export type Database = {
           install_command?: string
           install_count?: number
           is_official?: boolean
+          last_commit_at?: string | null
           name?: string
+          security_checked_at?: string | null
+          security_notes?: string | null
+          security_status?: string
           slug?: string
           source?: string | null
           status?: string
@@ -451,6 +463,7 @@ export type Database = {
           industry: string[]
           install_command: string
           install_count: number
+          last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
           readme_raw: string | null
@@ -458,6 +471,9 @@ export type Database = {
           required_mcps: Json | null
           review_count: number
           search_vector: unknown
+          security_checked_at: string | null
+          security_notes: string | null
+          security_status: string
           slug: string
           status: string
           tagline: string
@@ -483,6 +499,7 @@ export type Database = {
           industry?: string[]
           install_command: string
           install_count?: number
+          last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
           readme_raw?: string | null
@@ -490,6 +507,9 @@ export type Database = {
           required_mcps?: Json | null
           review_count?: number
           search_vector?: unknown
+          security_checked_at?: string | null
+          security_notes?: string | null
+          security_status?: string
           slug: string
           status?: string
           tagline: string
@@ -515,6 +535,7 @@ export type Database = {
           industry?: string[]
           install_command?: string
           install_count?: number
+          last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
           readme_raw?: string | null
@@ -522,6 +543,9 @@ export type Database = {
           required_mcps?: Json | null
           review_count?: number
           search_vector?: unknown
+          security_checked_at?: string | null
+          security_notes?: string | null
+          security_status?: string
           slug?: string
           status?: string
           tagline?: string
