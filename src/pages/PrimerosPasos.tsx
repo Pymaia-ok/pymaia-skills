@@ -129,51 +129,54 @@ const PrimerosPasos = () => {
           <motion.div {...fadeUp}>
             <SectionBadge icon={Monitor} label={isEs ? "Interfaces" : "Interfaces"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "Los modos de Claude" : "Claude's modes"}
+              {isEs ? "Las formas de usar Claude" : "Ways to use Claude"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Claude se puede usar de distintas formas. Cada una tiene sus ventajas."
-                : "Claude can be used in different ways. Each one has its advantages."}
+                ? "Claude se puede usar de distintas formas. Cada una tiene un propósito diferente."
+                : "Claude can be used in different ways. Each serves a different purpose."}
             </p>
 
             <div className="space-y-4">
               {[
                 {
                   icon: MessageSquare,
-                  name: "claude.ai",
-                  tag: isEs ? "Chat web" : "Web chat",
+                  name: "Chat (claude.ai)",
+                  tag: isEs ? "Conversación" : "Conversation",
                   desc: isEs
-                    ? "La forma más simple. Abrís claude.ai en el navegador y chateás. Ideal para preguntas rápidas, brainstorming, redacción y análisis de documentos."
-                    : "The simplest way. Open claude.ai in your browser and chat. Ideal for quick questions, brainstorming, writing and document analysis.",
+                    ? "La forma clásica de usar Claude. Abrís claude.ai o la app de escritorio, y chateás. Ideal para preguntas rápidas, brainstorming, redacción, análisis de documentos y búsquedas web."
+                    : "The classic way to use Claude. Open claude.ai or the desktop app, and chat. Ideal for quick questions, brainstorming, writing, document analysis and web search.",
+                  color: "bg-secondary",
+                },
+                {
+                  icon: Layout,
+                  name: "Cowork",
+                  tag: isEs ? "Trabajo autónomo · Nuevo" : "Autonomous work · New",
+                  desc: isEs
+                    ? "El modo más nuevo de Claude. Cowork permite que Claude trabaje de forma autónoma en tareas largas mientras vos hacés otra cosa. Claude puede leer archivos, navegar la web, conectarse a herramientas externas y entregar resultados completos. Pensalo como un asistente que trabaja en paralelo."
+                    : "Claude's newest mode. Cowork lets Claude work autonomously on long tasks while you do other things. Claude can read files, browse the web, connect to external tools and deliver complete results. Think of it as an assistant working in parallel.",
                   color: "bg-secondary",
                 },
                 {
                   icon: Terminal,
                   name: "Claude Code",
-                  tag: isEs ? "Terminal · El más potente" : "Terminal · The most powerful",
+                  tag: isEs ? "El más potente · Para skills" : "Most powerful · For skills",
                   desc: isEs
-                    ? "Claude en tu computadora, con acceso a tus archivos. Puede leer proyectos, modificar documentos, ejecutar comandos y usar skills. Es el modo que usamos en Pymaia Skills."
-                    : "Claude on your computer, with access to your files. It can read projects, modify documents, run commands and use skills. This is the mode we use in Pymaia Skills.",
+                    ? "Claude en tu computadora, con acceso total a tus archivos y terminal. Puede leer proyectos, modificar documentos, ejecutar comandos y usar skills. Es el modo que usamos en Pymaia Skills. Disponible en 5 superficies: Terminal (CLI), app de escritorio, VS Code, JetBrains, y la web."
+                    : "Claude on your computer, with full access to your files and terminal. It can read projects, modify documents, run commands and use skills. This is the mode we use in Pymaia Skills. Available on 5 surfaces: Terminal (CLI), desktop app, VS Code, JetBrains, and the web.",
                   color: "bg-foreground/5 border-2 border-foreground/20",
                   highlight: true,
-                },
-                {
-                  icon: Code2,
-                  name: "Claude en IDEs",
-                  tag: isEs ? "Cursor, Windsurf, etc." : "Cursor, Windsurf, etc.",
-                  desc: isEs
-                    ? "Claude integrado dentro de editores de código como Cursor o Windsurf. Para desarrolladores que quieren IA mientras programan."
-                    : "Claude integrated within code editors like Cursor or Windsurf. For developers who want AI while coding.",
-                  color: "bg-secondary",
+                  surfaces: isEs
+                    ? ["Terminal (CLI)", "App de escritorio", "VS Code / Cursor", "JetBrains", "Web (claude.ai/code)"]
+                    : ["Terminal (CLI)", "Desktop app", "VS Code / Cursor", "JetBrains", "Web (claude.ai/code)"],
                 },
                 {
                   icon: Globe,
                   name: "API",
                   tag: isEs ? "Para desarrolladores" : "For developers",
                   desc: isEs
-                    ? "Acceso programático a Claude para construir apps y automatizaciones. Requiere conocimiento técnico."
-                    : "Programmatic access to Claude for building apps and automations. Requires technical knowledge.",
+                    ? "Acceso programático a Claude para construir apps, automatizaciones y agentes personalizados. Incluye el Agent SDK para crear workflows avanzados."
+                    : "Programmatic access to Claude for building apps, automations and custom agents. Includes the Agent SDK for advanced workflows.",
                   color: "bg-secondary",
                 },
               ].map((mode) => (
@@ -185,16 +188,32 @@ const PrimerosPasos = () => {
                     <mode.icon className="w-6 h-6 text-foreground" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-semibold">{mode.name}</h3>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${mode.highlight ? "bg-foreground text-background" : "bg-accent text-muted-foreground"}`}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${(mode as any).highlight ? "bg-foreground text-background" : "bg-accent text-muted-foreground"}`}>
                         {mode.tag}
                       </span>
                     </div>
                     <p className="text-muted-foreground leading-relaxed">{mode.desc}</p>
+                    {(mode as any).surfaces && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {(mode as any).surfaces.map((s: string) => (
+                          <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-background border border-border text-muted-foreground">{s}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Pricing note */}
+            <div className="mt-6 p-4 rounded-xl bg-secondary border border-border">
+              <p className="text-sm text-muted-foreground">
+                {isEs
+                  ? "💡 Chat es gratis con límites. Claude Code y Cowork requieren un plan Pro ($20/mes) o Max ($100/mes). Todos los planes incluyen skills."
+                  : "💡 Chat is free with limits. Claude Code and Cowork require a Pro ($20/mo) or Max ($100/mo) plan. All plans include skills."}
+              </p>
             </div>
           </motion.div>
         </section>
