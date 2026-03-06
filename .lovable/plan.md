@@ -1,38 +1,72 @@
 
 
-## Plan
+## Plan: Curar conectores principales y expandir fuentes
 
-### What we have
+### Problema identificado
+Los conectores de marcas conocidas (GitHub, Discord, Zoom, WhatsApp, Docker, etc.) existen en la DB pero con slugs largos como `smithery-ai-github` o `ckreiling-mcp-server-docker`. No hay un conector "canónico" con slug limpio para cada marca principal.
 
-Our app already has an MCP server (`supabase/functions/mcp-server/index.ts`) called "Pymaia Skills" with **10 tools**:
+### Paso 1: Crear registros canónicos para ~40 marcas principales
 
-| Tool | Description |
-|------|-------------|
-| `search_skills` | Search skills by name, tagline, or description |
-| `get_skill_details` | Get full details of a specific skill |
-| `list_popular_skills` | List top skills by installs or rating |
-| `list_new_skills` | List most recently added skills |
-| `list_categories` | List all skill categories with counts |
-| `search_by_role` | Find skills for a specific professional role |
-| `recommend_for_task` | Get recommendations based on a task description |
-| `compare_skills` | Compare 2-4 skills side by side |
-| `get_directory_stats` | Get overall directory statistics |
-| `get_install_command` | Quick install command lookup |
+Insertar manualmente (o via SQL batch) registros con slugs limpios para las herramientas más conocidas que ya tienen variantes en la DB pero sin un registro "principal":
 
-### What to do
+```text
+Marca           | Slug limpio    | Fuente del mejor registro existente
+─────────────────────────────────────────────────────────────────────
+GitHub          | github         | smithery-ai-github (ya existe con slug limpio)
+Discord         | discord        | barryyip0625-mcp-discord
+Jira            | jira           | ai-waystation-jira
+Linear          | linear         | (buscar mejor variante)
+HubSpot         | hubspot        | kozo93-hubspot-mcp
+Salesforce      | salesforce     | ai-cirra-salesforce-mcp
+Docker          | docker         | io-github-dave-london-docker
+Kubernetes      | kubernetes     | flux159-mcp-server-kubernetes
+Zoom            | zoom           | (buscar)
+WhatsApp        | whatsapp       | (buscar)
+Telegram        | telegram       | chaindead-telegram-mcp
+Dropbox         | dropbox        | cindyloo-dropbox-mcp-server
+Sentry          | sentry         | getsentry-sentry-mcp
+Cloudflare      | cloudflare     | cloudflare-mcp-server-cloudflare
+Vercel          | vercel         | (buscar)
+WordPress       | wordpress      | (buscar)
+Trello          | trello         | (buscar)
+Asana           | asana          | (buscar)
+Twilio          | twilio         | (buscar)
+...etc (~40 total)
+```
 
-Add "Pymaia Skills" as a **curated, official** connector in the `mcp_servers` table via SQL insert:
+Cada registro canónico tendría:
+- Slug limpio (ej. `discord`)
+- Nombre display limpio (ej. `Discord`)
+- Icono de Simple Icons CDN
+- Homepage oficial
+- Mejor comando de instalación disponible
+- Source: `"curated"`
 
-- **name**: Pymaia Skills
-- **slug**: pymaia-skills
-- **is_official**: true
-- **category**: ai
-- **source**: curated
-- **icon_url**: Use our logo (`/assets/logo-icon.png` or hosted URL)
-- **description**: "The official Pymaia Skills MCP server. Search, discover, compare, and install AI agent skills directly from your IDE."
-- **description_es**: "El servidor MCP oficial de Pymaia Skills. Buscá, descubrí, compará e instalá skills para agentes de IA directamente desde tu IDE."
-- **github_stars**: 0 (it's our own hosted function)
-- **install_command**: The MCP config JSON pointing to our endpoint
+### Paso 2: Agregar nueva fuente de sync — mcp.so
 
-One SQL migration insert. No code changes needed — the existing Conectores page will pick it up automatically.
+Crear una nueva función en `sync-connectors` que importa desde **mcp.so**, que tiene una API pública y es uno de los directorios más completos (~7,000+ servers).
+
+- Endpoint: `https://mcp.so/api/servers` (o scraping via Firecrawl si no hay API)
+- Upsert por slug con `ignoreDuplicates: true`
+
+### Paso 3: Agregar nueva fuente — Glama.ai API
+
+Glama.ai ofrece un directorio curado con categorización. Agregar como fuente adicional en `sync-connectors`:
+
+- Endpoint: `https://glama.ai/mcp/servers` (API o scraping)
+- Similar al patrón existente de awesome-mcp-servers
+
+### Paso 4: Script de iconos para los nuevos canónicos
+
+Ejecutar `fetch-connector-icons` sobre los nuevos registros, asegurando que todas las marcas principales tengan icono.
+
+### Resultado esperado
+- ~40 marcas principales con slugs limpios, iconos y datos curados
+- 2 fuentes nuevas de sync para descubrir MCPs futuros
+- Total estimado: 8,000-12,000 conectores únicos
+
+### Archivos a modificar
+- `supabase/functions/sync-connectors/index.ts` — agregar casos `mcp-so` y `glama-ai`
+- `supabase/functions/fetch-connector-icons/index.ts` — ya tiene las marcas principales
+- SQL batch para insertar los ~40 registros canónicos
 

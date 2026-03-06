@@ -89,6 +89,10 @@ export default {
     bafounderAfter: "Análisis competitivo estructurado con pricing, features y gaps en 10 min.",
     bafounderTime: "Ahorra ~3hs por análisis",
 
+    mcpTitle: "¿No sabés qué skill usar?",
+    mcpSubtitle: "Instalá nuestro conector MCP y preguntale a tu IA qué skills necesitás. Ella te recomienda y te instala todo.",
+    mcpCta: "Ver conector",
+
     ctaTitle: "Empezá en 2 minutos.",
     ctaSubtitle: "Miles de profesionales ya usan skills para trabajar más rápido con Claude. Es gratis.",
     ctaExplore: "Explorar skills",
@@ -187,6 +191,9 @@ export default {
     connectorsBannerTitle: "¿Necesitás conectar herramientas externas?",
     connectorsBannerSubtitle: "Gmail, Slack, GitHub y más. Explorá los conectores disponibles.",
     connectorsBannerCta: "Ver Conectores",
+    mcpBannerTitle: "¿No sabés qué skill usar?",
+    mcpBannerSubtitle: "Instalá nuestro conector MCP y preguntale a tu IA qué skills necesitás. Ella te recomienda y te instala todo.",
+    mcpBannerCta: "Ver conector",
   },
 
   // Skill Card
