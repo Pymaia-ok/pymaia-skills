@@ -167,6 +167,7 @@ const CrearSkill = () => {
         industry: config.industry,
         creator_id: user.id,
         required_mcps: config.required_mcps || skill.required_mcps || [],
+        is_public: config.is_public,
       });
 
       toast.success("¡Skill publicada! Será revisada antes de aparecer en el marketplace.");

@@ -254,6 +254,7 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
           pricing_model: pricingModel,
           price_amount: pricingModel !== "free" && priceAmount ? parseFloat(priceAmount) : null,
           required_mcps: mcps.filter(m => m.name.trim()),
+          is_public: isPublic,
         })}
         disabled={isPublishing || !category || roles.length === 0 || (pricingModel !== "free" && !priceAmount)}
         className="w-full rounded-full gap-2" size="lg"

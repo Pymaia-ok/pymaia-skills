@@ -230,8 +230,14 @@ export async function submitSkill(skill: {
   industry: string[];
   creator_id: string;
   required_mcps?: any[];
+  is_public?: boolean;
 }) {
-  const { error } = await supabase.from("skills").insert(skill as any);
+  // Generate share_token for private skills
+  const data: any = { ...skill };
+  if (data.is_public === false) {
+    data.share_token = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  }
+  const { error } = await supabase.from("skills").insert(data);
   if (error) throw error;
 }
 

@@ -211,6 +211,24 @@ const SkillDetail = () => {
                   <ExternalLink className="w-4 h-4" /><span>{t("detail.viewRepo")}</span>
                 </a>
               )}
+              {!(skill as any).is_public && (
+                <div className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-xs font-medium">{t("detail.privateSkill", "Skill privada")}</span>
+                </div>
+              )}
+              <div className="ml-auto">
+                <ShareButton
+                  url={(() => {
+                    const base = `https://pymaiaskills.lovable.app/skill/${skill.slug}`;
+                    return (skill as any).is_public === false && (skill as any).share_token
+                      ? `${base}?token=${(skill as any).share_token}`
+                      : base;
+                  })()}
+                  title={displayName}
+                  description={tagline}
+                />
+              </div>
             </div>
           </motion.div>
 
