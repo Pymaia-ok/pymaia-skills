@@ -56,10 +56,17 @@ Deno.serve(async (req) => {
 
         const data = await res.json();
         const stars = data.stargazers_count ?? 0;
+        const lastCommit = data.pushed_at ?? null;
+
+        const updateData: Record<string, any> = {
+          github_stars: stars,
+          updated_at: new Date().toISOString(),
+        };
+        if (lastCommit) updateData.last_commit_at = lastCommit;
 
         const { error } = await supabase
           .from("mcp_servers")
-          .update({ github_stars: stars, updated_at: new Date().toISOString() })
+          .update(updateData)
           .eq("id", c.id);
 
         if (!error) updated++;
