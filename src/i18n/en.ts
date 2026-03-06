@@ -26,7 +26,7 @@ export default {
 
   landing: {
     heroBadge: "Expert knowledge for your AI",
-    heroTitle: "Your expertise,\nscaled with AI.",
+    heroTitle: "Work like an\nexpert in minutes.",
     heroSubtitle: "Thousands of professional skills ready to install. Pick one, activate it in your AI, and turn it into an expert at what you do.",
     heroCtaExplore: "Find expertise for your work",
     heroCtaLearn: "How it works",
@@ -175,6 +175,9 @@ export default {
     mostUsed: "Most used",
     noResults: "No skills found for that search.",
     page: "Page {{current}} of {{total}}",
+    connectorsBannerTitle: "Need to connect external tools?",
+    connectorsBannerSubtitle: "Gmail, Slack, GitHub and more. Explore available connectors.",
+    connectorsBannerCta: "View Connectors",
   },
 
   skillCard: {

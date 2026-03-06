@@ -29,7 +29,7 @@ export default {
   // Landing sections
   landing: {
     heroBadge: "Conocimiento experto para tu IA",
-    heroTitle: "Tu expertise,\nescalado con IA.",
+    heroTitle: "Trabajá como un\nexperto en minutos.",
     heroSubtitle: "Miles de skills profesionales listas para instalar. Elegí una, activala en tu IA y convertila en experta en lo que vos sabés hacer.",
     heroCtaExplore: "Encontrá expertise para tu trabajo",
     heroCtaLearn: "Cómo funciona",
@@ -179,6 +179,9 @@ export default {
     mostUsed: "Más usadas",
     noResults: "No encontramos skills para esa búsqueda.",
     page: "Página {{current}} de {{total}}",
+    connectorsBannerTitle: "¿Necesitás conectar herramientas externas?",
+    connectorsBannerSubtitle: "Gmail, Slack, GitHub y más. Explorá los conectores disponibles.",
+    connectorsBannerCta: "Ver Conectores",
   },
 
   // Skill Card

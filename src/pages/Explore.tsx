@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Sparkles, Plug } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
@@ -247,6 +247,30 @@ const Explore = () => {
               </button>
             </div>
           )}
+
+          {/* Cross-link banner to Connectors */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-12 p-6 rounded-2xl bg-secondary border border-border flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <Plug className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">{t("explore.connectorsBannerTitle")}</p>
+                <p className="text-sm text-muted-foreground">{t("explore.connectorsBannerSubtitle")}</p>
+              </div>
+            </div>
+            <Link
+              to="/conectores"
+              className="px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
+              {t("explore.connectorsBannerCta")}
+            </Link>
+          </motion.div>
         </div>
       </div>
     </div>
