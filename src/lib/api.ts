@@ -89,6 +89,8 @@ export interface SkillFromDB {
   status: string;
   creator_id: string | null;
   created_at: string;
+  security_status?: string;
+  last_commit_at?: string | null;
 }
 
 export function parseUseCases(uc: unknown): { title: string; before: string; after: string }[] {

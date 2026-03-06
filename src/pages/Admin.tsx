@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Clock, Languages, Play, Square, RefreshCw } from "lucide-react";
+import { Check, X, Clock, Languages, Play, Square, RefreshCw, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -331,6 +331,38 @@ const Admin = () => {
             </p>
           </div>
 
+          {/* Security Verification */}
+          <div className="p-5 rounded-2xl bg-secondary mb-12">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5" />
+                Verificación de seguridad
+              </h2>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  toast.info("Verificando repos...");
+                  let totalProcessed = 0;
+                  for (let i = 0; i < 10; i++) {
+                    const { data, error } = await supabase.functions.invoke("verify-security", { body: { batchSize: 30 } });
+                    if (error) { toast.error("Error verificando"); break; }
+                    totalProcessed += data.processed ?? 0;
+                    if ((data.processed ?? 0) === 0) break;
+                    await new Promise(r => setTimeout(r, 1000));
+                  }
+                  toast.success(`${totalProcessed} repos verificados`);
+                  queryClient.invalidateQueries({ queryKey: ["admin-skills"] });
+                }}
+              >
+                <Play className="w-3 h-3 mr-1" /> Verificar repos
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Verifica licencia, README, actividad y estado de archivo de los repos en GitHub.
+            </p>
+          </div>
+
           {/* Pending Skills */}
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -382,6 +414,9 @@ const Admin = () => {
                 <div className="flex items-center gap-3 text-xs">
                   <span className="text-muted-foreground">{skill.install_count} installs</span>
                   <span className="text-muted-foreground">⭐ {Number(skill.avg_rating).toFixed(1)}</span>
+                  {(skill as any).security_status === "verified" && <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
+                  {(skill as any).security_status === "flagged" && <ShieldAlert className="w-3.5 h-3.5 text-destructive" />}
+                  {(skill as any).security_status === "unverified" && <Shield className="w-3.5 h-3.5 text-muted-foreground" />}
                   <span className={`px-2 py-1 rounded-full font-medium ${
                     skill.status === "approved" ? "bg-foreground/10 text-foreground" :
                     skill.status === "pending" ? "bg-accent text-muted-foreground" :

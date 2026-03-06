@@ -16,9 +16,8 @@ Deno.serve(async (req) => {
 
     const { batchSize = 30 } = await req.json().catch(() => ({}));
 
-    // Get connectors with github_url that haven't been updated recently
     const { data: pending, error: fetchErr } = await supabase
-      .from("mcp_servers")
+      .from("skills")
       .select("id, github_url")
       .eq("status", "approved")
       .not("github_url", "is", null)
@@ -34,22 +33,20 @@ Deno.serve(async (req) => {
     }
 
     const headers: Record<string, string> = {
-      "Accept": "application/vnd.github.v3+json",
+      Accept: "application/vnd.github.v3+json",
       "User-Agent": "pymaia-skills-bot",
     };
     if (githubToken) headers["Authorization"] = `Bearer ${githubToken}`;
 
     let updated = 0;
-    for (const c of pending) {
+    for (const skill of pending) {
       try {
-        // Extract owner/repo from github URL
-        const match = c.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
+        const match = skill.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
         if (!match) continue;
         const repo = match[1].replace(/\.git$/, "");
 
         const res = await fetch(`https://api.github.com/repos/${repo}`, { headers });
         if (!res.ok) {
-          // If rate limited, stop processing
           if (res.status === 403 || res.status === 429) break;
           continue;
         }
@@ -65,13 +62,12 @@ Deno.serve(async (req) => {
         if (lastCommit) updateData.last_commit_at = lastCommit;
 
         const { error } = await supabase
-          .from("mcp_servers")
+          .from("skills")
           .update(updateData)
-          .eq("id", c.id);
+          .eq("id", skill.id);
 
         if (!error) updated++;
       } catch {
-        // Skip individual failures
         continue;
       }
     }
@@ -81,7 +77,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("Sync stars error:", (e as Error).message);
+    console.error("Sync skill stars error:", (e as Error).message);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

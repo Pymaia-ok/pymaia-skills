@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersHorizontal } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersHorizontal, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -47,7 +47,7 @@ const Conectores = () => {
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community">("all");
+  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">("all");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -81,16 +81,15 @@ const Conectores = () => {
   const { data: connectors = [], isLoading } = useQuery({
     queryKey: ["connectors"],
     queryFn: async () => {
-      // Fetch curated first (always included), then top by usage
       const [curatedRes, topRes] = await Promise.all([
         supabase
           .from("mcp_servers")
-          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source, is_official, github_stars")
+          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source, is_official, github_stars, security_status, last_commit_at")
           .eq("status", "approved")
           .eq("source", "curated"),
         supabase
           .from("mcp_servers")
-          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source, is_official, github_stars")
+          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source, is_official, github_stars, security_status, last_commit_at")
           .eq("status", "approved")
           .neq("source", "curated")
           .order("external_use_count", { ascending: false })
@@ -142,7 +141,8 @@ const Conectores = () => {
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
     const matchesOfficial = officialFilter === "all" || 
       (officialFilter === "official" && c.is_official) ||
-      (officialFilter === "community" && !c.is_official);
+      (officialFilter === "community" && !c.is_official) ||
+      (officialFilter === "verified" && (c as any).security_status === "verified");
     return matchesSearch && matchesCategory && matchesOfficial;
   }).sort((a, b) => {
     // Curated first, then by icon presence, then by use count
@@ -196,10 +196,10 @@ const Conectores = () => {
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-2">
-                {(["all", "official", "community"] as const).map((f) => (
+                {(["all", "official", "community", "verified"] as const).map((f) => (
                   <button
                     key={f}
-                    onClick={() => setOfficialFilter(f)}
+                    onClick={() => setOfficialFilter(f as any)}
                     className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${
                       officialFilter === f
                         ? "bg-primary text-primary-foreground"
@@ -207,7 +207,8 @@ const Conectores = () => {
                     }`}
                   >
                     {f === "official" && <BadgeCheck className="w-3.5 h-3.5" />}
-                    {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : (isEs ? "Comunitarios" : "Community")}
+                    {f === "verified" && <ShieldCheck className="w-3.5 h-3.5" />}
+                    {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : f === "community" ? (isEs ? "Comunitarios" : "Community") : (isEs ? "Verificados" : "Verified")}
                   </button>
                 ))}
               </PopoverContent>
@@ -269,6 +270,9 @@ const Conectores = () => {
                           </h3>
                           {connector.is_official && (
                             <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" />
+                          )}
+                          {(connector as any).security_status === "verified" && !connector.is_official && (
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                           )}
                         </div>
                         <span className="text-xs text-muted-foreground capitalize">

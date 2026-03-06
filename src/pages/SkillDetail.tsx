@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -164,6 +164,21 @@ const SkillDetail = () => {
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-6">
+              {(skill as any).security_status === "verified" && (
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="font-medium">{t("trust.verified", "Verified")}</span>
+                </div>
+              )}
+              {(skill as any).last_commit_at && (() => {
+                const months = (Date.now() - new Date((skill as any).last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
+                return months <= 6 ? (
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <Activity className="w-4 h-4" />
+                    <span>{t("trust.active", "Active")}</span>
+                  </div>
+                ) : null;
+              })()}
               {skill.review_count > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Star className="w-4 h-4 fill-foreground text-foreground" />

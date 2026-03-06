@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart } from "lucide-react";
+import { Star, Heart, ShieldCheck } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 
@@ -34,6 +34,12 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
             {catLabel}
           </span>
+          {skill.security_status === "verified" && (
+            <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck className="w-3 h-3" />
+              {t("trust.verified", "Verified")}
+            </span>
+          )}
           {skill.industry.slice(0, 1).map((ind) => (
             <span
               key={ind}

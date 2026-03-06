@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, Copy, Check, Terminal } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, Activity, Star, Download } from "lucide-react";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
@@ -131,16 +131,54 @@ const ConectorDetail = () => {
                 </div>
               )}
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{connector.name}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-foreground">{connector.name}</h1>
+                  {connector.security_status === "verified" && (
+                    <ShieldCheck className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  )}
+                </div>
                 <span className="text-sm text-muted-foreground capitalize">
                   {t(`connectors.${connector.category}`, connector.category)}
                 </span>
               </div>
             </div>
 
-            <p className="text-muted-foreground mb-8 text-lg">
+            <p className="text-muted-foreground mb-4 text-lg">
               {isEs && connector.description_es ? connector.description_es : connector.description}
             </p>
+
+            {/* Trust metrics */}
+            {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0 || connector.security_status === "verified" || connector.last_commit_at) && (
+              <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-muted-foreground">
+                {connector.security_status === "verified" && (
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <ShieldCheck className="w-4 h-4" />
+                    {t("trust.verified", "Verified")}
+                  </span>
+                )}
+                {connector.last_commit_at && (() => {
+                  const months = (Date.now() - new Date(connector.last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
+                  return months <= 6 ? (
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <Activity className="w-4 h-4" />
+                      {t("trust.active", "Active")}
+                    </span>
+                  ) : null;
+                })()}
+                {(connector.github_stars ?? 0) > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4" />
+                    {connector.github_stars?.toLocaleString()} stars
+                  </span>
+                )}
+                {(connector.external_use_count ?? 0) > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Download className="w-4 h-4" />
+                    {connector.external_use_count?.toLocaleString()} downloads
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Install command */}
             <div className="mb-8">

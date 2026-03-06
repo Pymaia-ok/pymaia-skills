@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.fetch-connector-icons]
 verify_jwt = false
+
+[functions.verify-security]
+verify_jwt = false
+
+[functions.sync-skill-stars]
+verify_jwt = false
