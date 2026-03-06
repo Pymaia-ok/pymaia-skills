@@ -1,27 +1,31 @@
 
 
-## Plan: Ampliar importación de Skills confiables desde GitHub — ✅ COMPLETADO
+## Plan: Mejorar UX/UI del Navbar
 
-### Lo que se hizo
+### Problema
+Todo está en una línea plana sin jerarquía visual: logo, 5 links de navegación, selector de idioma, "Publicar", nombre de usuario, y botón de logout — todo junto, mismo peso visual, difícil de escanear.
 
-**1. Nueva source `github-code-search` en `sync-skills`**
-- Busca repos con `filename:SKILL.md path:/` y `filename:.cursorrules path:/` via GitHub Code Search API
-- Descubre skills legítimos que no usan los topics convencionales
+### Solución
+Crear **3 zonas visuales claras** separadas por espaciado y jerarquía:
 
-**2. Topics de dominio ampliados en `github-search`**
-- Agregados: `cursor-rules`, `claude-rules`, `ai-rules`, `ai-agent`, `ai-assistant`, `llm-tool`, `prompt-engineering`, `ai-workflow`, `autocad`, `cad`, `bim`, `revit`
-
-**3. Skill de AutoCAD insertado**
-- `autocad-drafting` (puran-water/autocad-mcp, 159⭐) insertado como approved
-
-### Cómo ejecutar
+```text
+[Logo]     [Nav principal]                    [Acciones usuario]
+Pymaia     Skills · Conectores · Teams        🌐 ES  |  + Publicar  |  👤 Martin ▾
 ```
-# Buscar repos con SKILL.md
-POST sync-skills { "source": "github-code-search" }
 
-# Buscar por topic específico
-POST sync-skills { "source": "github-search", "topic": "autocad" }
+**Cambios concretos:**
 
-# Ejecutar github-search con TODOS los topics (incluidos los nuevos)
-POST sync-skills { "source": "github-search" }
-```
+1. **Reducir links principales a 3**: Sacar "Inicio" (el logo ya lleva a home) y "Primeros pasos" (moverlo al footer o a un dropdown). Dejar solo: **Skills**, **Conectores**, **Teams**.
+
+2. **Separar visualmente** las 3 zonas con un `div` de navegación centrado y acciones a la derecha con un separador sutil (`border-l`).
+
+3. **Mejorar "Publicar"**: Darle un estilo de botón outline/ghost con icono `Plus` para que se distinga de los links de navegación.
+
+4. **Agrupar usuario**: Nombre + avatar inicial en un solo elemento clickeable que lleve a `/mis-skills` o perfil, con el logout como icono secundario más discreto.
+
+5. **Selector de idioma**: Hacerlo más compacto, solo el ícono de globo con el código de idioma.
+
+### Archivos a modificar
+- `src/components/Navbar.tsx` — reestructurar layout, reducir links, separar zonas
+- `src/components/landing/Footer.tsx` — agregar link a "Primeros pasos" si se quita del nav
+
