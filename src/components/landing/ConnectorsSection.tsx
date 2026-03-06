@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 const FEATURED_SLUGS = [
   "gmail", "slack", "smithery-ai-github", "notion",
   "googlesheets", "stripe", "instagram", "discord",
-  "googledrive", "googlecalendar", "tacticlaunch-mcp-linear", "shopify",
+  "googledrive", "googlecalendar", "tacticlaunch-mcp-linear", "ai-zerolab-mcp-figma",
 ];
 
 const CATEGORY_EMOJIS: Record<string, string> = {
