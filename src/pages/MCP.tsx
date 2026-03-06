@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import Navbar from "@/components/Navbar";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
