@@ -280,7 +280,7 @@ const Conectores = () => {
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
+                    <p className="text-sm text-muted-foreground line-clamp-2 flex-1 min-h-0">
                       {isEs && connector.description_es
                         ? connector.description_es
                         : connector.description}
