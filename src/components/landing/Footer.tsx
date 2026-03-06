@@ -7,6 +7,7 @@ const Footer = () => {
 
   const links = [
     { to: "/explorar", label: t("nav.explore") },
+    { to: "/conectores", label: t("nav.connectors") },
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
     { to: "/mcp", label: t("nav.mcp") },
     { to: "/teams", label: t("nav.teams") },
