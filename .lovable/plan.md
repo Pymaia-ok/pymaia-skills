@@ -1,72 +1,31 @@
 
 
-## Plan: Curar conectores principales y expandir fuentes
+## Plan
 
-### Problema identificado
-Los conectores de marcas conocidas (GitHub, Discord, Zoom, WhatsApp, Docker, etc.) existen en la DB pero con slugs largos como `smithery-ai-github` o `ckreiling-mcp-server-docker`. No hay un conector "canónico" con slug limpio para cada marca principal.
+### 1. Add 4 new curated connectors to the database
 
-### Paso 1: Crear registros canónicos para ~40 marcas principales
+Insert PostHog (official), Omnisend (community), ClickUp (community), and Resend (community) into `mcp_servers` with proper metadata, icons, descriptions in EN/ES, and `is_official` flag.
 
-Insertar manualmente (o via SQL batch) registros con slugs limpios para las herramientas más conocidas que ya tienen variantes en la DB pero sin un registro "principal":
+### 2. Redesign the Official/Community filter
 
-```text
-Marca           | Slug limpio    | Fuente del mejor registro existente
-─────────────────────────────────────────────────────────────────────
-GitHub          | github         | smithery-ai-github (ya existe con slug limpio)
-Discord         | discord        | barryyip0625-mcp-discord
-Jira            | jira           | ai-waystation-jira
-Linear          | linear         | (buscar mejor variante)
-HubSpot         | hubspot        | kozo93-hubspot-mcp
-Salesforce      | salesforce     | ai-cirra-salesforce-mcp
-Docker          | docker         | io-github-dave-london-docker
-Kubernetes      | kubernetes     | flux159-mcp-server-kubernetes
-Zoom            | zoom           | (buscar)
-WhatsApp        | whatsapp       | (buscar)
-Telegram        | telegram       | chaindead-telegram-mcp
-Dropbox         | dropbox        | cindyloo-dropbox-mcp-server
-Sentry          | sentry         | getsentry-sentry-mcp
-Cloudflare      | cloudflare     | cloudflare-mcp-server-cloudflare
-Vercel          | vercel         | (buscar)
-WordPress       | wordpress      | (buscar)
-Trello          | trello         | (buscar)
-Asana           | asana          | (buscar)
-Twilio          | twilio         | (buscar)
-...etc (~40 total)
-```
+Replace the current row of filter buttons ("Todos / Oficiales / Comunitarios") with a filter icon button next to the search bar. Clicking it opens a small popover/dropdown with three options: All, Official, Community. This saves vertical space and matches the reference screenshot better.
 
-Cada registro canónico tendría:
-- Slug limpio (ej. `discord`)
-- Nombre display limpio (ej. `Discord`)
-- Icono de Simple Icons CDN
-- Homepage oficial
-- Mejor comando de instalación disponible
-- Source: `"curated"`
+**Layout change:**
+- Search bar gets a filter icon button on the right side (inside or adjacent to the input)
+- Popover with 3 toggle options appears on click
+- Remove the current standalone filter row below categories
 
-### Paso 2: Agregar nueva fuente de sync — mcp.so
+### 3. Technical details
 
-Crear una nueva función en `sync-connectors` que importa desde **mcp.so**, que tiene una API pública y es uno de los directorios más completos (~7,000+ servers).
+**Database inserts** (via insert tool):
+- PostHog: `is_official: true`, icon from Simple Icons, `github_url: https://github.com/PostHog/mcp`, category: analytics
+- Omnisend: `is_official: false`, category: marketing, `github_url: https://github.com/plutzilla/omnisend-mcp`
+- ClickUp: `is_official: false`, category: productivity, `github_url: https://github.com/smithery-ai/clickup-mcp-server`
+- Resend: `is_official: false`, category: communication, `github_url: https://github.com/Hawstein/resend-mcp`
 
-- Endpoint: `https://mcp.so/api/servers` (o scraping via Firecrawl si no hay API)
-- Upsert por slug con `ignoreDuplicates: true`
-
-### Paso 3: Agregar nueva fuente — Glama.ai API
-
-Glama.ai ofrece un directorio curado con categorización. Agregar como fuente adicional en `sync-connectors`:
-
-- Endpoint: `https://glama.ai/mcp/servers` (API o scraping)
-- Similar al patrón existente de awesome-mcp-servers
-
-### Paso 4: Script de iconos para los nuevos canónicos
-
-Ejecutar `fetch-connector-icons` sobre los nuevos registros, asegurando que todas las marcas principales tengan icono.
-
-### Resultado esperado
-- ~40 marcas principales con slugs limpios, iconos y datos curados
-- 2 fuentes nuevas de sync para descubrir MCPs futuros
-- Total estimado: 8,000-12,000 conectores únicos
-
-### Archivos a modificar
-- `supabase/functions/sync-connectors/index.ts` — agregar casos `mcp-so` y `glama-ai`
-- `supabase/functions/fetch-connector-icons/index.ts` — ya tiene las marcas principales
-- SQL batch para insertar los ~40 registros canónicos
+**UI changes** in `src/pages/Conectores.tsx`:
+- Add a `Filter` icon (from lucide) next to the search input
+- Use Radix Popover to show filter options on click
+- Remove the existing official/community filter row (lines ~195-212)
+- Keep the same `officialFilter` state logic
 
