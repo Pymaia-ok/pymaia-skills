@@ -14,11 +14,29 @@ const CATEGORIES = [
   "databases",
   "productivity",
   "search",
-  "utilities",
   "automation",
   "apis",
+  "cloud",
+  "ai",
+  "design",
+  "storage",
   "general",
 ];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  communication: "bg-blue-500",
+  development: "bg-emerald-500",
+  databases: "bg-amber-500",
+  productivity: "bg-violet-500",
+  search: "bg-cyan-500",
+  automation: "bg-orange-500",
+  apis: "bg-pink-500",
+  cloud: "bg-sky-500",
+  ai: "bg-purple-500",
+  design: "bg-rose-500",
+  storage: "bg-teal-500",
+  general: "bg-gray-500",
+};
 
 const Conectores = () => {
   const { t, i18n } = useTranslation();
@@ -38,7 +56,7 @@ const Conectores = () => {
         .from("mcp_servers")
         .select("*")
         .eq("status", "approved")
-        .order("install_count", { ascending: false });
+        .order("external_use_count", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -131,28 +149,28 @@ const Conectores = () => {
                   key={connector.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.5) }}
                 >
                   <Link
                     to={`/conector/${connector.slug}`}
-                    className="block p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group"
+                    className="block p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[200px] flex flex-col"
                   >
                     <div className="flex items-start gap-4 mb-3">
                       {connector.icon_url ? (
                         <img
                           src={connector.icon_url}
                           alt={connector.name}
-                          className="w-10 h-10 rounded-lg flex-shrink-0"
+                          className="w-10 h-10 rounded-lg flex-shrink-0 object-contain"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-lg font-bold text-primary">
-                            {connector.name[0]}
+                        <div className={`w-10 h-10 rounded-lg ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center flex-shrink-0`}>
+                          <span className="text-lg font-bold text-white">
+                            {connector.name[0]?.toUpperCase()}
                           </span>
                         </div>
                       )}
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                           {connector.name}
                         </h3>
                         <span className="text-xs text-muted-foreground capitalize">
@@ -160,18 +178,18 @@ const Conectores = () => {
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem] flex-1">
                       {isEs && connector.description_es
                         ? connector.description_es
                         : connector.description}
                     </p>
                     {connector.credentials_needed &&
                       connector.credentials_needed.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1">
-                          {connector.credentials_needed.map((cred: string) => (
+                        <div className="mt-auto pt-3 flex flex-wrap gap-1 overflow-hidden max-h-[1.75rem]">
+                          {connector.credentials_needed.slice(0, 3).map((cred: string) => (
                             <span
                               key={cred}
-                              className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground"
+                              className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground truncate max-w-[140px]"
                             >
                               {cred}
                             </span>

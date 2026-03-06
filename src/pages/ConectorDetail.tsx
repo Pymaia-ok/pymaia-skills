@@ -9,6 +9,21 @@ import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 
+const CATEGORY_COLORS: Record<string, string> = {
+  communication: "bg-blue-500",
+  development: "bg-emerald-500",
+  databases: "bg-amber-500",
+  productivity: "bg-violet-500",
+  search: "bg-cyan-500",
+  automation: "bg-orange-500",
+  apis: "bg-pink-500",
+  cloud: "bg-sky-500",
+  ai: "bg-purple-500",
+  design: "bg-rose-500",
+  storage: "bg-teal-500",
+  general: "bg-gray-500",
+};
+
 const ConectorDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t, i18n } = useTranslation();
@@ -111,8 +126,8 @@ const ConectorDetail = () => {
               {connector.icon_url ? (
                 <img src={connector.icon_url} alt={connector.name} className="w-14 h-14 rounded-xl" />
               ) : (
-                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-primary">{connector.name[0]}</span>
+                <div className={`w-14 h-14 rounded-xl ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center`}>
+                  <span className="text-2xl font-bold text-white">{connector.name[0]?.toUpperCase()}</span>
                 </div>
               )}
               <div>
