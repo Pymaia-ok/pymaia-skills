@@ -79,14 +79,29 @@ const Conectores = () => {
   const { data: connectors = [], isLoading } = useQuery({
     queryKey: ["connectors"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mcp_servers")
-        .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source")
-        .eq("status", "approved")
-        .order("external_use_count", { ascending: false })
-        .limit(3000);
-      if (error) throw error;
-      return data;
+      // Fetch curated first (always included), then top by usage
+      const [curatedRes, topRes] = await Promise.all([
+        supabase
+          .from("mcp_servers")
+          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source")
+          .eq("status", "approved")
+          .eq("source", "curated"),
+        supabase
+          .from("mcp_servers")
+          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source")
+          .eq("status", "approved")
+          .neq("source", "curated")
+          .order("external_use_count", { ascending: false })
+          .limit(3000),
+      ]);
+      if (curatedRes.error) throw curatedRes.error;
+      if (topRes.error) throw topRes.error;
+      const seen = new Set((curatedRes.data || []).map(c => c.id));
+      const merged = [...(curatedRes.data || [])];
+      for (const c of (topRes.data || [])) {
+        if (!seen.has(c.id)) merged.push(c);
+      }
+      return merged;
     },
   });
 
