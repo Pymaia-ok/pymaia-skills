@@ -244,33 +244,83 @@ const Admin = () => {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <RefreshCw className="w-5 h-5" />
-                Sincronizar conectores (Smithery)
+                Sincronizar conectores
               </h2>
-              <Button
-                size="sm"
-                variant={syncingConnectors ? "destructive" : "default"}
-                onClick={syncingConnectors ? stopConnectorSync : startConnectorSync}
-              >
-                {syncingConnectors ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Sync</>}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  toast.info("Traduciendo conectores...");
-                  let total = 0;
-                  for (let i = 0; i < 20; i++) {
-                    const { data, error } = await supabase.functions.invoke("translate-connectors", { body: { batchSize: 20 } });
-                    if (error) { toast.error("Error traduciendo"); break; }
-                    total += data.translated ?? 0;
-                    if (data.remaining === 0) break;
-                    await new Promise(r => setTimeout(r, 1000));
-                  }
-                  toast.success(`${total} conectores traducidos`);
-                }}
-              >
-                <Languages className="w-3 h-3 mr-1" /> Traducir
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant={syncingConnectors ? "destructive" : "default"}
+                  onClick={syncingConnectors ? stopConnectorSync : startConnectorSync}
+                >
+                  {syncingConnectors ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Smithery</>}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={syncingConnectors}
+                  onClick={async () => {
+                    setSyncingConnectors(true);
+                    setSyncProgress({ imported: 0, pages: 0, errors: 0 });
+                    let cursor: string | null = null;
+                    let totalImported = 0;
+                    for (let i = 0; i < 20; i++) {
+                      const { data, error } = await supabase.functions.invoke("sync-connectors", {
+                        body: { source: "official-registry", cursor, limit: 100, maxPages: 5 },
+                      });
+                      if (error) { toast.error("Error sync official registry"); break; }
+                      totalImported += data.imported ?? 0;
+                      cursor = data.next_cursor ?? null;
+                      setSyncProgress(p => ({ imported: totalImported, pages: p.pages + (data.pages_processed ?? 0), errors: p.errors + (data.errors ?? 0) }));
+                      queryClient.invalidateQueries({ queryKey: ["connector-stats"] });
+                      if (!cursor || data.imported === 0) break;
+                      await new Promise(r => setTimeout(r, 500));
+                    }
+                    toast.success(`${totalImported} conectores importados del registro oficial`);
+                    setSyncingConnectors(false);
+                  }}
+                >
+                  Official Registry
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={syncingConnectors}
+                  onClick={async () => {
+                    setSyncingConnectors(true);
+                    setSyncProgress({ imported: 0, pages: 0, errors: 0 });
+                    const { data, error } = await supabase.functions.invoke("sync-connectors", {
+                      body: { source: "awesome-mcp-servers" },
+                    });
+                    if (error) { toast.error("Error sync awesome-mcp-servers"); }
+                    else {
+                      toast.success(`${data.imported ?? 0} conectores importados de awesome-mcp-servers (${data.parsed ?? 0} parseados)`);
+                      setSyncProgress({ imported: data.imported ?? 0, pages: 1, errors: data.errors ?? 0 });
+                    }
+                    queryClient.invalidateQueries({ queryKey: ["connector-stats"] });
+                    setSyncingConnectors(false);
+                  }}
+                >
+                  GitHub Curated
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    toast.info("Traduciendo conectores...");
+                    let total = 0;
+                    for (let i = 0; i < 20; i++) {
+                      const { data, error } = await supabase.functions.invoke("translate-connectors", { body: { batchSize: 20 } });
+                      if (error) { toast.error("Error traduciendo"); break; }
+                      total += data.translated ?? 0;
+                      if (data.remaining === 0) break;
+                      await new Promise(r => setTimeout(r, 1000));
+                    }
+                    toast.success(`${total} conectores traducidos`);
+                  }}
+                >
+                  <Languages className="w-3 h-3 mr-1" /> Traducir
+                </Button>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground">
               {connectorStats?.total.toLocaleString() ?? "..."} conectores en la base
