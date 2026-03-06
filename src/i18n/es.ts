@@ -66,6 +66,11 @@ export default {
     popularSubtitle: "Las que más usan los profesionales como vos.",
     popularCta: "Ver todas las skills",
 
+    connectorsTag: "Conectores",
+    connectorsTitle: "Conectá tus herramientas favoritas",
+    connectorsSubtitle: "Las skills se potencian cuando se conectan a las herramientas que ya usás. Gmail, Slack, GitHub y más.",
+    connectorsCtaAll: "Ver todos los conectores",
+
     beforeAfterTitle: "El antes y después",
     beforeAfterSubtitle: "Casos reales de cómo las skills transforman el trabajo diario.",
     bamarketerRole: "Marketer",
