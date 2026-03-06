@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import {
   Download, ExternalLink, Terminal, MessageSquare, Code2, Sparkles,
   ArrowRight, BookOpen, Plug, Puzzle, Zap, Monitor, Globe, Brain,
-  FileText, Bot, CheckCircle2, ChevronRight, Lightbulb, Shield
+  FileText, Bot, CheckCircle2, ChevronRight, Lightbulb, Shield,
+  Laptop, Chrome, Layout, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSEO } from "@/hooks/useSEO";
