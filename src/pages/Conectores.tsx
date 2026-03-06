@@ -244,7 +244,25 @@ const Conectores = () => {
             </div>
           </div>
 
-          {isLoading ? (
+          {/* Official / Community filter */}
+          <div className="flex gap-2 mb-6">
+            {(["all", "official", "community"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setOfficialFilter(f)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  officialFilter === f
+                    ? "bg-foreground text-background"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f === "official" && <BadgeCheck className="w-3.5 h-3.5" />}
+                {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : (isEs ? "Comunitarios" : "Community")}
+              </button>
+            ))}
+          </div>
+
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
