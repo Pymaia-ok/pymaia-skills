@@ -271,6 +271,9 @@ const Conectores = () => {
                           {connector.is_official && (
                             <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" />
                           )}
+                          {(connector as any).security_status === "verified" && !connector.is_official && (
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground capitalize">
                           {t(`connectors.${connector.category}`, connector.category)}
