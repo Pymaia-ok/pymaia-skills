@@ -83,12 +83,12 @@ const Conectores = () => {
       const [curatedRes, topRes] = await Promise.all([
         supabase
           .from("mcp_servers")
-          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source")
+          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source, is_official, github_stars")
           .eq("status", "approved")
           .eq("source", "curated"),
         supabase
           .from("mcp_servers")
-          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source")
+          .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count, source, is_official, github_stars")
           .eq("status", "approved")
           .neq("source", "curated")
           .order("external_use_count", { ascending: false })
