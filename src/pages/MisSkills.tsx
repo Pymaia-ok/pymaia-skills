@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Eye, Clock, Star, Download, BarChart3, Loader2, Globe, Lock } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserSkills, type SkillFromDB } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
