@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import Navbar from "@/components/Navbar";
 import EmailGateDialog from "@/components/EmailGateDialog";
 import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
