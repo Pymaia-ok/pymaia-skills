@@ -27,7 +27,7 @@ export default {
   landing: {
     heroBadge: "Expert knowledge for your AI",
     heroTitle: "Work like an\nexpert in minutes.",
-    heroSubtitle: "Thousands of professional skills ready to install. Pick one, activate it in your AI, and turn it into an expert at what you do.",
+    heroSubtitle: "Thousands of professional skills ready to install. Pick one, install it, and become an expert.",
     heroCtaExplore: "Find expertise for your work",
     heroCtaLearn: "How it works",
 
