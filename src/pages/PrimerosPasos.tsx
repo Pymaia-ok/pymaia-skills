@@ -284,7 +284,7 @@ const PrimerosPasos = () => {
           <motion.div {...fadeUp}>
             <SectionBadge icon={Plug} label={isEs ? "Extensiones" : "Extensions"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Plugins" : "Claude's ecosystem:\nSkills, Connectors & Plugins"}
+              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Extensiones" : "Claude's ecosystem:\nSkills, Connectors & Extensions"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
@@ -300,8 +300,8 @@ const PrimerosPasos = () => {
                   name: "Skill",
                   what: isEs ? "Archivo de conocimiento (SKILL.md)" : "Knowledge file (SKILL.md)",
                   does: isEs
-                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento."
-                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge.",
+                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento. Las skills son archivos Markdown que Claude lee automáticamente cuando detecta que son relevantes."
+                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge. Skills are Markdown files that Claude reads automatically when it detects they're relevant.",
                   example: isEs ? "Skill de briefs → Claude sabe hacer briefs profesionales" : "Brief skill → Claude knows how to write professional briefs",
                   category: isEs ? "Conocimiento" : "Knowledge",
                 },
@@ -311,20 +311,20 @@ const PrimerosPasos = () => {
                   name: isEs ? "MCP / Conector" : "MCP / Connector",
                   what: isEs ? "Servidor que conecta Claude con herramientas externas (MCP = Model Context Protocol)" : "Server connecting Claude to external tools (MCP = Model Context Protocol)",
                   does: isEs
-                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. Un MCP Server y un conector son lo mismo: un puente entre Claude y una herramienta externa como Slack, GitHub, Google Drive, bases de datos, etc."
-                    : "Gives Claude ACCESS to real-time data and services. An MCP Server and a connector are the same thing: a bridge between Claude and an external tool like Slack, GitHub, Google Drive, databases, etc.",
+                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. MCP es un estándar abierto creado por Anthropic. Un MCP Server y un conector son lo mismo: un puente entre Claude y herramientas como Slack, GitHub, Google Drive, bases de datos, etc."
+                    : "Gives Claude ACCESS to real-time data and services. MCP is an open standard created by Anthropic. An MCP Server and a connector are the same thing: a bridge between Claude and tools like Slack, GitHub, Google Drive, databases, etc.",
                   example: isEs ? "Conector de Slack → Claude puede leer y enviar mensajes en Slack" : "Slack connector → Claude can read and send messages in Slack",
                   category: isEs ? "Acceso" : "Access",
                 },
                 {
-                  icon: Bot,
+                  icon: Chrome,
                   emoji: "🧩",
-                  name: "Plugin",
-                  what: isEs ? "Extensión que agrega funcionalidad a la interfaz de Claude" : "Extension that adds functionality to Claude's interface",
+                  name: isEs ? "Extensión" : "Extension",
+                  what: isEs ? "Extensiones oficiales que amplían las capacidades de Claude" : "Official extensions that expand Claude's capabilities",
                   does: isEs
-                    ? "Los plugins son extensiones que modifican cómo funciona la interfaz de Claude. A diferencia de los conectores (que dan acceso a datos), los plugins agregan capacidades nuevas como generación de imágenes, análisis de código, o herramientas interactivas dentro de la conversación."
-                    : "Plugins are extensions that modify how Claude's interface works. Unlike connectors (which give data access), plugins add new capabilities like image generation, code analysis, or interactive tools within the conversation.",
-                  example: isEs ? "Plugin de Artifacts → Claude puede crear y renderizar código, diagramas y documentos interactivos" : "Artifacts plugin → Claude can create and render code, diagrams and interactive documents",
+                    ? "Las extensiones agregan capacidades nuevas directamente en la interfaz de Claude. Por ejemplo: Claude en Chrome para debuggear páginas web, Claude en Excel/PowerPoint para trabajar con datos, o conectores nativos de Google Workspace y Slack para acceder a tus archivos y mensajes."
+                    : "Extensions add new capabilities directly in Claude's interface. For example: Claude in Chrome for debugging web pages, Claude in Excel/PowerPoint for working with data, or native Google Workspace and Slack connectors to access your files and messages.",
+                  example: isEs ? "Claude en Chrome → Debuggea y modifica páginas web directamente" : "Claude in Chrome → Debug and modify web pages directly",
                   category: isEs ? "Funcionalidad" : "Functionality",
                 },
               ].map((concept) => (
@@ -363,14 +363,14 @@ const PrimerosPasos = () => {
                   <p className="text-sm opacity-80">{isEs ? "Le dan ACCESO a herramientas" : "Give ACCESS to tools"}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background/10">
-                  <p className="font-semibold mb-1">🧩 Plugins</p>
+                  <p className="font-semibold mb-1">🧩 Extensiones</p>
                   <p className="text-sm opacity-80">{isEs ? "Le agregan FUNCIONALIDAD nueva" : "Add new FUNCTIONALITY"}</p>
                 </div>
               </div>
               <p className="text-sm opacity-70 mt-4">
                 {isEs
-                  ? "💡 Lo más potente: combinar los tres. Ej: Skill de análisis + Conector de Google Sheets + Plugin de visualización = Claude analiza tus datos y te muestra gráficos."
-                  : "💡 Most powerful: combine all three. E.g.: Analysis skill + Google Sheets connector + Visualization plugin = Claude analyzes your data and shows you charts."}
+                  ? "💡 Lo más potente: combinar los tres. Ej: Skill de análisis + Conector de Google Sheets = Claude analiza tus datos directamente."
+                  : "💡 Most powerful: combine all three. E.g.: Analysis skill + Google Sheets connector = Claude analyzes your data directly."}
               </p>
             </div>
           </motion.div>
