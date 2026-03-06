@@ -272,6 +272,18 @@ const Conectores = () => {
                           src={connector.icon_url}
                           alt={connector.name}
                           className="w-10 h-10 rounded-lg flex-shrink-0 object-contain"
+                          onError={(e) => {
+                            // Hide broken image and show fallback
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                            if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                          }}
+                        />
+                        <div className={`w-10 h-10 rounded-lg ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} items-center justify-center flex-shrink-0 hidden`}>
+                          <span className="text-lg font-bold text-white">
+                            {connector.name[0]?.toUpperCase()}
+                          </span>
+                        </div>
                         />
                       ) : (
                         <div className={`w-10 h-10 rounded-lg ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center flex-shrink-0`}>
