@@ -147,24 +147,59 @@ const ConectorDetail = () => {
               {isEs && connector.description_es ? connector.description_es : connector.description}
             </p>
 
-            {/* Trust metrics */}
-            {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0 || connector.security_status === "verified" || connector.last_commit_at) && (
-              <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-muted-foreground">
-                {connector.security_status === "verified" && (
-                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                    <ShieldCheck className="w-4 h-4" />
-                    {t("trust.verified", "Verified")}
+            {/* Source & Trust info */}
+            <div className="flex flex-wrap items-center gap-3 mb-8">
+              {/* Official vs Community badge */}
+              {connector.is_official ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  {isEs ? "Oficial" : "Official"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
+                  <Users className="w-3.5 h-3.5" />
+                  {isEs ? "Comunitario" : "Community"}
+                </span>
+              )}
+
+              {/* Security status badge */}
+              {connector.security_status === "verified" ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {isEs ? "Seguridad verificada" : "Security verified"}
+                </span>
+              ) : connector.security_status === "flagged" ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  {isEs ? "Requiere atención" : "Needs attention"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
+                  <ShieldQuestion className="w-3.5 h-3.5" />
+                  {isEs ? "Sin verificar" : "Unverified"}
+                </span>
+              )}
+
+              {/* Activity badge */}
+              {connector.last_commit_at && (() => {
+                const months = (Date.now() - new Date(connector.last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
+                return months <= 6 ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                    <Activity className="w-3.5 h-3.5" />
+                    {isEs ? "Activo" : "Active"}
                   </span>
-                )}
-                {connector.last_commit_at && (() => {
-                  const months = (Date.now() - new Date(connector.last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
-                  return months <= 6 ? (
-                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                      <Activity className="w-4 h-4" />
-                      {t("trust.active", "Active")}
-                    </span>
-                  ) : null;
-                })()}
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
+                    <Activity className="w-3.5 h-3.5" />
+                    {isEs ? "Inactivo" : "Inactive"}
+                  </span>
+                );
+              })()}
+            </div>
+
+            {/* Stats row */}
+            {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0 || connector.github_url) && (
+              <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-muted-foreground">
                 {(connector.github_stars ?? 0) > 0 && (
                   <span className="flex items-center gap-1.5">
                     <Star className="w-4 h-4" />
@@ -176,6 +211,17 @@ const ConectorDetail = () => {
                     <Download className="w-4 h-4" />
                     {connector.external_use_count?.toLocaleString()} downloads
                   </span>
+                )}
+                {connector.github_url && (
+                  <a
+                    href={connector.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+                  >
+                    <Github className="w-4 h-4" />
+                    {isEs ? "Ver código fuente" : "View source"}
+                  </a>
                 )}
               </div>
             )}
