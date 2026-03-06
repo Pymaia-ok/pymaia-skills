@@ -195,10 +195,10 @@ const Conectores = () => {
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-2">
-                {(["all", "official", "community"] as const).map((f) => (
+                {(["all", "official", "community", "verified"] as const).map((f) => (
                   <button
                     key={f}
-                    onClick={() => setOfficialFilter(f)}
+                    onClick={() => setOfficialFilter(f as any)}
                     className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${
                       officialFilter === f
                         ? "bg-primary text-primary-foreground"
@@ -206,7 +206,8 @@ const Conectores = () => {
                     }`}
                   >
                     {f === "official" && <BadgeCheck className="w-3.5 h-3.5" />}
-                    {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : (isEs ? "Comunitarios" : "Community")}
+                    {f === "verified" && <ShieldCheck className="w-3.5 h-3.5" />}
+                    {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : f === "community" ? (isEs ? "Comunitarios" : "Community") : (isEs ? "Verificados" : "Verified")}
                   </button>
                 ))}
               </PopoverContent>
