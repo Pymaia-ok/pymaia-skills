@@ -121,7 +121,6 @@ const Explore = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-14">
         <div className="max-w-5xl mx-auto px-6 py-16">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">

@@ -179,7 +179,6 @@ const CrearSkill = () => {
 
   return (
     <div className="min-h-screen h-screen bg-background flex flex-col overflow-hidden">
-      <Navbar />
       <div className="pt-14 flex-1 flex flex-col min-h-0">
         {step === "chat" && (
           <div className="flex-1 flex flex-col min-h-0">

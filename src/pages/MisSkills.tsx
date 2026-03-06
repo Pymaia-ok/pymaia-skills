@@ -40,7 +40,6 @@ export default function MisSkills() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <div className="pt-20 max-w-4xl mx-auto px-4 pb-12">
         <div className="flex items-center justify-between mb-8">
           <div>
