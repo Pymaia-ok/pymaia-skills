@@ -1,7 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
 import { fetchProfileByUsername, fetchUserSkills, fetchUserReviews } from "@/lib/api";
 import { Star } from "lucide-react";
