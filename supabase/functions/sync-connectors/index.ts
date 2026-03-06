@@ -183,8 +183,6 @@ async function syncGlamaGithub(supabase: any) {
   }
 
   const readme = await res.text();
-  
-  // Parse markdown links: - [Name](url) - description
   const linkRegex = /^[-*]\s+\[([^\]]+)\]\(([^)]+)\)\s*[-–:]?\s*(.*)/gm;
   const records: any[] = [];
   let match;
@@ -192,7 +190,6 @@ async function syncGlamaGithub(supabase: any) {
   while ((match = linkRegex.exec(readme)) !== null) {
     const [, name, url, desc] = match;
     if (!name || !url) continue;
-    // Skip non-server links (badges, docs, etc)
     if (url.includes("img.shields.io") || url.includes("#")) continue;
     if (name.length < 3 || name.length > 100) continue;
     
@@ -215,7 +212,107 @@ async function syncGlamaGithub(supabase: any) {
   let totalImported = 0;
   let errors = 0;
 
-  // Batch upsert in chunks of 200
+  for (let i = 0; i < records.length; i += 200) {
+    const batch = records.slice(i, i + 200);
+    const { error, count } = await supabase
+      .from("mcp_servers")
+      .upsert(batch, { onConflict: "slug", ignoreDuplicates: true, count: "exact" });
+    if (error) { console.error(`Upsert error:`, error.message); errors++; }
+    else { totalImported += count || 0; }
+  }
+
+  return { imported: totalImported, errors, parsed: records.length };
+}
+
+// ─── Source: Glama.ai API ───
+async function syncGlamaApi(supabase: any, maxPages: number) {
+  let totalImported = 0;
+  let errors = 0;
+  let pagesProcessed = 0;
+  let cursor: string | null = null;
+
+  for (let i = 0; i < maxPages; i++) {
+    let url = `https://glama.ai/api/mcp/v1/servers?limit=100`;
+    if (cursor) url += `&after=${encodeURIComponent(cursor)}`;
+    console.log(`[Glama API] Fetching page ${i + 1}: ${url}`);
+
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!res.ok) { console.error(`Glama API error: ${res.status}`); errors++; break; }
+
+    const data = await res.json();
+    const servers = data.servers || [];
+    if (!Array.isArray(servers) || servers.length === 0) break;
+
+    const records = servers.map((s: any) => {
+      const name = s.name || "";
+      const displayName = formatDisplayName(name, name);
+      const description = (s.description || "").slice(0, 1000);
+      const slug = slugify(s.slug || name);
+      const category = inferCategory(displayName, description);
+      const homepage = s.repository?.url || s.url || null;
+
+      return {
+        slug, name: displayName, description: description || `${displayName} MCP server`,
+        category, status: "approved", homepage,
+        source: "glama", external_use_count: 0,
+        install_command: "", credentials_needed: [], install_count: 0,
+      };
+    }).filter((r: any) => r.slug.length >= 2);
+
+    if (records.length > 0) {
+      const { error, count } = await supabase
+        .from("mcp_servers")
+        .upsert(records, { onConflict: "slug", ignoreDuplicates: true, count: "exact" });
+      if (error) { console.error(`Upsert error:`, error.message); errors++; }
+      else { totalImported += count || 0; }
+    }
+
+    pagesProcessed++;
+    cursor = data.pageInfo?.endCursor || null;
+    if (!data.pageInfo?.hasNextPage || !cursor) break;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  return { imported: totalImported, errors, pages_processed: pagesProcessed, next_cursor: cursor };
+}
+
+// ─── Source: 0x7c2f GitHub MCP Server List (JSON API) ───
+async function syncGithubMcpList(supabase: any) {
+  console.log("[0x7c2f] Fetching mcp-servers.json...");
+  const res = await fetch("https://0x7c2f.github.io/api/mcp-servers.json", {
+    headers: { "Accept": "application/json" },
+  });
+
+  if (!res.ok) {
+    console.error(`0x7c2f API error: ${res.status}`);
+    return { imported: 0, errors: 1, parsed: 0 };
+  }
+
+  const data = await res.json();
+  const servers = data.servers || data || [];
+  if (!Array.isArray(servers)) return { imported: 0, errors: 0, parsed: 0 };
+
+  console.log(`[0x7c2f] Found ${servers.length} servers`);
+
+  const records = servers.map((s: any) => {
+    const name = s.name || "";
+    const displayName = formatDisplayName(name, s.title || name);
+    const description = (s.description || "").slice(0, 1000);
+    const slug = slugify(name);
+    const category = inferCategory(displayName, description);
+    const homepage = s.repository || s.homepage || s.url || null;
+
+    return {
+      slug, name: displayName, description: description || `${displayName} MCP server`,
+      category, status: "approved", homepage,
+      source: "0x7c2f", external_use_count: 0,
+      install_command: "", credentials_needed: [], install_count: 0,
+    };
+  }).filter((r: any) => r.slug.length >= 2);
+
+  let totalImported = 0;
+  let errors = 0;
+
   for (let i = 0; i < records.length; i += 200) {
     const batch = records.slice(i, i + 200);
     const { error, count } = await supabase
@@ -252,6 +349,14 @@ Deno.serve(async (req) => {
 
       case "awesome-mcp-servers":
         result = await syncGlamaGithub(supabase);
+        break;
+
+      case "glama":
+        result = await syncGlamaApi(supabase, body.maxPages || 50);
+        break;
+
+      case "0x7c2f":
+        result = await syncGithubMcpList(supabase);
         break;
 
       default:
