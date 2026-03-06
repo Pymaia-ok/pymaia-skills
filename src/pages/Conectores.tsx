@@ -295,26 +295,36 @@ const Conectores = () => {
                         ? connector.description_es
                         : connector.description}
                     </p>
-                    {/* Trust metrics */}
-                    {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0) && (
-                      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
-                        {(connector.github_stars ?? 0) > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Star className="w-3 h-3" />
-                            {connector.github_stars?.toLocaleString()}
-                          </span>
-                        )}
-                        {(connector.external_use_count ?? 0) > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Download className="w-3 h-3" />
-                            {connector.external_use_count?.toLocaleString()}
-                          </span>
-                        )}
-                        <span className="text-xs text-muted-foreground/60 ml-auto capitalize">
-                          {connector.source === 'curated' ? '' : connector.source?.replace(/-/g, ' ')}
+                    {/* Trust metrics - always show */}
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50 flex-wrap">
+                      {connector.is_official ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold">
+                          <BadgeCheck className="w-3 h-3" />
+                          {isEs ? "Oficial" : "Official"}
                         </span>
-                      </div>
-                    )}
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-muted-foreground text-[10px] font-semibold">
+                          {isEs ? "Comunitario" : "Community"}
+                        </span>
+                      )}
+                      {(connector as any).security_status === "verified" && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
+                          <ShieldCheck className="w-3 h-3" />
+                        </span>
+                      )}
+                      {(connector.github_stars ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Star className="w-3 h-3" />
+                          {connector.github_stars?.toLocaleString()}
+                        </span>
+                      )}
+                      {(connector.external_use_count ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Download className="w-3 h-3" />
+                          {connector.external_use_count?.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </Link>
                 </motion.div>
               ))}
