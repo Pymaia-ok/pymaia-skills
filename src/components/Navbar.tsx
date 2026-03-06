@@ -19,7 +19,7 @@ const Navbar = () => {
   const links = [
     { to: "/", label: t("nav.home") },
     { to: "/explorar", label: t("nav.explore") },
-    { to: "/mcp", label: t("nav.mcp") },
+    { to: "/conectores", label: t("nav.connectors") },
     { to: "/teams", label: t("nav.teams") },
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
   ];

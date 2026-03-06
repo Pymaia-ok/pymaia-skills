@@ -2,7 +2,7 @@ export default {
   nav: {
     home: "Home",
     explore: "Explore",
-    mcp: "MCP",
+    connectors: "Connectors",
     teams: "Teams",
     gettingStarted: "Getting Started",
     publish: "Publish",
@@ -25,11 +25,11 @@ export default {
   },
 
   landing: {
-    heroBadge: "The #1 skill directory for Claude Code",
-    heroTitle: "Supercharge your work\nwith Artificial Intelligence.",
-    heroSubtitle: "A directory with thousands of professional skills. Pick one, install it in Claude, and it becomes an expert.",
-    heroCtaExplore: "Explore skills",
-    heroCtaLearn: "What is Claude Code?",
+    heroBadge: "Expert knowledge for your AI",
+    heroTitle: "Your expertise,\nscaled with AI.",
+    heroSubtitle: "Thousands of professional skills ready to install. Pick one, activate it in your AI, and turn it into an expert at what you do.",
+    heroCtaExplore: "Find expertise for your work",
+    heroCtaLearn: "How it works",
 
     howTitle: "How it works",
     howSubtitle: "From zero to productive in 3 simple steps.",
@@ -390,6 +390,32 @@ export default {
     medicina: "Medicine",
     "educación": "Education",
     tecnologia: "Technology",
+  },
+
+  connectors: {
+    title: "Connectors",
+    subtitle: "Tools that supercharge your skills. Connect your AI with Gmail, GitHub, Slack and more.",
+    searchPlaceholder: "Search connectors...",
+    all: "All",
+    communication: "Communication",
+    development: "Development",
+    databases: "Databases",
+    productivity: "Productivity",
+    search: "Search",
+    utilities: "Utilities",
+    automation: "Automation",
+    apis: "APIs",
+    general: "General",
+    credentials: "Required credentials",
+    installCommand: "Install command",
+    docs: "Documentation",
+    compatibleSkills: "Compatible skills",
+    noCompatibleSkills: "No skills use this connector yet.",
+    backToConnectors: "Connectors",
+    howToSetup: "How to set up",
+    setupStep1: "Install the connector with the command above",
+    setupStep2: "Configure the required credentials",
+    setupStep3: "Done! Skills that use it will work automatically",
   },
 
   lang: {
