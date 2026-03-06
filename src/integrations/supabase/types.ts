@@ -206,6 +206,60 @@ export type Database = {
           },
         ]
       }
+      mcp_servers: {
+        Row: {
+          category: string
+          config_json: Json | null
+          created_at: string
+          credentials_needed: string[]
+          description: string
+          description_es: string | null
+          docs_url: string | null
+          icon_url: string | null
+          id: string
+          install_command: string
+          install_count: number
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          config_json?: Json | null
+          created_at?: string
+          credentials_needed?: string[]
+          description?: string
+          description_es?: string | null
+          docs_url?: string | null
+          icon_url?: string | null
+          id?: string
+          install_command?: string
+          install_count?: number
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          config_json?: Json | null
+          created_at?: string
+          credentials_needed?: string[]
+          description?: string
+          description_es?: string | null
+          docs_url?: string | null
+          icon_url?: string | null
+          id?: string
+          install_command?: string
+          install_count?: number
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

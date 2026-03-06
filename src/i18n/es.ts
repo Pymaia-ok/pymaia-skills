@@ -3,7 +3,7 @@ export default {
   nav: {
     home: "Inicio",
     explore: "Explorar",
-    mcp: "MCP",
+    connectors: "Conectores",
     teams: "Teams",
     gettingStarted: "Primeros pasos",
     publish: "Publicar",
@@ -28,11 +28,11 @@ export default {
 
   // Landing sections
   landing: {
-    heroBadge: "El directorio #1 de skills para Claude Code",
-    heroTitle: "Potenciá tu trabajo\ncon Inteligencia Artificial.",
-    heroSubtitle: "Un directorio con miles de skills profesionales. Elegí uno, instalalo en Claude y se convierte en experto.",
-    heroCtaExplore: "Explorar skills",
-    heroCtaLearn: "¿Qué es Claude Code?",
+    heroBadge: "Conocimiento experto para tu IA",
+    heroTitle: "Tu expertise,\nescalado con IA.",
+    heroSubtitle: "Miles de skills profesionales listas para instalar. Elegí una, activala en tu IA y convertila en experta en lo que vos sabés hacer.",
+    heroCtaExplore: "Encontrá expertise para tu trabajo",
+    heroCtaLearn: "Cómo funciona",
 
     howTitle: "Cómo funciona",
     howSubtitle: "De cero a productivo en 3 pasos simples.",
@@ -403,6 +403,32 @@ export default {
     medicina: "Medicina",
     "educación": "Educación",
     tecnologia: "Tecnología",
+  },
+
+  connectors: {
+    title: "Conectores",
+    subtitle: "Herramientas que potencian tus skills. Conectá tu IA con Gmail, GitHub, Slack y más.",
+    searchPlaceholder: "Buscar conectores...",
+    all: "Todos",
+    communication: "Comunicación",
+    development: "Desarrollo",
+    databases: "Bases de datos",
+    productivity: "Productividad",
+    search: "Búsqueda",
+    utilities: "Utilidades",
+    automation: "Automatización",
+    apis: "APIs",
+    general: "General",
+    credentials: "Credenciales necesarias",
+    installCommand: "Comando de instalación",
+    docs: "Documentación",
+    compatibleSkills: "Skills compatibles",
+    noCompatibleSkills: "Aún no hay skills que usen este conector.",
+    backToConnectors: "Conectores",
+    howToSetup: "Cómo configurarlo",
+    setupStep1: "Instalá el conector con el comando de arriba",
+    setupStep2: "Configurá las credenciales necesarias",
+    setupStep3: "¡Listo! Las skills que lo usen van a funcionar automáticamente",
   },
 
   // Language switcher

@@ -13,6 +13,8 @@ import CrearSkill from "./pages/CrearSkill";
 import UserProfile from "./pages/UserProfile";
 import Teams from "./pages/Teams";
 import MCP from "./pages/MCP";
+import Conectores from "./pages/Conectores";
+import ConectorDetail from "./pages/ConectorDetail";
 import Admin from "./pages/Admin";
 import MisSkills from "./pages/MisSkills";
 import Terms from "./pages/Terms";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/u/:username" element={<UserProfile />} />
             <Route path="/teams" element={<Teams />} />
             <Route path="/mcp" element={<MCP />} />
+            <Route path="/conectores" element={<Conectores />} />
+            <Route path="/conector/:slug" element={<ConectorDetail />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
