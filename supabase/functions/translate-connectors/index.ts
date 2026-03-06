@@ -39,7 +39,7 @@ ${items}
 
 IDs: ${JSON.stringify(pending.map(c => c.id))}`;
 
-    const aiRes = await fetch("https://ai-gateway.lovable.dev/chat/completions", {
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

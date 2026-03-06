@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, ExternalLink } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -42,6 +42,29 @@ const Conectores = () => {
   const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollIndicators = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    updateScrollIndicators();
+    window.addEventListener("resize", updateScrollIndicators);
+    return () => window.removeEventListener("resize", updateScrollIndicators);
+  }, [updateScrollIndicators]);
+
+  const scrollCategories = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+    setTimeout(updateScrollIndicators, 300);
+  };
 
   useSEO({
     title: "Conectores — Pymaia Skills",
@@ -105,32 +128,60 @@ const Conectores = () => {
             />
           </motion.div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-8">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                !selectedCategory
-                  ? "bg-foreground text-background"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
-              }`}
+          <div className="relative mb-8">
+            {canScrollLeft && (
+              <>
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+                <button
+                  onClick={() => scrollCategories("left")}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            {canScrollRight && (
+              <>
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+                <button
+                  onClick={() => scrollCategories("right")}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            <div
+              ref={scrollRef}
+              onScroll={updateScrollIndicators}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
             >
-              {t("connectors.all")}
-            </button>
-            {CATEGORIES.map((cat) => (
               <button
-                key={cat}
-                onClick={() =>
-                  setSelectedCategory(cat === selectedCategory ? null : cat)
-                }
+                onClick={() => setSelectedCategory(null)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                  selectedCategory === cat
+                  !selectedCategory
                     ? "bg-foreground text-background"
                     : "bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t(`connectors.${cat}`, cat)}
+                {t("connectors.all")}
               </button>
-            ))}
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() =>
+                    setSelectedCategory(cat === selectedCategory ? null : cat)
+                  }
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                    selectedCategory === cat
+                      ? "bg-foreground text-background"
+                      : "bg-secondary text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t(`connectors.${cat}`, cat)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {isLoading ? (
