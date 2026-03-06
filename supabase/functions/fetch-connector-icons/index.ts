@@ -42,6 +42,7 @@ const KNOWN_ICONS: Record<string, string> = {
   brave: "brave", chrome: "googlechrome",
   wordpress: "wordpress", wix: "wix", webflow: "webflow",
   "google gemini": "googlegemini", gemini: "googlegemini",
+  databricks: "databricks", amplitude: "amplitude",
 };
 
 function tryMatchKnownIcon(name: string): string | null {
