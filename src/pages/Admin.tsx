@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
