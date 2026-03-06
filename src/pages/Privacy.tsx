@@ -1,4 +1,3 @@
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/landing/Footer";
 
 const Privacy = () => {
