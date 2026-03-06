@@ -1,26 +1,23 @@
 
 
-## Plan: Agregar conector de Canva al catálogo
+## Plan: Agregar iconos a Databricks y Amplitude, y verificar sus registros
 
-### Objetivo
-Insertar manualmente el conector de Canva en la tabla `mcp_servers` con los datos correctos y un ícono de alta calidad, y agregarlo a los conectores destacados de la landing.
+### Hallazgos
+
+- **Databricks**: Tiene MCP oficial (documentado en docs.databricks.com). Hay 2 registros en la DB, ambos comunitarios y sin icono.
+- **Amplitude**: Tiene MCP oficial (amplitude/mcp-server-guide en GitHub). Hay 1 registro (`com-amplitude-mcp-server`), sin icono.
+
+Ninguno tiene `icon_url` asignado, por eso no se ven en la UI con icono.
 
 ### Pasos
 
-1. **Insertar registro de Canva en `mcp_servers`**
-   - Nombre: "Canva"
-   - Slug: "canva"
-   - Descripción en inglés y español
-   - Categoría: "design"
-   - Homepage: `https://www.canva.com`
-   - Docs URL: `https://www.canva.dev/blog/developers/canva-dev-mcp-server/`
-   - Icon URL: `https://cdn.simpleicons.org/canva`
-   - Source: "canva.dev" (oficial)
-   - Install command basado en el MCP oficial
+1. **Actualizar iconos via SQL (insert tool)**
+   - Databricks: `https://cdn.simpleicons.org/databricks` para ambos registros
+   - Amplitude: `https://cdn.simpleicons.org/amplitude` para el registro existente
 
-2. **Agregar Canva a `FEATURED_SLUGS` en la landing**
-   - Actualizar `src/components/landing/ConnectorsSection.tsx` para incluir `"canva"` en el array de slugs destacados (reemplazando uno menos conocido como `tacticlaunch-mcp-linear`).
+2. **Agregar ambas marcas al diccionario de `fetch-connector-icons`**
+   - Añadir `databricks: "databricks"` y `amplitude: "amplitude"` al mapa `KNOWN_ICONS` en `supabase/functions/fetch-connector-icons/index.ts` para que futuros conectores similares obtengan icono automáticamente.
 
 ### Resultado
-Canva aparecerá en el catálogo de conectores (`/conectores`) y como conector destacado en la landing page con su ícono oficial.
+Databricks y Amplitude aparecerán con sus iconos oficiales en `/conectores`.
 
