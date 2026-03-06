@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
