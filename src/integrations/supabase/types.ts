@@ -216,11 +216,14 @@ export type Database = {
           description_es: string | null
           docs_url: string | null
           external_use_count: number | null
+          github_stars: number | null
+          github_url: string | null
           homepage: string | null
           icon_url: string | null
           id: string
           install_command: string
           install_count: number
+          is_official: boolean
           name: string
           slug: string
           source: string | null
@@ -236,11 +239,14 @@ export type Database = {
           description_es?: string | null
           docs_url?: string | null
           external_use_count?: number | null
+          github_stars?: number | null
+          github_url?: string | null
           homepage?: string | null
           icon_url?: string | null
           id?: string
           install_command?: string
           install_count?: number
+          is_official?: boolean
           name: string
           slug: string
           source?: string | null
@@ -256,11 +262,14 @@ export type Database = {
           description_es?: string | null
           docs_url?: string | null
           external_use_count?: number | null
+          github_stars?: number | null
+          github_url?: string | null
           homepage?: string | null
           icon_url?: string | null
           id?: string
           install_command?: string
           install_count?: number
+          is_official?: boolean
           name?: string
           slug?: string
           source?: string | null
