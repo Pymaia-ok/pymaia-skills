@@ -122,13 +122,13 @@ const ConectorDetail = () => {
       <Navbar />
       <div className="pt-14">
         <div className="max-w-3xl mx-auto px-6 py-16">
-          <Link
-            to="/conectores"
+          <button
+            onClick={handleBack}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             {t("connectors.backToConnectors")}
-          </Link>
+          </button>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-4 mb-6">
