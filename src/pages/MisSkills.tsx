@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Eye, Clock, Star, Download, BarChart3, Loader2 } from "lucide-react";
+import { Plus, Eye, Clock, Star, Download, BarChart3, Loader2, Globe, Lock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserSkills, type SkillFromDB } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   pending: { label: "En revisión", className: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
