@@ -74,7 +74,7 @@ const SkillDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background"><Navbar />
+      <div className="min-h-screen bg-background">
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24">
           <div className="h-8 w-48 bg-secondary rounded animate-pulse mb-4" />
           <div className="h-12 w-96 bg-secondary rounded animate-pulse mb-4" />
