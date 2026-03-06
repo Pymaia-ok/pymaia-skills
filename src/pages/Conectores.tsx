@@ -20,6 +20,8 @@ const CATEGORIES = [
   "ai",
   "design",
   "storage",
+  "marketing",
+  "analytics",
   "general",
 ];
 
@@ -35,6 +37,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   ai: "bg-purple-500",
   design: "bg-rose-500",
   storage: "bg-teal-500",
+  marketing: "bg-fuchsia-500",
+  analytics: "bg-indigo-500",
   general: "bg-gray-500",
 };
 
@@ -77,9 +81,10 @@ const Conectores = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mcp_servers")
-        .select("*")
+        .select("id, name, slug, description, description_es, category, icon_url, credentials_needed, external_use_count")
         .eq("status", "approved")
-        .order("external_use_count", { ascending: false });
+        .order("external_use_count", { ascending: false })
+        .limit(3000);
       if (error) throw error;
       return data;
     },
@@ -204,9 +209,9 @@ const Conectores = () => {
                 >
                   <Link
                     to={`/conector/${connector.slug}`}
-                    className="block p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[200px] flex flex-col"
+                    className="p-6 rounded-2xl bg-secondary/50 border border-border hover:border-foreground/20 transition-all group h-[180px] flex flex-col overflow-hidden"
                   >
-                    <div className="flex items-start gap-4 mb-3">
+                    <div className="flex items-start gap-4 mb-3 flex-shrink-0">
                       {connector.icon_url ? (
                         <img
                           src={connector.icon_url}
@@ -229,24 +234,11 @@ const Conectores = () => {
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem] flex-1">
+                    <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
                       {isEs && connector.description_es
                         ? connector.description_es
                         : connector.description}
                     </p>
-                    {connector.credentials_needed &&
-                      connector.credentials_needed.length > 0 && (
-                        <div className="mt-auto pt-3 flex flex-wrap gap-1 overflow-hidden max-h-[1.75rem]">
-                          {connector.credentials_needed.slice(0, 3).map((cred: string) => (
-                            <span
-                              key={cred}
-                              className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground truncate max-w-[140px]"
-                            >
-                              {cred}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                   </Link>
                 </motion.div>
               ))}
