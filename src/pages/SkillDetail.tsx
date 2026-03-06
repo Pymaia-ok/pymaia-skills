@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
+import ShareButton from "@/components/ShareButton";
 
 const SkillDetail = () => {
   const { slug } = useParams();
