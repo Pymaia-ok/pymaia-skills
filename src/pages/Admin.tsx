@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Clock, Languages, Play, Square, RefreshCw } from "lucide-react";
+import { Check, X, Clock, Languages, Play, Square, RefreshCw, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
