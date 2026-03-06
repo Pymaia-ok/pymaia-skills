@@ -414,6 +414,9 @@ const Admin = () => {
                 <div className="flex items-center gap-3 text-xs">
                   <span className="text-muted-foreground">{skill.install_count} installs</span>
                   <span className="text-muted-foreground">⭐ {Number(skill.avg_rating).toFixed(1)}</span>
+                  {(skill as any).security_status === "verified" && <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
+                  {(skill as any).security_status === "flagged" && <ShieldAlert className="w-3.5 h-3.5 text-destructive" />}
+                  {(skill as any).security_status === "unverified" && <Shield className="w-3.5 h-3.5 text-muted-foreground" />}
                   <span className={`px-2 py-1 rounded-full font-medium ${
                     skill.status === "approved" ? "bg-foreground/10 text-foreground" :
                     skill.status === "pending" ? "bg-accent text-muted-foreground" :
