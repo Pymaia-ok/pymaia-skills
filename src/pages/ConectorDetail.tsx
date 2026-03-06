@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, Copy, Check, Terminal } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, Activity, Star, Download } from "lucide-react";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import SkillCard from "@/components/SkillCard";
