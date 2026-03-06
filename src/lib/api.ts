@@ -208,11 +208,18 @@ export async function fetchAllSkills() {
 }
 
 export async function fetchSkillBySlug(slug: string, shareToken?: string) {
-  let query = supabase.from("skills").select("*").eq("slug", slug);
+  // Private skills: use SECURITY DEFINER function to verify token server-side
   if (shareToken) {
-    query = query.eq("share_token", shareToken);
+    const { data, error } = await supabase.rpc("fetch_skill_by_share_token", {
+      _slug: slug,
+      _token: shareToken,
+    });
+    if (error) throw error;
+    const rows = data as SkillFromDB[] | null;
+    return rows && rows.length > 0 ? rows[0] : null;
   }
-  const { data, error } = await query.maybeSingle();
+  // Public skills: standard query (RLS handles visibility)
+  const { data, error } = await supabase.from("skills").select("*").eq("slug", slug).maybeSingle();
   if (error) throw error;
   return data as SkillFromDB | null;
 }

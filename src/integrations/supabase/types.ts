@@ -587,6 +587,53 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fetch_skill_by_share_token: {
+        Args: { _slug: string; _token: string }
+        Returns: {
+          avg_rating: number
+          category: string
+          created_at: string
+          creator_id: string | null
+          description_human: string
+          description_human_es: string | null
+          display_name: string
+          display_name_es: string | null
+          github_stars: number
+          github_url: string | null
+          id: string
+          industry: string[]
+          install_command: string
+          install_count: number
+          is_public: boolean
+          last_commit_at: string | null
+          price_amount: number | null
+          pricing_model: string
+          readme_raw: string | null
+          readme_summary: string | null
+          required_mcps: Json | null
+          review_count: number
+          search_vector: unknown
+          security_checked_at: string | null
+          security_notes: string | null
+          security_status: string
+          share_token: string | null
+          slug: string
+          status: string
+          tagline: string
+          tagline_es: string | null
+          target_roles: string[]
+          time_to_install_minutes: number
+          updated_at: string
+          use_cases: Json
+          video_url: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "skills"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
