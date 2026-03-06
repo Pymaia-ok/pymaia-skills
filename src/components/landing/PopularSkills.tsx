@@ -2,20 +2,41 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { fetchSkills } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import SkillCard from "@/components/SkillCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import type { SkillFromDB } from "@/lib/api";
+
+// Curated list of high-quality, genuinely useful skills across categories
+const FEATURED_SLUGS = [
+  "browser-use",         // Automatización web
+  "pptx-presentations",  // Presentaciones
+  "pdf-toolkit",         // PDFs
+  "xlsx-spreadsheets",   // Hojas de cálculo
+  "docx-creator",        // Documentos Word
+  "webapp-testing",      // Testing
+];
 
 const PopularSkills = () => {
   const { t } = useTranslation();
 
   const { data } = useQuery({
-    queryKey: ["skills-popular-landing"],
-    queryFn: () => fetchSkills({ sortBy: "installs" }),
+    queryKey: ["skills-popular-landing-curated"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skills")
+        .select("*")
+        .in("slug", FEATURED_SLUGS)
+        .eq("status", "approved");
+      if (error) throw error;
+      // Maintain curated order
+      const map = new Map((data || []).map((s) => [s.slug, s]));
+      return FEATURED_SLUGS.map((slug) => map.get(slug)).filter(Boolean) as SkillFromDB[];
+    },
   });
 
-  const topSkills = data?.data?.slice(0, 6) ?? [];
+  const topSkills = data ?? [];
 
   if (topSkills.length === 0) return null;
 
