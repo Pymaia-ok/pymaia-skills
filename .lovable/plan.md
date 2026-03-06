@@ -1,72 +1,44 @@
 
 
-## Plan: Curar conectores principales y expandir fuentes
+## Plan: Ampliar importación de Skills confiables desde GitHub
 
-### Problema identificado
-Los conectores de marcas conocidas (GitHub, Discord, Zoom, WhatsApp, Docker, etc.) existen en la DB pero con slugs largos como `smithery-ai-github` o `ckreiling-mcp-server-docker`. No hay un conector "canónico" con slug limpio para cada marca principal.
+### Contexto
 
-### Paso 1: Crear registros canónicos para ~40 marcas principales
+La sugerencia de `puran-water/autocad-drafting` vino de una búsqueda manual en GitHub, **no de una fuente automatizada**. El sistema actual tiene **39,128 skills aprobados**, la mayoría importados via skills.sh y GitHub Search con los topics `mcp-server`, `claude-skill`, `agent-skill`, `mcp`, `model-context-protocol`.
 
-Insertar manualmente (o via SQL batch) registros con slugs limpios para las herramientas más conocidas que ya tienen variantes en la DB pero sin un registro "principal":
+El problema: esos topics cubren bien el ecosistema MCP pero **no cubren skills de nicho** como AutoCAD, ingeniería, medicina, etc. Hay miles de repos en GitHub con archivos `SKILL.md` o que usan el patrón `npx skills add` que no están indexados porque no usan esos topics.
 
-```text
-Marca           | Slug limpio    | Fuente del mejor registro existente
-─────────────────────────────────────────────────────────────────────
-GitHub          | github         | smithery-ai-github (ya existe con slug limpio)
-Discord         | discord        | barryyip0625-mcp-discord
-Jira            | jira           | ai-waystation-jira
-Linear          | linear         | (buscar mejor variante)
-HubSpot         | hubspot        | kozo93-hubspot-mcp
-Salesforce      | salesforce     | ai-cirra-salesforce-mcp
-Docker          | docker         | io-github-dave-london-docker
-Kubernetes      | kubernetes     | flux159-mcp-server-kubernetes
-Zoom            | zoom           | (buscar)
-WhatsApp        | whatsapp       | (buscar)
-Telegram        | telegram       | chaindead-telegram-mcp
-Dropbox         | dropbox        | cindyloo-dropbox-mcp-server
-Sentry          | sentry         | getsentry-sentry-mcp
-Cloudflare      | cloudflare     | cloudflare-mcp-server-cloudflare
-Vercel          | vercel         | (buscar)
-WordPress       | wordpress      | (buscar)
-Trello          | trello         | (buscar)
-Asana           | asana          | (buscar)
-Twilio          | twilio         | (buscar)
-...etc (~40 total)
+### Lo que haría
+
+**1. Ampliar GitHub Search con más topics de dominio**
+
+Agregar búsquedas por topics adicionales relevantes:
+- `autocad`, `cad`, `bim`, `revit` (ingeniería/arquitectura)
+- `cursor-rules`, `claude-rules`, `ai-rules` (skills de configuración)
+- `ai-agent`, `ai-assistant`, `llm-tool`
+- `prompt-engineering`, `ai-workflow`
+
+Esto se hace invocando `sync-skills` con `source: "github-search"` y `topic: "autocad"` etc.
+
+**2. Búsqueda directa de repos con SKILL.md**
+
+Usar GitHub Code Search API para encontrar repos que contengan archivos `SKILL.md` (el estándar de Agent Skills). Agregar una nueva source `github-code-search` en `sync-skills/index.ts` que busque:
 ```
+filename:SKILL.md path:/
+```
+Esto descubriría skills legítimos que no usan los topics convencionales.
 
-Cada registro canónico tendría:
-- Slug limpio (ej. `discord`)
-- Nombre display limpio (ej. `Discord`)
-- Icono de Simple Icons CDN
-- Homepage oficial
-- Mejor comando de instalación disponible
-- Source: `"curated"`
+**3. Importar el skill de AutoCAD específico**
 
-### Paso 2: Agregar nueva fuente de sync — mcp.so
-
-Crear una nueva función en `sync-connectors` que importa desde **mcp.so**, que tiene una API pública y es uno de los directorios más completos (~7,000+ servers).
-
-- Endpoint: `https://mcp.so/api/servers` (o scraping via Firecrawl si no hay API)
-- Upsert por slug con `ignoreDuplicates: true`
-
-### Paso 3: Agregar nueva fuente — Glama.ai API
-
-Glama.ai ofrece un directorio curado con categorización. Agregar como fuente adicional en `sync-connectors`:
-
-- Endpoint: `https://glama.ai/mcp/servers` (API o scraping)
-- Similar al patrón existente de awesome-mcp-servers
-
-### Paso 4: Script de iconos para los nuevos canónicos
-
-Ejecutar `fetch-connector-icons` sobre los nuevos registros, asegurando que todas las marcas principales tengan icono.
-
-### Resultado esperado
-- ~40 marcas principales con slugs limpios, iconos y datos curados
-- 2 fuentes nuevas de sync para descubrir MCPs futuros
-- Total estimado: 8,000-12,000 conectores únicos
+Insertar manualmente `puran-water/autocad-drafting` como skill aprobado si la búsqueda no lo captura automáticamente.
 
 ### Archivos a modificar
-- `supabase/functions/sync-connectors/index.ts` — agregar casos `mcp-so` y `glama-ai`
-- `supabase/functions/fetch-connector-icons/index.ts` — ya tiene las marcas principales
-- SQL batch para insertar los ~40 registros canónicos
+
+- `supabase/functions/sync-skills/index.ts` — agregar source `github-code-search` que busca repos con `SKILL.md`
+- SQL insert para el skill de AutoCAD si no se captura automáticamente
+
+### Resultado esperado
+- Descubrir cientos de skills de nicho que no usan los topics estándar
+- Cubrir dominios como CAD, medicina, legal, etc. que hoy están subrepresentados
+- El skill de AutoCAD disponible en el catálogo
 
