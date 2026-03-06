@@ -1,61 +1,69 @@
 # Pymaia Skills
 
-> A directory with thousands of professional skills. Pick one, install it, and your AI becomes an expert.
+> The #1 skill directory for Claude Code. 38,000+ professional skills ready to install.
 
-Pymaia Skills is a curated marketplace of "skills" - knowledge files that teach Claude Code how to perform specific professional tasks. Users browse, install, and review skills without any coding or terminal knowledge.
+Pymaia Skills is a curated marketplace of "skills" — knowledge files that teach Claude Code how to perform specific professional tasks. Browse, install, and review skills without coding or terminal knowledge.
 
 ## What is a Skill?
 
-A skill is a file that teaches Claude how to do a specific task in your work. It's not an app or plugin - it's expert knowledge that Claude uses automatically. Skills install in 2 minutes with a single command.
+A skill is a Markdown file (SKILL.md) that teaches Claude how to do a specific task. It's not an app or plugin — it's expert knowledge that Claude uses automatically. Install any skill in 2 minutes with a single command.
 
-## Key Features
+## Key Numbers
 
-- **Skill Directory**: Browse 14,000+ skills across 10 categories (AI, Development, Design, Marketing, Automation, Data, Creativity, Productivity, Legal, Business)
-- **One-Command Install**: Copy a single command, paste it in Claude Code, done
-- **MCP Server**: Automatic skill recommendations based on what you're working on
-- **Reviews & Ratings**: Community-driven quality signals
-- **Teams**: Standardize AI usage across your organization with private skill repositories
-- **Multilingual**: Full Spanish and English support
+- 38,000+ skills available
+- 19 categories
+- 100+ MCP connectors
+- 2 min average install time
 
 ## Categories
 
-- AI (IA)
-- Development (Desarrollo)
-- Design (Diseño)
-- Marketing
-- Automation (Automatización)
-- Data (Datos)
-- Creativity (Creatividad)
-- Productivity (Productividad)
-- Legal
-- Business (Negocios)
+IA, Desarrollo, Automatización, Diseño, Productividad, Datos, Marketing, Legal, Negocios, Creatividad, Ventas, Producto, Finanzas, RRHH, Soporte, Salud, Educación, E-commerce, Operaciones
+
+## MCP Server
+
+Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing.
+
+### Installation
+```json
+{
+  "mcpServers": {
+    "pymaia-skills": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/sse"]
+    }
+  }
+}
+```
+
+### Available Tools (10)
+- `search_skills` — Search skills by keyword or natural language query
+- `get_skill_details` — Get full details of a specific skill by slug
+- `list_popular_skills` — List top skills sorted by installs or rating
+- `list_new_skills` — List recently added skills
+- `list_categories` — List all 19 skill categories with counts
+- `search_by_role` — Find skills for a specific professional role
+- `recommend_for_task` — AI-powered skill recommendations for a task description
+- `compare_skills` — Compare two or more skills side by side
+- `get_directory_stats` — Get aggregate directory statistics
+- `get_install_command` — Get the install command for a specific skill
+
+## MCP Connectors Directory
+
+100+ MCP connectors organized by category: dev-tools, data, communication, productivity, ai, cloud, design, business, finance, marketing, security, analytics, automation, education, social, media, iot, legal, hr, health, ecommerce, support.
+
+Browse at: /conectores
 
 ## Pages
 
 - Home: /
 - Explore Skills: /explorar
 - Skill Detail: /skill/{slug}
+- Connectors: /conectores
+- Connector Detail: /conector/{slug}
 - Getting Started: /primeros-pasos
 - MCP Server: /mcp
 - Teams & Pricing: /teams
 - Publish a Skill: /publicar
-
-## How It Works
-
-1. **Pick a skill** - Browse the directory and find the perfect skill for what you need
-2. **Copy a command** - One single command, paste it in Claude Code
-3. **Claude knows how** - Your Claude now has expert knowledge for that task
-
-## MCP Server Integration
-
-Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing. Compatible with Claude Code, Cursor, and more.
-
-## API
-
-The Pymaia Skills MCP Server provides these tools:
-- `search_skills`: Search for relevant skills based on your needs
-- `get_skill_details`: Get detailed information about a specific skill
-- `get_popular_skills`: List the most popular skills sorted by installs or rating
 
 ## Contact
 

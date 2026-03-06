@@ -1,41 +1,63 @@
 # Pymaia Skills — Full Documentation
 
-> The #1 skill directory for Claude Code. Give your Claude superpowers.
+> The #1 skill directory for Claude Code. 38,000+ professional skills. Install any skill in 2 minutes.
 
 ## Overview
 
-Pymaia Skills is a curated marketplace where professionals discover, install, and share "skills" for Claude Code. A skill is a knowledge file that teaches Claude how to perform a specific professional task — from generating marketing briefs to reviewing legal contracts.
+Pymaia Skills is a curated marketplace where professionals discover, install, and share "skills" for Claude Code. A skill is a knowledge file (SKILL.md) that teaches Claude how to perform a specific professional task — from generating marketing briefs to reviewing legal contracts to automating DevOps pipelines.
 
 No coding required. No terminal knowledge needed. Install any skill in 2 minutes with a single command.
 
+## Key Numbers
+
+- 38,000+ skills available
+- 19 categories
+- 100+ MCP connectors
+- 2 min average install time
+- Community reviews and ratings
+
 ## Target Audience
 
-Pymaia Skills serves non-technical professionals who want to augment their AI capabilities:
-- **Marketers**: Content creation, campaign briefs, analytics
+- **Marketers**: Content creation, campaign briefs, analytics, social media
 - **Lawyers**: Contract review, legal document drafting, compliance
 - **Consultants**: Proposals, market research, presentations
 - **Founders**: Product definition, pitch decks, competitive analysis
 - **Designers**: Creative briefs, copy writing, design specs
+- **Developers**: Code quality, testing, CI/CD, documentation
+- **Sales**: Prospecting, CRM automation, proposals
+- **HR**: Recruiting, onboarding, policy documents
+- **Finance**: Financial modeling, reporting, compliance
+- **Healthcare**: Clinical documentation, research summaries
+- **Educators**: Curriculum design, assessment creation
 - **Any professional**: Productivity, writing, data analysis, automation
 
-## Skill Categories
+## 19 Skill Categories
 
-1. **AI (IA)** — Skills related to AI workflows and integrations
-2. **Development (Desarrollo)** — Coding and software development skills
-3. **Design (Diseño)** — Design and creative workflow skills
-4. **Marketing** — Marketing, content, and campaign skills
-5. **Automation (Automatización)** — Task automation and workflow skills
-6. **Data (Datos)** — Data analysis and visualization skills
-7. **Creativity (Creatividad)** — Creative writing and ideation skills
-8. **Productivity (Productividad)** — General productivity enhancement skills
-9. **Legal** — Legal document and compliance skills
-10. **Business (Negocios)** — Business strategy and operations skills
+1. **IA** — AI workflows, prompt engineering, agent building
+2. **Desarrollo** — Coding, software development, DevOps
+3. **Automatización** — Task automation, workflow orchestration
+4. **Diseño** — Design systems, UI/UX, creative workflows
+5. **Productividad** — General productivity, note-taking, planning
+6. **Datos** — Data analysis, visualization, ETL
+7. **Marketing** — Content, campaigns, SEO, social media
+8. **Legal** — Contract review, compliance, legal drafting
+9. **Negocios** — Strategy, operations, business planning
+10. **Creatividad** — Creative writing, ideation, storytelling
+11. **Ventas** — Sales automation, prospecting, CRM
+12. **Producto** — Product management, roadmaps, specs
+13. **Finanzas** — Financial modeling, reporting, budgeting
+14. **RRHH** — Recruiting, onboarding, HR policies
+15. **Soporte** — Customer support, ticketing, knowledge bases
+16. **Salud** — Clinical documentation, health research
+17. **Educación** — Curriculum design, e-learning, assessments
+18. **E-commerce** — Store management, product listings, analytics
+19. **Operaciones** — Logistics, supply chain, process optimization
 
 ## How Skills Work
 
 ### Installation Process
 1. Browse the skill directory at /explorar
-2. Find a skill that matches your needs
+2. Find a skill — search by name, category, or describe what you need (AI-powered search)
 3. Click "Install skill" to copy the install command
 4. Paste the command in Claude Code and press Enter
 5. Claude now has expert knowledge for that task
@@ -45,13 +67,13 @@ Pymaia Skills serves non-technical professionals who want to augment their AI ca
 - Well-defined use cases with before/after scenarios
 - Fast installation (typically 2 minutes)
 - Community reviews and ratings
+- Active GitHub repository
 
 ## MCP Server
 
-The Pymaia Skills MCP Server enables Claude to automatically recommend relevant skills based on your conversation context.
+The Pymaia Skills MCP Server enables Claude to automatically recommend relevant skills based on your conversation context. Compatible with Claude Code, Cursor, Windsurf, and any MCP-compatible client.
 
 ### Installation
-Add this to your Claude Code or Cursor MCP configuration:
 ```json
 {
   "mcpServers": {
@@ -63,15 +85,81 @@ Add this to your Claude Code or Cursor MCP configuration:
 }
 ```
 
-### Available Tools
-- **search_skills**: Searches for relevant skills based on task description
-- **get_skill_details**: Returns full skill information including description, use cases, and install command
-- **get_popular_skills**: Lists trending skills sorted by installs or rating
+### Available Tools (10)
+
+#### 1. search_skills
+Search for skills by keyword or natural language query.
+- Parameters: `query` (string, required), `category` (string), `limit` (number, default 10)
+- Returns: Array of skills with name, slug, tagline, rating, installs
+
+#### 2. get_skill_details
+Get full details of a specific skill.
+- Parameters: `slug` (string, required)
+- Returns: Full skill object with description, use cases, install command, reviews, GitHub info
+
+#### 3. list_popular_skills
+List top skills sorted by installs or rating.
+- Parameters: `sort_by` ("installs" | "rating"), `category` (string), `limit` (number)
+- Returns: Array of top skills
+
+#### 4. list_new_skills
+List recently added skills.
+- Parameters: `category` (string), `limit` (number)
+- Returns: Array of newest skills
+
+#### 5. list_categories
+List all 19 skill categories with skill counts.
+- Returns: Array of categories with count per category
+
+#### 6. search_by_role
+Find skills for a specific professional role (e.g., "marketer", "lawyer", "developer").
+- Parameters: `role` (string, required), `limit` (number)
+- Returns: Skills tagged for that role
+
+#### 7. recommend_for_task
+AI-powered recommendations — describe what you need and get the best matching skills.
+- Parameters: `task_description` (string, required), `limit` (number)
+- Returns: Ranked skills with relevance explanation
+
+#### 8. compare_skills
+Compare two or more skills side by side.
+- Parameters: `slugs` (string[], required)
+- Returns: Comparison table with features, ratings, installs
+
+#### 9. get_directory_stats
+Get aggregate statistics about the directory.
+- Returns: Total skills, total installs, total reviews, category breakdown
+
+#### 10. get_install_command
+Get the install command for a specific skill.
+- Parameters: `slug` (string, required)
+- Returns: Install command string ready to paste
 
 ### Example Conversations
 - "I need to prepare 10 campaign briefs by tomorrow" → Claude recommends Brief Generator and Campaign Planner
 - "I need to review a service contract" → Claude recommends Contract Reviewer
 - "What skills are marketers using most?" → Claude lists top marketing skills
+- "I want to automate my code reviews" → Claude recommends Code Review skills
+- "Help me create a financial model" → Claude recommends Finance modeling skills
+
+## MCP Connectors Directory
+
+Pymaia Skills also maintains a directory of 100+ MCP connectors — external integrations that extend Claude's capabilities with real-time access to tools and services.
+
+### Connector Categories
+dev-tools, data, communication, productivity, ai, cloud, design, business, finance, marketing, security, analytics, automation, education, social, media, iot, legal, hr, health, ecommerce, support
+
+### How Connectors Differ from Skills
+- **Skills** = knowledge files that teach Claude *how* to do something
+- **Connectors** = MCP servers that give Claude *access* to external tools and data (Slack, GitHub, databases, etc.)
+
+Some skills require specific connectors to work. These dependencies are listed on the skill detail page.
+
+Browse connectors at: /conectores
+
+## Smart Search
+
+The explore page (/explorar) features AI-powered smart search. When you type a natural language query (3+ words with intent indicators), the system uses AI to understand your intent and find the most relevant skills, even if they don't match your exact keywords.
 
 ## Teams Plan
 
@@ -100,20 +188,28 @@ For agencies and companies that want to standardize AI usage:
 - **After**: Structured competitive analysis with pricing, features and gaps in 10 min
 - **Time saved**: ~3 hours per analysis
 
+### Code Review
+- **Before**: Manual review of PRs, checking style guides, security patterns
+- **After**: Automated review with actionable feedback in seconds
+- **Time saved**: ~30 min per PR
+
 ## Publishing Skills
 
 Professionals can publish their own skills:
 1. Sign in to Pymaia Skills
 2. Go to /publicar
-3. Fill in skill details (name, description, use cases, install command)
-4. Submit for review
-5. Once approved, the skill appears in the public directory
+3. Use the AI-assisted skill builder to create your skill through conversation
+4. Test and preview your skill
+5. Submit for review
+6. Once approved, the skill appears in the public directory
 
 ## Sitemap
 
 - `/` — Landing page with overview, how it works, and popular skills
 - `/explorar` — Full skill directory with search, filters, and pagination
 - `/skill/{slug}` — Individual skill detail page with reviews and install guide
+- `/conectores` — MCP connectors directory
+- `/conector/{slug}` — Individual connector detail page
 - `/primeros-pasos` — Getting started guide for new Claude Code users
 - `/mcp` — MCP Server documentation and installation
 - `/teams` — Teams plan features and pricing
