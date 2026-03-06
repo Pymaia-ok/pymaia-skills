@@ -248,12 +248,36 @@ const Explore = () => {
             </div>
           )}
 
-          {/* Cross-link banner to Connectors */}
+          {/* MCP connector banner */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mt-12 p-6 rounded-2xl bg-secondary border border-border flex flex-col sm:flex-row items-center justify-between gap-4"
+            className="mt-12 p-5 rounded-2xl bg-gradient-to-r from-primary/10 via-secondary to-accent/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/15">
+                <Bot className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">{t("explore.mcpBannerTitle")}</p>
+                <p className="text-sm text-muted-foreground">{t("explore.mcpBannerSubtitle")}</p>
+              </div>
+            </div>
+            <Link
+              to="/conectores/pymaia-skills"
+              className="px-5 py-2.5 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
+              {t("explore.mcpBannerCta")}
+            </Link>
+          </motion.div>
+
+          {/* Cross-link banner to Connectors */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-4 p-5 rounded-2xl bg-secondary border border-border flex flex-col sm:flex-row items-center justify-between gap-4"
           >
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-primary/10">
