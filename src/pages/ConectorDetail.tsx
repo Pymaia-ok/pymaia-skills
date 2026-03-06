@@ -27,8 +27,17 @@ const CATEGORY_COLORS: Record<string, string> = {
 const ConectorDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const isEs = i18n.language === "es";
+
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/conectores");
+    }
+  }, [navigate]);
 
   const { data: connector, isLoading } = useQuery({
     queryKey: ["connector", slug],
