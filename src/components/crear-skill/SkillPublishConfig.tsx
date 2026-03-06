@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Rocket, Plus, Trash2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, Rocket, Plus, Trash2, ExternalLink, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SKILL_CATEGORIES } from "@/lib/api";
@@ -35,6 +35,7 @@ interface SkillPublishConfigProps {
     pricing_model: string;
     price_amount: number | null;
     required_mcps?: RequiredMcp[];
+    is_public: boolean;
   }) => Promise<void>;
   onBack: () => void;
   isPublishing: boolean;
@@ -50,6 +51,7 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
   const [priceAmount, setPriceAmount] = useState<string>("");
   const [mcps, setMcps] = useState<RequiredMcp[]>(initialMcps);
   const [newToolInput, setNewToolInput] = useState<Record<number, string>>({});
+  const [isPublic, setIsPublic] = useState(true);
 
   const toggle = (arr: string[], item: string) =>
     arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
@@ -173,6 +175,35 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
         </Button>
       </div>
 
+      {/* Visibility */}
+      <div>
+        <label className="text-sm font-medium mb-3 block">Visibilidad</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setIsPublic(true)}
+            className={`rounded-2xl border p-4 text-left transition-colors flex items-center gap-3 ${isPublic ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-secondary/50"}`}
+          >
+            <Globe className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Pública</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Visible en el marketplace</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsPublic(false)}
+            className={`rounded-2xl border p-4 text-left transition-colors flex items-center gap-3 ${!isPublic ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-secondary/50"}`}
+          >
+            <Lock className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Privada</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Solo accesible con link</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Pricing */}
       <div>
         <label className="text-sm font-medium mb-3 block">Modelo de precio</label>
@@ -223,6 +254,7 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
           pricing_model: pricingModel,
           price_amount: pricingModel !== "free" && priceAmount ? parseFloat(priceAmount) : null,
           required_mcps: mcps.filter(m => m.name.trim()),
+          is_public: isPublic,
         })}
         disabled={isPublishing || !category || roles.length === 0 || (pricingModel !== "free" && !priceAmount)}
         className="w-full rounded-full gap-2" size="lg"

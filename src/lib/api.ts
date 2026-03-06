@@ -207,8 +207,12 @@ export async function fetchAllSkills() {
   return (data || []) as SkillFromDB[];
 }
 
-export async function fetchSkillBySlug(slug: string) {
-  const { data, error } = await supabase.from("skills").select("*").eq("slug", slug).maybeSingle();
+export async function fetchSkillBySlug(slug: string, shareToken?: string) {
+  let query = supabase.from("skills").select("*").eq("slug", slug);
+  if (shareToken) {
+    query = query.eq("share_token", shareToken);
+  }
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data as SkillFromDB | null;
 }
@@ -226,8 +230,14 @@ export async function submitSkill(skill: {
   industry: string[];
   creator_id: string;
   required_mcps?: any[];
+  is_public?: boolean;
 }) {
-  const { error } = await supabase.from("skills").insert(skill as any);
+  // Generate share_token for private skills
+  const data: any = { ...skill };
+  if (data.is_public === false) {
+    data.share_token = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  }
+  const { error } = await supabase.from("skills").insert(data);
   if (error) throw error;
 }
 

@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
+import ShareButton from "@/components/ShareButton";
 
 const SkillDetail = () => {
   const { slug } = useParams();
@@ -26,7 +27,11 @@ const SkillDetail = () => {
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: skill, isLoading } = useQuery({ queryKey: ["skill", slug], queryFn: () => fetchSkillBySlug(slug || ""), enabled: !!slug });
+  // Support share_token for private skills
+  const searchParams = new URLSearchParams(window.location.search);
+  const shareToken = searchParams.get("token");
+
+  const { data: skill, isLoading } = useQuery({ queryKey: ["skill", slug, shareToken], queryFn: () => fetchSkillBySlug(slug || "", shareToken || undefined), enabled: !!slug });
   const { data: reviews = [], refetch: refetchReviews } = useQuery({ queryKey: ["reviews", skill?.id], queryFn: () => fetchReviewsForSkill(skill!.id), enabled: !!skill?.id });
   const { data: creatorProfile } = useQuery({ queryKey: ["creator", skill?.creator_id], queryFn: () => fetchProfile(skill!.creator_id!), enabled: !!skill?.creator_id });
 
@@ -206,6 +211,24 @@ const SkillDetail = () => {
                   <ExternalLink className="w-4 h-4" /><span>{t("detail.viewRepo")}</span>
                 </a>
               )}
+              {!(skill as any).is_public && (
+                <div className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-xs font-medium">{t("detail.privateSkill", "Skill privada")}</span>
+                </div>
+              )}
+              <div className="ml-auto">
+                <ShareButton
+                  url={(() => {
+                    const base = `https://pymaiaskills.lovable.app/skill/${skill.slug}`;
+                    return (skill as any).is_public === false && (skill as any).share_token
+                      ? `${base}?token=${(skill as any).share_token}`
+                      : base;
+                  })()}
+                  title={displayName}
+                  description={tagline}
+                />
+              </div>
             </div>
           </motion.div>
 
