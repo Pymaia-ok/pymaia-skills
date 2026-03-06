@@ -4,7 +4,6 @@ import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersH
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
