@@ -1,7 +1,7 @@
 export default {
   nav: {
     home: "Home",
-    explore: "Explore",
+    explore: "Skills",
     connectors: "Connectors",
     teams: "Teams",
     gettingStarted: "Getting Started",

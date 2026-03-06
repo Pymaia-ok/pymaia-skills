@@ -2,7 +2,7 @@ export default {
   // Navbar
   nav: {
     home: "Inicio",
-    explore: "Explorar",
+    explore: "Skills",
     connectors: "Conectores",
     teams: "Teams",
     gettingStarted: "Primeros pasos",
