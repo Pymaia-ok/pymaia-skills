@@ -18,8 +18,20 @@ const Explore = () => {
 
   useSEO({
     title: "Explore Skills — Pymaia Skills",
-    description: "Browse thousands of skills for Claude Code. Filter by category, search by name, and find the perfect skill for your work.",
+    description: "Browse 38,000+ skills for Claude Code. Filter by 19 categories, search by name or intent, and find the perfect skill for your work.",
     canonical: "https://pymaiaskills.lovable.app/explorar",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: "Explore Skills — Pymaia Skills",
+      description: "Browse 38,000+ professional skills for Claude Code across 19 categories.",
+      url: "https://pymaiaskills.lovable.app/explorar",
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Pymaia Skills",
+        url: "https://pymaiaskills.lovable.app",
+      },
+    },
   });
 
   const initialSearch = searchParams.get("q") || "";

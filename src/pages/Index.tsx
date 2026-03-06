@@ -26,19 +26,47 @@ const Index = () => {
 
   useSEO({
     title: "Pymaia Skills — Supercharge your work with AI",
-    description: "A directory with thousands of professional skills. Pick one, install it in Claude, and your AI becomes an expert.",
+    description: "The #1 skill directory for Claude Code. 38,000+ professional skills ready to install in 2 minutes. Give your Claude superpowers.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      name: "Pymaia Skills",
-      url: "https://pymaiaskills.lovable.app",
-      description: "The #1 skill directory for Claude Code",
-      potentialAction: {
-        "@type": "SearchAction",
-        target: "https://pymaiaskills.lovable.app/explorar?q={search_term_string}",
-        "query-input": "required name=search_term_string",
-      },
+      "@graph": [
+        {
+          "@type": "WebSite",
+          name: "Pymaia Skills",
+          url: "https://pymaiaskills.lovable.app",
+          description: "The #1 skill directory for Claude Code. 38,000+ professional skills.",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://pymaiaskills.lovable.app/explorar?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
+        },
+        {
+          "@type": "Organization",
+          name: "Pymaia",
+          url: "https://pymaiaskills.lovable.app",
+          logo: "https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png",
+          contactPoint: {
+            "@type": "ContactPoint",
+            email: "info@pymaia.com",
+            contactType: "customer service",
+          },
+        },
+        {
+          "@type": "WebApplication",
+          name: "Pymaia Skills",
+          url: "https://pymaiaskills.lovable.app",
+          applicationCategory: "DeveloperApplication",
+          operatingSystem: "Web",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
+          featureList: "Skill directory, MCP Server, AI-powered search, Connector catalog, Skill builder",
+        },
+      ],
     },
   });
 
