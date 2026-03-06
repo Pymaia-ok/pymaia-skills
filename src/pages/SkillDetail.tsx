@@ -27,7 +27,11 @@ const SkillDetail = () => {
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: skill, isLoading } = useQuery({ queryKey: ["skill", slug], queryFn: () => fetchSkillBySlug(slug || ""), enabled: !!slug });
+  // Support share_token for private skills
+  const searchParams = new URLSearchParams(window.location.search);
+  const shareToken = searchParams.get("token");
+
+  const { data: skill, isLoading } = useQuery({ queryKey: ["skill", slug, shareToken], queryFn: () => fetchSkillBySlug(slug || "", shareToken || undefined), enabled: !!slug });
   const { data: reviews = [], refetch: refetchReviews } = useQuery({ queryKey: ["reviews", skill?.id], queryFn: () => fetchReviewsForSkill(skill!.id), enabled: !!skill?.id });
   const { data: creatorProfile } = useQuery({ queryKey: ["creator", skill?.creator_id], queryFn: () => fetchProfile(skill!.creator_id!), enabled: !!skill?.creator_id });
 
