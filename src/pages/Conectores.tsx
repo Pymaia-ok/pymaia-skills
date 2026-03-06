@@ -45,10 +45,20 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const Conectores = () => {
   const { t, i18n } = useTranslation();
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get("cat") || null);
+  const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">((searchParams.get("filter") as any) || "all");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Sync state to URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (selectedCategory) params.set("cat", selectedCategory);
+    if (officialFilter !== "all") params.set("filter", officialFilter);
+    setSearchParams(params, { replace: true });
+  }, [search, selectedCategory, officialFilter, setSearchParams]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
