@@ -63,6 +63,11 @@ export default {
     popularSubtitle: "The ones professionals like you use the most.",
     popularCta: "View all skills",
 
+    connectorsTag: "Connectors",
+    connectorsTitle: "Connect your favorite tools",
+    connectorsSubtitle: "Skills become more powerful when connected to the tools you already use. Gmail, Slack, GitHub and more.",
+    connectorsCtaAll: "View all connectors",
+
     beforeAfterTitle: "The before & after",
     beforeAfterSubtitle: "Real cases of how skills transform daily work.",
     bamarketerRole: "Marketer",

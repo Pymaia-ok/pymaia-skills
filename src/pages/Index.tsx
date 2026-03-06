@@ -8,6 +8,7 @@ import MarqueeSection from "@/components/landing/MarqueeSection";
 import TwoPathsSection from "@/components/landing/TwoPathsSection";
 import WizardSection from "@/components/landing/WizardSection";
 import PopularSkills from "@/components/landing/PopularSkills";
+import ConnectorsSection from "@/components/landing/ConnectorsSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
@@ -51,6 +52,7 @@ const Index = () => {
         <TwoPathsSection />
         <WizardSection allSkills={allSkills} />
         <PopularSkills />
+        <ConnectorsSection />
         <BeforeAfterSection />
         <FinalCTA />
         <Footer />
