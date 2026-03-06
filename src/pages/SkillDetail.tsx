@@ -86,7 +86,7 @@ const SkillDetail = () => {
 
   if (!skill) {
     return (
-      <div className="min-h-screen bg-background"><Navbar />
+      <div className="min-h-screen bg-background">
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24 text-center">
           <h1 className="section-title mb-4">{t("detail.notFound")}</h1>
           <Link to="/explorar" className="text-muted-foreground hover:text-foreground">← {t("detail.backToDirectory")}</Link>
