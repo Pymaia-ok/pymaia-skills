@@ -943,9 +943,27 @@ Deno.serve(async (req) => {
       case "claudeplugins": discovered = await fetchClaudePlugins(letter); break;
       case "claudeplugins-crawl": discovered = await fetchClaudePluginsCrawl(); break;
       case "github-search": {
-        const topics = topic ? [topic] : ["mcp-server", "claude-skill", "agent-skill", "mcp", "model-context-protocol"];
+        const defaultTopics = [
+          "mcp-server", "claude-skill", "agent-skill", "mcp", "model-context-protocol",
+          // Domain-specific topics
+          "cursor-rules", "claude-rules", "ai-rules",
+          "ai-agent", "ai-assistant", "llm-tool",
+          "prompt-engineering", "ai-workflow",
+          "autocad", "cad", "bim", "revit",
+        ];
+        const topics = topic ? [topic] : defaultTopics;
         for (const t of topics) {
           const results = await fetchGitHubSearch(t);
+          discovered.push(...results);
+        }
+        break;
+      }
+      case "github-code-search": {
+        const queries = topic
+          ? [topic]
+          : ["filename:SKILL.md path:/", "filename:.cursorrules path:/"];
+        for (const q of queries) {
+          const results = await fetchGitHubCodeSearch(q);
           discovered.push(...results);
         }
         break;
