@@ -10,6 +10,7 @@ import WizardSection from "@/components/landing/WizardSection";
 import PopularSkills from "@/components/landing/PopularSkills";
 import ConnectorsSection from "@/components/landing/ConnectorsSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
+import McpBannerSection from "@/components/landing/McpBannerSection";
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 import { fetchSkills } from "@/lib/api";
