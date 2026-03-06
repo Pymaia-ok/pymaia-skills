@@ -1,57 +1,27 @@
 
 
-## Plan: Recategorizar skills existentes y restaurar todas las categorías
+## Plan: Ampliar importación de Skills confiables desde GitHub — ✅ COMPLETADO
 
-### Situación actual
-- 38,699 skills aprobados en solo 10 categorías
-- Las categorías eliminadas (Ventas, Producto, Finanzas, RRHH, Soporte, Salud, Educación, E-commerce, Operaciones) tienen **0 skills** porque nunca se categorizaron ahí
-- Pero al analizar por keywords, hay suficiente contenido para poblarlas:
+### Lo que se hizo
 
-```text
-Categoría        Skills potenciales
-─────────────────────────────────────
-Soporte          ~2,078
-Operaciones      ~1,877
-Educación        ~1,731
-Ventas           ~1,019
-Finanzas         ~998
-Salud            ~900
-Producto         ~820
-E-commerce       ~799
-RRHH             ~531
+**1. Nueva source `github-code-search` en `sync-skills`**
+- Busca repos con `filename:SKILL.md path:/` y `filename:.cursorrules path:/` via GitHub Code Search API
+- Descubre skills legítimos que no usan los topics convencionales
+
+**2. Topics de dominio ampliados en `github-search`**
+- Agregados: `cursor-rules`, `claude-rules`, `ai-rules`, `ai-agent`, `ai-assistant`, `llm-tool`, `prompt-engineering`, `ai-workflow`, `autocad`, `cad`, `bim`, `revit`
+
+**3. Skill de AutoCAD insertado**
+- `autocad-drafting` (puran-water/autocad-mcp, 159⭐) insertado como approved
+
+### Cómo ejecutar
 ```
+# Buscar repos con SKILL.md
+POST sync-skills { "source": "github-code-search" }
 
-### Lo que haría
+# Buscar por topic específico
+POST sync-skills { "source": "github-search", "topic": "autocad" }
 
-**1. Restaurar categorías en el UI** (`src/lib/api.ts`)
-
-Volver a agregar las 9 categorías removidas a `SKILL_CATEGORIES`, quedando 19 en total.
-
-**2. Recategorizar skills existentes vía SQL**
-
-Ejecutar UPDATEs con las mismas regex de la tabla de arriba, priorizando las categorías más específicas primero (Salud, Educación, RRHH, E-commerce) para evitar que skills de nicho queden en categorías genéricas como "negocios" o "automatización".
-
-El orden de prioridad sería:
-1. Salud (más específico)
-2. Educación
-3. RRHH
-4. E-commerce
-5. Finanzas
-6. Ventas
-7. Producto
-8. Soporte
-9. Operaciones
-
-**3. Actualizar `inferCategory` en sync-skills** (`supabase/functions/sync-skills/index.ts` y `supabase/functions/import-skills-csv/index.ts`)
-
-Agregar las 9 nuevas categorías al motor de inferencia para que skills futuros se clasifiquen correctamente.
-
-### Archivos a modificar
-- `src/lib/api.ts` — restaurar las 9 categorías en `SKILL_CATEGORIES`
-- `supabase/functions/sync-skills/index.ts` — agregar las 9 categorías a `inferCategory()`
-- `supabase/functions/import-skills-csv/index.ts` — misma actualización de `inferCategory()`
-- SQL data updates — recategorizar ~10K skills existentes
-
-### Categorías que podrían quedar cortas
-Todas tienen suficiente contenido (>500 skills). **Creatividad** es la única con solo 12 skills actualmente, pero no está en el scope de este cambio.
-
+# Ejecutar github-search con TODOS los topics (incluidos los nuevos)
+POST sync-skills { "source": "github-search" }
+```

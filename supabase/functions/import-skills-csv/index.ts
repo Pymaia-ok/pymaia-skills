@@ -7,14 +7,25 @@ const corsHeaders = {
 
 function inferCategory(name: string, desc: string): string {
   const text = `${name} ${desc}`.toLowerCase();
+  // Specific domains first
+  if (text.match(/\b(health|medical|clinic|hospital|patient|diagnosis|pharma|therapist|psycholog|dentist|nurse|doctor|wellness|fitness|nutrition|mental.?health|telemedicine|ehr\b|fhir\b)/)) return "salud";
+  if (text.match(/\b(education|learning|teaching|teacher|student|course|curriculum|tutor|school|university|academic|quiz|exam|grading|lms\b|e.?learning|classroom|training|onboard)/)) return "educación";
+  if (text.match(/\b(hr\b|human.?resource|recruit|hiring|talent|candidate|interview|resume|cv\b|payroll|employee|workforce|people.?ops|performance.?review|compensation)/)) return "rrhh";
   if (text.match(/\b(legal|lawyer|law\b|contract|compliance|regulat|gdpr|hipaa|attorney)/)) return "legal";
-  if (text.match(/\b(marketing|seo\b|sem\b|adwords|campaign|newsletter|social.?media|brand|copywriting|advertising|hubspot)/)) return "marketing";
+  if (text.match(/\b(e.?commerce|shopify|woocommerce|magento|cart|checkout|product.?catalog|inventory|warehouse|shipping|fulfillment|order.?manage|marketplace|dropship|retail)/)) return "ecommerce";
+  if (text.match(/\b(finance|financial|accounting|bookkeep|tax\b|taxes|invoice|billing|payment|stripe|paypal|banking|loan|invest|portfolio|stock|trading|crypto|blockchain|budget|forecast|expense|revenue|cashflow|ledger|quickbooks|xero)/)) return "finanzas";
+  if (text.match(/\b(sales|selling|lead.?gen|prospect|pipeline|deal|crm|salesforce|hubspot.?crm|cold.?email|outreach|pitch|demo|closing|b2b|b2c|sdr\b|bdr\b)/)) return "ventas";
+  if (text.match(/\b(product.?manage|roadmap|feature.?request|backlog|sprint|agile|scrum|kanban|user.?story|prioriti|mvp|release|launch|product.?analytics|a.?b.?test|feedback|survey|nps\b)/)) return "producto";
+  if (text.match(/\b(support|helpdesk|help.?desk|ticket|zendesk|freshdesk|intercom|live.?chat|customer.?service|troubleshoot|faq|knowledge.?base|incident|escalat|sla\b|customer.?success)/)) return "soporte";
+  if (text.match(/\b(operations|ops\b|devops|sre\b|monitor|observ|logging|alert|uptime|incident.?manage|infra.?manage|scaling|load.?balanc|gitops|supply.?chain|logistics|procurement)/)) return "operaciones";
+  // Broader categories
+  if (text.match(/\b(marketing|seo\b|sem\b|adwords|campaign|newsletter|email.?market|social.?media|brand|copywriting|advertising|ads\b|hubspot|mailchimp|google.?ads)/)) return "marketing";
   if (text.match(/\b(design|figma|sketch|adobe|ui.?kit|ux\b|wireframe|prototype|tailwind|css|style|layout|responsive)/)) return "diseño";
   if (text.match(/\b(database|sql\b|postgres|mysql|mongo|redis|bigquery|snowflake|data.?warehouse|etl\b|csv|excel|xlsx|tableau|power.?bi|grafana|analytics|metric|dashboard|pandas|dataframe|dbt\b)/)) return "datos";
   if (text.match(/\b(automat|workflow|zapier|n8n|scrape|crawl|puppeteer|playwright|selenium|cron|schedul|webhook|integration|sync\b|orchestrat|trigger|batch|queue)/)) return "automatización";
   if (text.match(/\b(video|audio|music|sound|animation|3d\b|render|image.?gen|dall.?e|stable.?diffus|midjourney|creative|art\b|photo|podcast|youtube|tiktok)/)) return "creatividad";
   if (text.match(/\b(slack|discord|teams|notion|obsidian|todoist|trello|jira|asana|linear|calendar|email|gmail|pdf\b|document|note|wiki|translat|meeting|zoom)/)) return "productividad";
-  if (text.match(/\b(business|finance|invoice|payment|stripe|paypal|shopify|e.?commerce|sales|crm|salesforce|pitch|investor|startup|revenue|pricing|accounting)/)) return "negocios";
+  if (text.match(/\b(business|startup|entrepreneur|pitch|investor|strategy|consult)/)) return "negocios";
   if (text.match(/\b(github|gitlab|docker|kubernetes|aws\b|azure|gcp\b|terraform|ci.?cd|deploy|server|api\b|rest\b|graphql|typescript|javascript|python|rust|golang|node|npm|lint|test|debug|git\b|commit|code.?review|webpack|vite\b|build)/)) return "desarrollo";
   if (text.match(/\b(ai\b|llm|language.?model|gpt|claude|gemini|openai|anthropic|embedding|vector|rag\b|chat.?bot|prompt|agent|copilot|assistant)/)) return "ia";
   if (text.match(/\b(mcp|server|tool|plugin|extension)/)) return "desarrollo";
