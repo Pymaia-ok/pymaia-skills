@@ -1,46 +1,72 @@
 
 
-## Plan: Agregar skills faltantes y conector GoDaddy MCP
+## Plan: Optimizar SEO y LLM Discovery
 
-### Hallazgos
+### Estado actual
 
-**GoDaddy MCP**: Sí existe oficialmente en `developer.godaddy.com/mcp`. Permite buscar dominios y verificar disponibilidad desde Claude/ChatGPT. No lo tenemos en nuestra tabla `mcp_servers`.
+Ya tenés una base sólida:
+- `llms.txt` y `llms-full.txt` existen en `/public`
+- `<link rel="llms">` en `index.html`
+- `robots.txt` referencia ambos archivos
+- `useSEO` hook con JSON-LD en Index, Explore, SkillDetail, Conectores, ConectorDetail
+- Open Graph y Twitter Cards configurados
+- MCP Server funcional con 10 herramientas
 
-**Skills faltantes**: De las 3 fuentes analizadas, ya tenemos la gran mayoría (56 de ~70). Faltan ~14 skills relevantes:
+### Problemas a corregir
 
-```text
-Skill faltante               Fuente              GitHub URL
-───────────────────────────────────────────────────────────
-mcp-builder                  WebReactiva+Composio anthropics/skills
-imagen                       Composio            sanjay3290/ai-skills
-notebooklm-integration       Composio            PleasePrompto/notebooklm-skill
-google-workspace-skills      Composio            sanjay3290/ai-skills
-computer-forensics           Composio            mhattingpete/claude-skills-marketplace
-file-deletion                Composio            mhattingpete/claude-skills-marketplace
-threat-hunting-sigma-rules   Composio            jthack/threat-hunting-with-sigma-rules-skill
-family-history-research      Composio            emaynard/claude-family-history-research-skill
-jules                        Composio            sanjay3290/ai-skills
-claude-code-terminal-title   Composio            bluzername/claude-code-terminal-title
-pypict-claude-skill          Composio            omkamal/pypict-claude-skill
-move-code-quality-skill      Composio            1NickPappas/move-code-quality-skill
-postgres (skill)             Composio            sanjay3290/ai-skills
-outline (skill)              Composio            sanjay3290/ai-skills
-```
+1. **llms.txt desactualizado**: Dice "14,000+ skills" y solo lista 3 tools del MCP (tiene 10). No menciona conectores, smart search, ni las 19 categorías reales.
+2. **llms-full.txt incompleto**: Solo lista 10 categorías (hay 19), MCP tools desactualizados, falta info de conectores, falta la API de smart-search.
+3. **No hay sitemap.xml**: `robots.txt` lo referencia pero no existe. Crítico para crawlers.
+4. **Falta `/.well-known/ai-plugin.json`**: Estándar emergente para descubrimiento por agentes AI.
+5. **JSON-LD limitado**: Solo WebSite en Index. Falta SoftwareApplication, ItemList en Explore, Product en SkillDetail.
+6. **Sin `<meta>` para AI crawlers**: Faltan hints como `ai:description`, `ai:category`.
 
-### Lo que haría
+### Cambios propuestos
 
-**1. Agregar GoDaddy como conector MCP** via SQL INSERT en `mcp_servers` con:
-- Nombre: GoDaddy
-- Categoría: business
-- GitHub URL del servidor comunitario + homepage oficial
-- Descripción: buscar dominios y verificar disponibilidad
+**1. Reescribir `public/llms.txt`** (conciso, actualizado)
+- Actualizar conteo de skills (~38K)
+- Listar las 19 categorías reales
+- Listar las 10 herramientas MCP reales
+- Agregar sección de conectores
+- Agregar endpoint de smart-search
 
-**2. Insertar las ~14 skills faltantes** via SQL INSERT en `skills` con:
-- Slugs, display names, taglines, descriptions
-- GitHub URLs correctas
-- Categorías inferidas (desarrollo, seguridad, productividad, creatividad)
-- Status `approved`
+**2. Reescribir `public/llms-full.txt`** (documentación completa)
+- Toda la info de llms.txt expandida
+- Ejemplos de uso por rol
+- Documentación completa del MCP con las 10 tools y sus schemas
+- Sección de conectores con categorías
+- API de smart-search documentada
+- Before/after cases actualizados
+
+**3. Crear `public/sitemap.xml`** (estático con rutas principales)
+- Todas las rutas estáticas del app (/, /explorar, /mcp, /teams, /conectores, /primeros-pasos, /terminos, /privacidad)
+- Nota: las rutas dinámicas (/skill/:slug, /conector/:slug) requerirían un sitemap dinámico generado por edge function — se puede hacer en un paso siguiente
+
+**4. Crear `public/.well-known/ai-plugin.json`**
+- Manifest estándar OpenAI/agentes para descubrimiento automático
+- Apunta al MCP server y a llms.txt
+
+**5. Mejorar JSON-LD en páginas clave**
+- `SkillDetail.tsx`: Agregar schema `SoftwareApplication` con rating, installCount, category
+- `Explore.tsx`: Agregar schema `CollectionPage`
+- `Index.tsx`: Enriquecer con `Organization` + `WebApplication`
+
+**6. Actualizar `index.html`**
+- Agregar `<link rel="manifest">` al ai-plugin.json
+- Agregar meta tags adicionales para AI discovery
+
+**7. Actualizar `robots.txt`**
+- Agregar crawlers AI conocidos (GPTBot, ClaudeBot, PerplexityBot, etc.) con Allow explícito
 
 ### Archivos a modificar
-- Solo SQL (INSERTs en `skills` y `mcp_servers`). Sin cambios de código frontend.
+- `public/llms.txt` — reescribir completo
+- `public/llms-full.txt` — reescribir completo
+- `public/sitemap.xml` — crear nuevo
+- `public/.well-known/ai-plugin.json` — crear nuevo
+- `public/robots.txt` — actualizar con AI crawlers
+- `index.html` — agregar meta tags AI
+- `src/hooks/useSEO.ts` — sin cambios
+- `src/pages/Index.tsx` — enriquecer JSON-LD
+- `src/pages/SkillDetail.tsx` — agregar SoftwareApplication JSON-LD
+- `src/pages/Explore.tsx` — agregar CollectionPage JSON-LD
 
