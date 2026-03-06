@@ -131,7 +131,12 @@ const ConectorDetail = () => {
                 </div>
               )}
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{connector.name}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-foreground">{connector.name}</h1>
+                  {connector.security_status === "verified" && (
+                    <ShieldCheck className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  )}
+                </div>
                 <span className="text-sm text-muted-foreground capitalize">
                   {t(`connectors.${connector.category}`, connector.category)}
                 </span>
