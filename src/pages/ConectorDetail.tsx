@@ -104,7 +104,6 @@ const ConectorDetail = () => {
   if (!connector) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-3xl mx-auto px-6 py-16 text-center">
           <p className="text-muted-foreground text-lg">Connector not found</p>
           <Link to="/conectores" className="text-primary hover:underline mt-4 inline-block">
