@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User, Menu, X, Globe } from "lucide-react";
+import { LogOut, Menu, X, Globe, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import logoImg from "@/assets/logo.png";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const location = useLocation();
@@ -17,69 +17,91 @@ const Navbar = () => {
   };
 
   const links = [
-    { to: "/", label: t("nav.home") },
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/teams", label: t("nav.teams") },
-    { to: "/primeros-pasos", label: t("nav.gettingStarted") },
   ];
 
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+  const initials = displayName.charAt(0).toUpperCase();
+
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border"
-    >
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="flex items-center">
+        {/* Zone 1: Logo */}
+        <Link to="/" className="flex items-center shrink-0">
           <img src={logoImg} alt="Pymaia Skills" className="h-9 md:h-10 w-auto" />
         </Link>
 
-        {/* Desktop */}
-        <div className="hidden md:flex items-center gap-6">
+        {/* Zone 2: Main nav (desktop) */}
+        <div className="hidden md:flex items-center gap-1">
           {links.map((link) => (
             <Link
               key={link.to}
               to={link.to}
-              className={`text-sm transition-colors ${
-                location.pathname === link.to
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+              className={`text-sm px-3 py-1.5 rounded-md transition-colors ${
+                location.pathname === link.to || (link.to !== "/" && location.pathname.startsWith(link.to))
+                  ? "text-foreground font-medium bg-secondary/60"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
               }`}
             >
               {link.label}
             </Link>
           ))}
+        </div>
 
+        {/* Zone 3: Actions (desktop) */}
+        <div className="hidden md:flex items-center gap-2">
           <button
             onClick={toggleLang}
             aria-label={t("nav.switchLang", { lang: i18n.language === "es" ? "EN" : "ES" })}
-            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
           >
             <Globe className="w-3.5 h-3.5" />
             {i18n.language === "es" ? "EN" : "ES"}
           </button>
 
+          <div className="w-px h-5 bg-border mx-1" />
+
           {user ? (
-            <div className="flex items-center gap-3">
-              <Link to="/crear-skill" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <>
+              <Link
+                to="/crear-skill"
+                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
                 {t("nav.publish")}
               </Link>
-              <span className="text-sm text-muted-foreground">
-                {user.user_metadata?.full_name || user.email?.split("@")[0]}
-              </span>
+
+              <div className="w-px h-5 bg-border mx-1" />
+
+              <Link
+                to="/mis-skills"
+                className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-secondary/40 transition-colors"
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-muted-foreground max-w-[120px] truncate">
+                  {displayName}
+                </span>
+              </Link>
+
               <button
                 onClick={signOut}
                 aria-label={t("nav.signOut")}
-                className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                className="p-1.5 rounded-md hover:bg-secondary/40 transition-colors text-muted-foreground hover:text-foreground"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
-            </div>
+            </>
           ) : (
             <Link
               to="/auth"
-              className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 text-sm font-medium px-4 py-1.5 rounded-full bg-foreground text-background hover:opacity-90 transition-opacity"
             >
-              <User className="w-3.5 h-3.5" />
               {t("nav.signIn")}
             </Link>
           )}
@@ -99,13 +121,16 @@ const Navbar = () => {
               key={link.to}
               to={link.to}
               onClick={() => setMobileOpen(false)}
-              className={`block text-sm py-1 ${
+              className={`block text-sm py-1.5 ${
                 location.pathname === link.to ? "text-foreground font-medium" : "text-muted-foreground"
               }`}
             >
               {link.label}
             </Link>
           ))}
+
+          <div className="h-px bg-border my-2" />
+
           <button
             onClick={toggleLang}
             className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-secondary text-muted-foreground"
@@ -113,17 +138,25 @@ const Navbar = () => {
             <Globe className="w-3.5 h-3.5" />
             {i18n.language === "es" ? "EN" : "ES"}
           </button>
+
           {user ? (
             <>
-              <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="block text-sm py-1 text-muted-foreground">
-                {t("nav.publishSkill")}
+              <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="flex items-center gap-1.5 text-sm py-1.5 text-muted-foreground">
+                <Plus className="w-3.5 h-3.5" />
+                {t("nav.publish")}
+              </Link>
+              <Link to="/mis-skills" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">{initials}</AvatarFallback>
+                </Avatar>
+                {displayName}
               </Link>
               <button onClick={() => { signOut(); setMobileOpen(false); }} className="text-sm text-muted-foreground">
                 {t("nav.signOut")}
               </button>
             </>
           ) : (
-            <Link to="/auth" onClick={() => setMobileOpen(false)} className="block text-sm font-medium py-1">
+            <Link to="/auth" onClick={() => setMobileOpen(false)} className="block text-sm font-medium py-1.5">
               {t("nav.signIn")}
             </Link>
           )}
