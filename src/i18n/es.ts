@@ -31,7 +31,7 @@ export default {
     heroBadge: "Conocimiento experto para tu IA",
     heroTitle: "Trabajá como un\nexperto en minutos.",
     heroSubtitle: "Miles de conocimientos profesionales listos para instalar. Elegí uno, instalalo y convertite en experto.",
-    heroCtaExplore: "Encontrá expertise para tu trabajo",
+    heroCtaExplore: "Quiero ser experto",
     heroCtaLearn: "Cómo funciona",
 
     howTitle: "Cómo funciona",
