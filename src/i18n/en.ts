@@ -417,6 +417,8 @@ export default {
     ai: "AI",
     design: "Design",
     storage: "Storage",
+    marketing: "Marketing",
+    analytics: "Analytics",
     general: "General",
     credentials: "Required credentials",
     installCommand: "Install command",

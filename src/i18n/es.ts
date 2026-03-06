@@ -430,6 +430,8 @@ export default {
     ai: "IA",
     design: "Diseño",
     storage: "Almacenamiento",
+    marketing: "Marketing",
+    analytics: "Analítica",
     general: "General",
     credentials: "Credenciales necesarias",
     installCommand: "Comando de instalación",
