@@ -29,7 +29,6 @@ const UserProfile = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24">
           <div className="h-20 w-20 rounded-full bg-secondary animate-pulse mb-4" />
           <div className="h-8 w-48 bg-secondary rounded animate-pulse" />
