@@ -177,91 +177,42 @@ const Conectores = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="relative mb-6"
+            className="relative mb-6 flex gap-2"
           >
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={t("connectors.searchPlaceholder")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
-            />
-          </motion.div>
-
-          <div className="relative mb-8">
-            {canScrollLeft && (
-              <>
-                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-                <button
-                  onClick={() => scrollCategories("left")}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              </>
-            )}
-            {canScrollRight && (
-              <>
-                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
-                <button
-                  onClick={() => scrollCategories("right")}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </>
-            )}
-            <div
-              ref={scrollRef}
-              onScroll={updateScrollIndicators}
-              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
-            >
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                  !selectedCategory
-                    ? "bg-foreground text-background"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {t("connectors.all")}
-              </button>
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() =>
-                    setSelectedCategory(cat === selectedCategory ? null : cat)
-                  }
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
-                    selectedCategory === cat
-                      ? "bg-foreground text-background"
-                      : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {t(`connectors.${cat}`, cat)}
-                </button>
-              ))}
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={t("connectors.searchPlaceholder")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
+              />
             </div>
-          </div>
-
-          {/* Official / Community filter */}
-          <div className="flex gap-2 mb-6">
-            {(["all", "official", "community"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setOfficialFilter(f)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                  officialFilter === f
-                    ? "bg-foreground text-background"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {f === "official" && <BadgeCheck className="w-3.5 h-3.5" />}
-                {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : (isEs ? "Comunitarios" : "Community")}
-              </button>
-            ))}
-          </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={`flex-shrink-0 w-14 rounded-2xl flex items-center justify-center transition-colors ${officialFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+                  <SlidersHorizontal className="w-5 h-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48 p-2">
+                {(["all", "official", "community"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setOfficialFilter(f)}
+                    className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${
+                      officialFilter === f
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {f === "official" && <BadgeCheck className="w-3.5 h-3.5" />}
+                    {f === "all" ? t("connectors.all") : f === "official" ? (isEs ? "Oficiales" : "Official") : (isEs ? "Comunitarios" : "Community")}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          </motion.div>
 
           {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
