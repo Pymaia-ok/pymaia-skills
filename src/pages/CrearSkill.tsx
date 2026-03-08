@@ -98,7 +98,7 @@ const CrearSkill = () => {
       setStep("preview");
     } catch (e) {
       console.error(e);
-      toast.error("Error al generar la skill. Intentá de nuevo.");
+      toast.error(t("crearSkill.errorGenerate"));
     }
     setIsGenerating(false);
   };
