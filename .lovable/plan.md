@@ -1,28 +1,34 @@
 
 
-## Auditoría de calidad — Packs por Rol (v2)
+## Auditoría de calidad — Packs por Rol (v3 FINAL)
 
-### Resumen: 15 packs, todos con 6-8 skills verificadas, 0 skills faltantes
+### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
 
-| Calidad | Packs |
-|---|---|
-| **Excelente** | Marketer, DevOps, Data Analyst, Product Manager, **Médico** ⬆, **Diseñador** ⬆ |
-| **Muy bueno** | RRHH, Ventas, **Abogado** ⬆, **Ingeniero** ⬆ |
-| **Bueno** | Founder, Consultor, **Profesor** ⬆, **Productividad** ⬆ |
-| **Aceptable** | **Arquitecto** (no existen skills CAD/BIM en la DB) |
+| Pack | Skills | Estado | Cambios v3 |
+|---|---|---|---|
+| **Marketer** | 8 | ✅ Excelente | Sin cambios |
+| **DevOps** | 8 | ✅ Excelente | Sin cambios |
+| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
+| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
+| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
+| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
+| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
+| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
+| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
+| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
+| **Founder** | 6 | ✅ Bueno | Sin cambios |
+| **Consultor** | 6 | ✅ Bueno | Sin cambios |
+| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
+| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
+| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
 
-### Cambios realizados (v2)
-
-| Pack | Antes | Después |
-|---|---|---|
-| **Abogado** | pdf-toolkit, docx-creator, browser-use (genérico) | gdpr-dsgvo-expert, data-privacy-compliance, security-compliance, regulatory-affairs-head, document-review, summarize, fact-checker, accessibility-compliance |
-| **Médico** | pdf-toolkit, docx-creator (genérico) | clinical-decision-support, clinicaltrials-database, drugbank-database, claude-ally-health, iso-13485-certification + clinical-reports, pubmed-database, summarize |
-| **Ingeniero** | pdf-toolkit, docx-creator (genérico) | statistical-analysis, risk-metrics-calculation, data-engineering-data-pipeline, project-planner + sql-optimization, postgresql-optimization, data-quality-frameworks, xlsx-spreadsheets |
-| **Arquitecto** | 6 herramientas de oficina | +document-review, statistical-analysis, risk-metrics-calculation (8 total, pero sigue siendo genérico — no hay skills CAD/BIM) |
-| **Profesor** | notion, meeting-notes (poco relevante) | +summarize, document-review (útil para corregir/evaluar) |
-| **Diseñador** | algorithmic-art, video-frames, product-photography (nicho) | responsive-design, interaction-design, design-system-patterns, ux-researcher-designer, penpot-uiux-design, tailwind-best-practices |
-| **Productividad** | pdf-toolkit, xlsx-spreadsheets (fillers) | obsidian, google-calendar-automation, apple-notes (herramientas reales) |
-
-### Pendiente
-- Indexar skills CAD/BIM/Revit para mejorar el pack de Arquitecto
-- Buscar/crear skills de educación real (quiz-generator, lesson-planner) para Profesor
+### Acciones ejecutadas
+1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
+2. ✅ Arquitecto desactivado (honestidad > cantidad)
+3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
+4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
+5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
+6. ✅ 277 skills legal-tech indexadas desde GitHub
+7. ✅ 107 skills education-technology indexadas desde GitHub
+8. ✅ Wizard actualizado (14 roles, tasks renombrados)
+9. ✅ i18n ES/EN actualizados
