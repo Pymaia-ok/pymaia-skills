@@ -280,7 +280,7 @@ serve(async (req) => {
         .map((m: any) => `${m.role === "user" ? "Usuario" : "Entrevistador"}: ${m.content}`)
         .join("\n\n");
 
-      const skill = await callAI(
+      let skill = await callAI(
         [
           { role: "system", content: GENERATE_PROMPT },
           { role: "user", content: `Conversación de entrevista:\n\n${conversationText}` },
@@ -289,6 +289,9 @@ serve(async (req) => {
         [skillTool],
         { type: "function", function: { name: "create_skill" } }
       );
+
+      // Validate and sanitize per Anthropic spec
+      skill = validateSkillFields(skill);
 
       // Step 2: Judge the skill quality
       const judgeRaw = await callAI(
