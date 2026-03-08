@@ -114,9 +114,9 @@ const CrearSkill = () => {
       setSkill(data.skill);
       setQuality(data.quality);
       setTestResults(null);
-      toast.success("Skill actualizada");
+      toast.success(t("crearSkill.skillUpdated"));
     } catch {
-      toast.error("Error al refinar la skill.");
+      toast.error(t("crearSkill.errorRefine"));
     }
     setIsRefining(false);
   };
