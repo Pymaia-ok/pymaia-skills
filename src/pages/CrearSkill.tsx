@@ -130,9 +130,9 @@ const CrearSkill = () => {
       });
       if (error) throw error;
       setTestResults(data);
-      toast.success(`Tests completados: ${data.test_results.filter((t: any) => t.passed).length}/${data.test_results.length} pasaron`);
+      toast.success(t("crearSkill.testsDone", { passed: data.test_results.filter((t: any) => t.passed).length, total: data.test_results.length }));
     } catch {
-      toast.error("Error al correr los tests.");
+      toast.error(t("crearSkill.errorTests"));
     }
     setIsTesting(false);
   };
