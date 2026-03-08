@@ -26,6 +26,7 @@ const SkillDetail = () => {
   const [reviewTimeSaved, setReviewTimeSaved] = useState("");
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"copy" | "zip">("copy");
 
   // Support share_token for private skills
   const searchParams = new URLSearchParams(window.location.search);
