@@ -62,7 +62,7 @@ const taskFilters: Record<string, { categories: string[]; industries: string[]; 
   pipelines: { categories: ["datos", "desarrollo"], industries: ["datos", "tecnologia"], keywords: ["pipeline", "etl", "data", "ingest", "stream", "batch"] },
   sqlopt: { categories: ["datos", "desarrollo"], industries: ["datos", "tecnologia"], keywords: ["sql", "query", "optim", "postgres", "database", "index"] },
   calidad: { categories: ["datos"], industries: ["datos"], keywords: ["quality", "validat", "test", "monitor", "anomal", "data quality"] },
-  analisis: { categories: ["datos"], industries: ["datos", "tecnologia"], keywords: ["analys", "statistic", "metric", "report", "dashboard"] },
+  dataanalisis: { categories: ["datos"], industries: ["datos", "tecnologia"], keywords: ["analys", "statistic", "metric", "report", "dashboard"] },
   // Médico tasks
   historias: { categories: ["productividad"], industries: ["medicina"], keywords: ["clinic", "patient", "history", "medical", "record", "historia"] },
   diagnostico: { categories: ["ia", "datos"], industries: ["medicina"], keywords: ["diagnos", "symptom", "disease", "clinical", "differential"] },
