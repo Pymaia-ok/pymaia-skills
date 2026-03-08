@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart, ShieldCheck } from "lucide-react";
+import { Star, Heart, ShieldCheck, Download } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 
@@ -37,7 +37,7 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
           {skill.security_status === "verified" && (
             <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="w-3 h-3" />
-              {t("trust.verified", "Verified")}
+              {t("trust.verified")}
             </span>
           )}
           {skill.industry.slice(0, 1).map((ind) => (
@@ -64,6 +64,12 @@ const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
                 <Star className="w-3.5 h-3.5 fill-foreground text-foreground" />
                 <span className="text-sm font-medium">{Number(skill.avg_rating).toFixed(1)}</span>
                 <span className="text-xs text-muted-foreground">({skill.review_count})</span>
+              </div>
+            )}
+            {skill.install_count > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Download className="w-3 h-3" />
+                <span>{formatCount(skill.install_count)}</span>
               </div>
             )}
             {skill.github_stars > 0 && (

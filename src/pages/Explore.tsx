@@ -12,6 +12,7 @@ const Explore = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -74,15 +75,14 @@ const Explore = () => {
     setSearchParams(params, { replace: true });
   }, [debouncedSearch, selectedCategory, sortBy, page, setSearchParams]);
 
-  const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = useCallback((val: string) => {
     setSearch(val);
-    if (debounceRef[0]) clearTimeout(debounceRef[0]);
-    debounceRef[0] = setTimeout(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
       setDebouncedSearch(val);
       setPage(0);
     }, isIntentQuery(val) ? 600 : 350);
-  }, [debounceRef]);
+  }, []);
 
   // Standard keyword search
   const { data: keywordResult, isLoading: keywordLoading } = useQuery({
@@ -142,23 +142,25 @@ const Explore = () => {
                 <HelpCircle className="w-4 h-4 text-muted-foreground" />
               </div>
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{t("explore.newToClaude", "New to Claude?")}</span>
-                {" "}{t("explore.newToClaudeDesc", "These skills are for Claude Code. Learn what it is and how to install it.")}
+                <span className="font-medium text-foreground">{t("explore.newToClaude")}</span>
+                {" "}{t("explore.newToClaudeDesc")}
               </p>
             </div>
             <Link
               to="/primeros-pasos"
               className="px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity whitespace-nowrap"
             >
-              {t("explore.newToClaudeCta", "Getting started guide")}
+              {t("explore.newToClaudeCta")}
             </Link>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="relative mb-2">
+            <label htmlFor="skill-search" className="sr-only">{t("explore.searchPlaceholderSmart")}</label>
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
+              id="skill-search"
               type="text"
-              placeholder={t("explore.searchPlaceholderSmart", "Search by name or describe what you want to do...")}
+              placeholder={t("explore.searchPlaceholderSmart")}
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-4 rounded-2xl bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
@@ -176,10 +178,10 @@ const Explore = () => {
                 <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">
                   {smartLoading
-                    ? t("explore.smartSearching", "Understanding what you need...")
+                    ? t("explore.smartSearching")
                     : smartKeywords
-                    ? t("explore.smartResults", "AI-powered results") + ` · ${smartKeywords.join(", ")}`
-                    : t("explore.smartResults", "AI-powered results")}
+                    ? t("explore.smartResults") + ` · ${smartKeywords.join(", ")}`
+                    : t("explore.smartResults")}
                 </span>
               </motion.div>
             )}
@@ -194,6 +196,7 @@ const Explore = () => {
                 <button
                   onClick={() => scrollCategories("left")}
                   className="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-accent transition-colors"
+                  aria-label="Scroll categories left"
                 >
                   <ChevronLeft className="w-4 h-4 text-foreground" />
                 </button>
@@ -205,6 +208,7 @@ const Explore = () => {
                 <button
                   onClick={() => scrollCategories("right")}
                   className="absolute right-0 top-1/2 -translate-y-1/2 z-20 p-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-sm hover:bg-accent transition-colors"
+                  aria-label="Scroll categories right"
                 >
                   <ChevronRight className="w-4 h-4 text-foreground" />
                 </button>
