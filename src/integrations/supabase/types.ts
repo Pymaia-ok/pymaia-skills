@@ -408,6 +408,45 @@ export type Database = {
           },
         ]
       }
+      skill_bundles: {
+        Row: {
+          created_at: string | null
+          description: string
+          description_es: string | null
+          hero_emoji: string | null
+          id: string
+          is_active: boolean | null
+          role_slug: string
+          skill_slugs: string[]
+          title: string
+          title_es: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          description_es?: string | null
+          hero_emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_slug: string
+          skill_slugs?: string[]
+          title: string
+          title_es?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          description_es?: string | null
+          hero_emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_slug?: string
+          skill_slugs?: string[]
+          title?: string
+          title_es?: string | null
+        }
+        Relationships: []
+      }
       skill_drafts: {
         Row: {
           conversation: Json
