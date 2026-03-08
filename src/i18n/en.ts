@@ -175,6 +175,36 @@ export default {
       datos: "Analyze data without Excel",
       automatizar: "Automate repetitive tasks",
     },
+    ventas: {
+      prospeccion: "Prospect & generate leads",
+      crm: "Manage CRM & pipeline",
+      outreach: "Create cold email sequences",
+      pricing: "Define pricing strategy",
+    },
+    "product-manager": {
+      roadmap: "Plan roadmap & priorities",
+      userstories: "Write user stories",
+      sprints: "Manage sprints & agile rituals",
+      stakeholders: "Align stakeholders",
+    },
+    "data-analyst": {
+      sqlquery: "Write & optimize SQL queries",
+      visualizacion: "Create dashboards & visualizations",
+      limpieza: "Clean & transform data",
+      modelado: "Model data & predictions",
+    },
+    devops: {
+      deploy: "Automate deployments & CI/CD",
+      containers: "Manage Docker & Kubernetes",
+      infra: "Configure cloud infrastructure",
+      monitoring: "Monitor services & alerts",
+    },
+    rrhh: {
+      reclutamiento: "Recruit & screen candidates",
+      onboarding: "Design employee onboarding",
+      evaluacionrrhh: "Evaluate team performance",
+      cultura: "Improve culture & engagement",
+    },
   },
 
   explore: {

@@ -8,10 +8,11 @@ import SkillCard from "@/components/SkillCard";
 import { Button } from "@/components/ui/button";
 import type { SkillFromDB } from "@/lib/api";
 
-const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "otro"] as const;
+const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "ventas", "product-manager", "data-analyst", "devops", "rrhh", "otro"] as const;
 const roleIcons: Record<string, string> = {
   marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨",
   ingeniero: "🔧", arquitecto: "🏗️", medico: "🩺", profesor: "🎓", otro: "✨",
+  ventas: "💰", "product-manager": "🗺️", "data-analyst": "📊", devops: "⚙️", rrhh: "👥",
 };
 const taskIdsByRole: Record<string, string[]> = {
   marketer: ["contenido", "analizar", "clientes", "reportes"],
@@ -23,6 +24,11 @@ const taskIdsByRole: Record<string, string[]> = {
   arquitecto: ["cad", "presupuestos", "renders", "normativa"],
   medico: ["historias", "diagnostico", "recetas", "papers"],
   profesor: ["clases", "evaluaciones", "material", "retroalimentacion"],
+  ventas: ["prospeccion", "crm", "outreach", "pricing"],
+  "product-manager": ["roadmap", "userstories", "sprints", "stakeholders"],
+  "data-analyst": ["sqlquery", "visualizacion", "limpieza", "modelado"],
+  devops: ["deploy", "containers", "infra", "monitoring"],
+  rrhh: ["reclutamiento", "onboarding", "evaluacionrrhh", "cultura"],
   otro: ["productividad", "escritura", "datos", "automatizar"],
 };
 
@@ -78,6 +84,31 @@ const taskFilters: Record<string, { categories: string[]; industries: string[]; 
   escritura: { categories: ["productividad", "creatividad"], industries: ["contenido", "documentos"], keywords: ["write", "edit", "grammar", "text", "document"] },
   datos: { categories: ["datos"], industries: ["datos"], keywords: ["data", "excel", "csv", "sql", "analysis", "chart"] },
   automatizar: { categories: ["automatización"], industries: ["automatizacion"], keywords: ["automat", "workflow", "scrape", "bot", "schedule", "cron"] },
+  // Ventas tasks
+  prospeccion: { categories: ["ventas", "marketing"], industries: ["ventas", "negocios"], keywords: ["prospect", "lead", "pipeline", "sales", "outbound"] },
+  crm: { categories: ["ventas", "negocios"], industries: ["ventas", "negocios"], keywords: ["crm", "salesforce", "hubspot", "zoho", "deal", "pipeline"] },
+  outreach: { categories: ["ventas", "marketing"], industries: ["ventas", "email"], keywords: ["cold", "email", "outreach", "sequence", "follow-up"] },
+  pricing: { categories: ["ventas", "negocios"], industries: ["ventas", "estrategia", "finanzas"], keywords: ["price", "pricing", "revenue", "margin", "discount"] },
+  // Product Manager tasks
+  roadmap: { categories: ["producto", "negocios"], industries: ["tecnologia", "producto"], keywords: ["roadmap", "plan", "priorit", "backlog", "quarter"] },
+  userstories: { categories: ["producto"], industries: ["tecnologia", "producto"], keywords: ["user story", "story", "acceptance", "requirement", "spec"] },
+  sprints: { categories: ["producto", "productividad"], industries: ["tecnologia", "producto"], keywords: ["sprint", "agile", "scrum", "standup", "retro", "jira"] },
+  stakeholders: { categories: ["producto", "negocios"], industries: ["tecnologia", "producto", "estrategia"], keywords: ["stakeholder", "feedback", "alignment", "review", "decision"] },
+  // Data Analyst tasks
+  sqlquery: { categories: ["datos", "desarrollo"], industries: ["datos", "finanzas"], keywords: ["sql", "query", "database", "postgres", "bigquery"] },
+  visualizacion: { categories: ["datos", "diseño"], industries: ["datos"], keywords: ["chart", "dashboard", "visual", "grafana", "power bi", "tableau"] },
+  limpieza: { categories: ["datos"], industries: ["datos"], keywords: ["clean", "transform", "etl", "dbt", "quality", "pipeline"] },
+  modelado: { categories: ["datos", "ia"], industries: ["datos"], keywords: ["model", "predict", "regression", "machine learn", "scikit", "statist"] },
+  // DevOps tasks
+  deploy: { categories: ["desarrollo", "operaciones"], industries: ["tecnologia", "operaciones"], keywords: ["deploy", "ci", "cd", "pipeline", "release", "ship"] },
+  containers: { categories: ["desarrollo", "operaciones"], industries: ["tecnologia", "operaciones"], keywords: ["docker", "container", "kubernetes", "k8s", "image", "registry"] },
+  infra: { categories: ["operaciones", "desarrollo"], industries: ["tecnologia", "operaciones"], keywords: ["terraform", "infra", "aws", "azure", "gcp", "cloud", "serverless"] },
+  monitoring: { categories: ["operaciones", "datos"], industries: ["tecnologia", "operaciones"], keywords: ["monitor", "alert", "log", "metric", "observ", "grafana", "datadog"] },
+  // RRHH tasks
+  reclutamiento: { categories: ["rrhh", "productividad"], industries: ["rrhh"], keywords: ["recruit", "hire", "candidate", "resume", "interview", "talent"] },
+  onboarding: { categories: ["rrhh", "productividad"], industries: ["rrhh"], keywords: ["onboard", "train", "orient", "welcome", "handbook"] },
+  evaluacionrrhh: { categories: ["rrhh", "productividad"], industries: ["rrhh"], keywords: ["performance", "review", "feedback", "goal", "evaluat", "1on1"] },
+  cultura: { categories: ["rrhh"], industries: ["rrhh"], keywords: ["culture", "engag", "survey", "retention", "wellness", "team"] },
 };
 
 interface WizardSectionProps {
