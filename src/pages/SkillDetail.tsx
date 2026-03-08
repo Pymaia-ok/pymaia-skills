@@ -129,7 +129,6 @@ const SkillDetail = () => {
     }
   };
 
-  const [pendingAction, setPendingAction] = useState<"copy" | "zip">("copy");
 
   const handleEmailCaptured = (email: string) => {
     if (pendingAction === "zip") {
