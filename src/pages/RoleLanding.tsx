@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 const roleIcons: Record<string, string> = {
   marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨",
   ingeniero: "🔧", arquitecto: "🏗️", medico: "🩺", profesor: "🎓", otro: "✨",
+  ventas: "💰", "product-manager": "🗺️", "data-analyst": "📊", devops: "⚙️", rrhh: "👥",
 };
 
 const RoleLanding = () => {
