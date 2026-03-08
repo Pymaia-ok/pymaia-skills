@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical, Copy, Check, FileCode } from "lucide-react";
+import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical, Copy, Check, FileCode, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import SkillScoreCard from "./SkillScoreCard";
 import SkillTestResults from "./SkillTestResults";
 import { toast } from "sonner";
+import JSZip from "jszip";
 
 interface RequiredMcp {
   name: string;
@@ -80,6 +81,20 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
     setCopied(true);
     toast.success("SKILL.md copiado al portapapeles");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadZip = async () => {
+    const zip = new JSZip();
+    const folderName = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    zip.file(`${folderName}/SKILL.md`, skill.install_command);
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("ZIP descargado — subilo a Claude.ai en Settings → Features");
   };
 
   const handleRefine = async () => {
@@ -212,10 +227,13 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
               {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copied ? "Copiado" : "Copiar"}
             </Button>
+            <Button variant="outline" size="sm" onClick={downloadZip} className="text-xs h-7 gap-1">
+              <Download className="w-3 h-3" /> ZIP
+            </Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mb-2">
-          Archivo compatible con el estándar oficial Agent Skills de Anthropic. Funciona directo en Claude Code y Claude.ai.
+          Archivo compatible con el estándar oficial Agent Skills de Anthropic. Funciona en Claude Code, Claude.ai (subí el ZIP) y la API.
         </p>
         {showSkillMd && (
           <pre className="mt-3 p-4 bg-secondary rounded-xl text-xs text-foreground overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap font-mono">

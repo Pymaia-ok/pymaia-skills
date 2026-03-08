@@ -274,13 +274,27 @@ serve(async (req) => {
       },
     };
 
+    const validateSkillFields = (s: any) => {
+      // name: max 64 chars, kebab-case, no "anthropic"/"claude"
+      if (s.name) {
+        let kebab = s.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+        kebab = kebab.replace(/anthropic|claude/gi, '').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+        s.name = kebab.slice(0, 64) || 'custom-skill';
+      }
+      // description: max 1024 chars
+      if (s.description && s.description.length > 1024) {
+        s.description = s.description.slice(0, 1021) + '...';
+      }
+      return s;
+    };
+
     if (action === "generate") {
       // Step 1: Generate the skill from conversation using tool calling
       const conversationText = conversation
         .map((m: any) => `${m.role === "user" ? "Usuario" : "Entrevistador"}: ${m.content}`)
         .join("\n\n");
 
-      const skill = await callAI(
+      let skill = await callAI(
         [
           { role: "system", content: GENERATE_PROMPT },
           { role: "user", content: `Conversación de entrevista:\n\n${conversationText}` },
@@ -289,6 +303,9 @@ serve(async (req) => {
         [skillTool],
         { type: "function", function: { name: "create_skill" } }
       );
+
+      // Validate and sanitize per Anthropic spec
+      skill = validateSkillFields(skill);
 
       // Step 2: Judge the skill quality
       const judgeRaw = await callAI(
@@ -318,7 +335,7 @@ serve(async (req) => {
       // Refine an existing skill based on user feedback using tool calling
       const refinePrompt = `Tenés esta skill existente:\n\n${JSON.stringify(skill)}\n\nEl usuario pidió este cambio: "${refinement_request}"\n\nModificá la skill según lo pedido y devolvé la skill completa actualizada.`;
 
-      const refined = await callAI(
+      let refined = await callAI(
         [
           { role: "system", content: GENERATE_PROMPT },
           { role: "user", content: refinePrompt },
@@ -327,6 +344,8 @@ serve(async (req) => {
         [skillTool],
         { type: "function", function: { name: "create_skill" } }
       );
+
+      refined = validateSkillFields(refined);
 
       // Re-judge
       const judgeRaw = await callAI(
