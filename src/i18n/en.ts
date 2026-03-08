@@ -106,6 +106,11 @@ export default {
     arquitecto: { label: "Architect", description: "Architecture & design" },
     medico: { label: "Doctor", description: "Medicine & health" },
     profesor: { label: "Teacher", description: "Education & training" },
+    ventas: { label: "Sales", description: "Sales & prospecting" },
+    "product-manager": { label: "Product Manager", description: "Product & roadmap" },
+    "data-analyst": { label: "Data Analyst", description: "Data & analytics" },
+    devops: { label: "DevOps", description: "Infrastructure & deployment" },
+    rrhh: { label: "HR", description: "Recruiting & people ops" },
     otro: { label: "Other", description: "Any profession" },
   },
 

@@ -109,6 +109,11 @@ export default {
     arquitecto: { label: "Arquitecto", description: "Arquitectura y diseño" },
     medico: { label: "Médico", description: "Medicina y salud" },
     profesor: { label: "Profesor", description: "Educación y formación" },
+    ventas: { label: "Ventas", description: "Ventas y prospección" },
+    "product-manager": { label: "Product Manager", description: "Producto y roadmap" },
+    "data-analyst": { label: "Data Analyst", description: "Datos y análisis" },
+    devops: { label: "DevOps", description: "Infraestructura y deploy" },
+    rrhh: { label: "Recursos Humanos", description: "Reclutamiento y personas" },
     otro: { label: "Otro", description: "Cualquier profesión" },
   },
 
