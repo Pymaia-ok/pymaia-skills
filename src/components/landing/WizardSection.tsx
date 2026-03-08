@@ -189,6 +189,15 @@ const WizardSection = ({ allSkills }: WizardSectionProps) => {
                   <p className="text-sm text-muted-foreground mt-2">{t("home.tryAnother")}</p>
                 </div>
               )}
+              {selectedRole && (
+                <div className="text-center mt-8">
+                  <Button asChild variant="outline" size="lg" className="rounded-full gap-2">
+                    <Link to={`/para/${selectedRole}`}>
+                      {t("roleLanding.viewPack")} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
