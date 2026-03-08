@@ -8,10 +8,10 @@ import SkillCard from "@/components/SkillCard";
 import { Button } from "@/components/ui/button";
 import type { SkillFromDB } from "@/lib/api";
 
-const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "ventas", "product-manager", "data-analyst", "devops", "rrhh", "otro"] as const;
+const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "medico", "profesor", "ventas", "product-manager", "data-analyst", "devops", "rrhh", "otro"] as const;
 const roleIcons: Record<string, string> = {
   marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨",
-  ingeniero: "🔧", arquitecto: "🏗️", medico: "🩺", profesor: "🎓", otro: "✨",
+  ingeniero: "🔧", medico: "🩺", profesor: "🎓", otro: "✨",
   ventas: "💰", "product-manager": "🗺️", "data-analyst": "📊", devops: "⚙️", rrhh: "👥",
 };
 const taskIdsByRole: Record<string, string[]> = {
@@ -20,8 +20,7 @@ const taskIdsByRole: Record<string, string[]> = {
   consultor: ["propuestas", "investigacion", "presentaciones", "analisis"],
   founder: ["producto", "pitch", "competencia", "metricas"],
   disenador: ["briefs", "copy", "feedback", "specs"],
-  ingeniero: ["calculos", "planos", "normas", "informes"],
-  arquitecto: ["cad", "presupuestos", "renders", "normativa"],
+  ingeniero: ["pipelines", "sqlopt", "calidad", "dataanalisis"],
   medico: ["historias", "diagnostico", "recetas", "papers"],
   profesor: ["clases", "evaluaciones", "material", "retroalimentacion"],
   ventas: ["prospeccion", "crm", "outreach", "pricing"],
@@ -59,16 +58,11 @@ const taskFilters: Record<string, { categories: string[]; industries: string[]; 
   copy: { categories: ["marketing", "creatividad"], industries: ["contenido", "marketing", "diseno"], keywords: ["copy", "text", "write", "content", "ux writing"] },
   feedback: { categories: ["diseño", "productividad"], industries: ["diseno", "ux"], keywords: ["feedback", "review", "critique", "iterate"] },
   specs: { categories: ["diseño", "desarrollo"], industries: ["diseno", "frontend", "ux"], keywords: ["spec", "design system", "component", "ui", "css", "figma"] },
-  // Ingeniero tasks
-  calculos: { categories: ["datos", "desarrollo"], industries: ["ingeniería", "tecnologia"], keywords: ["calcul", "engineer", "math", "formula", "simulation"] },
-  planos: { categories: ["diseño", "datos"], industries: ["ingeniería", "construcción", "arquitectura"], keywords: ["plan", "blueprint", "cad", "spec", "drawing"] },
-  normas: { categories: ["legal", "productividad"], industries: ["ingeniería", "construcción"], keywords: ["norm", "standard", "regulat", "iso", "compliance"] },
-  informes: { categories: ["productividad", "datos"], industries: ["ingeniería"], keywords: ["report", "technical", "document", "informe"] },
-  // Arquitecto tasks
-  cad: { categories: ["diseño", "desarrollo"], industries: ["arquitectura", "construcción"], keywords: ["cad", "bim", "revit", "autocad", "3d", "model"] },
-  presupuestos: { categories: ["negocios", "datos"], industries: ["arquitectura", "construcción"], keywords: ["budget", "cost", "estimat", "presupuesto", "price"] },
-  renders: { categories: ["diseño", "creatividad"], industries: ["arquitectura"], keywords: ["render", "present", "visual", "3d", "design"] },
-  normativa: { categories: ["legal"], industries: ["arquitectura", "construcción"], keywords: ["urban", "zoning", "regulat", "normativ", "code"] },
+  // Data Engineer tasks
+  pipelines: { categories: ["datos", "desarrollo"], industries: ["datos", "tecnologia"], keywords: ["pipeline", "etl", "data", "ingest", "stream", "batch"] },
+  sqlopt: { categories: ["datos", "desarrollo"], industries: ["datos", "tecnologia"], keywords: ["sql", "query", "optim", "postgres", "database", "index"] },
+  calidad: { categories: ["datos"], industries: ["datos"], keywords: ["quality", "validat", "test", "monitor", "anomal", "data quality"] },
+  dataanalisis: { categories: ["datos"], industries: ["datos", "tecnologia"], keywords: ["analys", "statistic", "metric", "report", "dashboard"] },
   // Médico tasks
   historias: { categories: ["productividad"], industries: ["medicina"], keywords: ["clinic", "patient", "history", "medical", "record", "historia"] },
   diagnostico: { categories: ["ia", "datos"], industries: ["medicina"], keywords: ["diagnos", "symptom", "disease", "clinical", "differential"] },
