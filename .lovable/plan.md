@@ -1,27 +1,28 @@
 
 
-## Plan: Ampliar importación de Skills confiables desde GitHub — ✅ COMPLETADO
+## Auditoría de calidad — Packs por Rol (v2)
 
-### Lo que se hizo
+### Resumen: 15 packs, todos con 6-8 skills verificadas, 0 skills faltantes
 
-**1. Nueva source `github-code-search` en `sync-skills`**
-- Busca repos con `filename:SKILL.md path:/` y `filename:.cursorrules path:/` via GitHub Code Search API
-- Descubre skills legítimos que no usan los topics convencionales
+| Calidad | Packs |
+|---|---|
+| **Excelente** | Marketer, DevOps, Data Analyst, Product Manager, **Médico** ⬆, **Diseñador** ⬆ |
+| **Muy bueno** | RRHH, Ventas, **Abogado** ⬆, **Ingeniero** ⬆ |
+| **Bueno** | Founder, Consultor, **Profesor** ⬆, **Productividad** ⬆ |
+| **Aceptable** | **Arquitecto** (no existen skills CAD/BIM en la DB) |
 
-**2. Topics de dominio ampliados en `github-search`**
-- Agregados: `cursor-rules`, `claude-rules`, `ai-rules`, `ai-agent`, `ai-assistant`, `llm-tool`, `prompt-engineering`, `ai-workflow`, `autocad`, `cad`, `bim`, `revit`
+### Cambios realizados (v2)
 
-**3. Skill de AutoCAD insertado**
-- `autocad-drafting` (puran-water/autocad-mcp, 159⭐) insertado como approved
+| Pack | Antes | Después |
+|---|---|---|
+| **Abogado** | pdf-toolkit, docx-creator, browser-use (genérico) | gdpr-dsgvo-expert, data-privacy-compliance, security-compliance, regulatory-affairs-head, document-review, summarize, fact-checker, accessibility-compliance |
+| **Médico** | pdf-toolkit, docx-creator (genérico) | clinical-decision-support, clinicaltrials-database, drugbank-database, claude-ally-health, iso-13485-certification + clinical-reports, pubmed-database, summarize |
+| **Ingeniero** | pdf-toolkit, docx-creator (genérico) | statistical-analysis, risk-metrics-calculation, data-engineering-data-pipeline, project-planner + sql-optimization, postgresql-optimization, data-quality-frameworks, xlsx-spreadsheets |
+| **Arquitecto** | 6 herramientas de oficina | +document-review, statistical-analysis, risk-metrics-calculation (8 total, pero sigue siendo genérico — no hay skills CAD/BIM) |
+| **Profesor** | notion, meeting-notes (poco relevante) | +summarize, document-review (útil para corregir/evaluar) |
+| **Diseñador** | algorithmic-art, video-frames, product-photography (nicho) | responsive-design, interaction-design, design-system-patterns, ux-researcher-designer, penpot-uiux-design, tailwind-best-practices |
+| **Productividad** | pdf-toolkit, xlsx-spreadsheets (fillers) | obsidian, google-calendar-automation, apple-notes (herramientas reales) |
 
-### Cómo ejecutar
-```
-# Buscar repos con SKILL.md
-POST sync-skills { "source": "github-code-search" }
-
-# Buscar por topic específico
-POST sync-skills { "source": "github-search", "topic": "autocad" }
-
-# Ejecutar github-search con TODOS los topics (incluidos los nuevos)
-POST sync-skills { "source": "github-search" }
-```
+### Pendiente
+- Indexar skills CAD/BIM/Revit para mejorar el pack de Arquitecto
+- Buscar/crear skills de educación real (quiz-generator, lesson-planner) para Profesor
