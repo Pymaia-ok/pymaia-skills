@@ -83,6 +83,20 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const downloadZip = async () => {
+    const zip = new JSZip();
+    const folderName = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    zip.file(`${folderName}/SKILL.md`, skill.install_command);
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("ZIP descargado — subilo a Claude.ai en Settings → Features");
+  };
+
   const handleRefine = async () => {
     if (!refinement.trim()) return;
     await onRefine(refinement.trim());
