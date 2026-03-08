@@ -82,7 +82,9 @@ const EmailGateDialog = ({ open, onOpenChange, skillId, skillName, skillSlug, on
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <label htmlFor="email-gate-input" className="sr-only">{t("emailGate.placeholder", "tu@email.com")}</label>
           <input
+            id="email-gate-input"
             type="email"
             required
             placeholder={t("emailGate.placeholder", "tu@email.com")}
