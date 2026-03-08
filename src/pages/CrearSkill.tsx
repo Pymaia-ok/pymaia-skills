@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +71,7 @@ interface TestResults {
 const CrearSkill = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("chat");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [skill, setSkill] = useState<GeneratedSkill | null>(null);
@@ -96,7 +98,7 @@ const CrearSkill = () => {
       setStep("preview");
     } catch (e) {
       console.error(e);
-      toast.error("Error al generar la skill. Intentá de nuevo.");
+      toast.error(t("crearSkill.errorGenerate"));
     }
     setIsGenerating(false);
   };
@@ -112,9 +114,9 @@ const CrearSkill = () => {
       setSkill(data.skill);
       setQuality(data.quality);
       setTestResults(null);
-      toast.success("Skill actualizada");
+      toast.success(t("crearSkill.skillUpdated"));
     } catch {
-      toast.error("Error al refinar la skill.");
+      toast.error(t("crearSkill.errorRefine"));
     }
     setIsRefining(false);
   };
@@ -128,9 +130,9 @@ const CrearSkill = () => {
       });
       if (error) throw error;
       setTestResults(data);
-      toast.success(`Tests completados: ${data.test_results.filter((t: any) => t.passed).length}/${data.test_results.length} pasaron`);
+      toast.success(t("crearSkill.testsDone", { passed: data.test_results.filter((t: any) => t.passed).length, total: data.test_results.length }));
     } catch {
-      toast.error("Error al correr los tests.");
+      toast.error(t("crearSkill.errorTests"));
     }
     setIsTesting(false);
   };
@@ -169,10 +171,10 @@ const CrearSkill = () => {
         is_public: config.is_public,
       });
 
-      toast.success("¡Skill publicada! Será revisada antes de aparecer en el marketplace.");
+      toast.success(t("crearSkill.published"));
       navigate("/mis-skills");
     } catch {
-      toast.error("Error al publicar. Intentá de nuevo.");
+      toast.error(t("crearSkill.errorPublish"));
     }
     setIsPublishing(false);
   };

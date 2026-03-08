@@ -104,20 +104,16 @@ const WizardSection = ({ allSkills }: WizardSectionProps) => {
       .filter((s) => s.status === "approved")
       .map((s) => {
         let score = 0;
-        // Role match
         if (s.target_roles.includes(selectedRole)) score += 2;
-        // Category match
         if (filter.categories.includes(s.category)) score += 3;
-        // Industry match
         const industryMatches = s.industry.filter((ind) => filter.industries.includes(ind)).length;
         score += industryMatches * 2;
-        // Keyword match in name + tagline + description
         const text = `${s.display_name} ${s.tagline} ${s.tagline_es || ""} ${s.description_human}`.toLowerCase();
         const keywordMatches = filter.keywords.filter((kw) => text.includes(kw)).length;
         score += keywordMatches;
         return { skill: s, score };
       })
-      .filter((x) => x.score > 2)
+      .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 6)
       .map((x) => x.skill);

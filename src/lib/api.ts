@@ -252,12 +252,8 @@ export async function updateSkillStatus(skillId: string, status: "approved" | "r
 }
 
 export async function trackInstallation(skillId: string, userId: string) {
+  // Insert triggers automatic install_count increment via DB trigger
   await supabase.from("installations").insert({ skill_id: skillId, user_id: userId });
-  // Increment install count
-  const { data } = await supabase.from("skills").select("install_count").eq("id", skillId).maybeSingle();
-  if (data) {
-    await supabase.from("skills").update({ install_count: data.install_count + 1 }).eq("id", skillId);
-  }
 }
 
 // Reviews

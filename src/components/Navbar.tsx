@@ -22,6 +22,14 @@ const Navbar = () => {
     { to: "/teams", label: t("nav.teams") },
   ];
 
+  const mobileLinks = [
+    { to: "/explorar", label: t("nav.explore") },
+    { to: "/conectores", label: t("nav.connectors") },
+    { to: "/teams", label: t("nav.teams") },
+    { to: "/primeros-pasos", label: t("nav.gettingStarted") },
+    { to: "/mcp", label: "MCP Server" },
+  ];
+
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const initials = displayName.charAt(0).toUpperCase();
 
@@ -116,7 +124,7 @@ const Navbar = () => {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-background/95 apple-blur px-6 py-4 space-y-3">
-          {links.map((link) => (
+          {mobileLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
