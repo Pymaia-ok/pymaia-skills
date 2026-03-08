@@ -178,6 +178,36 @@ export default {
       datos: "Analizar datos sin Excel",
       automatizar: "Automatizar tareas repetitivas",
     },
+    ventas: {
+      prospeccion: "Prospectar y generar leads",
+      crm: "Gestionar CRM y pipeline",
+      outreach: "Crear secuencias de cold email",
+      pricing: "Definir estrategia de precios",
+    },
+    "product-manager": {
+      roadmap: "Planificar roadmap y prioridades",
+      userstories: "Escribir user stories",
+      sprints: "Gestionar sprints y rituales ágiles",
+      stakeholders: "Alinear stakeholders",
+    },
+    "data-analyst": {
+      sqlquery: "Escribir y optimizar queries SQL",
+      visualizacion: "Crear dashboards y visualizaciones",
+      limpieza: "Limpiar y transformar datos",
+      modelado: "Modelar datos y predicciones",
+    },
+    devops: {
+      deploy: "Automatizar deployments y CI/CD",
+      containers: "Gestionar Docker y Kubernetes",
+      infra: "Configurar infraestructura cloud",
+      monitoring: "Monitorear servicios y alertas",
+    },
+    rrhh: {
+      reclutamiento: "Reclutar y filtrar candidatos",
+      onboarding: "Diseñar onboarding de empleados",
+      evaluacionrrhh: "Evaluar performance del equipo",
+      cultura: "Mejorar cultura y engagement",
+    },
   },
 
   // Explore
