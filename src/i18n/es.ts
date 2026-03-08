@@ -148,16 +148,10 @@ export default {
       specs: "Documentar specs de diseño",
     },
     ingeniero: {
-      calculos: "Automatizar cálculos técnicos",
-      planos: "Revisar planos y especificaciones",
-      normas: "Verificar cumplimiento de normas",
-      informes: "Generar informes técnicos",
-    },
-    arquitecto: {
-      cad: "Optimizar flujos CAD/BIM",
-      presupuestos: "Estimar presupuestos de obra",
-      renders: "Preparar presentaciones y renders",
-      normativa: "Verificar normativa urbana",
+      pipelines: "Construir pipelines de datos",
+      sqlopt: "Optimizar consultas SQL",
+      calidad: "Validar calidad de datos",
+      dataanalisis: "Analizar datos y estadísticas",
     },
     medico: {
       historias: "Documentar historias clínicas",
