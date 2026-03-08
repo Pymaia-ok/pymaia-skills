@@ -71,6 +71,7 @@ interface TestResults {
 const CrearSkill = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("chat");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [skill, setSkill] = useState<GeneratedSkill | null>(null);
