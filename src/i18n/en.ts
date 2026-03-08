@@ -497,4 +497,24 @@ export default {
     published: "Skill published! It will be reviewed before appearing in the marketplace.",
     errorPublish: "Error publishing. Try again.",
   },
+
+  roleLanding: {
+    heroPrefix: "Skills for",
+    installAll: "Install full pack",
+    installAllDesc: "Download a ZIP with all skills ready for Claude",
+    browseIndividual: "Browse individually",
+    otherRoles: "Packs for other professions",
+    skillsIncluded: "skills included",
+    notFound: "Pack not found",
+    backHome: "Back to home",
+    downloading: "Generating ZIP...",
+    zipReady: "ZIP downloaded — upload it to Claude.ai in Settings → Features",
+    viewPack: "View full pack",
+  },
+
+  bundles: {
+    title: "Packs by profession",
+    subtitle: "Curated skill collections ready to install in one click.",
+    viewPack: "View pack",
+  },
 } as const;

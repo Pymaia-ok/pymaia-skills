@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import RoleCard from "@/components/RoleCard";
 import SkillCard from "@/components/SkillCard";
+import { Button } from "@/components/ui/button";
 import type { SkillFromDB } from "@/lib/api";
 
 const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "otro"] as const;
@@ -185,6 +187,15 @@ const WizardSection = ({ allSkills }: WizardSectionProps) => {
                 <div className="text-center py-12">
                   <p className="text-muted-foreground text-lg">{t("home.noSkills")}</p>
                   <p className="text-sm text-muted-foreground mt-2">{t("home.tryAnother")}</p>
+                </div>
+              )}
+              {selectedRole && (
+                <div className="text-center mt-8">
+                  <Button asChild variant="outline" size="lg" className="rounded-full gap-2">
+                    <Link to={`/para/${selectedRole}`}>
+                      {t("roleLanding.viewPack")} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
                 </div>
               )}
             </motion.div>
