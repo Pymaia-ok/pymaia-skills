@@ -212,9 +212,13 @@ const SkillDetail = () => {
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">{displayName}</h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">{tagline}</p>
             <div className="flex flex-wrap items-center gap-4 mb-8">
-              <button onClick={handleCopy} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">
+              <button onClick={() => { setPendingAction("copy"); handleCopy(); }} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">
                 {copied ? <Check className="w-5 h-5" /> : <Download className="w-5 h-5" />}
                 {copied ? t("detail.commandCopied") : t("detail.installSkill")}
+              </button>
+              <button onClick={handleDownloadZip} className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm">
+                <FileArchive className="w-4 h-4" />
+                {t("detail.downloadZip", "ZIP para Claude.ai")}
               </button>
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>
