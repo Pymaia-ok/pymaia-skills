@@ -171,10 +171,10 @@ const CrearSkill = () => {
         is_public: config.is_public,
       });
 
-      toast.success("¡Skill publicada! Será revisada antes de aparecer en el marketplace.");
+      toast.success(t("crearSkill.published"));
       navigate("/mis-skills");
     } catch {
-      toast.error("Error al publicar. Intentá de nuevo.");
+      toast.error(t("crearSkill.errorPublish"));
     }
     setIsPublishing(false);
   };
