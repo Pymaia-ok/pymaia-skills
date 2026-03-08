@@ -20,11 +20,13 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     let batchSize = 10;
-    let mode = "enrich"; // "enrich" | "cleanup" | "detect-mcps"
+    let mode = "enrich"; // "enrich" | "cleanup" | "detect-mcps" | "enrich-slugs"
+    let targetSlugs: string[] = [];
     try {
       const body = await req.json();
       batchSize = body?.batchSize || 10;
       mode = body?.mode || "enrich";
+      targetSlugs = body?.slugs || [];
     } catch { /* no body */ }
 
     // ─── MODE: cleanup — mark 1-char residues without github_url as pending ───
