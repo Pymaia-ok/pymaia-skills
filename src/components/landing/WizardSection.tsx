@@ -20,7 +20,7 @@ const taskIdsByRole: Record<string, string[]> = {
   consultor: ["propuestas", "investigacion", "presentaciones", "analisis"],
   founder: ["producto", "pitch", "competencia", "metricas"],
   disenador: ["briefs", "copy", "feedback", "specs"],
-  ingeniero: ["pipelines", "sqlopt", "calidad", "analisis"],
+  ingeniero: ["pipelines", "sqlopt", "calidad", "dataanalisis"],
   medico: ["historias", "diagnostico", "recetas", "papers"],
   profesor: ["clases", "evaluaciones", "material", "retroalimentacion"],
   ventas: ["prospeccion", "crm", "outreach", "pricing"],
