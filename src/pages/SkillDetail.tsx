@@ -128,9 +128,52 @@ const SkillDetail = () => {
     }
   };
 
+  const [pendingAction, setPendingAction] = useState<"copy" | "zip">("copy");
+
   const handleEmailCaptured = (email: string) => {
-    performCopy();
+    if (pendingAction === "zip") {
+      performZipDownload();
+    } else {
+      performCopy();
+    }
     toast.success(t("emailGate.success", "¡Listo! Revisá tu email para tips de uso."));
+  };
+
+  const performZipDownload = async () => {
+    const zip = new JSZip();
+    const folderName = skill.slug || skill.display_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    zip.file(`${folderName}/SKILL.md`, skill.install_command);
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t("detail.zipDownloaded", "ZIP descargado — subilo a Claude.ai en Settings → Features"));
+  };
+
+  const handleDownloadZip = async () => {
+    if (user) {
+      await performZipDownload();
+      trackInstallation(skill.id, user.id).catch(() => {});
+      const userEmail = user.email;
+      if (userEmail) {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: userEmail,
+            sequence_name: "post_install",
+            metadata: { skill_name: skill.display_name, skill_slug: skill.slug },
+          }),
+        }).catch(() => {});
+      }
+    } else {
+      setPendingAction("zip");
+      setShowEmailGate(true);
+    }
   };
 
   const handleSubmitReview = async () => {
