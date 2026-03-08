@@ -8,10 +8,11 @@ import SkillCard from "@/components/SkillCard";
 import { Button } from "@/components/ui/button";
 import type { SkillFromDB } from "@/lib/api";
 
-const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "otro"] as const;
+const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "ventas", "product-manager", "data-analyst", "devops", "rrhh", "otro"] as const;
 const roleIcons: Record<string, string> = {
   marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨",
   ingeniero: "🔧", arquitecto: "🏗️", medico: "🩺", profesor: "🎓", otro: "✨",
+  ventas: "💰", "product-manager": "🗺️", "data-analyst": "📊", devops: "⚙️", rrhh: "👥",
 };
 const taskIdsByRole: Record<string, string[]> = {
   marketer: ["contenido", "analizar", "clientes", "reportes"],
@@ -23,6 +24,11 @@ const taskIdsByRole: Record<string, string[]> = {
   arquitecto: ["cad", "presupuestos", "renders", "normativa"],
   medico: ["historias", "diagnostico", "recetas", "papers"],
   profesor: ["clases", "evaluaciones", "material", "retroalimentacion"],
+  ventas: ["prospeccion", "crm", "outreach", "pricing"],
+  "product-manager": ["roadmap", "userstories", "sprints", "stakeholders"],
+  "data-analyst": ["sqlquery", "visualizacion", "limpieza", "modelado"],
+  devops: ["deploy", "containers", "infra", "monitoring"],
+  rrhh: ["reclutamiento", "onboarding", "evaluacionrrhh", "cultura"],
   otro: ["productividad", "escritura", "datos", "automatizar"],
 };
 
