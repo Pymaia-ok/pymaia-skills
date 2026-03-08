@@ -310,3 +310,50 @@ export async function checkIsAdmin(userId: string): Promise<boolean> {
   if (error) return false;
   return !!data;
 }
+
+// Bundles
+export interface BundleFromDB {
+  id: string;
+  role_slug: string;
+  title: string;
+  title_es: string | null;
+  description: string;
+  description_es: string | null;
+  hero_emoji: string;
+  skill_slugs: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export async function fetchBundle(roleSlug: string): Promise<{ bundle: BundleFromDB; skills: SkillFromDB[] } | null> {
+  const { data: bundle, error } = await supabase
+    .from("skill_bundles" as any)
+    .select("*")
+    .eq("role_slug", roleSlug)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error || !bundle) return null;
+  const b = bundle as any as BundleFromDB;
+
+  const { data: skills } = await supabase
+    .from("skills")
+    .select("*")
+    .in("slug", b.skill_slugs)
+    .eq("status", "approved");
+
+  // Maintain curated order
+  const map = new Map((skills || []).map((s: any) => [s.slug, s]));
+  const ordered = b.skill_slugs.map((slug) => map.get(slug)).filter(Boolean) as SkillFromDB[];
+
+  return { bundle: b, skills: ordered };
+}
+
+export async function fetchAllBundles(): Promise<BundleFromDB[]> {
+  const { data, error } = await supabase
+    .from("skill_bundles" as any)
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return (data || []) as any as BundleFromDB[];
+}

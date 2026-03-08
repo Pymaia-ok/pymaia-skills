@@ -80,6 +80,7 @@ const Index = () => {
         <TwoPathsSection />
         <WizardSection allSkills={allSkills} />
         <PopularSkills />
+        <BundlesSection />
         <ConnectorsSection />
         <BeforeAfterSection />
         <McpBannerSection />
