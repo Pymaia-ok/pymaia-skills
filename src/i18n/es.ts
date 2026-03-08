@@ -511,10 +511,4 @@ export default {
     published: "¡Skill publicada! Será revisada antes de aparecer en el marketplace.",
     errorPublish: "Error al publicar. Intentá de nuevo.",
   },
-
-  skillCard: {
-    installations: "installs",
-    min: "min",
-    viewInstall: "Ver cómo instalar →",
-  },
 } as const;
