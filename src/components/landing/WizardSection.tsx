@@ -8,7 +8,7 @@ import SkillCard from "@/components/SkillCard";
 import { Button } from "@/components/ui/button";
 import type { SkillFromDB } from "@/lib/api";
 
-const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "arquitecto", "medico", "profesor", "ventas", "product-manager", "data-analyst", "devops", "rrhh", "otro"] as const;
+const roleIds = ["marketer", "abogado", "consultor", "founder", "disenador", "ingeniero", "medico", "profesor", "ventas", "product-manager", "data-analyst", "devops", "rrhh", "otro"] as const;
 const roleIcons: Record<string, string> = {
   marketer: "📣", abogado: "⚖️", consultor: "💼", founder: "🚀", disenador: "🎨",
   ingeniero: "🔧", arquitecto: "🏗️", medico: "🩺", profesor: "🎓", otro: "✨",
