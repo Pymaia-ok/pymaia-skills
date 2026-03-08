@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical, Copy, Check, FileCode } from "lucide-react";
+import { Sparkles, ArrowLeft, Send, Loader2, Zap, ShieldAlert, BookOpen, FlaskConical, Copy, Check, FileCode, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import SkillScoreCard from "./SkillScoreCard";
 import SkillTestResults from "./SkillTestResults";
 import { toast } from "sonner";
+import JSZip from "jszip";
 
 interface RequiredMcp {
   name: string;
