@@ -274,6 +274,20 @@ serve(async (req) => {
       },
     };
 
+    const validateSkillFields = (s: any) => {
+      // name: max 64 chars, kebab-case, no "anthropic"/"claude"
+      if (s.name) {
+        let kebab = s.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+        kebab = kebab.replace(/anthropic|claude/gi, '').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+        s.name = kebab.slice(0, 64) || 'custom-skill';
+      }
+      // description: max 1024 chars
+      if (s.description && s.description.length > 1024) {
+        s.description = s.description.slice(0, 1021) + '...';
+      }
+      return s;
+    };
+
     if (action === "generate") {
       // Step 1: Generate the skill from conversation using tool calling
       const conversationText = conversation

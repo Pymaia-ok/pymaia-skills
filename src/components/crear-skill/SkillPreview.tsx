@@ -227,10 +227,13 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
               {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copied ? "Copiado" : "Copiar"}
             </Button>
+            <Button variant="outline" size="sm" onClick={downloadZip} className="text-xs h-7 gap-1">
+              <Download className="w-3 h-3" /> ZIP
+            </Button>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mb-2">
-          Archivo compatible con el estándar oficial Agent Skills de Anthropic. Funciona directo en Claude Code y Claude.ai.
+          Archivo compatible con el estándar oficial Agent Skills de Anthropic. Funciona en Claude Code, Claude.ai (subí el ZIP) y la API.
         </p>
         {showSkillMd && (
           <pre className="mt-3 p-4 bg-secondary rounded-xl text-xs text-foreground overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap font-mono">

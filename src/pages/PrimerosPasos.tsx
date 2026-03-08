@@ -255,6 +255,91 @@ const PrimerosPasos = () => {
               </div>
             </div>
 
+            {/* Where skills work — 3 surfaces */}
+            <div className="p-6 rounded-2xl bg-secondary border border-border mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Globe className="w-5 h-5 text-muted-foreground" />
+                <h3 className="font-semibold">{isEs ? "Dónde funcionan las skills" : "Where skills work"}</h3>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                {[
+                  {
+                    emoji: "💬",
+                    name: "Claude.ai",
+                    desc: isEs
+                      ? "Subí un ZIP con tu skill desde Settings → Features. Funciona en Chat y Cowork."
+                      : "Upload a ZIP with your skill from Settings → Features. Works in Chat and Cowork.",
+                    tag: isEs ? "Upload ZIP" : "Upload ZIP",
+                  },
+                  {
+                    emoji: "⌨️",
+                    name: "Claude Code",
+                    desc: isEs
+                      ? "Guardá el SKILL.md en la carpeta .claude/skills/ de tu proyecto. Se activa automáticamente."
+                      : "Save the SKILL.md in your project's .claude/skills/ folder. Activates automatically.",
+                    tag: isEs ? "Carpeta local" : "Local folder",
+                  },
+                  {
+                    emoji: "🔗",
+                    name: "API",
+                    desc: isEs
+                      ? "Subí skills via /v1/skills para agentes y automatizaciones programáticas."
+                      : "Upload skills via /v1/skills for programmatic agents and automations.",
+                    tag: isEs ? "Endpoint" : "Endpoint",
+                  },
+                ].map((surface) => (
+                  <div key={surface.name} className="p-4 rounded-xl bg-background border border-border text-center">
+                    <span className="text-2xl mb-2 block">{surface.emoji}</span>
+                    <p className="font-semibold text-sm mb-1">{surface.name}</p>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-muted-foreground">{surface.tag}</span>
+                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{surface.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isEs
+                  ? "⚠️ Las skills no se sincronizan entre superficies. Hay que instalarlas por separado en cada una."
+                  : "⚠️ Skills don't sync between surfaces. You need to install them separately on each one."}
+              </p>
+            </div>
+
+            {/* Progressive disclosure */}
+            <div className="p-6 rounded-2xl bg-secondary border border-border mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Zap className="w-5 h-5 text-muted-foreground" />
+                <h3 className="font-semibold">{isEs ? "¿Muchas skills = lento?" : "Many skills = slow?"}</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {isEs
+                  ? "No. Claude usa progressive disclosure: carga las skills en 3 niveles según las necesita."
+                  : "No. Claude uses progressive disclosure: it loads skills in 3 levels as needed."}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                {[
+                  { level: "1", label: isEs ? "Metadata" : "Metadata", desc: isEs ? "Siempre cargada (nombre, descripción)" : "Always loaded (name, description)" },
+                  { level: "2", label: "SKILL.md", desc: isEs ? "Se lee al activar la skill" : "Read when skill activates" },
+                  { level: "3", label: isEs ? "Recursos" : "Resources", desc: isEs ? "Scripts y archivos, bajo demanda" : "Scripts and files, on demand" },
+                ].map((l) => (
+                  <div key={l.level} className="flex-1 flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
+                    <div className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold flex-shrink-0">{l.level}</div>
+                    <div>
+                      <p className="text-xs font-semibold">{l.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{l.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Pre-built skills note */}
+            <div className="p-4 rounded-xl bg-accent/50 border border-border mb-8">
+              <p className="text-sm text-muted-foreground">
+                {isEs
+                  ? "📎 Claude ya viene con skills pre-instaladas para PowerPoint, Excel, Word y PDF. No necesitás instalar nada para esos."
+                  : "📎 Claude comes with pre-installed skills for PowerPoint, Excel, Word and PDF. No setup needed for those."}
+              </p>
+            </div>
+
             {/* Before/After */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="p-5 rounded-2xl border border-border bg-destructive/5">
