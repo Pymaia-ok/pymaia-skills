@@ -321,7 +321,7 @@ serve(async (req) => {
       // Refine an existing skill based on user feedback using tool calling
       const refinePrompt = `Tenés esta skill existente:\n\n${JSON.stringify(skill)}\n\nEl usuario pidió este cambio: "${refinement_request}"\n\nModificá la skill según lo pedido y devolvé la skill completa actualizada.`;
 
-      const refined = await callAI(
+      let refined = await callAI(
         [
           { role: "system", content: GENERATE_PROMPT },
           { role: "user", content: refinePrompt },
@@ -330,6 +330,8 @@ serve(async (req) => {
         [skillTool],
         { type: "function", function: { name: "create_skill" } }
       );
+
+      refined = validateSkillFields(refined);
 
       // Re-judge
       const judgeRaw = await callAI(
