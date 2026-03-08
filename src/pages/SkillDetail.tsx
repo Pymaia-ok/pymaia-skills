@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock, FileArchive } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import ShareButton from "@/components/ShareButton";
+import JSZip from "jszip";
 
 const SkillDetail = () => {
   const { slug } = useParams();
@@ -25,6 +26,7 @@ const SkillDetail = () => {
   const [reviewTimeSaved, setReviewTimeSaved] = useState("");
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"copy" | "zip">("copy");
 
   // Support share_token for private skills
   const searchParams = new URLSearchParams(window.location.search);
@@ -127,9 +129,51 @@ const SkillDetail = () => {
     }
   };
 
+
   const handleEmailCaptured = (email: string) => {
-    performCopy();
+    if (pendingAction === "zip") {
+      performZipDownload();
+    } else {
+      performCopy();
+    }
     toast.success(t("emailGate.success", "¡Listo! Revisá tu email para tips de uso."));
+  };
+
+  const performZipDownload = async () => {
+    const zip = new JSZip();
+    const folderName = skill.slug || skill.display_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    zip.file(`${folderName}/SKILL.md`, skill.install_command);
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t("detail.zipDownloaded", "ZIP descargado — subilo a Claude.ai en Settings → Features"));
+  };
+
+  const handleDownloadZip = async () => {
+    if (user) {
+      await performZipDownload();
+      trackInstallation(skill.id, user.id).catch(() => {});
+      const userEmail = user.email;
+      if (userEmail) {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: userEmail,
+            sequence_name: "post_install",
+            metadata: { skill_name: skill.display_name, skill_slug: skill.slug },
+          }),
+        }).catch(() => {});
+      }
+    } else {
+      setPendingAction("zip");
+      setShowEmailGate(true);
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -168,9 +212,13 @@ const SkillDetail = () => {
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">{displayName}</h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl">{tagline}</p>
             <div className="flex flex-wrap items-center gap-4 mb-8">
-              <button onClick={handleCopy} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">
+              <button onClick={() => { setPendingAction("copy"); handleCopy(); }} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">
                 {copied ? <Check className="w-5 h-5" /> : <Download className="w-5 h-5" />}
                 {copied ? t("detail.commandCopied") : t("detail.installSkill")}
+              </button>
+              <button onClick={handleDownloadZip} className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm">
+                <FileArchive className="w-4 h-4" />
+                {t("detail.downloadZip", "ZIP para Claude.ai")}
               </button>
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>

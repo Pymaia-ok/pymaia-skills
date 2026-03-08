@@ -251,6 +251,8 @@ export default {
     mcpCredentials: "Credenciales",
     reviewSuccess: "Review publicada",
     reviewError: "No se pudo publicar la review. ¿Ya dejaste una?",
+    downloadZip: "ZIP para Claude.ai",
+    zipDownloaded: "ZIP descargado — subilo a Claude.ai en Settings → Features",
   },
 
   // Auth

@@ -1,21 +1,27 @@
 
 
-## Add ZIP Download to Skill Detail Page
+## Plan: Ampliar importación de Skills confiables desde GitHub — ✅ COMPLETADO
 
-### What changes
+### Lo que se hizo
 
-**`src/pages/SkillDetail.tsx`**:
-1. Add a "Download ZIP" button next to the existing "Install" button (line ~171-176)
-2. Import `JSZip` and add a `downloadZip` handler that creates a ZIP with `{skill-name}/SKILL.md` containing `skill.install_command`
-3. The button uses the `Download` icon with text like "ZIP para Claude.ai"
-4. Style it as a secondary/outline button to differentiate from the primary install CTA
+**1. Nueva source `github-code-search` en `sync-skills`**
+- Busca repos con `filename:SKILL.md path:/` y `filename:.cursorrules path:/` via GitHub Code Search API
+- Descubre skills legítimos que no usan los topics convencionales
 
-**`src/i18n/es.ts` + `src/i18n/en.ts`**:
-- Add strings: `detail.downloadZip` ("ZIP para Claude.ai" / "ZIP for Claude.ai"), `detail.zipDownloaded` toast message
+**2. Topics de dominio ampliados en `github-search`**
+- Agregados: `cursor-rules`, `claude-rules`, `ai-rules`, `ai-agent`, `ai-assistant`, `llm-tool`, `prompt-engineering`, `ai-workflow`, `autocad`, `cad`, `bim`, `revit`
 
-### Implementation detail
+**3. Skill de AutoCAD insertado**
+- `autocad-drafting` (puran-water/autocad-mcp, 159⭐) insertado como approved
 
-- Reuse the same JSZip pattern already in `SkillPreview.tsx`: kebab-case folder name from `skill.display_name`, containing `SKILL.md` with `skill.install_command` content
-- The ZIP download also triggers `trackInstallation` and email gate for non-authenticated users (same flow as copy)
-- No new dependencies needed (JSZip already installed)
+### Cómo ejecutar
+```
+# Buscar repos con SKILL.md
+POST sync-skills { "source": "github-code-search" }
 
+# Buscar por topic específico
+POST sync-skills { "source": "github-search", "topic": "autocad" }
+
+# Ejecutar github-search con TODOS los topics (incluidos los nuevos)
+POST sync-skills { "source": "github-search" }
+```
