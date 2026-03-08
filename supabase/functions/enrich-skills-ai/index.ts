@@ -341,6 +341,125 @@ Be precise — only include MCPs that are truly required based on the evidence.`
       });
     }
 
+    // ─── MODE: enrich-slugs — enrich specific skills by slug ───
+    if (mode === "enrich-slugs" && targetSlugs.length > 0) {
+      console.log(`[enrich-slugs] Enriching ${targetSlugs.length} specific skills...`);
+      const { data: targetSkills, error: tsErr } = await supabase
+        .from("skills")
+        .select("id, slug, display_name, tagline, description_human, github_url, category, readme_raw, readme_summary")
+        .eq("status", "approved")
+        .in("slug", targetSlugs);
+
+      if (tsErr || !targetSkills || targetSkills.length === 0) {
+        return new Response(JSON.stringify({ success: false, error: tsErr?.message || "No skills found" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let enriched = 0;
+      for (const skill of targetSkills) {
+        try {
+          const ghMatch = skill.github_url?.match(/github\.com\/([^\/]+)\/([^\/\s?#]+)/);
+          const repoName = ghMatch ? `${ghMatch[1]}/${ghMatch[2]}` : skill.display_name;
+
+          const contextParts = [
+            `Name: ${skill.display_name}`,
+            `GitHub repo: ${repoName}`,
+            `Category: ${skill.category}`,
+            skill.readme_summary ? `README summary: ${skill.readme_summary.slice(0, 1000)}` : "",
+            skill.readme_raw ? `README (first 2000 chars): ${skill.readme_raw.slice(0, 2000)}` : "",
+          ].filter(Boolean).join("\n");
+
+          const prompt = `You are a technical copywriter for a developer tools marketplace called Pymaia Skills.
+
+Analyze this AI skill/tool and generate accurate descriptions based on its NAME and any available README content.
+The skill name itself is very important — it tells you what the skill does (e.g. "GDPR DSGVO Expert" is about GDPR/DSGVO compliance).
+
+${contextParts}
+
+Generate:
+1. A tagline (max 120 chars, one sentence, what it does concisely — be domain-specific)
+2. A description (2-3 sentences, max 400 chars, what it does + who it's for + key benefit)
+3. A Spanish tagline (max 120 chars)
+4. A Spanish description (2-3 sentences, max 400 chars)
+
+Be SPECIFIC to the domain implied by the name. Don't be generic.`;
+
+          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "user", content: prompt }],
+              tools: [{
+                type: "function",
+                function: {
+                  name: "set_descriptions",
+                  description: "Set descriptions for a skill",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      tagline: { type: "string", description: "English tagline, max 120 chars" },
+                      description: { type: "string", description: "English description, max 400 chars" },
+                      tagline_es: { type: "string", description: "Spanish tagline, max 120 chars" },
+                      description_es: { type: "string", description: "Spanish description, max 400 chars" },
+                    },
+                    required: ["tagline", "description", "tagline_es", "description_es"],
+                    additionalProperties: false,
+                  },
+                },
+              }],
+              tool_choice: { type: "function", function: { name: "set_descriptions" } },
+            }),
+          });
+
+          if (aiRes.status === 429) {
+            console.log("[enrich-slugs] Rate limited, stopping");
+            break;
+          }
+          if (!aiRes.ok) {
+            console.error(`[enrich-slugs] AI error ${aiRes.status} for ${skill.slug}`);
+            continue;
+          }
+
+          const aiData = await aiRes.json();
+          const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+          if (!toolCall) continue;
+
+          const args = JSON.parse(toolCall.function.arguments);
+          const updates: Record<string, unknown> = {};
+          if (args.tagline) updates.tagline = args.tagline.slice(0, 120);
+          if (args.description) updates.description_human = args.description.slice(0, 500);
+          if (args.tagline_es) updates.tagline_es = args.tagline_es.slice(0, 120);
+          if (args.description_es) updates.description_human_es = args.description_es.slice(0, 500);
+
+          if (Object.keys(updates).length > 0) {
+            const { error: updateErr } = await supabase.from("skills").update(updates).eq("id", skill.id);
+            if (!updateErr) {
+              enriched++;
+              console.log(`[enrich-slugs] ✓ ${skill.slug}`);
+            } else {
+              console.error(`[enrich-slugs] Update error for ${skill.slug}:`, updateErr.message);
+            }
+          }
+
+          await new Promise(r => setTimeout(r, 500));
+        } catch (e) {
+          console.error(`[enrich-slugs] Error for ${skill.slug}:`, (e as Error).message);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        success: true, mode: "enrich-slugs",
+        processed: targetSkills.length, enriched,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── MODE: enrich — use AI to generate better descriptions ───
     console.log(`[enrich-ai] Starting batch of ${batchSize}...`);
 
