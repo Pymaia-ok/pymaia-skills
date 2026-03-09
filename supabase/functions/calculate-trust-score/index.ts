@@ -57,15 +57,25 @@ async function calculateTrustScore(item: any, abuseCount: number): Promise<{
   const ghOrg = ghMatch?.[1]?.toLowerCase();
 
   if (ghOrg && TRUSTED_PUBLISHERS.includes(ghOrg)) {
-    publisher += 15;
+    publisher += 10; // Verified publisher by Pymaia (known org)
+  }
+
+  // PRD 7.1: GitHub account age > 1 year → 5pts
+  const pubData = scanResult?.layers?.publisher;
+  if (pubData?.account_age_days != null && pubData.account_age_days >= 365) {
+    publisher += 5;
+  }
+  // PRD 7.1: GitHub repos > 5 → 3pts
+  if (pubData?.public_repos != null && pubData.public_repos >= 5) {
+    publisher += 3;
   }
 
   if (item.is_official) {
-    publisher += 10;
-  } else if (item.source === "curated") {
     publisher += 7;
+  } else if (item.source === "curated") {
+    publisher += 5;
   } else if (item.creator_id) {
-    publisher += 3;
+    publisher += 2;
   }
 
   // ── COMMUNITY SCORE (0-20) ──

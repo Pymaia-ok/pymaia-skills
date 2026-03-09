@@ -167,11 +167,12 @@ function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt
     }
   }
 
-  // PRD 7.3: Dependency con CVE medio
-  if (scanResult.layers?.dependencies?.has_vulnerabilities) {
-    const high = scanResult.layers.dependencies.high_count || 0;
-    const critical = scanResult.layers.dependencies.critical_count || 0;
-    if (critical > 0 || high > 0) {
+  // PRD 7.3: Dependency con CVE
+  const depVulns = scanResult.layers?.dependencies?.vulnerabilities;
+  if (Array.isArray(depVulns) && depVulns.length > 0) {
+    const hasCritical = depVulns.some((v: any) => v.severity === "critical" || (v.cvss && v.cvss > 9));
+    const hasHigh = depVulns.some((v: any) => v.severity === "high" || (v.cvss && v.cvss > 7));
+    if (hasCritical || hasHigh) {
       warnings.push({
         icon: ShieldAlert,
         text: isEs ? "Tiene dependencias con vulnerabilidades conocidas" : "Has dependencies with known vulnerabilities",
