@@ -235,6 +235,27 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
         )}
       </div>
 
+      {/* Publish as Plugin */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Package className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Publicar también como Plugin</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Genera un plugin completo con plugin.json y README, listo para <code className="bg-secondary px-1 py-0.5 rounded text-[10px]">claude plugin install</code></p>
+            </div>
+          </div>
+          <Switch checked={publishAsPlugin} onCheckedChange={setPublishAsPlugin} />
+        </div>
+        {publishAsPlugin && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 p-3 bg-secondary rounded-xl">
+            <p className="text-xs text-muted-foreground">
+              🚀 Se generará automáticamente la estructura de plugin compatible con Claude Code. Tu plugin aparecerá en la sección Plugins del marketplace.
+            </p>
+          </motion.div>
+        )}
+      </div>
+
       {/* Installation instructions */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">📦 Cómo instalar después de publicar</h3>
@@ -257,12 +278,13 @@ export default function SkillPublishConfig({ initialCategory, initialIndustry, i
           price_amount: pricingModel !== "free" && priceAmount ? parseFloat(priceAmount) : null,
           required_mcps: mcps.filter(m => m.name.trim()),
           is_public: isPublic,
+          publish_as_plugin: publishAsPlugin,
         })}
         disabled={isPublishing || !category || roles.length === 0 || (pricingModel !== "free" && !priceAmount)}
         className="w-full rounded-full gap-2" size="lg"
       >
         {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
-        {isPublishing ? "Publicando..." : "Publicar en el marketplace"}
+        {isPublishing ? "Publicando..." : publishAsPlugin ? "Publicar skill + plugin" : "Publicar en el marketplace"}
       </Button>
     </motion.div>
   );
