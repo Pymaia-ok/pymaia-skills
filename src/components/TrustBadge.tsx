@@ -1,4 +1,4 @@
-import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, Star, AlertTriangle, Info } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, Star, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 
@@ -28,7 +28,7 @@ function getBadgeFromScore(score: number): string {
   return "new";
 }
 
-function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: any; text: string; color: string }> {
+function getWarnings(scanResult: any, itemType: string, isEs: boolean): Array<{ icon: any; text: string; color: string }> {
   const warnings: Array<{ icon: any; text: string; color: string }> = [];
   
   if (!scanResult) return warnings;
@@ -36,7 +36,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.verdict === "SUSPICIOUS") {
     warnings.push({
       icon: AlertTriangle,
-      text: t("security.suspicious", "Flagged for review — use with caution"),
+      text: isEs ? "Marcado para revisión — usar con precaución" : "Flagged for review — use with caution",
       color: "text-amber-500",
     });
   }
@@ -44,7 +44,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.verdict === "MALICIOUS") {
     warnings.push({
       icon: ShieldAlert,
-      text: t("security.malicious", "Security risk detected — blocked"),
+      text: isEs ? "Riesgo de seguridad detectado — bloqueado" : "Security risk detected — blocked",
       color: "text-destructive",
     });
   }
@@ -52,7 +52,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.layers?.secrets?.count > 0) {
     warnings.push({
       icon: AlertTriangle,
-      text: t("security.secrets_detected", "Contains exposed credentials"),
+      text: isEs ? "Contiene credenciales expuestas" : "Contains exposed credentials",
       color: "text-destructive",
     });
   }
@@ -60,7 +60,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.layers?.injection?.critical > 0) {
     warnings.push({
       icon: ShieldAlert,
-      text: t("security.injection_detected", "Prompt injection patterns detected"),
+      text: isEs ? "Patrones de prompt injection detectados" : "Prompt injection patterns detected",
       color: "text-destructive",
     });
   }
@@ -68,7 +68,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.layers?.typosquatting?.flags?.length > 0) {
     warnings.push({
       icon: Info,
-      text: t("security.typosquatting", "Name similar to a popular tool — verify authenticity"),
+      text: isEs ? "Nombre similar a una herramienta popular — verificar autenticidad" : "Name similar to a popular tool — verify authenticity",
       color: "text-amber-500",
     });
   }
@@ -76,7 +76,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.layers?.hidden_content?.findings?.length > 0) {
     warnings.push({
       icon: ShieldAlert,
-      text: t("security.hidden_content", "Hidden or obfuscated content detected"),
+      text: isEs ? "Contenido oculto u ofuscado detectado" : "Hidden or obfuscated content detected",
       color: "text-destructive",
     });
   }
@@ -84,7 +84,7 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.layers?.scope?.scope_assessment === "excessive") {
     warnings.push({
       icon: AlertTriangle,
-      text: t("security.excessive_scope", "Excessive permissions — review carefully"),
+      text: isEs ? "Permisos excesivos — revisar con cuidado" : "Excessive permissions — review carefully",
       color: "text-amber-500",
     });
   }
@@ -92,21 +92,70 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
   if (scanResult.layers?.format?.issues?.some((i: any) => i.severity === "error")) {
     warnings.push({
       icon: AlertTriangle,
-      text: t("security.format_issues", "Install command format concerns"),
+      text: isEs ? "Problemas en el formato del comando de instalación" : "Install command format concerns",
       color: "text-amber-500",
     });
   }
+
+  // Hook warnings (PRD 7.3)
+  if (scanResult.layers?.hooks?.has_hooks) {
+    warnings.push({
+      icon: Terminal,
+      text: isEs ? "Este plugin ejecuta comandos del sistema" : "This plugin executes system commands",
+      color: "text-amber-500",
+    });
+    if (scanResult.layers.hooks.blocked_count > 0) {
+      warnings.push({
+        icon: ShieldAlert,
+        text: isEs ? "Hooks peligrosos bloqueados" : "Dangerous hooks blocked",
+        color: "text-destructive",
+      });
+    }
+  }
+
+  // MCP filesystem access warning (PRD 7.3)
+  const scopePerms = scanResult.layers?.scope?.permissions;
+  if (scopePerms && Array.isArray(scopePerms)) {
+    const hasFs = scopePerms.some((p: any) => p.category === "write_fs" || p.category === "read_fs");
+    const hasNet = scopePerms.some((p: any) => p.category === "network");
+    const hasExec = scopePerms.some((p: any) => p.category === "exec");
+
+    if (hasFs && (itemType === "connector" || itemType === "plugin")) {
+      warnings.push({
+        icon: HardDrive,
+        text: isEs ? "Este conector accede a tus archivos" : "This connector accesses your files",
+        color: "text-amber-500",
+      });
+    }
+    if (hasNet && (itemType === "connector" || itemType === "plugin")) {
+      warnings.push({
+        icon: Wifi,
+        text: isEs ? "Este conector se conecta a servicios externos" : "This connector connects to external services",
+        color: "text-amber-500",
+      });
+    }
+    if (hasExec) {
+      warnings.push({
+        icon: Terminal,
+        text: isEs ? "Puede ejecutar comandos del sistema" : "Can execute system commands",
+        color: "text-destructive",
+      });
+    }
+  }
+
+  // Publisher not verified warning
+  // New item warning (< 7 days) — handled via createdAt if provided
 
   return warnings;
 }
 
 export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill" }: TrustBadgeProps) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isEs = i18n.language === "es";
   const badgeKey = getBadgeFromScore(trustScore);
   const config = BADGE_CONFIG[badgeKey];
   const Icon = config.icon;
-  const warnings = showWarnings ? getWarnings(scanResult, itemType, t) : [];
+  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs) : [];
 
   const sizeClasses = {
     sm: "text-xs gap-1 px-1.5 py-0.5",
