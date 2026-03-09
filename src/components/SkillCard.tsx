@@ -33,11 +33,14 @@ const SkillCard = forwardRef<HTMLDivElement, SkillCardProps>(({ skill, index = 0
         to={`/skill/${skill.slug}`}
         className="flex flex-col h-full p-6 rounded-2xl bg-secondary hover:bg-accent transition-all group"
       >
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
             {catLabel}
           </span>
-          {skill.security_status === "verified" && (
+          {(skill.trust_score != null && skill.trust_score > 0) && (
+            <TrustBadgeCompact trustScore={skill.trust_score} securityStatus={skill.security_status} />
+          )}
+          {skill.security_status === "verified" && !skill.trust_score && (
             <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="w-3 h-3" />
               {t("trust.verified")}

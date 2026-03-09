@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { submitSkill } from "@/lib/api";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { ShieldCheck, ShieldAlert, Loader2 } from "lucide-react";
 
 const roleOptions = ["marketer", "abogado", "consultor", "founder", "disenador", "otro"];
 const industryOptions = ["Agencias", "Legal", "Consultoras", "E-commerce", "Startups", "Educación", "Finanzas"];
@@ -16,6 +18,8 @@ const Publicar = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
   const [form, setForm] = useState({
     displayName: "", tagline: "", descriptionHuman: "",
     useCase1Title: "", useCase1Before: "", useCase1After: "",
@@ -35,6 +39,41 @@ const Publicar = () => {
     e.preventDefault();
     if (!form.displayName || !form.tagline || !form.descriptionHuman || !form.installCommand) { toast.error(t("publish.fillRequired")); return; }
     if (form.targetRoles.length === 0) { toast.error(t("publish.selectRole")); return; }
+
+    // ── Security Gate: scan before publishing ──
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const contentToScan = [form.displayName, form.tagline, form.descriptionHuman, form.installCommand].join("\n\n");
+      const slug = form.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      
+      const { data: scanData, error: scanError } = await supabase.functions.invoke("scan-security", {
+        body: {
+          gate_mode: true,
+          content: contentToScan,
+          install_command: form.installCommand,
+          slug,
+          item_type: "skill",
+        },
+      });
+
+      if (scanError) {
+        console.error("Security scan error:", scanError);
+        // Allow publish if scan fails (don't block on infra issues)
+      } else if (scanData && !scanData.pass) {
+        setScanResult(scanData);
+        setScanning(false);
+        toast.error(t("publish.securityBlocked", "Security issues detected — please review"));
+        return;
+      } else if (scanData) {
+        setScanResult(scanData);
+      }
+    } catch (err) {
+      console.error("Security gate error:", err);
+    }
+    setScanning(false);
+
+    // ── Publish ──
     setSubmitting(true);
     try {
       const slug = form.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -120,8 +159,58 @@ const Publicar = () => {
               <label className="text-sm font-medium mb-2 block">{t("publish.timeLabel")}</label>
               <input type="number" min={1} max={30} value={form.timeToInstall} onChange={e => setForm(f => ({ ...f, timeToInstall: Number(e.target.value) }))} className={inputClass + " w-24"} />
             </div>
-            <button type="submit" disabled={submitting} className="w-full py-3.5 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
-              {submitting ? t("publish.submitting") : t("publish.submit")}
+
+            {/* Security Gate Results */}
+            {scanResult && !scanResult.pass && (
+              <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <ShieldAlert className="w-5 h-5 text-destructive" />
+                  <span className="font-semibold text-destructive text-sm">
+                    {t("publish.securityIssues", "Security issues detected")}
+                  </span>
+                </div>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  {scanResult.layers?.secrets?.count > 0 && (
+                    <li>• {t("publish.secretsFound", "Exposed credentials detected in content")}</li>
+                  )}
+                  {scanResult.layers?.injection?.critical > 0 && (
+                    <li>• {t("publish.injectionFound", "Prompt injection patterns detected")}</li>
+                  )}
+                  {scanResult.layers?.hidden_content?.findings?.length > 0 && (
+                    <li>• {t("publish.hiddenFound", "Hidden or obfuscated content detected")}</li>
+                  )}
+                  {scanResult.layers?.format?.issues?.filter((i: any) => i.severity === "error")?.length > 0 && (
+                    <li>• {t("publish.formatErrors", "Install command format issues detected")}</li>
+                  )}
+                  {scanResult.layers?.scope?.scope_assessment === "excessive" && (
+                    <li>• {t("publish.excessiveScope", "Excessive permissions detected")}</li>
+                  )}
+                  {scanResult.layers?.llm?.verdict === "MALICIOUS" && (
+                    <li>• {t("publish.llmMalicious", "AI analysis flagged potential security risk")}</li>
+                  )}
+                </ul>
+                <p className="text-xs text-muted-foreground mt-3">
+                  {t("publish.fixAndRetry", "Please fix the issues above and try again.")}
+                </p>
+              </div>
+            )}
+
+            {scanResult?.pass && (
+              <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                  {t("publish.securityPassed", "Security scan passed")}
+                </span>
+              </div>
+            )}
+
+            <button type="submit" disabled={submitting || scanning} className="w-full py-3.5 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
+              {scanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {t("publish.scanning", "Scanning for security issues...")}
+                </>
+              ) : submitting ? t("publish.submitting") : t("publish.submit")}
             </button>
           </form>
         </motion.div>
