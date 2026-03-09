@@ -652,7 +652,7 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "SkillHub MCP Server",
-  version: "2.0.0",
+  version: "3.0.0",
   rateLimit: "30 requests/minute per IP",
   tools: [
     "search_skills", "get_skill_details",
