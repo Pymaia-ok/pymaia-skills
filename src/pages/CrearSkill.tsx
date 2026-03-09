@@ -123,6 +123,73 @@ const CrearSkill = () => {
       });
   }, [user, searchParams]);
 
+  // Auto-save conversation every 30s during chat phase
+  const lastSavedRef = useRef<string>("");
+
+  const saveConversationDraft = useCallback(async () => {
+    if (!user || messages.length < 2) return; // need at least 1 exchange
+    const fingerprint = JSON.stringify(messages);
+    if (fingerprint === lastSavedRef.current) return; // no changes
+    lastSavedRef.current = fingerprint;
+
+    try {
+      const payload = {
+        user_id: user.id,
+        conversation: messages as any,
+        status: "interviewing",
+        generated_skill: skill as any ?? null,
+        quality_score: quality?.score ?? null,
+        quality_feedback: quality?.feedback ?? null,
+        test_results: testResults as any ?? null,
+      };
+
+      if (draftId) {
+        await supabase.from("skill_drafts").update(payload).eq("id", draftId);
+      } else {
+        const { data } = await supabase.from("skill_drafts").insert(payload).select("id").single();
+        if (data) setDraftId(data.id);
+      }
+    } catch (e) {
+      console.error("Auto-save failed", e);
+    }
+  }, [user, messages, skill, quality, testResults, draftId]);
+
+  // Periodic auto-save
+  useEffect(() => {
+    if (step !== "chat" || messages.length < 2) return;
+    const interval = setInterval(saveConversationDraft, 30000);
+    return () => clearInterval(interval);
+  }, [step, messages.length, saveConversationDraft]);
+
+  // Save on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (messages.length >= 2 && user) {
+        const fingerprint = JSON.stringify(messages);
+        if (fingerprint !== lastSavedRef.current) {
+          // Use sendBeacon for reliability on close
+          const payload = {
+            user_id: user.id,
+            conversation: messages,
+            status: "interviewing",
+            generated_skill: skill ?? null,
+            quality_score: quality?.score ?? null,
+            quality_feedback: quality?.feedback ?? null,
+            test_results: testResults ?? null,
+          };
+          if (draftId) {
+            navigator.sendBeacon(
+              `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/skill_drafts?id=eq.${draftId}`,
+              new Blob([JSON.stringify(payload)], { type: "application/json" })
+            );
+          }
+        }
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [messages, user, draftId, skill, quality, testResults]);
+
   if (loading || draftLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
 
@@ -151,6 +218,7 @@ const CrearSkill = () => {
         const { data } = await supabase.from("skill_drafts").insert(payload).select("id").single();
         if (data) setDraftId(data.id);
       }
+      lastSavedRef.current = JSON.stringify(conversation);
     } catch (e) {
       console.error("Failed to save draft", e);
     }
