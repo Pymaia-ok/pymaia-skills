@@ -246,6 +246,33 @@ export async function submitSkill(skill: {
   if (error) throw error;
 }
 
+// Plugins
+export async function submitPlugin(plugin: {
+  slug: string;
+  name: string;
+  description: string;
+  category?: string;
+  github_url?: string;
+  creator_id: string;
+  platform?: string;
+  source?: string;
+}) {
+  const { error } = await supabase.from("plugins").insert({
+    slug: plugin.slug,
+    name: plugin.name,
+    description: plugin.description,
+    category: plugin.category || "development",
+    github_url: plugin.github_url || null,
+    creator_id: plugin.creator_id,
+    platform: plugin.platform || "claude-code",
+    source: plugin.source || "community",
+    status: "approved",
+    is_official: false,
+    is_anthropic_verified: false,
+  });
+  if (error) throw error;
+}
+
 export async function updateSkillStatus(skillId: string, status: "approved" | "rejected") {
   const { error } = await supabase.from("skills").update({ status }).eq("id", skillId);
   if (error) throw error;
