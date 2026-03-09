@@ -335,6 +335,7 @@ export type Database = {
           creator_id: string | null
           description: string
           description_es: string | null
+          github_stars: number
           github_url: string | null
           homepage: string | null
           icon_url: string | null
@@ -342,9 +343,12 @@ export type Database = {
           install_count: number
           is_anthropic_verified: boolean
           is_official: boolean
+          last_commit_at: string | null
           name: string
           name_es: string | null
           platform: string
+          security_checked_at: string | null
+          security_notes: string | null
           security_status: string
           slug: string
           source: string
@@ -357,6 +361,7 @@ export type Database = {
           creator_id?: string | null
           description?: string
           description_es?: string | null
+          github_stars?: number
           github_url?: string | null
           homepage?: string | null
           icon_url?: string | null
@@ -364,9 +369,12 @@ export type Database = {
           install_count?: number
           is_anthropic_verified?: boolean
           is_official?: boolean
+          last_commit_at?: string | null
           name: string
           name_es?: string | null
           platform?: string
+          security_checked_at?: string | null
+          security_notes?: string | null
           security_status?: string
           slug: string
           source?: string
@@ -379,6 +387,7 @@ export type Database = {
           creator_id?: string | null
           description?: string
           description_es?: string | null
+          github_stars?: number
           github_url?: string | null
           homepage?: string | null
           icon_url?: string | null
@@ -386,9 +395,12 @@ export type Database = {
           install_count?: number
           is_anthropic_verified?: boolean
           is_official?: boolean
+          last_commit_at?: string | null
           name?: string
           name_es?: string | null
           platform?: string
+          security_checked_at?: string | null
+          security_notes?: string | null
           security_status?: string
           slug?: string
           source?: string

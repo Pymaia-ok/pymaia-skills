@@ -9,7 +9,7 @@ const corsHeaders = {
 interface RepoCheck {
   id: string;
   github_url: string;
-  table: "skills" | "mcp_servers";
+  table: "skills" | "mcp_servers" | "plugins";
 }
 
 async function checkGitHubRepo(
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { batchSize = 30, table = "both" } = await req.json().catch(() => ({}));
+    const { batchSize = 30, table = "all" } = await req.json().catch(() => ({}));
 
     const ghHeaders: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     const items: RepoCheck[] = [];
 
     // Fetch skills needing check
-    if (table === "both" || table === "skills") {
+    if (table === "all" || table === "both" || table === "skills") {
       const { data: skills } = await supabase
         .from("skills")
         .select("id, github_url")
@@ -118,12 +118,12 @@ Deno.serve(async (req) => {
         .neq("github_url", "")
         .or("security_checked_at.is.null,security_status.eq.unverified")
         .order("security_checked_at", { ascending: true, nullsFirst: true })
-        .limit(Math.ceil(batchSize / 2));
+        .limit(Math.ceil(batchSize / 3));
       if (skills) items.push(...skills.map(s => ({ ...s, table: "skills" as const })));
     }
 
     // Fetch connectors needing check
-    if (table === "both" || table === "mcp_servers") {
+    if (table === "all" || table === "both" || table === "mcp_servers") {
       const { data: connectors } = await supabase
         .from("mcp_servers")
         .select("id, github_url")
@@ -132,8 +132,22 @@ Deno.serve(async (req) => {
         .neq("github_url", "")
         .or("security_checked_at.is.null,security_status.eq.unverified")
         .order("security_checked_at", { ascending: true, nullsFirst: true })
-        .limit(Math.ceil(batchSize / 2));
+        .limit(Math.ceil(batchSize / 3));
       if (connectors) items.push(...connectors.map(c => ({ ...c, table: "mcp_servers" as const })));
+    }
+
+    // Fetch plugins needing check
+    if (table === "all" || table === "plugins") {
+      const { data: pluginRows } = await supabase
+        .from("plugins")
+        .select("id, github_url")
+        .eq("status", "approved")
+        .not("github_url", "is", null)
+        .neq("github_url", "")
+        .or("security_checked_at.is.null,security_status.eq.unverified")
+        .order("security_checked_at", { ascending: true, nullsFirst: true })
+        .limit(Math.ceil(batchSize / 3));
+      if (pluginRows) items.push(...pluginRows.map((p: any) => ({ ...p, table: "plugins" as const })));
     }
 
     let verified = 0;

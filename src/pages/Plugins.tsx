@@ -57,6 +57,7 @@ const Plugins = () => {
     const matchesPlatform = platformFilter === "all" || p.platform === platformFilter || (platformFilter === "claude-code" && p.platform === "both") || (platformFilter === "cowork" && p.platform === "both");
     const matchesVerified = verifiedFilter === "all" ||
       (verifiedFilter === "anthropic-verified" && p.is_anthropic_verified) ||
+      (verifiedFilter === "verified" && p.security_status === "verified") ||
       (verifiedFilter === "community" && !p.is_official);
     return matchesSearch && matchesPlatform && matchesVerified;
   });
@@ -100,14 +101,15 @@ const Plugins = () => {
                 ))}
                 <div className="h-px bg-border my-1" />
                 <p className="text-xs font-semibold text-muted-foreground px-3 py-1">{isEs ? "Verificación" : "Verification"}</p>
-                {["all", "anthropic-verified", "community"].map((f) => (
+                {["all", "anthropic-verified", "verified", "community"].map((f) => (
                   <button
                     key={f}
                     onClick={() => setVerifiedFilter(f)}
                     className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${verifiedFilter === f ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}
                   >
-                    {f === "anthropic-verified" && <BadgeCheck className="w-3.5 h-3.5" />}
-                    {f === "all" ? (isEs ? "Todos" : "All") : f === "anthropic-verified" ? "Anthropic Verified" : (isEs ? "Comunitarios" : "Community")}
+                     {f === "anthropic-verified" && <BadgeCheck className="w-3.5 h-3.5" />}
+                     {f === "verified" && <ShieldCheck className="w-3.5 h-3.5" />}
+                     {f === "all" ? (isEs ? "Todos" : "All") : f === "anthropic-verified" ? "Anthropic Verified" : f === "verified" ? (isEs ? "Verificados" : "Verified") : (isEs ? "Comunitarios" : "Community")}
                   </button>
                 ))}
               </PopoverContent>
@@ -180,9 +182,14 @@ const Plugins = () => {
                           <ShieldCheck className="w-3 h-3" />
                           {isEs ? "Oficial" : "Official"}
                         </span>
+                      ) : plugin.security_status === "verified" ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
+                          <ShieldCheck className="w-3 h-3" />
+                          {isEs ? "Verificado" : "Verified"}
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-muted-foreground text-[10px] font-semibold">
-                          {isEs ? "Comunitario" : "Community"}
+                           {isEs ? "Comunitario" : "Community"}
                         </span>
                       )}
                       {plugin.install_count > 0 && (

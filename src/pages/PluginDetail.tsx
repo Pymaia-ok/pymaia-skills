@@ -108,6 +108,11 @@ const PluginDetail = () => {
                   <ShieldCheck className="w-3.5 h-3.5" />
                   {isEs ? "Oficial" : "Official"}
                 </span>
+              ) : plugin.security_status === "verified" ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {isEs ? "Verificado" : "Verified"}
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
                   <ShieldQuestion className="w-3.5 h-3.5" />
@@ -141,7 +146,7 @@ const PluginDetail = () => {
             </div>
 
             {/* Security warning for community plugins */}
-            {!plugin.is_official && (
+            {!plugin.is_official && plugin.security_status !== "verified" && (
               <div className="mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
