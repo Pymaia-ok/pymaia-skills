@@ -717,66 +717,70 @@ Si crees que tus datos fueron comprometidos: {link a guia}"
 
 ## 12. Fases de implementacion
 
-### Fase 0 — Fundacion (Semanas 1-3) ✅ COMPLETADA
+### Fase 0 — Fundacion (Semanas 1-3)
 
 **Objetivo:** Scanning basico funcional para las 3 categorias
 
-- [x] Secret scanning con detect-secrets + custom rules
-- [x] Pattern matching para prompt injection (regex library)
-- [x] Format validation para SKILL.md, plugin.json, MCP configs
-- [x] Typosquatting detection (Levenshtein) contra items existentes
-- [x] Badge "New" para items recientes
-- [x] Boton "Reportar problema de seguridad" en cada detalle page
+- [ ] Secret scanning con detect-secrets + custom rules
+- [ ] Pattern matching para prompt injection (regex library)
+- [ ] Format validation para SKILL.md, plugin.json, MCP configs
+- [ ] Typosquatting detection (Levenshtein) contra items existentes
+- [ ] Badge "New" para items recientes
+- [ ] Boton "Reportar problema de seguridad" en cada detalle page
 
-### Fase 1 — LLM Analysis (Semanas 4-6) ✅ COMPLETADA
+**Decision gate:** Los checks detectan >80% de los patrones del dataset ToxicSkills de Snyk?
+
+### Fase 1 — LLM Analysis (Semanas 4-6)
 
 **Objetivo:** Deteccion avanzada con analisis semantico
 
-- [x] Integracion Gemini Flash para analisis de prompt injection
-- [x] Scope analysis (proposito declarado vs instrucciones reales)
-- [x] Permission scope analysis para MCPs
-- [x] Trust Score v1 (Security + Publisher scores)
-- [x] Badges: New, Reviewed, Trusted
-- [x] Warning system para hooks y filesystem access
+- [ ] Integracion Claude Haiku para analisis de prompt injection
+- [ ] Scope analysis (proposito declarado vs instrucciones reales)
+- [ ] Permission scope analysis para MCPs
+- [ ] Trust Score v1 (Security + Publisher scores)
+- [ ] Badges: New, Reviewed, Trusted
+- [ ] Warning system para hooks y filesystem access
 
-### Fase 2 — Deep Scanning (Semanas 7-10) ✅ COMPLETADA
+**Decision gate:** False positive rate < 5%? False negative rate < 15%?
+
+### Fase 2 — Deep Scanning (Semanas 7-10)
 
 **Objetivo:** Supply chain y composition analysis
 
-- [x] Hook static analysis con whitelist/blacklist
-- [x] Plugin decomposition pipeline
-- [x] Cross-component analysis
-- [x] Version monitoring + rug pull detection
-- [x] Trust Score v2 completo (4 dimensiones + abuse report check)
-- [x] Badges: Verified (con review manual)
-- [x] Content similarity/plagiarism detection (Jaccard)
-- [ ] npm audit + pip-audit integration (requires external API — deferred)
+- [ ] npm audit + pip-audit integration para MCPs y plugins
+- [ ] Hook static analysis con whitelist/blacklist
+- [ ] Plugin decomposition pipeline
+- [ ] Cross-component analysis con LLM
+- [ ] Version monitoring + rug pull detection
+- [ ] Trust Score v2 completo (4 dimensiones)
+- [ ] Badges: Verified (con review manual)
 
-### Fase 3 — Monitoring & Response (Semanas 11-14) ✅ COMPLETADA
+**Decision gate:** Pipeline completo funciona end-to-end para las 3 categorias?
+
+### Fase 3 — Monitoring & Response (Semanas 11-14)
 
 **Objetivo:** Monitoreo continuo y respuesta a incidentes
 
-- [x] Hash monitoring para rug pull detection (version-monitor cron)
-- [x] Abuse report system con escalation rules (security-incident)
-- [x] Incident response workflow (P0-P3)
-- [x] Notificacion a usuarios afectados (email queue)
-- [x] Dashboard de seguridad para el equipo Pymaia (/admin Security tab)
-- [x] Badge: Official (con verificacion empresarial)
-- [x] Weekly re-scanning con patrones actualizados (rescan-security)
-- [ ] Continuous CVE monitoring para dependencias (requires external API — deferred)
+- [ ] Continuous CVE monitoring para dependencias
+- [ ] Hash monitoring para rug pull detection
+- [ ] Abuse report system con escalation rules
+- [ ] Incident response workflow (P0-P3)
+- [ ] Notificacion a usuarios afectados
+- [ ] Dashboard de seguridad para el equipo Pymaia
+- [ ] Badge: Official (con verificacion empresarial)
 
-### Fase 4 — Scale & Intelligence (Semanas 15-20) ✅ COMPLETADA
+**Decision gate:** SLA de respuesta se cumple en simulaciones?
+
+### Fase 4 — Scale & Intelligence (Semanas 15-20)
 
 **Objetivo:** Aprendizaje y mejora continua
 
-- [x] Automated re-scanning cuando se descubren nuevos patrones (rescan-security cron)
-- [x] Public security advisories para items delisted (/seguridad)
-- [x] 3-state publish gate UX (PASS/WARNING/BLOCKED)
-- [x] Permission confirmation dialog for connector installs
-- [ ] ML model trained on flagged/approved items (future — requires training data)
-- [ ] API publica de Trust Score (future — requires public endpoint design)
-- [ ] Security report badge ("Scanned by Pymaia") para marketing (future)
-- [ ] Integracion con Snyk Agent Scan si API disponible (future)
+- [ ] ML model trained on flagged/approved items para mejorar deteccion
+- [ ] Automated re-scanning cuando se descubren nuevos patrones
+- [ ] Public security advisories para items delisted
+- [ ] API publica de Trust Score para que otros marketplaces consuman
+- [ ] Security report badge ("Scanned by Pymaia") para marketing
+- [ ] Integracion con Snyk Agent Scan si API disponible
 
 ---
 
