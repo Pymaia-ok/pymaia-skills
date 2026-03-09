@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 
 const MCP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server/mcp`;
 
+const oneLineCommand = `claude mcp add pymaia-skills --transport http ${MCP_URL}`;
+
 const streamableConfig = JSON.stringify(
   { mcpServers: { "pymaia-skills": { type: "streamable-http", url: MCP_URL } } },
   null,
@@ -18,6 +20,7 @@ const npxConfig = JSON.stringify(
 );
 
 const MCP = () => {
+  const [copiedCmd, setCopiedCmd] = useState(false);
   const [copiedA, setCopiedA] = useState(false);
   const [copiedB, setCopiedB] = useState(false);
   const { t } = useTranslation();
