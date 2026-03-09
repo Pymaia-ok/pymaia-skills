@@ -83,7 +83,7 @@ const CrearSkill = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
-  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(() => !!searchParams.get("draft"));
 
   // Load draft from URL param
   useEffect(() => {
