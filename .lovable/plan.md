@@ -1,34 +1,34 @@
 
 
-## Auditoría de calidad — Packs por Rol (v3 FINAL)
+## Plan: Expandir el MCP Server para incluir Conectores y Plugins
 
-### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
+### Alcance actual
+Las 10 tools existentes solo consultan la tabla `skills`. No hay ninguna tool que exponga datos de conectores ni plugins.
 
-| Pack | Skills | Estado | Cambios v3 |
-|---|---|---|---|
-| **Marketer** | 8 | ✅ Excelente | Sin cambios |
-| **DevOps** | 8 | ✅ Excelente | Sin cambios |
-| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
-| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
-| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
-| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
-| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
-| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
-| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
-| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
-| **Founder** | 6 | ✅ Bueno | Sin cambios |
-| **Consultor** | 6 | ✅ Bueno | Sin cambios |
-| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
-| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
-| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
+### Nuevas tools a agregar
 
-### Acciones ejecutadas
-1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
-2. ✅ Arquitecto desactivado (honestidad > cantidad)
-3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
-4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
-5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
-6. ✅ 277 skills legal-tech indexadas desde GitHub
-7. ✅ 107 skills education-technology indexadas desde GitHub
-8. ✅ Wizard actualizado (14 roles, tasks renombrados)
-9. ✅ i18n ES/EN actualizados
+**Conectores (tabla `mcp_servers`):**
+1. `search_connectors` — Buscar conectores MCP por nombre o categoría
+2. `get_connector_details` — Detalle completo de un conector por slug
+3. `list_popular_connectors` — Conectores más populares por estrellas de GitHub
+
+**Plugins (tabla `plugins`):**
+4. `search_plugins` — Buscar plugins por nombre o categoría
+5. `get_plugin_details` — Detalle completo de un plugin por slug
+6. `list_popular_plugins` — Plugins más populares por instalaciones
+
+**Utilidad general:**
+7. `explore_directory` — Búsqueda unificada que devuelve skills, conectores y plugins relevantes en una sola respuesta
+
+### Cambios técnicos
+- **Archivo**: `supabase/functions/mcp-server/index.ts`
+- Agregar 7 nuevas `mcp.tool()` registrations siguiendo el patrón existente
+- Consultar tablas `mcp_servers` y `plugins` con los campos relevantes (nombre, descripción, slug, categoría, estrellas/installs, URL)
+- Actualizar la versión del servidor a `3.0.0`
+- Actualizar `llms.txt` y `llms-full.txt` con las nuevas tools (de 10 a 17)
+- Actualizar la página `/mcp` para listar las nuevas herramientas disponibles
+- Actualizar `ai-plugin.json` description para mencionar conectores y plugins
+
+### Sin cambios de base de datos
+Las tablas `mcp_servers` y `plugins` ya existen. Solo se leen datos públicos aprobados.
+
