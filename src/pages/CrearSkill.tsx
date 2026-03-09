@@ -519,6 +519,62 @@ const CrearSkill = () => {
         {step === "publish" && skill && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-12">
+              {/* Security scan result panel */}
+              {scanResult && (
+                <div className={`mb-6 p-4 rounded-xl border ${
+                  scanResult.verdict === "MALICIOUS" 
+                    ? "bg-destructive/10 border-destructive/30" 
+                    : scanResult.verdict === "SUSPICIOUS"
+                    ? "bg-amber-500/10 border-amber-500/30"
+                    : "bg-emerald-500/10 border-emerald-500/30"
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-sm font-semibold ${
+                      scanResult.verdict === "MALICIOUS" ? "text-destructive" 
+                      : scanResult.verdict === "SUSPICIOUS" ? "text-amber-600 dark:text-amber-400" 
+                      : "text-emerald-600 dark:text-emerald-400"
+                    }`}>
+                      {scanResult.verdict === "SAFE" && "✅ Validación de seguridad aprobada"}
+                      {scanResult.verdict === "SUSPICIOUS" && "⚠️ Se encontraron items para revisar"}
+                      {scanResult.verdict === "MALICIOUS" && "🚫 No pasó la validación de seguridad"}
+                    </span>
+                  </div>
+                  {scanResult.verdict !== "SAFE" && (
+                    <ul className="text-xs space-y-1 text-muted-foreground">
+                      {scanResult.layers?.secrets?.count > 0 && (
+                        <li>• Se detectaron {scanResult.layers.secrets.count} credenciales expuestas</li>
+                      )}
+                      {scanResult.layers?.injection?.critical > 0 && (
+                        <li>• {scanResult.layers.injection.critical} patrones de prompt injection críticos</li>
+                      )}
+                      {scanResult.layers?.typosquatting?.flags?.length > 0 && (
+                        <li>• Nombre similar a herramientas populares (typosquatting)</li>
+                      )}
+                      {scanResult.layers?.hidden_content?.findings?.length > 0 && (
+                        <li>• Contenido oculto u ofuscado detectado</li>
+                      )}
+                      {scanResult.layers?.format?.issues?.filter((i: any) => i.severity === "error").map((i: any, idx: number) => (
+                        <li key={idx}>• {i.issue}</li>
+                      ))}
+                      {scanResult.layers?.hooks?.blocked_count > 0 && (
+                        <li>• {scanResult.layers.hooks.blocked_count} hooks peligrosos bloqueados</li>
+                      )}
+                      {scanResult.layers?.scope?.scope_assessment === "excessive" && (
+                        <li>• Permisos excesivos detectados</li>
+                      )}
+                      {scanResult.layers?.llm?.verdict === "MALICIOUS" && (
+                        <li>• Análisis de IA detectó contenido malicioso</li>
+                      )}
+                    </ul>
+                  )}
+                  {scanResult.verdict === "MALICIOUS" && (
+                    <p className="text-xs mt-2 text-destructive font-medium">
+                      Corregí los problemas de arriba y volvé a intentar publicar.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <SkillPublishConfig
                 initialCategory={skill.category}
                 initialIndustry={skill.industry}
