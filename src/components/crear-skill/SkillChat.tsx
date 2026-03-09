@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film } from "lucide-react";
+import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streaming";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,8 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Start conversation on mount
   useEffect(() => {
@@ -201,6 +203,60 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       sendMessage();
     }
   };
+
+  const toggleRecording = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Tu navegador no soporta dictado por voz");
+      return;
+    }
+
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-AR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let finalTranscript = "";
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interim = transcript;
+        }
+      }
+      setInput((prev) => {
+        const base = prev.endsWith(" ") ? prev : prev ? prev + " " : "";
+        return base + finalTranscript + interim;
+      });
+      finalTranscript = "";
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        toast.error("Permiso de micrófono denegado");
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+  }, [isRecording]);
 
   const getAttachmentIcon = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase() || "";
@@ -391,6 +447,18 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
                 title="Agregar link"
               >
                 <Link2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={toggleRecording}
+                disabled={streaming || isGenerating}
+                className={`p-2.5 rounded-xl transition-colors disabled:opacity-40 ${
+                  isRecording
+                    ? "text-red-500 bg-red-500/10 hover:bg-red-500/20 animate-pulse"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+                title={isRecording ? "Detener dictado" : "Dictar con micrófono"}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
             </div>
             <div className="flex-1 relative">
