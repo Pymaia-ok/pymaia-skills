@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.discover-trending-skills]
 verify_jwt = false
+
+[functions.auto-approve-skills]
+verify_jwt = false
+
+[functions.quality-maintenance]
+verify_jwt = false
