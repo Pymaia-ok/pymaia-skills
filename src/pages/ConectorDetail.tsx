@@ -341,6 +341,41 @@ const ConectorDetail = () => {
               </a>
             )}
 
+            {/* Related plugins */}
+            {relatedPlugins.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-lg font-semibold text-foreground mb-4">
+                  {isEs ? "Plugins relacionados" : "Related plugins"}
+                </h2>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {relatedPlugins.map((p: any) => (
+                    <Link
+                      key={p.slug}
+                      to={`/plugin/${p.slug}`}
+                      className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-foreground/20 transition-colors flex items-center gap-3"
+                    >
+                      {p.icon_url ? (
+                        <img src={p.icon_url} alt={p.name} className="w-10 h-10 rounded-lg object-contain" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-lg font-bold text-primary">{p.name[0]}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-foreground truncate">{isEs && p.name_es ? p.name_es : p.name}</p>
+                          {p.is_anthropic_verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {isEs && p.description_es ? p.description_es : p.description}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Compatible skills */}
             {compatibleSkills.length > 0 && (
               <div className="mt-12">
