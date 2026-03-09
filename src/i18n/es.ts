@@ -606,5 +606,9 @@ export default {
     connectors: "Conectores",
     plugins: "Plugins",
     noResults: "No se encontraron resultados.",
+    recent: "Búsquedas recientes",
+    popular: "Búsquedas populares",
+    aiSuggestions: "Sugerencias con IA",
+    aiSearching: "Buscando con IA…",
   },
 } as const;
