@@ -1,21 +1,29 @@
 import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2, Package, Plug, BookOpen } from "lucide-react";
+import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2, Package, Plug, BookOpen, Star, Award } from "lucide-react";
 import { useCallback, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const PluginDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isEs = i18n.language === "es";
   const [copied, setCopied] = useState(false);
   const [showFullReadme, setShowFullReadme] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) navigate(-1);
@@ -34,6 +42,21 @@ const PluginDetail = () => {
       return data as any;
     },
     enabled: !!slug,
+  });
+
+  // Fetch reviews
+  const { data: reviews = [], refetch: refetchReviews } = useQuery({
+    queryKey: ["plugin-reviews", plugin?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plugin_reviews" as any)
+        .select("*")
+        .eq("plugin_id", plugin!.id)
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return data as any[];
+    },
+    enabled: !!plugin?.id,
   });
 
   // Fetch README from GitHub
@@ -56,7 +79,7 @@ const PluginDetail = () => {
     staleTime: 1000 * 60 * 30,
   });
 
-  // Find related skills (skills that mention the plugin name)
+  // Find related skills
   const { data: relatedSkills = [] } = useQuery({
     queryKey: ["plugin-related-skills", plugin?.name],
     queryFn: async () => {
@@ -113,6 +136,32 @@ const PluginDetail = () => {
   const showCowork = plugin?.platform === "cowork" || plugin?.platform === "both";
   const showCode = plugin?.platform === "claude-code" || plugin?.platform === "both";
 
+  const handleSubmitReview = async () => {
+    if (!user || !plugin) return;
+    setSubmittingReview(true);
+    try {
+      const { error } = await supabase.from("plugin_reviews" as any).insert({
+        plugin_id: plugin.id,
+        user_id: user.id,
+        rating: reviewRating,
+        comment: reviewComment || null,
+      });
+      if (error) throw error;
+      toast.success(isEs ? "¡Review enviada!" : "Review submitted!");
+      setShowReviewForm(false);
+      setReviewComment("");
+      refetchReviews();
+      queryClient.invalidateQueries({ queryKey: ["plugin", slug] });
+    } catch (e: any) {
+      if (e?.code === "23505") {
+        toast.error(isEs ? "Ya dejaste una review para este plugin" : "You already reviewed this plugin");
+      } else {
+        toast.error(isEs ? "Error al enviar review" : "Error submitting review");
+      }
+    }
+    setSubmittingReview(false);
+  };
+
   useSEO({
     title: plugin ? `${plugin.name} — Plugins` : "Plugin",
     description: plugin?.description || "",
@@ -141,6 +190,8 @@ const PluginDetail = () => {
       </div>
     );
   }
+
+  const isPymaiaVerified = plugin.source === "community" && plugin.creator_id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -183,6 +234,11 @@ const PluginDetail = () => {
                   <BadgeCheck className="w-3.5 h-3.5" />
                   Anthropic Verified
                 </span>
+              ) : isPymaiaVerified ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 text-xs font-semibold">
+                  <Award className="w-3.5 h-3.5" />
+                  Pymaia Verified
+                </span>
               ) : plugin.is_official ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -208,6 +264,13 @@ const PluginDetail = () => {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
                   <Download className="w-3.5 h-3.5" />
                   {plugin.install_count.toLocaleString()} installs
+                </span>
+              )}
+
+              {plugin.avg_rating > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
+                  <Star className="w-3.5 h-3.5 fill-foreground text-foreground" />
+                  {Number(plugin.avg_rating).toFixed(1)} ({plugin.review_count})
                 </span>
               )}
             </div>
@@ -257,7 +320,7 @@ const PluginDetail = () => {
             </div>
 
             {/* Security warning for community plugins */}
-            {!plugin.is_official && plugin.security_status !== "verified" && (
+            {!plugin.is_official && plugin.security_status !== "verified" && !isPymaiaVerified && (
               <div className="mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
@@ -331,6 +394,83 @@ const PluginDetail = () => {
                 </div>
               </div>
             )}
+
+            {/* Reviews Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Star className="w-4 h-4" />
+                  {isEs ? "Reviews" : "Reviews"} {reviews.length > 0 && `(${reviews.length})`}
+                </h2>
+                {user && !showReviewForm && (
+                  <button
+                    onClick={() => setShowReviewForm(true)}
+                    className="text-sm text-primary hover:underline font-medium"
+                  >
+                    {isEs ? "Dejar review" : "Write review"}
+                  </button>
+                )}
+              </div>
+
+              {/* Review form */}
+              {showReviewForm && user && (
+                <div className="p-5 rounded-2xl border border-border bg-card mb-4">
+                  <div className="flex items-center gap-1 mb-3">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button key={s} onClick={() => setReviewRating(s)}>
+                        <Star className={`w-6 h-6 transition-colors ${s <= reviewRating ? "fill-foreground text-foreground" : "text-muted-foreground/30"}`} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder={isEs ? "Comentario opcional..." : "Optional comment..."}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground resize-none min-h-[80px] focus:outline-none focus:ring-1 focus:ring-ring mb-3"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={submittingReview}
+                      className="px-4 py-2 rounded-full bg-foreground text-background text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                    >
+                      {submittingReview ? (isEs ? "Enviando..." : "Submitting...") : (isEs ? "Enviar" : "Submit")}
+                    </button>
+                    <button
+                      onClick={() => setShowReviewForm(false)}
+                      className="px-4 py-2 rounded-full bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80"
+                    >
+                      {isEs ? "Cancelar" : "Cancel"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Review list */}
+              {reviews.length > 0 ? (
+                <div className="space-y-3">
+                  {reviews.map((review: any) => (
+                    <div key={review.id} className="p-4 rounded-xl bg-secondary/50 border border-border">
+                      <div className="flex items-center gap-1 mb-2">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? "fill-foreground text-foreground" : "text-muted-foreground/30"}`} />
+                        ))}
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-foreground">{review.comment}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {isEs ? "Todavía no hay reviews. ¡Sé el primero!" : "No reviews yet. Be the first!"}
+                </p>
+              )}
+            </div>
 
             {/* GitHub link */}
             {plugin.github_url && (
