@@ -173,6 +173,14 @@ const ConectorDetail = () => {
 
             {/* Source & Trust info */}
             <div className="flex flex-wrap items-center gap-3 mb-8">
+              <TrustBadge
+                trustScore={(connector as any).trust_score || 0}
+                securityStatus={connector.security_status}
+                scanResult={(connector as any).security_scan_result}
+                showWarnings
+                itemType="connector"
+              />
+
               {/* Official vs Community badge */}
               {connector.is_official ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
@@ -183,24 +191,6 @@ const ConectorDetail = () => {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
                   <Users className="w-3.5 h-3.5" />
                   {isEs ? "Comunitario" : "Community"}
-                </span>
-              )}
-
-              {/* Security status badge */}
-              {connector.security_status === "verified" ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  {isEs ? "Seguridad verificada" : "Security verified"}
-                </span>
-              ) : connector.security_status === "flagged" ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  {isEs ? "Requiere atención" : "Needs attention"}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
-                  <ShieldQuestion className="w-3.5 h-3.5" />
-                  {isEs ? "Sin verificar" : "Unverified"}
                 </span>
               )}
 
@@ -219,6 +209,10 @@ const ConectorDetail = () => {
                   </span>
                 );
               })()}
+
+              <div className="ml-auto">
+                <SecurityReportButton itemType="connector" itemId={connector.id} itemSlug={connector.slug} />
+              </div>
             </div>
 
             {/* Stats row */}
