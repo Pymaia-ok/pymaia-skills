@@ -375,15 +375,22 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: blob.type });
         const previewUrl = URL.createObjectURL(blob);
 
-        // Use state setter to trigger the useEffect which adds to attachments
-        setPendingRecording({
+        const newAtt: Attachment = {
           id: crypto.randomUUID(),
           type: "file",
           name: file.name,
           file,
           processing: false,
           previewUrl,
+        };
+        console.log("[ScreenRec] about to setAttachments with:", newAtt.name);
+        setAttachments((prev) => {
+          console.log("[ScreenRec] setAttachments prev:", prev.length);
+          const next = [...prev, newAtt];
+          console.log("[ScreenRec] setAttachments next:", next.length);
+          return next;
         });
+        toast.success("Grabación lista — tocá para previsualizarla");
       };
 
       recorder.onerror = () => {
