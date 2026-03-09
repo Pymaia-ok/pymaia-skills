@@ -57,6 +57,7 @@ const Plugins = () => {
     const matchesPlatform = platformFilter === "all" || p.platform === platformFilter || (platformFilter === "claude-code" && p.platform === "both") || (platformFilter === "cowork" && p.platform === "both");
     const matchesVerified = verifiedFilter === "all" ||
       (verifiedFilter === "anthropic-verified" && p.is_anthropic_verified) ||
+      (verifiedFilter === "verified" && p.security_status === "verified") ||
       (verifiedFilter === "community" && !p.is_official);
     return matchesSearch && matchesPlatform && matchesVerified;
   });
