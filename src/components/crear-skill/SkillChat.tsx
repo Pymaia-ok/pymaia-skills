@@ -271,7 +271,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     recognition.start();
     recognitionRef.current = recognition;
     setIsRecording(true);
-  }, [isRecording]);
+  }, [isRecording, input]);
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
