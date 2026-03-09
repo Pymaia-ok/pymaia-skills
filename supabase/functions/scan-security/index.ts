@@ -530,6 +530,90 @@ async function verifyPublisher(githubUrl: string | null): Promise<{
   }
 }
 
+// ── DEPENDENCY AUDIT via GitHub Advisory API (PRD 5.1 item 4) ──
+async function auditDependencies(githubUrl: string | null): Promise<{
+  total_deps: number;
+  vulnerabilities: Array<{ package: string; severity: string; cvss: number; advisory_url: string }>;
+  blocked: boolean;
+  delist_recommended: boolean;
+}> {
+  const result = { total_deps: 0, vulnerabilities: [] as any[], blocked: false, delist_recommended: false };
+  if (!githubUrl) return result;
+
+  const ghToken = Deno.env.get("GITHUB_TOKEN");
+  if (!ghToken) return result;
+
+  // Extract owner/repo from github URL
+  const match = githubUrl.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/);
+  if (!match) return result;
+  const [, owner, repo] = match;
+
+  // Try to read package.json from repo
+  const depPackages: string[] = [];
+  for (const filePath of ["package.json", "requirements.txt"]) {
+    try {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo.replace(/\.git$/, "")}/contents/${filePath}`, {
+        headers: { Authorization: `token ${ghToken}`, "User-Agent": "pymaia-security", Accept: "application/vnd.github.v3.raw" },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) continue;
+      const text = await res.text();
+
+      if (filePath === "package.json") {
+        try {
+          const pkg = JSON.parse(text);
+          const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+          depPackages.push(...Object.keys(allDeps));
+        } catch { /* invalid json */ }
+      } else {
+        // requirements.txt — extract package names
+        const lines = text.split("\n").map(l => l.trim()).filter(l => l && !l.startsWith("#"));
+        for (const line of lines) {
+          const pkgName = line.split(/[=<>!~\[]/)[0].trim();
+          if (pkgName) depPackages.push(pkgName);
+        }
+      }
+    } catch { /* timeout or error */ }
+  }
+
+  result.total_deps = depPackages.length;
+  if (depPackages.length === 0) return result;
+
+  // Check GitHub Advisory Database for known CVEs (batch by ecosystem)
+  const ecosystems = ["npm", "pip"];
+  for (const ecosystem of ecosystems) {
+    const pkgsForEco = ecosystem === "npm" ? depPackages.slice(0, 30) : depPackages.slice(0, 30);
+    for (const pkg of pkgsForEco) {
+      try {
+        const advisoryRes = await fetch(
+          `https://api.github.com/advisories?ecosystem=${ecosystem}&package=${encodeURIComponent(pkg)}&severity=high,critical&per_page=5`,
+          {
+            headers: { Authorization: `token ${ghToken}`, "User-Agent": "pymaia-security" },
+            signal: AbortSignal.timeout(5000),
+          }
+        );
+        if (!advisoryRes.ok) continue;
+        const advisories = await advisoryRes.json();
+        if (!Array.isArray(advisories)) continue;
+
+        for (const adv of advisories) {
+          const cvss = adv.cvss?.score ?? (adv.severity === "critical" ? 9.5 : 7.5);
+          result.vulnerabilities.push({
+            package: pkg,
+            severity: adv.severity || "high",
+            cvss,
+            advisory_url: adv.html_url || "",
+          });
+          if (cvss > 9) result.delist_recommended = true;
+          if (cvss > 7) result.blocked = true;
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  return result;
+}
+
 // ── SCAN FUNCTIONS ──
 function scanSecrets(content: string): Array<{ pattern: string; match: string; line?: number }> {
   const findings: Array<{ pattern: string; match: string; line?: number }> = [];
@@ -815,7 +899,13 @@ async function runFullScan(
     publisherResult = await verifyPublisher(githubUrl);
   }
 
-  // Layer 11: LLM analysis (skip if already clearly malicious)
+  // Layer 11: Dependency audit (PRD 5.1 item 4)
+  let dependencyResult = null;
+  if (githubUrl) {
+    dependencyResult = await auditDependencies(githubUrl);
+  }
+
+  // Layer 12: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
   if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
       hiddenFindings.filter(f => f.severity === "high").length === 0 &&
@@ -834,6 +924,10 @@ async function runFullScan(
     verdict = "MALICIOUS";
   } else if (pluginDecomp?.has_settings_override) {
     verdict = "MALICIOUS";
+  } else if (dependencyResult?.delist_recommended) {
+    verdict = "MALICIOUS"; // CVSS > 9
+  } else if (dependencyResult?.blocked) {
+    verdict = "SUSPICIOUS"; // CVSS > 7
   } else if (highInjections.length > 0 || typoFlags.length > 0 || (scopeAnalysis?.scope_assessment === "excessive")) {
     verdict = "SUSPICIOUS";
   } else if (hookAnalysis.dangerous_count > 0) {
@@ -845,7 +939,6 @@ async function runFullScan(
   } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
   } else if (publisherResult && !publisherResult.verified && publisherResult.flags.length > 0) {
-    // New publisher with flags — mark as suspicious
     if (publisherResult.account_age_days !== null && publisherResult.account_age_days < 30) {
       verdict = "SUSPICIOUS";
     }
@@ -873,9 +966,10 @@ async function runFullScan(
       plugin_decomposition: pluginDecomp,
       similarity: similarityResult,
       publisher: publisherResult,
+      dependencies: dependencyResult,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "5.0.0",
+    version: "6.0.0",
   };
 }

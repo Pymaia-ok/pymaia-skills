@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { checkIsAdmin } from "@/lib/api";
@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Activity, Languages, RefreshCw, ShieldCheck, ShieldAlert, Shield,
   CheckCircle2, XCircle, Clock, TrendingUp, Zap, Database,
-  AlertTriangle, FileWarning, Eye
+  AlertTriangle, FileWarning, Eye, ListChecks, ThumbsUp, ThumbsDown, RotateCw
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const Admin = () => {
   const { user, loading } = useAuth();
@@ -116,6 +118,64 @@ const Admin = () => {
     refetchInterval: 15000,
   });
 
+  // Review queue: items flagged or with SUSPICIOUS verdict
+  const { data: reviewQueue } = useQuery({
+    queryKey: ["review-queue"],
+    queryFn: async () => {
+      const items: any[] = [];
+      const tables = [
+        { name: "skills" as const, type: "skill" },
+        { name: "plugins" as const, type: "plugin" },
+        { name: "mcp_servers" as const, type: "connector" },
+      ];
+      for (const t of tables) {
+        const nameField = t.name === "skills" ? "display_name" : "name";
+        const { data } = await supabase
+          .from(t.name)
+          .select(`id, slug, ${nameField}, security_status, security_scan_result, security_scanned_at, status`)
+          .or("security_status.eq.flagged,security_status.eq.unverified")
+          .eq("status", "approved")
+          .not("security_scan_result", "is", null)
+          .order("security_scanned_at", { ascending: false })
+          .limit(30);
+        if (data) {
+          items.push(...data.map((d: any) => ({
+            ...d,
+            item_type: t.type,
+            name: d[nameField] || d.slug,
+            verdict: d.security_scan_result?.verdict || "UNKNOWN",
+          })));
+        }
+      }
+      // Sort: SUSPICIOUS/MALICIOUS first
+      return items.sort((a, b) => {
+        const order: Record<string, number> = { MALICIOUS: 0, SUSPICIOUS: 1, SAFE: 2, UNKNOWN: 3 };
+        return (order[a.verdict] ?? 3) - (order[b.verdict] ?? 3);
+      });
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const queryClient = useQueryClient();
+
+  const reviewAction = useMutation({
+    mutationFn: async ({ id, itemType, action }: { id: string; itemType: string; action: "approve" | "reject" | "rescan" }) => {
+      const tableName = itemType === "connector" ? "mcp_servers" : itemType === "plugin" ? "plugins" : "skills";
+      if (action === "approve") {
+        await supabase.from(tableName).update({ security_status: "verified" }).eq("id", id);
+      } else if (action === "reject") {
+        await supabase.from(tableName).update({ status: "rejected", security_status: "flagged" }).eq("id", id);
+      } else if (action === "rescan") {
+        await supabase.functions.invoke("scan-security", { body: { item_id: id, item_type: itemType } });
+      }
+    },
+    onSuccess: (_, vars) => {
+      toast.success(`Item ${vars.action === "approve" ? "aprobado" : vars.action === "reject" ? "rechazado" : "re-escaneando"}`)
+      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+    },
+  });
+
   // Trust score distribution
   const { data: trustDistribution } = useQuery({
     queryKey: ["trust-distribution"],
@@ -187,10 +247,12 @@ const Admin = () => {
     { name: "Verificar seguridad", freq: "Cada 2 min", batch: 30 },
     { name: "Security scan", freq: "Cada 5 min", batch: 10 },
     { name: "Trust score calc", freq: "Cada 10 min", batch: 50 },
-    { name: "Version monitor", freq: "Cada 6 horas", batch: 30 },
-    { name: "Incident escalation", freq: "Cada 15 min", batch: "auto" },
-    { name: "Re-scan semanal", freq: "Lunes 3:00 UTC", batch: 10 },
+    { name: "Version monitor + Publisher check", freq: "Cada 6 horas", batch: 30 },
+    { name: "Incident escalation + Publisher notify", freq: "Cada 15 min", batch: "auto" },
+    { name: "Re-scan rotación completa", freq: "Lunes 3:00 UTC", batch: 10 },
     { name: "Enriquecer skills IA", freq: "Cada 3 min", batch: 10 },
+    { name: "MCP health + network security", freq: "Cada 12 horas", batch: 30 },
+    { name: "Uninstall spike detection", freq: "Cada 15 min", batch: "auto" },
     { name: "Sync Smithery", freq: "Diario 6:00 UTC", batch: "auto" },
     { name: "Sync Official Registry", freq: "Diario 6:30 UTC", batch: "auto" },
     { name: "Sync GitHub Curated", freq: "Diario 7:00 UTC", batch: "auto" },
@@ -240,6 +302,15 @@ const Admin = () => {
                 {p0Count + p1Count > 0 && (
                   <span className="ml-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
                     {p0Count + p1Count}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="review" className="flex items-center gap-1.5">
+                <ListChecks className="w-3.5 h-3.5" />
+                Review Queue
+                {(reviewQueue?.length ?? 0) > 0 && (
+                  <span className="ml-1 w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {reviewQueue?.length}
                   </span>
                 )}
               </TabsTrigger>
@@ -437,6 +508,75 @@ const Admin = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* ── REVIEW QUEUE TAB ── */}
+            <TabsContent value="review">
+              <div className="p-5 rounded-2xl bg-secondary">
+                <div className="flex items-center gap-2 mb-4">
+                  <ListChecks className="w-5 h-5 text-amber-500" />
+                  <h2 className="font-semibold">Review Queue — Items pendientes de revisión</h2>
+                  <span className="ml-auto text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">
+                    {reviewQueue?.length ?? 0} items
+                  </span>
+                </div>
+                {(!reviewQueue || reviewQueue.length === 0) ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    ✓ No hay items pendientes de revisión
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {reviewQueue.map((item: any) => (
+                      <div key={item.id} className="flex items-center gap-3 text-sm py-3 px-4 rounded-lg bg-background/50">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                          item.verdict === "MALICIOUS" ? "bg-destructive text-destructive-foreground" :
+                          item.verdict === "SUSPICIOUS" ? "bg-amber-500/20 text-amber-600" :
+                          "bg-muted text-muted-foreground"
+                        }`}>{item.verdict}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{item.item_type}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.slug}</p>
+                        </div>
+                        {item.security_scan_result?.layers?.dependencies?.vulnerabilities?.length > 0 && (
+                          <span className="text-xs text-destructive font-medium">
+                            {item.security_scan_result.layers.dependencies.vulnerabilities.length} CVEs
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-emerald-500 hover:bg-emerald-500/10"
+                            onClick={() => reviewAction.mutate({ id: item.id, itemType: item.item_type, action: "approve" })}
+                            title="Aprobar"
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                            onClick={() => reviewAction.mutate({ id: item.id, itemType: item.item_type, action: "reject" })}
+                            title="Rechazar"
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted"
+                            onClick={() => reviewAction.mutate({ id: item.id, itemType: item.item_type, action: "rescan" })}
+                            title="Re-escanear"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
 
