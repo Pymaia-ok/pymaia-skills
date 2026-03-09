@@ -584,4 +584,13 @@ export default {
     subtitle: "Curated skill collections ready to install in one click.",
     viewPack: "View pack",
   },
+
+  search: {
+    placeholder: "Search skills, connectors, plugins…",
+    hint: "Search",
+    skills: "Skills",
+    connectors: "Connectors",
+    plugins: "Plugins",
+    noResults: "No results found.",
+  },
 } as const;

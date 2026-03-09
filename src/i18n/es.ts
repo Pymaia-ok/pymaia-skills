@@ -598,4 +598,13 @@ export default {
     subtitle: "Colecciones curadas de skills listas para instalar en un click.",
     viewPack: "Ver pack",
   },
+
+  search: {
+    placeholder: "Buscar skills, conectores, plugins…",
+    hint: "Buscar",
+    skills: "Skills",
+    connectors: "Conectores",
+    plugins: "Plugins",
+    noResults: "No se encontraron resultados.",
+  },
 } as const;
