@@ -261,6 +261,59 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     setIsRecording(true);
   }, [isRecording]);
 
+  const toggleScreenRecording = useCallback(async () => {
+    if (isScreenRecording && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { mediaSource: "screen" } as any,
+        audio: true,
+      });
+
+      const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+      screenChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) screenChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setIsScreenRecording(false);
+
+        const blob = new Blob(screenChunksRef.current, { type: "video/webm" });
+        const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: "video/webm" });
+
+        const attachment: Attachment = {
+          id: crypto.randomUUID(),
+          type: "file",
+          name: file.name,
+          file,
+          processing: false,
+        };
+        setAttachments((prev) => [...prev, attachment]);
+        toast.success("Grabación lista para enviar");
+      };
+
+      // Handle user stopping share via browser UI
+      stream.getVideoTracks()[0].addEventListener("ended", () => {
+        if (recorder.state === "recording") recorder.stop();
+      });
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsScreenRecording(true);
+    } catch (e: any) {
+      if (e.name !== "NotAllowedError") {
+        console.error("Screen recording error:", e);
+        toast.error("No se pudo iniciar la grabación de pantalla");
+      }
+    }
+  }, [isScreenRecording]);
+
   const getAttachmentIcon = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase() || "";
     if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) return <Image className="w-3 h-3" />;
