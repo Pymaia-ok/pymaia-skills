@@ -101,7 +101,7 @@ const Plugins = () => {
                 ))}
                 <div className="h-px bg-border my-1" />
                 <p className="text-xs font-semibold text-muted-foreground px-3 py-1">{isEs ? "Verificación" : "Verification"}</p>
-                {["all", "anthropic-verified", "community"].map((f) => (
+                {["all", "anthropic-verified", "verified", "community"].map((f) => (
                   <button
                     key={f}
                     onClick={() => setVerifiedFilter(f)}
