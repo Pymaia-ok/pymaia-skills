@@ -146,7 +146,9 @@ const Conectores = () => {
     const matchesSearch =
       !search ||
       c.name.toLowerCase().includes(q) ||
-      c.slug.toLowerCase().includes(q);
+      c.slug.toLowerCase().includes(q) ||
+      (c.description || "").toLowerCase().includes(q) ||
+      (c.description_es || "").toLowerCase().includes(q);
     const matchesCategory = !selectedCategory || c.category === selectedCategory;
     const matchesOfficial = officialFilter === "all" || 
       (officialFilter === "official" && c.is_official) ||
