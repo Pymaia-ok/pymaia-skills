@@ -25,23 +25,37 @@ mcp.tool("search_skills", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+    const q = args.query.toLowerCase();
+
+    // Server-side search for accurate results
     let dbQuery = supabase
       .from("skills")
       .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
       .eq("status", "approved")
+      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
       .order("install_count", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .limit(lim);
 
     if (args.category) dbQuery = dbQuery.eq("category", args.category);
 
-    const { data: skills, error } = await dbQuery;
+    const { data: matched, error } = await dbQuery;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const q = args.query.toLowerCase();
-    const matched = (skills || []).filter(
-      (s: any) => s.display_name.toLowerCase().includes(q) || s.tagline.toLowerCase().includes(q)
-    );
-    const results = matched.length > 0 ? matched : (skills || []).slice(0, 3);
+    let results = matched || [];
+
+    // Fallback to top skills if no match
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("skills")
+        .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
+        .eq("status", "approved")
+        .order("install_count", { ascending: false })
+        .limit(3);
+      if (args.category) fallback = fallback.eq("category", args.category);
+      const { data: topData } = await fallback;
+      results = topData || [];
+    }
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes." }] };
 
@@ -310,23 +324,37 @@ mcp.tool("search_connectors", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+    const queryLower = args.query.toLowerCase();
+
+    // Server-side search using ilike for accurate results
     let q = supabase
       .from("mcp_servers")
-      .select("name, slug, description, category, github_stars, github_url, install_command, is_official, icon_url")
+      .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
       .eq("status", "approved")
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
       .order("github_stars", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .limit(lim);
 
     if (args.category) q = q.eq("category", args.category);
 
-    const { data, error } = await q;
+    const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const queryLower = args.query.toLowerCase();
-    const matched = (data || []).filter(
-      (c: any) => c.name.toLowerCase().includes(queryLower) || c.description.toLowerCase().includes(queryLower) || c.slug.includes(queryLower)
-    );
-    const results = matched.length > 0 ? matched : (data || []).slice(0, 3);
+    // If no server-side matches, fall back to top connectors
+    let results = matched || [];
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("mcp_servers")
+        .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
+        .eq("status", "approved")
+        .order("github_stars", { ascending: false })
+        .limit(3);
+      if (args.category) fallback = fallback.eq("category", args.category);
+      const { data: topData } = await fallback;
+      results = topData || [];
+    }
+
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No connectors found." }] };
 
     const text = results
@@ -404,24 +432,37 @@ mcp.tool("search_plugins", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+    const queryLower = args.query.toLowerCase();
+
     let q = supabase
       .from("plugins")
       .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
       .eq("status", "approved")
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
       .order("install_count", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .limit(lim);
 
     if (args.category) q = q.eq("category", args.category);
     if (args.platform) q = q.eq("platform", args.platform);
 
-    const { data, error } = await q;
+    const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const queryLower = args.query.toLowerCase();
-    const matched = (data || []).filter(
-      (p: any) => p.name.toLowerCase().includes(queryLower) || p.description.toLowerCase().includes(queryLower) || p.slug.includes(queryLower)
-    );
-    const results = matched.length > 0 ? matched : (data || []).slice(0, 3);
+    let results = matched || [];
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("plugins")
+        .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
+        .eq("status", "approved")
+        .order("install_count", { ascending: false })
+        .limit(3);
+      if (args.category) fallback = fallback.eq("category", args.category);
+      if (args.platform) fallback = fallback.eq("platform", args.platform);
+      const { data: topData } = await fallback;
+      results = topData || [];
+    }
+
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No plugins found." }] };
 
     const text = results
@@ -508,17 +549,29 @@ mcp.tool("explore_directory", {
     const q = args.query.toLowerCase();
 
     const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
-      supabase.from("skills").select("display_name, tagline, slug, category, install_count, install_command").eq("status", "approved").order("install_count", { ascending: false }).limit(20),
-      supabase.from("mcp_servers").select("name, description, slug, category, github_stars, is_official").eq("status", "approved").order("github_stars", { ascending: false }).limit(20),
-      supabase.from("plugins").select("name, description, slug, category, platform, install_count, is_official").eq("status", "approved").order("install_count", { ascending: false }).limit(20),
+      supabase.from("skills")
+        .select("display_name, tagline, slug, category, install_count, install_command")
+        .eq("status", "approved")
+        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
+        .order("install_count", { ascending: false })
+        .limit(lim),
+      supabase.from("mcp_servers")
+        .select("name, description, slug, category, github_stars, is_official")
+        .eq("status", "approved")
+        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+        .order("github_stars", { ascending: false })
+        .limit(lim),
+      supabase.from("plugins")
+        .select("name, description, slug, category, platform, install_count, is_official")
+        .eq("status", "approved")
+        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+        .order("install_count", { ascending: false })
+        .limit(lim),
     ]);
 
-    const filterMatch = (items: any[], fields: string[]) =>
-      items.filter((item: any) => fields.some(f => (item[f] || "").toLowerCase().includes(q))).slice(0, lim);
-
-    const skills = filterMatch(skillsRes.data || [], ["display_name", "tagline", "slug"]);
-    const connectors = filterMatch(connectorsRes.data || [], ["name", "description", "slug"]);
-    const plugins = filterMatch(pluginsRes.data || [], ["name", "description", "slug"]);
+    const skills = skillsRes.data || [];
+    const connectors = connectorsRes.data || [];
+    const plugins = pluginsRes.data || [];
 
     const sections: string[] = [];
 
