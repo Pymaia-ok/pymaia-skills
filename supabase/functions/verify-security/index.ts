@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch connectors needing check
-    if (table === "both" || table === "mcp_servers") {
+    if (table === "all" || table === "both" || table === "mcp_servers") {
       const { data: connectors } = await supabase
         .from("mcp_servers")
         .select("id, github_url")
@@ -132,8 +132,22 @@ Deno.serve(async (req) => {
         .neq("github_url", "")
         .or("security_checked_at.is.null,security_status.eq.unverified")
         .order("security_checked_at", { ascending: true, nullsFirst: true })
-        .limit(Math.ceil(batchSize / 2));
+        .limit(Math.ceil(batchSize / 3));
       if (connectors) items.push(...connectors.map(c => ({ ...c, table: "mcp_servers" as const })));
+    }
+
+    // Fetch plugins needing check
+    if (table === "all" || table === "plugins") {
+      const { data: pluginRows } = await supabase
+        .from("plugins")
+        .select("id, github_url")
+        .eq("status", "approved")
+        .not("github_url", "is", null)
+        .neq("github_url", "")
+        .or("security_checked_at.is.null,security_status.eq.unverified")
+        .order("security_checked_at", { ascending: true, nullsFirst: true })
+        .limit(Math.ceil(batchSize / 3));
+      if (pluginRows) items.push(...pluginRows.map((p: any) => ({ ...p, table: "plugins" as const })));
     }
 
     let verified = 0;
