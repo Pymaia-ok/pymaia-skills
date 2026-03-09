@@ -54,6 +54,7 @@ const App = () => (
             <Route path="/plugins" element={<Plugins />} />
             <Route path="/plugin/:slug" element={<PluginDetail />} />
             <Route path="/para/:roleSlug" element={<RoleLanding />} />
+            <Route path="/enterprise" element={<Enterprise />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
