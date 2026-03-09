@@ -304,10 +304,15 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
       // Try to capture microphone audio and mix it in
       let stream = screenStream;
+      let micStreamRef: MediaStream | null = null;
+      let audioCtxRef: AudioContext | null = null;
+
       try {
         const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef = micStream;
         const ctx = new AudioContext();
-        const dest = (ctx as any).createMediaStreamAudioDestination ? (ctx as any).createMediaStreamAudioDestination() : ctx.createMediaStreamDestination();
+        audioCtxRef = ctx;
+        const dest = ctx.createMediaStreamDestination();
 
         // Mix system audio tracks (if any) + mic
         screenStream.getAudioTracks().forEach((track) => {
@@ -320,12 +325,6 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           ...screenStream.getVideoTracks(),
           ...dest.stream.getAudioTracks(),
         ]);
-
-        // Clean up mic when screen sharing stops
-        screenStream.getVideoTracks()[0].addEventListener("ended", () => {
-          micStream.getTracks().forEach((t) => t.stop());
-          ctx.close();
-        });
       } catch {
         // Mic denied or unavailable — continue with screen-only
         console.log("Mic not available, recording screen only");
@@ -339,13 +338,20 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       };
 
       recorder.onstop = () => {
+        // Clean up all tracks and audio context AFTER recorder finishes
         stream.getTracks().forEach((t) => t.stop());
+        screenStream.getTracks().forEach((t) => t.stop());
+        micStreamRef?.getTracks().forEach((t) => t.stop());
+        audioCtxRef?.close().catch(() => {});
+
         setIsScreenRecording(false);
         mediaRecorderRef.current = null;
 
-        console.log("[Screen Recording] onstop fired, chunks:", screenChunksRef.current.length);
         const blob = new Blob(screenChunksRef.current, { type: "video/webm" });
-        console.log("[Screen Recording] blob size:", blob.size);
+        if (blob.size === 0) {
+          toast.error("La grabación salió vacía, intentá de nuevo");
+          return;
+        }
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: "video/webm" });
         const previewUrl = URL.createObjectURL(blob);
 
@@ -357,15 +363,12 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           processing: false,
           previewUrl,
         };
-        setAttachments((prev) => {
-          console.log("[Screen Recording] Adding attachment, prev count:", prev.length);
-          return [...prev, attachment];
-        });
+        setAttachments((prev) => [...prev, attachment]);
         toast.success("Grabación lista — tocá para previsualizarla");
       };
 
-      // Handle user stopping share via browser UI
-      stream.getVideoTracks()[0].addEventListener("ended", () => {
+      // Handle user stopping share via browser UI — only stop recorder, cleanup happens in onstop
+      screenStream.getVideoTracks()[0].addEventListener("ended", () => {
         if (recorder.state === "recording") recorder.stop();
       });
 
