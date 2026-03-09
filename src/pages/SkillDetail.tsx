@@ -1,12 +1,12 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock, FileArchive } from "lucide-react";
+import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock, FileArchive, Package, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import EmailGateDialog from "@/components/EmailGateDialog";
-import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile } from "@/lib/api";
+import { fetchSkillBySlug, fetchReviewsForSkill, createReview, parseUseCases, trackInstallation, fetchProfile, submitPlugin } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ const SkillDetail = () => {
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingAction, setPendingAction] = useState<"copy" | "zip">("copy");
+  const [convertingToPlugin, setConvertingToPlugin] = useState(false);
 
   // Support share_token for private skills
   const searchParams = new URLSearchParams(window.location.search);
@@ -188,6 +189,40 @@ const SkillDetail = () => {
     setSubmitting(false);
   };
 
+  const handleConvertToPlugin = async () => {
+    if (!user || !skill) return;
+    setConvertingToPlugin(true);
+    try {
+      const skillData = {
+        name: skill.display_name,
+        tagline: skill.tagline,
+        description: skill.description_human,
+        install_command: skill.install_command,
+      };
+      const { data: wrapper, error: wrapError } = await supabase.functions.invoke("generate-skill", {
+        body: { action: "wrap_plugin", skill: skillData },
+      });
+      if (wrapError) throw wrapError;
+
+      await submitPlugin({
+        slug: skill.slug,
+        name: wrapper.plugin_name || skill.display_name,
+        description: wrapper.plugin_description || skill.tagline,
+        category: skill.category,
+        creator_id: user.id,
+        source: "community",
+      });
+      toast.success("¡Plugin publicado! Aparecerá en la sección Plugins.");
+    } catch (e: any) {
+      if (e?.code === "23505") {
+        toast.error("Ya existe un plugin con este nombre");
+      } else {
+        toast.error("Error al convertir a plugin");
+      }
+    }
+    setConvertingToPlugin(false);
+  };
+
   const installSteps = [
     { title: t("detail.step1Title"), description: t("detail.step1Desc") },
     { title: t("detail.step2Title"), description: t("detail.step2Desc") },
@@ -220,6 +255,16 @@ const SkillDetail = () => {
                 <FileArchive className="w-4 h-4" />
                 {t("detail.downloadZip", "ZIP para Claude.ai")}
               </button>
+              {user && skill.creator_id === user.id && (
+                <button
+                  onClick={handleConvertToPlugin}
+                  disabled={convertingToPlugin}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm disabled:opacity-50"
+                >
+                  {convertingToPlugin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+                  Publicar como plugin
+                </button>
+              )}
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-6">

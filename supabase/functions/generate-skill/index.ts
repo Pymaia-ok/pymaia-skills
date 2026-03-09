@@ -331,6 +331,59 @@ serve(async (req) => {
       );
     }
 
+    if (action === "wrap_plugin") {
+      // Generate plugin.json and README.md from an existing skill
+      const wrapPrompt = `Given this skill, generate a Claude Code Plugin wrapper.
+
+Skill data:
+${JSON.stringify(skill)}
+
+Generate ONLY a valid JSON (no markdown, no backticks) with:
+{
+  "plugin_json": {
+    "name": "kebab-case-name",
+    "version": "1.0.0",
+    "description": "One line description of what the plugin does",
+    "skills": ["skills/skill-name"],
+    "permissions": [],
+    "author": "pymaia-community",
+    "license": "MIT"
+  },
+  "readme": "Full README.md content in markdown explaining the plugin, how to install, what it does, and examples",
+  "plugin_name": "Human readable plugin name",
+  "plugin_description": "2-3 sentence description for marketplace listing"
+}
+
+Rules:
+- plugin_json.name must be kebab-case, max 64 chars
+- plugin_json.description max 200 chars
+- README should include: title, description, installation command, features list, examples, license
+- Installation command is: claude plugin install pymaia/plugin-name
+- The readme should reference that this plugin was created with Pymaia SkillForge`;
+
+      const wrapRaw = await callAI(
+        [
+          { role: "system", content: "You are an expert in Claude Code Plugins. Generate plugin wrappers following Anthropic's official plugin specification." },
+          { role: "user", content: wrapPrompt },
+        ],
+        "google/gemini-2.5-flash"
+      );
+
+      let wrapper;
+      try {
+        wrapper = JSON.parse(sanitizeJson(wrapRaw));
+      } catch {
+        const match = wrapRaw.match(/\{[\s\S]*\}/);
+        if (match) wrapper = JSON.parse(sanitizeJson(match[0]));
+        else throw new Error("Failed to generate plugin wrapper");
+      }
+
+      return new Response(
+        JSON.stringify(wrapper),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "refine") {
       // Refine an existing skill based on user feedback using tool calling
       const refinePrompt = `Tenés esta skill existente:\n\n${JSON.stringify(skill)}\n\nEl usuario pidió este cambio: "${refinement_request}"\n\nModificá la skill según lo pedido y devolvé la skill completa actualizada.`;

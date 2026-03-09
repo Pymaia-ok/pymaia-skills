@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { submitSkill } from "@/lib/api";
+import { submitSkill, submitPlugin } from "@/lib/api";
 import { toast } from "sonner";
 import SkillChat from "@/components/crear-skill/SkillChat";
 import SkillPreview from "@/components/crear-skill/SkillPreview";
@@ -304,6 +304,7 @@ const CrearSkill = () => {
     price_amount: number | null;
     required_mcps?: RequiredMcp[];
     is_public: boolean;
+    publish_as_plugin: boolean;
   }) => {
     if (!skill || !user) return;
     setIsPublishing(true);
@@ -329,6 +330,29 @@ const CrearSkill = () => {
         required_mcps: config.required_mcps || skill.required_mcps || [],
         is_public: config.is_public,
       });
+
+      // If also publishing as plugin, generate wrapper and insert
+      if (config.publish_as_plugin) {
+        try {
+          const { data: wrapper, error: wrapError } = await supabase.functions.invoke("generate-skill", {
+            body: { action: "wrap_plugin", skill },
+          });
+          if (wrapError) throw wrapError;
+
+          await submitPlugin({
+            slug: slug,
+            name: wrapper.plugin_name || skill.name,
+            description: wrapper.plugin_description || skill.tagline,
+            category: config.category,
+            creator_id: user.id,
+            source: "community",
+          });
+          toast.success("Plugin publicado en el marketplace");
+        } catch (e) {
+          console.error("Plugin publish error:", e);
+          toast.error("La skill se publicó pero hubo un error al crear el plugin");
+        }
+      }
 
       // Mark draft as published
       if (draftId) {
