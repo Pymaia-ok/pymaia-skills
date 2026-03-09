@@ -70,8 +70,8 @@ export default {
     connectorsCtaAll: "View all connectors",
 
     pluginsTag: "Plugins",
-    pluginsTitle: "Official plugins for Claude Code",
-    pluginsSubtitle: "Verified by Anthropic. Install professional tools with a single command.",
+    pluginsTitle: "Tools for every area of your business",
+    pluginsSubtitle: "Marketing, sales, design, finance and more. Verified plugins ready to use.",
     pluginsCtaAll: "View all plugins",
 
     beforeAfterTitle: "The before & after",

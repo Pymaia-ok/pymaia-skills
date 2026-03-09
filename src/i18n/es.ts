@@ -73,8 +73,8 @@ export default {
     connectorsCtaAll: "Ver todos los conectores",
 
     pluginsTag: "Plugins",
-    pluginsTitle: "Plugins oficiales para Claude Code",
-    pluginsSubtitle: "Verificados por Anthropic. Instalá herramientas profesionales en un solo comando.",
+    pluginsTitle: "Herramientas para cada área de tu empresa",
+    pluginsSubtitle: "Marketing, ventas, diseño, finanzas y más. Plugins verificados listos para usar.",
     pluginsCtaAll: "Ver todos los plugins",
 
     beforeAfterTitle: "El antes y después",

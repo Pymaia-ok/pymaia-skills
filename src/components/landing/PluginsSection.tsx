@@ -7,25 +7,29 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const FEATURED_SLUGS = [
-  "superpowers",
-  "code-review",
-  "feature-dev",
-  "playwright-plugin",
-  "figma-plugin",
-  "typescript-lsp",
-  "code-simplifier",
-  "commit-commands",
-  "atlassian-plugin",
-  "vercel-plugin",
-  "claude-md-management",
-  "pr-review-toolkit",
+  "slack-plugin",          // Comunicación
+  "brand-voice",           // Marketing
+  "sales-development",     // Ventas
+  "figma-plugin",          // Diseño
+  "financial-analysis",    // Finanzas
+  "atlassian-plugin",      // Productividad
+  "asana-plugin",          // Gestión de tareas
+  "operations",            // Operaciones
+  "design-plugin",         // Diseño UX
+  "circleback",            // Reuniones
+  "linear-plugin",         // Gestión de proyectos
+  "equity-research",       // Investigación financiera
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
-  development: "🛠️",
-  design: "🎨",
-  productivity: "📋",
   communication: "💬",
+  marketing: "📣",
+  sales: "🤝",
+  design: "🎨",
+  finance: "💰",
+  productivity: "📋",
+  operations: "⚙️",
+  analytics: "📊",
 };
 
 const PluginsSection = () => {
