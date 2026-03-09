@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github, Plug } from "lucide-react";
 import { useState, useCallback } from "react";
 import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +63,6 @@ const ConectorDetail = () => {
         .not("required_mcps", "is", null)
         .limit(12);
       if (error) throw error;
-      // Filter client-side for skills that mention this connector
       return data.filter((skill) => {
         const mcps = skill.required_mcps as any[];
         if (!Array.isArray(mcps)) return false;
@@ -73,6 +72,24 @@ const ConectorDetail = () => {
             m.server?.toLowerCase().includes(connector!.slug.toLowerCase())
         );
       });
+    },
+    enabled: !!connector,
+  });
+
+  // Find plugins that relate to this connector
+  const { data: relatedPlugins = [] } = useQuery({
+    queryKey: ["connector-plugins", connector?.name],
+    queryFn: async () => {
+      if (!connector?.name) return [];
+      const searchTerm = connector.name.toLowerCase();
+      const { data, error } = await supabase
+        .from("plugins" as any)
+        .select("name, name_es, slug, icon_url, description, description_es, is_anthropic_verified, is_official, platform, install_count")
+        .eq("status", "approved")
+        .or(`name.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`)
+        .limit(6);
+      if (error) return [];
+      return data || [];
     },
     enabled: !!connector,
   });
@@ -322,6 +339,41 @@ const ConectorDetail = () => {
                 {t("connectors.docs")}
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
+            )}
+
+            {/* Related plugins */}
+            {relatedPlugins.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-lg font-semibold text-foreground mb-4">
+                  {isEs ? "Plugins relacionados" : "Related plugins"}
+                </h2>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {relatedPlugins.map((p: any) => (
+                    <Link
+                      key={p.slug}
+                      to={`/plugin/${p.slug}`}
+                      className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-foreground/20 transition-colors flex items-center gap-3"
+                    >
+                      {p.icon_url ? (
+                        <img src={p.icon_url} alt={p.name} className="w-10 h-10 rounded-lg object-contain" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-lg font-bold text-primary">{p.name[0]}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-foreground truncate">{isEs && p.name_es ? p.name_es : p.name}</p>
+                          {p.is_anthropic_verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {isEs && p.description_es ? p.description_es : p.description}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Compatible skills */}

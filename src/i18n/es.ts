@@ -8,6 +8,7 @@ export default {
     teams: "Teams",
     gettingStarted: "Primeros pasos",
     publish: "Publicar",
+    createSkill: "Crear skill",
     signIn: "Ingresar",
     signOut: "Cerrar sesión",
     publishSkill: "Publicar skill",
