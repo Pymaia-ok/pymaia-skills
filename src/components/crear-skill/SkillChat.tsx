@@ -239,23 +239,21 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    let finalTranscript = "";
+    // Capture the text that was in the input before recording started
+    const baseText = input ? (input.endsWith(" ") ? input : input + " ") : "";
+    let accumulatedFinal = "";
 
     recognition.onresult = (event: any) => {
-      let interim = "";
+      let currentInterim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += transcript + " ";
+          accumulatedFinal += transcript + " ";
         } else {
-          interim = transcript;
+          currentInterim = transcript;
         }
       }
-      setInput((prev) => {
-        const base = prev.endsWith(" ") ? prev : prev ? prev + " " : "";
-        return base + finalTranscript + interim;
-      });
-      finalTranscript = "";
+      setInput(baseText + accumulatedFinal + currentInterim);
     };
 
     recognition.onerror = (event: any) => {
