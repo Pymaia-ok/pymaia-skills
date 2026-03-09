@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film, Mic, MicOff, Monitor, Square } from "lucide-react";
+import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film, Mic, MicOff, Monitor, Square, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streaming";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Attachment {
   id: string;
@@ -15,6 +16,7 @@ interface Attachment {
   url?: string;
   extractedText?: string;
   processing?: boolean;
+  previewUrl?: string;
 }
 
 interface SkillChatProps {
@@ -31,6 +33,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -298,6 +301,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
         const blob = new Blob(screenChunksRef.current, { type: "video/webm" });
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: "video/webm" });
+        const previewUrl = URL.createObjectURL(blob);
 
         const attachment: Attachment = {
           id: crypto.randomUUID(),
@@ -305,9 +309,10 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           name: file.name,
           file,
           processing: false,
+          previewUrl,
         };
         setAttachments((prev) => [...prev, attachment]);
-        toast.success("Grabación lista para enviar");
+        toast.success("Grabación lista — tocá para previsualizarla");
       };
 
       // Handle user stopping share via browser UI
@@ -450,21 +455,25 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           {/* Attachments preview */}
           {attachments.length > 0 && (
             <div className="pt-3 flex flex-wrap gap-2">
-              {attachments.map((att) => (
-                <div
-                  key={att.id}
-                  className="flex items-center gap-1.5 bg-secondary rounded-full px-3 py-1.5 text-xs"
-                >
-                  {getAttachmentIcon(att.name)}
-                  <span className="max-w-[120px] truncate">{att.name}</span>
-                  <button
-                    onClick={() => removeAttachment(att.id)}
-                    className="text-muted-foreground hover:text-foreground"
+              {attachments.map((att) => {
+                const isVideo = att.name.match(/\.(webm|mp4|mov|avi)$/i);
+                return (
+                  <div
+                    key={att.id}
+                    className={`flex items-center gap-1.5 bg-secondary rounded-full px-3 py-1.5 text-xs ${isVideo && att.previewUrl ? "cursor-pointer hover:bg-secondary/80" : ""}`}
+                    onClick={() => isVideo && att.previewUrl && setPreviewAttachment(att)}
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+                    {isVideo && att.previewUrl ? <Play className="w-3 h-3" /> : getAttachmentIcon(att.name)}
+                    <span className="max-w-[120px] truncate">{att.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -564,6 +573,19 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           </div>
         </div>
       </div>
+      {/* Video preview dialog */}
+      <Dialog open={!!previewAttachment} onOpenChange={(open) => !open && setPreviewAttachment(null)}>
+        <DialogContent className="max-w-2xl p-2">
+          {previewAttachment?.previewUrl && (
+            <video
+              src={previewAttachment.previewUrl}
+              controls
+              autoPlay
+              className="w-full rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
