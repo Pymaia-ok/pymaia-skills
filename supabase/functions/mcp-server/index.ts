@@ -395,14 +395,13 @@ mcp.tool("search_connectors", {
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const queryLower = args.query.toLowerCase();
+    const queryLower = sanitizeForPostgrest(args.query);
 
-    // Server-side search using ilike for accurate results
     let q = supabase
       .from("mcp_servers")
       .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
       .eq("status", "approved")
-      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%,description_es.ilike.%${queryLower}%`)
       .order("github_stars", { ascending: false })
       .limit(lim);
 
@@ -411,8 +410,20 @@ mcp.tool("search_connectors", {
     const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    // Deduplicate by brand (prefer official over community)
     let results = deduplicateConnectors(matched || []);
+
+    // Word-split fallback for multi-word queries
+    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
+    if (results.length === 0 && words.length > 1) {
+      const fallbackData = await wordSplitSearch(
+        "mcp_servers",
+        "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url",
+        words, "github_stars", lim,
+        args.category ? (qb: any) => qb.eq("category", args.category) : undefined,
+      );
+      results = deduplicateConnectors(fallbackData);
+    }
+
     if (results.length === 0) {
       let fallback = supabase
         .from("mcp_servers")
