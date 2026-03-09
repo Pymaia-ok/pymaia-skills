@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film } from "lucide-react";
+import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streaming";
 import { supabase } from "@/integrations/supabase/client";
