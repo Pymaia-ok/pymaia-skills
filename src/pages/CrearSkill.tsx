@@ -81,9 +81,40 @@ const CrearSkill = () => {
   const [isRefining, setIsRefining] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+
+  // Save or update draft in skill_drafts table
+  const saveDraft = async (
+    skillData: GeneratedSkill,
+    qualityData: Quality | null,
+    testData: TestResults | null,
+    conversation: Msg[],
+    status: string = "generated"
+  ) => {
+    try {
+      const payload = {
+        user_id: user.id,
+        conversation: conversation as any,
+        generated_skill: skillData as any,
+        quality_score: qualityData?.score ?? null,
+        quality_feedback: qualityData?.feedback ?? null,
+        test_results: testData as any,
+        status,
+      };
+
+      if (draftId) {
+        await supabase.from("skill_drafts").update(payload).eq("id", draftId);
+      } else {
+        const { data } = await supabase.from("skill_drafts").insert(payload).select("id").single();
+        if (data) setDraftId(data.id);
+      }
+    } catch (e) {
+      console.error("Failed to save draft", e);
+    }
+  };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -96,6 +127,9 @@ const CrearSkill = () => {
       setQuality(data.quality);
       setTestResults(null);
       setStep("preview");
+      // Auto-save as draft
+      await saveDraft(data.skill, data.quality, null, messages, "generated");
+      toast.success("Borrador guardado automáticamente");
     } catch (e) {
       console.error(e);
       toast.error(t("crearSkill.errorGenerate"));
@@ -115,6 +149,8 @@ const CrearSkill = () => {
       setQuality(data.quality);
       setTestResults(null);
       toast.success(t("crearSkill.skillUpdated"));
+      // Update draft
+      await saveDraft(data.skill, data.quality, null, messages, "generated");
     } catch {
       toast.error(t("crearSkill.errorRefine"));
     }
@@ -131,6 +167,8 @@ const CrearSkill = () => {
       if (error) throw error;
       setTestResults(data);
       toast.success(t("crearSkill.testsDone", { passed: data.test_results.filter((t: any) => t.passed).length, total: data.test_results.length }));
+      // Update draft with test results
+      await saveDraft(skill, quality, data, messages, "tested");
     } catch {
       toast.error(t("crearSkill.errorTests"));
     }
@@ -170,6 +208,11 @@ const CrearSkill = () => {
         required_mcps: config.required_mcps || skill.required_mcps || [],
         is_public: config.is_public,
       });
+
+      // Mark draft as published
+      if (draftId) {
+        await supabase.from("skill_drafts").update({ status: "published" }).eq("id", draftId);
+      }
 
       toast.success(t("crearSkill.published"));
       navigate("/mis-skills");
