@@ -301,6 +301,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
         const blob = new Blob(screenChunksRef.current, { type: "video/webm" });
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: "video/webm" });
+        const previewUrl = URL.createObjectURL(blob);
 
         const attachment: Attachment = {
           id: crypto.randomUUID(),
@@ -308,9 +309,10 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           name: file.name,
           file,
           processing: false,
+          previewUrl,
         };
         setAttachments((prev) => [...prev, attachment]);
-        toast.success("Grabación lista para enviar");
+        toast.success("Grabación lista — tocá para previsualizarla");
       };
 
       // Handle user stopping share via browser UI
