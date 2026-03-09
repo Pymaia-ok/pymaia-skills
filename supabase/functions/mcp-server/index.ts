@@ -418,24 +418,37 @@ mcp.tool("search_plugins", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+    const queryLower = args.query.toLowerCase();
+
     let q = supabase
       .from("plugins")
       .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
       .eq("status", "approved")
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
       .order("install_count", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .limit(lim);
 
     if (args.category) q = q.eq("category", args.category);
     if (args.platform) q = q.eq("platform", args.platform);
 
-    const { data, error } = await q;
+    const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const queryLower = args.query.toLowerCase();
-    const matched = (data || []).filter(
-      (p: any) => p.name.toLowerCase().includes(queryLower) || p.description.toLowerCase().includes(queryLower) || p.slug.includes(queryLower)
-    );
-    const results = matched.length > 0 ? matched : (data || []).slice(0, 3);
+    let results = matched || [];
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("plugins")
+        .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
+        .eq("status", "approved")
+        .order("install_count", { ascending: false })
+        .limit(3);
+      if (args.category) fallback = fallback.eq("category", args.category);
+      if (args.platform) fallback = fallback.eq("platform", args.platform);
+      const { data: topData } = await fallback;
+      results = topData || [];
+    }
+
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No plugins found." }] };
 
     const text = results
