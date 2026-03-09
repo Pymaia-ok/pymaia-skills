@@ -1,34 +1,75 @@
 
 
-## Auditoría de calidad — Packs por Rol (v3 FINAL)
+## Diagnóstico: Por qué Claude no pudo usar el MCP de Pymaia
 
-### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
+Hay **3 problemas concretos** que explican el error:
 
-| Pack | Skills | Estado | Cambios v3 |
-|---|---|---|---|
-| **Marketer** | 8 | ✅ Excelente | Sin cambios |
-| **DevOps** | 8 | ✅ Excelente | Sin cambios |
-| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
-| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
-| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
-| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
-| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
-| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
-| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
-| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
-| **Founder** | 6 | ✅ Bueno | Sin cambios |
-| **Consultor** | 6 | ✅ Bueno | Sin cambios |
-| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
-| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
-| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
+### Problema 1: No existe endpoint `/sse`
+El archivo `ai-plugin.json` y `llms.txt` apuntan a:
+```
+https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/sse
+```
+Pero el servidor MCP solo expone `/mcp` (streamable-http). **No hay ningún endpoint `/sse`** en el código. Claude intentó conectarse a una URL que devuelve 404.
 
-### Acciones ejecutadas
-1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
-2. ✅ Arquitecto desactivado (honestidad > cantidad)
-3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
-4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
-5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
-6. ✅ 277 skills legal-tech indexadas desde GitHub
-7. ✅ 107 skills education-technology indexadas desde GitHub
-8. ✅ Wizard actualizado (14 roles, tasks renombrados)
-9. ✅ i18n ES/EN actualizados
+### Problema 2: Configuración inconsistente entre archivos
+- **`ai-plugin.json`**: dice `"transport": "sse"` con URL `/sse` — **incorrecto**
+- **`llms.txt`**: usa `npx @anthropic-ai/mcp-remote` con URL `/sse` — **URL incorrecta**
+- **Página `/mcp`**: muestra `"type": "streamable-http"` con URL `/mcp` — **correcto** pero Claude Desktop no soporta streamable-http nativamente sin wrapper
+
+### Problema 3: Rutas web inexistentes
+Claude intentó navegar `/skills` y `/connectors` en el sitio web, pero las rutas reales son `/explorar` y `/conectores`. El `llms.txt` sí lista las rutas correctas, pero Claude no lo leyó o lo ignoró.
+
+---
+
+## Plan de corrección
+
+### 1. Corregir `ai-plugin.json`
+Actualizar la URL y transport al endpoint real:
+```json
+"api": {
+  "type": "mcp",
+  "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp",
+  "transport": "streamable-http"
+}
+```
+
+### 2. Corregir `llms.txt` y `llms-full.txt`
+Actualizar la configuración de instalación MCP. Ofrecer **dos opciones** para máxima compatibilidad:
+
+**Opción A — Streamable HTTP directo** (Claude Code, Cursor, Windsurf nativos):
+```json
+{
+  "mcpServers": {
+    "pymaia-skills": {
+      "type": "streamable-http",
+      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"
+    }
+  }
+}
+```
+
+**Opción B — Via proxy npx** (Claude Desktop y clientes que solo soportan SSE):
+```json
+{
+  "mcpServers": {
+    "pymaia-skills": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"]
+    }
+  }
+}
+```
+
+### 3. Actualizar página `/mcp`
+Mostrar ambas opciones de configuración (streamable-http directo y npx wrapper) para que el usuario elija según su cliente.
+
+### 4. Agregar rutas alternativas en inglés (opcional pero recomendado)
+Añadir redirects o aliases para `/skills` → `/explorar` y `/connectors` → `/conectores` en el router, ya que los LLMs tienden a inferir rutas en inglés.
+
+### Archivos a modificar
+- `public/.well-known/ai-plugin.json` — fix URL y transport
+- `public/llms.txt` — fix config MCP, agregar ambas opciones
+- `public/llms-full.txt` — idem
+- `src/pages/MCP.tsx` — mostrar ambas configs (streamable-http + npx)
+- `src/App.tsx` — agregar redirects `/skills` → `/explorar`, `/connectors` → `/conectores`
+
