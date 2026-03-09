@@ -71,6 +71,7 @@ interface TestResults {
 const CrearSkill = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("chat");
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -82,8 +83,47 @@ const CrearSkill = () => {
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftLoading, setDraftLoading] = useState(false);
 
-  if (loading) return null;
+  // Load draft from URL param
+  useEffect(() => {
+    const draftParam = searchParams.get("draft");
+    if (!draftParam || !user) return;
+    setDraftLoading(true);
+    supabase
+      .from("skill_drafts")
+      .select("*")
+      .eq("id", draftParam)
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) {
+          setDraftLoading(false);
+          return;
+        }
+        setDraftId(data.id);
+        const conv = (data.conversation as any[]) || [];
+        setMessages(conv as Msg[]);
+        if (data.generated_skill) {
+          setSkill(data.generated_skill as any);
+          if (data.quality_score != null || data.quality_feedback) {
+            setQuality({
+              score: data.quality_score ?? 0,
+              feedback: data.quality_feedback ?? "",
+              strengths: [],
+              improvements: [],
+            });
+          }
+          if (data.test_results) {
+            setTestResults(data.test_results as any);
+          }
+          setStep(data.status === "tested" ? "preview" : data.status === "generated" ? "preview" : "chat");
+        }
+        setDraftLoading(false);
+      });
+  }, [user, searchParams]);
+
+  if (loading || draftLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
 
   // Save or update draft in skill_drafts table

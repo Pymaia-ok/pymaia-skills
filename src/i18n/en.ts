@@ -531,6 +531,16 @@ export default {
     nowPublic: "Skill is now public",
     nowPrivate: "Skill is now private",
     visibilityError: "Error changing visibility",
+    draftsTitle: "Drafts",
+    draftsEmpty: "No drafts yet",
+    draftContinue: "Continue",
+    draftDelete: "Delete draft",
+    draftDeleted: "Draft deleted",
+    draftStatus_interviewing: "Interviewing",
+    draftStatus_generated: "Generated",
+    draftStatus_tested: "Tested",
+    draftScore: "Score: {{score}}",
+    draftNoName: "Unnamed skill",
   },
 
   crearSkill: {
