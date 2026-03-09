@@ -20,14 +20,13 @@ const Navbar = () => {
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/teams", label: t("nav.teams") },
   ];
 
   const mobileLinks = [
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/teams", label: t("nav.teams") },
+    
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
     { to: "/mcp", label: "MCP Server" },
   ];
