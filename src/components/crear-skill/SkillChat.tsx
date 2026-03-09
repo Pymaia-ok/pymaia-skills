@@ -394,6 +394,18 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
               >
                 <Link2 className="w-5 h-5" />
               </button>
+              <button
+                onClick={toggleRecording}
+                disabled={streaming || isGenerating}
+                className={`p-2.5 rounded-xl transition-colors disabled:opacity-40 ${
+                  isRecording
+                    ? "text-red-500 bg-red-500/10 hover:bg-red-500/20 animate-pulse"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+                title={isRecording ? "Detener dictado" : "Dictar con micrófono"}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
             </div>
             <div className="flex-1 relative">
               <textarea
