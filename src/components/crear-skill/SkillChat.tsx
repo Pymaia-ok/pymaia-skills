@@ -291,15 +291,8 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     setIsRecording(true);
   }, [isRecording]);
 
-  // Effect: when pendingRecording is set, add it to attachments
-  useEffect(() => {
-    if (pendingRecording) {
-      console.log("[ScreenRec] useEffect: adding pending recording to attachments");
-      setAttachments((prev) => [...prev, pendingRecording]);
-      toast.success("Grabación lista — tocá para previsualizarla");
-      setPendingRecording(null);
-    }
-  }, [pendingRecording]);
+  // Debug: log attachments on every render
+  console.log("[SkillChat] render, attachments:", attachments.length, attachments.map(a => a.name));
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
