@@ -300,6 +300,7 @@ export type Database = {
       }
       mcp_servers: {
         Row: {
+          approved_content_hash: string | null
           category: string
           config_json: Json | null
           created_at: string
@@ -330,6 +331,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_content_hash?: string | null
           category?: string
           config_json?: Json | null
           created_at?: string
@@ -360,6 +362,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_content_hash?: string | null
           category?: string
           config_json?: Json | null
           created_at?: string
@@ -431,6 +434,7 @@ export type Database = {
       }
       plugins: {
         Row: {
+          approved_content_hash: string | null
           avg_rating: number
           category: string
           created_at: string
@@ -462,6 +466,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approved_content_hash?: string | null
           avg_rating?: number
           category?: string
           created_at?: string
@@ -493,6 +498,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approved_content_hash?: string | null
           avg_rating?: number
           category?: string
           created_at?: string
@@ -601,6 +607,119 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_advisories: {
+        Row: {
+          action_taken: string
+          created_at: string
+          description: string
+          id: string
+          incident_id: string | null
+          is_public: boolean | null
+          item_name: string
+          item_slug: string
+          item_type: string
+          published_at: string | null
+          severity: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_taken: string
+          created_at?: string
+          description: string
+          id?: string
+          incident_id?: string | null
+          is_public?: boolean | null
+          item_name: string
+          item_slug: string
+          item_type: string
+          published_at?: string | null
+          severity?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string
+          description?: string
+          id?: string
+          incident_id?: string | null
+          is_public?: boolean | null
+          item_name?: string
+          item_slug?: string
+          item_type?: string
+          published_at?: string | null
+          severity?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_advisories_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "security_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_incidents: {
+        Row: {
+          affected_users_count: number | null
+          created_at: string
+          description: string
+          id: string
+          item_id: string
+          item_slug: string
+          item_type: string
+          notified_users: boolean | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          scan_result: Json | null
+          severity: string
+          status: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          affected_users_count?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          item_id: string
+          item_slug: string
+          item_type: string
+          notified_users?: boolean | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          scan_result?: Json | null
+          severity?: string
+          status?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          affected_users_count?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          item_id?: string
+          item_slug?: string
+          item_type?: string
+          notified_users?: boolean | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          scan_result?: Json | null
+          severity?: string
+          status?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       security_reports: {
         Row: {
@@ -774,6 +893,7 @@ export type Database = {
       }
       skills: {
         Row: {
+          approved_content_hash: string | null
           auto_approved_reason: string | null
           avg_rating: number
           category: string
@@ -817,6 +937,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          approved_content_hash?: string | null
           auto_approved_reason?: string | null
           avg_rating?: number
           category?: string
@@ -860,6 +981,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          approved_content_hash?: string | null
           auto_approved_reason?: string | null
           avg_rating?: number
           category?: string
@@ -922,6 +1044,42 @@ export type Database = {
         }
         Relationships: []
       }
+      version_hashes: {
+        Row: {
+          content_hash: string
+          created_at: string
+          id: string
+          item_id: string
+          item_slug: string
+          item_type: string
+          snapshot: Json | null
+          tool_descriptions_hash: string | null
+          version_tag: string | null
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          id?: string
+          item_id: string
+          item_slug: string
+          item_type: string
+          snapshot?: Json | null
+          tool_descriptions_hash?: string | null
+          version_tag?: string | null
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_slug?: string
+          item_type?: string
+          snapshot?: Json | null
+          tool_descriptions_hash?: string | null
+          version_tag?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -930,6 +1088,7 @@ export type Database = {
       fetch_skill_by_share_token: {
         Args: { _slug: string; _token: string }
         Returns: {
+          approved_content_hash: string | null
           auto_approved_reason: string | null
           avg_rating: number
           category: string
