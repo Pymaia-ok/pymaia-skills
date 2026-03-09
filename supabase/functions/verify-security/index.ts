@@ -9,7 +9,7 @@ const corsHeaders = {
 interface RepoCheck {
   id: string;
   github_url: string;
-  table: "skills" | "mcp_servers";
+  table: "skills" | "mcp_servers" | "plugins";
 }
 
 async function checkGitHubRepo(
