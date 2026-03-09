@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, Heart, ShieldCheck, Download } from "lucide-react";
@@ -14,7 +15,7 @@ interface SkillCardProps {
   index?: number;
 }
 
-const SkillCard = ({ skill, index = 0 }: SkillCardProps) => {
+const SkillCard = forwardRef<HTMLDivElement, SkillCardProps>(({ skill, index = 0 }, ref) => {
   const { t, i18n } = useTranslation();
   const catLabel = t(`categories.${skill.category}`, skill.category);
   const displayName = (i18n.language === "es" && skill.display_name_es) ? skill.display_name_es : skill.display_name;
