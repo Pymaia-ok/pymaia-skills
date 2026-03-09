@@ -95,6 +95,7 @@ const CrearSkill = () => {
   const [isRefining, setIsRefining] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftLoading, setDraftLoading] = useState(() => !!searchParams.get("draft"));
 
