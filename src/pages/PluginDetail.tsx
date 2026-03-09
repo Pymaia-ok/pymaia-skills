@@ -12,6 +12,7 @@ const PluginDetail = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isEs = i18n.language === "es";
+  const [copied, setCopied] = useState(false);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) navigate(-1);
