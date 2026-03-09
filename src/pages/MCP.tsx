@@ -78,6 +78,10 @@ const MCP = () => {
               { name: "search_skills", desc: t("mcp.tools.search") },
               { name: "get_skill_details", desc: t("mcp.tools.details") },
               { name: "list_popular_skills", desc: t("mcp.tools.popular") },
+              { name: "recommend_for_task", desc: t("mcp.tools.recommend") },
+              { name: "explore_directory", desc: t("mcp.tools.explore") },
+              { name: "search_connectors", desc: t("mcp.tools.searchConnectors") },
+              { name: "search_plugins", desc: t("mcp.tools.searchPlugins") },
             ].map((tool) => (
               <div key={tool.name} className="p-5 rounded-2xl bg-secondary">
                 <code className="text-sm font-semibold font-mono">{tool.name}</code>

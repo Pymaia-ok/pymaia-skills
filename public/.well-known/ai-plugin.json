@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_human": "Pymaia Skills",
   "name_for_model": "pymaia_skills",
-  "description_for_human": "The #1 skill directory for Claude Code. 38,000+ professional skills ready to install in 2 minutes.",
-  "description_for_model": "Search and discover professional skills for Claude Code. Skills are knowledge files (SKILL.md) that teach Claude how to perform specific tasks like writing marketing briefs, reviewing contracts, automating code reviews, and more. Use the MCP server to search, recommend, and install skills. 38,000+ skills across 19 categories.",
+  "description_for_human": "The #1 skill directory for Claude Code. 38,000+ skills, 100+ MCP connectors, and plugins ready to install.",
+  "description_for_model": "Search and discover professional skills, MCP connectors, and plugins for Claude Code. Skills are knowledge files (SKILL.md) that teach Claude specific tasks. Connectors are MCP servers that give Claude access to external tools. Plugins extend Claude Code and Cowork. Use the MCP server's 17 tools to search, recommend, compare, and install across the entire directory.",
   "auth": {
     "type": "none"
   },
