@@ -11,7 +11,7 @@ import PrimerosPasos from "./pages/PrimerosPasos";
 import Auth from "./pages/Auth";
 import CrearSkill from "./pages/CrearSkill";
 import UserProfile from "./pages/UserProfile";
-port Conectores from "./pages/Conectores";
+import Conectores from "./pages/Conectores";
 import ConectorDetail from "./pages/ConectorDetail";
 import Admin from "./pages/Admin";
 import MisSkills from "./pages/MisSkills";

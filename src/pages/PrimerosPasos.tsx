@@ -621,14 +621,6 @@ const PrimerosPasos = () => {
                     link: "/publicar",
                     cta: isEs ? "Publicar skill" : "Publish skill",
                   },
-                  {
-                    title: isEs ? "Equipos" : "Teams",
-                    desc: isEs
-                      ? "Estandarizá el uso de IA en tu empresa. Un panel, todas las skills, todo el equipo alineado."
-                      : "Standardize AI usage in your company. One panel, all skills, the whole team aligned.",
-                    link: "/teams",
-                    cta: isEs ? "Ver planes" : "View plans",
-                  },
                 ].map((tip) => (
                   <Link key={tip.title} to={tip.link} className="p-5 rounded-xl bg-background border border-border hover:border-foreground/20 transition-colors group block">
                     <h3 className="font-semibold mb-2">{tip.title}</h3>
