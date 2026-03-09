@@ -14,30 +14,36 @@ Deno.serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { batchSize = 20 } = await req.json().catch(() => ({}));
+    const { batchSize = 20, table = "mcp_servers" } = await req.json().catch(() => ({}));
 
-    // Get connectors without Spanish description
+    const targetTable = table === "plugins" ? "plugins" : "mcp_servers";
+    const nameField = targetTable === "plugins" ? "name" : "name";
+    const descEsField = "description_es";
+    const nameEsField = targetTable === "plugins" ? "name_es" : null;
+
+    // Get items without Spanish description
     const { data: pending, error: fetchErr } = await supabase
-      .from("mcp_servers")
-      .select("id, name, description")
-      .is("description_es", null)
+      .from(targetTable)
+      .select(`id, ${nameField}, description`)
+      .is(descEsField, null)
       .neq("description", "")
       .limit(batchSize);
 
     if (fetchErr) throw fetchErr;
     if (!pending || pending.length === 0) {
-      return new Response(JSON.stringify({ translated: 0, remaining: 0 }), {
+      return new Response(JSON.stringify({ translated: 0, remaining: 0, table: targetTable }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Build prompt
-    const items = pending.map((c, i) => `${i + 1}. [${c.name}]: ${c.description}`).join("\n");
-    const prompt = `Translate these MCP connector descriptions to Spanish (Latin American). Keep technical terms in English. Return ONLY a JSON array of objects with "id" and "description_es" fields. No markdown, no explanation.
+    const items = pending.map((c: any, i: number) => `${i + 1}. [${c[nameField]}]: ${c.description}`).join("\n");
+    const extraFields = nameEsField ? ', "name_es"' : '';
+    const prompt = `Translate these ${targetTable === "plugins" ? "plugin" : "MCP connector"} descriptions to Spanish (Latin American). Keep technical terms in English. Return ONLY a JSON array of objects with "id", "description_es"${extraFields} fields. No markdown, no explanation.
 
 ${items}
 
-IDs: ${JSON.stringify(pending.map(c => c.id))}`;
+IDs: ${JSON.stringify(pending.map((c: any) => c.id))}`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -67,26 +73,28 @@ IDs: ${JSON.stringify(pending.map(c => c.id))}`;
     let translated = 0;
     for (const t of translations) {
       if (!t.id || !t.description_es) continue;
+      const updateData: Record<string, string> = { description_es: t.description_es };
+      if (nameEsField && t.name_es) updateData.name_es = t.name_es;
       const { error } = await supabase
-        .from("mcp_servers")
-        .update({ description_es: t.description_es })
+        .from(targetTable)
+        .update(updateData)
         .eq("id", t.id);
       if (!error) translated++;
     }
 
     // Count remaining
     const { count } = await supabase
-      .from("mcp_servers")
+      .from(targetTable)
       .select("id", { count: "exact", head: true })
-      .is("description_es", null)
+      .is(descEsField, null)
       .neq("description", "");
 
     return new Response(
-      JSON.stringify({ translated, remaining: count ?? 0 }),
+      JSON.stringify({ translated, remaining: count ?? 0, table: targetTable }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("Translate connectors error:", (e as Error).message);
+    console.error("Translate error:", (e as Error).message);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
