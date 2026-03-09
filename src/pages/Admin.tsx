@@ -303,6 +303,15 @@ const Admin = () => {
                   </span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="review" className="flex items-center gap-1.5">
+                <ListChecks className="w-3.5 h-3.5" />
+                Review Queue
+                {(reviewQueue?.length ?? 0) > 0 && (
+                  <span className="ml-1 w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {reviewQueue?.length}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="crons">Automatización</TabsTrigger>
             </TabsList>
 
