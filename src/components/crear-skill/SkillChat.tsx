@@ -573,6 +573,19 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           </div>
         </div>
       </div>
+      {/* Video preview dialog */}
+      <Dialog open={!!previewAttachment} onOpenChange={(open) => !open && setPreviewAttachment(null)}>
+        <DialogContent className="max-w-2xl p-2">
+          {previewAttachment?.previewUrl && (
+            <video
+              src={previewAttachment.previewUrl}
+              controls
+              autoPlay
+              className="w-full rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
