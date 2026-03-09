@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     const items: RepoCheck[] = [];
 
     // Fetch skills needing check
-    if (table === "both" || table === "skills") {
+    if (table === "all" || table === "both" || table === "skills") {
       const { data: skills } = await supabase
         .from("skills")
         .select("id, github_url")
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         .neq("github_url", "")
         .or("security_checked_at.is.null,security_status.eq.unverified")
         .order("security_checked_at", { ascending: true, nullsFirst: true })
-        .limit(Math.ceil(batchSize / 2));
+        .limit(Math.ceil(batchSize / 3));
       if (skills) items.push(...skills.map(s => ({ ...s, table: "skills" as const })));
     }
 

@@ -107,8 +107,9 @@ const Plugins = () => {
                     onClick={() => setVerifiedFilter(f)}
                     className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${verifiedFilter === f ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}
                   >
-                    {f === "anthropic-verified" && <BadgeCheck className="w-3.5 h-3.5" />}
-                    {f === "all" ? (isEs ? "Todos" : "All") : f === "anthropic-verified" ? "Anthropic Verified" : (isEs ? "Comunitarios" : "Community")}
+                     {f === "anthropic-verified" && <BadgeCheck className="w-3.5 h-3.5" />}
+                     {f === "verified" && <ShieldCheck className="w-3.5 h-3.5" />}
+                     {f === "all" ? (isEs ? "Todos" : "All") : f === "anthropic-verified" ? "Anthropic Verified" : f === "verified" ? (isEs ? "Verificados" : "Verified") : (isEs ? "Comunitarios" : "Community")}
                   </button>
                 ))}
               </PopoverContent>
