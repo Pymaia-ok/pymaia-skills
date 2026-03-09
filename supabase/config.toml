@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.quality-maintenance]
 verify_jwt = false
+
+[functions.sync-plugins]
+verify_jwt = false

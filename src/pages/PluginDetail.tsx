@@ -146,7 +146,7 @@ const PluginDetail = () => {
             </div>
 
             {/* Security warning for community plugins */}
-            {!plugin.is_official && (
+            {!plugin.is_official && plugin.security_status !== "verified" && (
               <div className="mb-8 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
