@@ -353,7 +353,7 @@ const CrearSkill = () => {
     setIsPublishing(true);
     setScanResult(null);
 
-    // ── Security Gate: scan before publishing ──
+    // ── Security Gate: scan before publishing (3-state: PASS/WARNING/BLOCKED) ──
     try {
       const contentToScan = [skill.name, skill.tagline, skill.description, skill.instructions, skill.install_command].join("\n\n");
       const slug = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -368,13 +368,26 @@ const CrearSkill = () => {
         },
       });
 
-      if (!scanError && scanData && !scanData.pass) {
+      if (!scanError && scanData) {
         setScanResult(scanData);
-        setIsPublishing(false);
-        toast.error("Se detectaron problemas de seguridad — revisá los detalles");
-        return;
+        
+        if (scanData.verdict === "MALICIOUS") {
+          // BLOCKED — cannot publish
+          setIsPublishing(false);
+          toast.error(t("crearSkill.securityBlocked", "Tu skill no pasó la validación de seguridad — revisá los detalles"));
+          return;
+        }
+        
+        if (scanData.verdict === "SUSPICIOUS") {
+          // WARNING — show warnings but allow publish
+          toast.warning(t("crearSkill.securityWarning", "Se encontraron algunos items para revisar. Tu skill será publicado con review pendiente."));
+          // Continue to publish but mark for review
+        }
+        
+        if (scanData.verdict === "SAFE") {
+          toast.success(t("crearSkill.securityPassed", "Tu skill pasó la validación de seguridad ✓"));
+        }
       }
-      if (scanData) setScanResult(scanData);
     } catch (err) {
       console.error("Security gate error:", err);
       // Allow publish if scan infra fails
