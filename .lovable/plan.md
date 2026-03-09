@@ -1,27 +1,34 @@
 
 
-## Problem
+## Auditoría de calidad — Packs por Rol (v3 FINAL)
 
-The system prompt tells the interviewer to do "máximo 8 preguntas" and at the end it says farewell ("te contactaré pronto") instead of signaling the conversation is done. Meanwhile, the "Generar mi Skill" button only appears after 5 user messages — so the user has to manually notice and click it. The AI should either auto-trigger generation or clearly prompt the user to click the button.
+### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
 
-## Solution
+| Pack | Skills | Estado | Cambios v3 |
+|---|---|---|---|
+| **Marketer** | 8 | ✅ Excelente | Sin cambios |
+| **DevOps** | 8 | ✅ Excelente | Sin cambios |
+| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
+| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
+| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
+| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
+| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
+| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
+| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
+| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
+| **Founder** | 6 | ✅ Bueno | Sin cambios |
+| **Consultor** | 6 | ✅ Bueno | Sin cambios |
+| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
+| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
+| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
 
-Two changes:
-
-### 1. Update the system prompt to NOT say goodbye
-In `supabase/functions/skill-interviewer/index.ts`, add a rule to the system prompt:
-
-> "Cuando tengas suficiente información (después de ~6-8 preguntas), terminá tu último mensaje con la frase exacta `[ENTREVISTA_COMPLETA]` en una línea nueva. NO digas que vas a procesar nada ni que te vas a contactar después. Simplemente resumí brevemente lo que entendiste y agregá el marcador."
-
-### 2. Auto-trigger generation when interview is complete
-In `src/components/crear-skill/SkillChat.tsx`:
-
-- Detect when the last assistant message contains `[ENTREVISTA_COMPLETA]`
-- Automatically call `onGenerate()` when this marker is detected (with a small delay for UX)
-- Strip the `[ENTREVISTA_COMPLETA]` marker from the displayed message so the user doesn't see it
-- This makes the flow seamless: interview ends → skill generation starts automatically
-
-### Files to modify
-1. `supabase/functions/skill-interviewer/index.ts` — update system prompt rules
-2. `src/components/crear-skill/SkillChat.tsx` — add auto-trigger logic via `useEffect` watching messages
-
+### Acciones ejecutadas
+1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
+2. ✅ Arquitecto desactivado (honestidad > cantidad)
+3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
+4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
+5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
+6. ✅ 277 skills legal-tech indexadas desde GitHub
+7. ✅ 107 skills education-technology indexadas desde GitHub
+8. ✅ Wizard actualizado (14 roles, tasks renombrados)
+9. ✅ i18n ES/EN actualizados

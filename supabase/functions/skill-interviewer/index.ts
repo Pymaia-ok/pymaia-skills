@@ -31,6 +31,7 @@ Tu objetivo es entrevistar al usuario para extraer TODO lo necesario para crear 
 9. Adaptá las preguntas según las respuestas - si el usuario ya cubrió algo, no lo repitas
 10. Si el usuario da respuestas vagas, pedí ejemplos concretos con formato ❌/✅
 11. Al final de cada respuesta, indicá cuántas preguntas quedan aproximadamente
+12. Cuando tengas suficiente información (después de ~6-8 preguntas), terminá tu último mensaje con la frase exacta [ENTREVISTA_COMPLETA] en una línea nueva. NO digas que vas a procesar nada ni que te vas a contactar después. Simplemente hacé un resumen breve de lo que entendiste y agregá el marcador.
 
 Empezá presentándote brevemente y hacé tu primera pregunta.`;
 
