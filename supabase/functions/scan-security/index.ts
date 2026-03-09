@@ -648,6 +648,8 @@ async function runFullScan(
     format: { issues: any[] };
     hidden_content: { findings: any[] };
     scope: { permissions: any[]; scope_assessment: string; undeclared_capabilities: string[] } | null;
+    hooks: { hooks: any[]; has_hooks: boolean; blocked_count: number; dangerous_count: number } | null;
+    plugin_decomposition: { components: any[]; has_settings_override: boolean; settings_issues: string[]; cross_component_risks: string[] } | null;
     llm: { verdict: string; confidence: number; reasons: string[] } | null;
   };
   scanned_at: string;
@@ -675,9 +677,19 @@ async function runFullScan(
     ? analyzeMcpScope(content, installCommand)
     : null;
 
-  // Layer 7: LLM analysis (skip if already clearly malicious)
+  // Layer 7: Hook static analysis (Phase 2)
+  const hookAnalysis = analyzeHooks(content);
+
+  // Layer 8: Plugin decomposition (Phase 2)
+  const pluginDecomp = (itemType === "plugin")
+    ? decomposePlugin(content)
+    : null;
+
+  // Layer 9: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
-  if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 && hiddenFindings.filter(f => f.severity === "high").length === 0) {
+  if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
+      hiddenFindings.filter(f => f.severity === "high").length === 0 &&
+      hookAnalysis.blocked_count === 0) {
     llmResult = await analyzeWithLLM(content, itemType, lovableApiKey, scopeAnalysis || undefined);
   }
 
@@ -688,7 +700,15 @@ async function runFullScan(
   
   if (secrets.length > 0 || criticalInjections.length > 0 || hiddenHigh.length > 0 || formatErrors.length > 0) {
     verdict = "MALICIOUS";
+  } else if (hookAnalysis.blocked_count > 0) {
+    verdict = "MALICIOUS"; // Blocked hooks = auto-reject
+  } else if (pluginDecomp?.has_settings_override) {
+    verdict = "MALICIOUS"; // Settings override = auto-reject
   } else if (highInjections.length > 0 || typoFlags.length > 0 || (scopeAnalysis?.scope_assessment === "excessive")) {
+    verdict = "SUSPICIOUS";
+  } else if (hookAnalysis.dangerous_count > 0) {
+    verdict = "SUSPICIOUS";
+  } else if (pluginDecomp?.cross_component_risks && pluginDecomp.cross_component_risks.length > 0) {
     verdict = "SUSPICIOUS";
   } else if (scopeAnalysis?.undeclared_capabilities && scopeAnalysis.undeclared_capabilities.length > 0) {
     verdict = "SUSPICIOUS";
@@ -712,9 +732,11 @@ async function runFullScan(
       format: { issues: formatIssues },
       hidden_content: { findings: hiddenFindings.slice(0, 10) },
       scope: scopeAnalysis,
+      hooks: hookAnalysis.has_hooks ? hookAnalysis : null,
+      plugin_decomposition: pluginDecomp,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "2.0.0",
+    version: "3.0.0",
   };
 }
