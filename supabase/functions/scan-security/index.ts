@@ -924,6 +924,10 @@ async function runFullScan(
     verdict = "MALICIOUS";
   } else if (pluginDecomp?.has_settings_override) {
     verdict = "MALICIOUS";
+  } else if (dependencyResult?.delist_recommended) {
+    verdict = "MALICIOUS"; // CVSS > 9
+  } else if (dependencyResult?.blocked) {
+    verdict = "SUSPICIOUS"; // CVSS > 7
   } else if (highInjections.length > 0 || typoFlags.length > 0 || (scopeAnalysis?.scope_assessment === "excessive")) {
     verdict = "SUSPICIOUS";
   } else if (hookAnalysis.dangerous_count > 0) {
@@ -935,7 +939,6 @@ async function runFullScan(
   } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
   } else if (publisherResult && !publisherResult.verified && publisherResult.flags.length > 0) {
-    // New publisher with flags — mark as suspicious
     if (publisherResult.account_age_days !== null && publisherResult.account_age_days < 30) {
       verdict = "SUSPICIOUS";
     }
@@ -963,9 +966,10 @@ async function runFullScan(
       plugin_decomposition: pluginDecomp,
       similarity: similarityResult,
       publisher: publisherResult,
+      dependencies: dependencyResult,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "5.0.0",
+    version: "6.0.0",
   };
 }
