@@ -320,10 +320,13 @@ export type Database = {
           name: string
           security_checked_at: string | null
           security_notes: string | null
+          security_scan_result: Json | null
+          security_scanned_at: string | null
           security_status: string
           slug: string
           source: string | null
           status: string
+          trust_score: number | null
           updated_at: string
         }
         Insert: {
@@ -347,10 +350,13 @@ export type Database = {
           name: string
           security_checked_at?: string | null
           security_notes?: string | null
+          security_scan_result?: Json | null
+          security_scanned_at?: string | null
           security_status?: string
           slug: string
           source?: string | null
           status?: string
+          trust_score?: number | null
           updated_at?: string
         }
         Update: {
@@ -374,10 +380,13 @@ export type Database = {
           name?: string
           security_checked_at?: string | null
           security_notes?: string | null
+          security_scan_result?: Json | null
+          security_scanned_at?: string | null
           security_status?: string
           slug?: string
           source?: string | null
           status?: string
+          trust_score?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -443,10 +452,13 @@ export type Database = {
           review_count: number
           security_checked_at: string | null
           security_notes: string | null
+          security_scan_result: Json | null
+          security_scanned_at: string | null
           security_status: string
           slug: string
           source: string
           status: string
+          trust_score: number | null
           updated_at: string
         }
         Insert: {
@@ -471,10 +483,13 @@ export type Database = {
           review_count?: number
           security_checked_at?: string | null
           security_notes?: string | null
+          security_scan_result?: Json | null
+          security_scanned_at?: string | null
           security_status?: string
           slug: string
           source?: string
           status?: string
+          trust_score?: number | null
           updated_at?: string
         }
         Update: {
@@ -499,10 +514,13 @@ export type Database = {
           review_count?: number
           security_checked_at?: string | null
           security_notes?: string | null
+          security_scan_result?: Json | null
+          security_scanned_at?: string | null
           security_status?: string
           slug?: string
           source?: string
           status?: string
+          trust_score?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -583,6 +601,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          item_id: string
+          item_slug: string
+          item_type: string
+          report_type: string
+          reporter_email: string | null
+          reporter_user_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          item_id: string
+          item_slug: string
+          item_type: string
+          report_type: string
+          reporter_email?: string | null
+          reporter_user_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          item_id?: string
+          item_slug?: string
+          item_type?: string
+          report_type?: string
+          reporter_email?: string | null
+          reporter_user_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       sequence_enrollments: {
         Row: {
@@ -732,6 +801,8 @@ export type Database = {
           search_vector: unknown
           security_checked_at: string | null
           security_notes: string | null
+          security_scan_result: Json | null
+          security_scanned_at: string | null
           security_status: string
           share_token: string | null
           slug: string
@@ -740,6 +811,7 @@ export type Database = {
           tagline_es: string | null
           target_roles: string[]
           time_to_install_minutes: number
+          trust_score: number | null
           updated_at: string
           use_cases: Json
           video_url: string | null
@@ -772,6 +844,8 @@ export type Database = {
           search_vector?: unknown
           security_checked_at?: string | null
           security_notes?: string | null
+          security_scan_result?: Json | null
+          security_scanned_at?: string | null
           security_status?: string
           share_token?: string | null
           slug: string
@@ -780,6 +854,7 @@ export type Database = {
           tagline_es?: string | null
           target_roles?: string[]
           time_to_install_minutes?: number
+          trust_score?: number | null
           updated_at?: string
           use_cases?: Json
           video_url?: string | null
@@ -812,6 +887,8 @@ export type Database = {
           search_vector?: unknown
           security_checked_at?: string | null
           security_notes?: string | null
+          security_scan_result?: Json | null
+          security_scanned_at?: string | null
           security_status?: string
           share_token?: string | null
           slug?: string
@@ -820,6 +897,7 @@ export type Database = {
           tagline_es?: string | null
           target_roles?: string[]
           time_to_install_minutes?: number
+          trust_score?: number | null
           updated_at?: string
           use_cases?: Json
           video_url?: string | null
@@ -879,6 +957,8 @@ export type Database = {
           search_vector: unknown
           security_checked_at: string | null
           security_notes: string | null
+          security_scan_result: Json | null
+          security_scanned_at: string | null
           security_status: string
           share_token: string | null
           slug: string
@@ -887,6 +967,7 @@ export type Database = {
           tagline_es: string | null
           target_roles: string[]
           time_to_install_minutes: number
+          trust_score: number | null
           updated_at: string
           use_cases: Json
           video_url: string | null

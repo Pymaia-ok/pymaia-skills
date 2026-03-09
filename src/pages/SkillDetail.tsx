@@ -1,6 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock, FileArchive, Package, Loader2 } from "lucide-react";
+import { TrustBadge } from "@/components/TrustBadge";
+import SecurityReportButton from "@/components/SecurityReportButton";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -268,12 +270,13 @@ const SkillDetail = () => {
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-6">
-              {(skill as any).security_status === "verified" && (
-                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="font-medium">{t("trust.verified", "Verified")}</span>
-                </div>
-              )}
+              <TrustBadge
+                trustScore={(skill as any).trust_score || 0}
+                securityStatus={(skill as any).security_status}
+                scanResult={(skill as any).security_scan_result}
+                showWarnings
+                itemType="skill"
+              />
               {(skill as any).last_commit_at && (() => {
                 const months = (Date.now() - new Date((skill as any).last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
                 return months <= 6 ? (
@@ -316,7 +319,8 @@ const SkillDetail = () => {
                   <span className="text-xs font-medium">{t("detail.privateSkill", "Skill privada")}</span>
                 </div>
               )}
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
+                <SecurityReportButton itemType="skill" itemId={skill.id} itemSlug={skill.slug} />
                 <ShareButton
                   url={(() => {
                     const base = `https://pymaiaskills.lovable.app/skill/${skill.slug}`;
