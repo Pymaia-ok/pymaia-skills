@@ -98,25 +98,47 @@ async function handleEscalation(supabase: any) {
         affected_users_count: affectedCount,
       });
 
-      // Notify users via email queue
+      // Notify affected users via email queue (PRD 10.3)
       if (affectedCount > 0 && itemType === "skill") {
         const { data: installs } = await supabase
           .from("installations")
           .select("user_id")
-          .eq("skill_id", itemId);
+          .eq("skill_id", itemId)
+          .limit(200);
 
         if (installs) {
-          for (const inst of installs.slice(0, 100)) {
-            // Get user email from profiles or leads
-            const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", inst.user_id).maybeSingle();
-            // Queue notification (simplified — real impl would resolve email)
+          // Resolve emails from auth.users via admin API
+          const uniqueUserIds = [...new Set(installs.map((i: any) => i.user_id))];
+          
+          for (const userId of uniqueUserIds.slice(0, 100)) {
+            const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+            if (!authUser?.email) continue;
+
             await supabase.from("email_queue").insert({
-              to_email: "affected-user@placeholder.com", // Would resolve from auth.users
-              subject: `[SEGURIDAD] Alerta sobre "${itemReports[0].item_slug}"`,
-              html_body: `<p>El skill "${itemReports[0].item_slug}" fue removido por razones de seguridad.</p><p>Recomendamos desinstalarlo inmediatamente.</p>`,
-              metadata: { type: "security_alert", item_id: itemId },
+              to_email: authUser.email,
+              subject: `[SEGURIDAD] El skill "${itemReports[0].item_slug}" fue removido`,
+              html_body: `
+                <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <div style="background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <h2 style="margin: 0 0 8px; color: #dc2626;">⚠️ Alerta de seguridad</h2>
+                    <p style="margin: 0; color: #991b1b;">El skill <strong>"${itemReports[0].item_slug}"</strong> fue removido por razones de seguridad.</p>
+                  </div>
+                  <p><strong>Razón:</strong> Reporte de exfiltración de datos recibido y confirmado.</p>
+                  <p><strong>Acción recomendada:</strong> Si tienes este skill instalado, remuévelo de tu configuración de Claude inmediatamente.</p>
+                  <div style="background: #f3f4f6; border-radius: 8px; padding: 12px; margin-top: 16px;">
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Si crees que tus datos fueron comprometidos, revisa los logs de actividad de Claude y cambia cualquier credencial que hayas usado durante sesiones con este skill.</p>
+                  </div>
+                  <p style="margin-top: 16px; font-size: 12px; color: #9ca3af;">— Equipo de Seguridad, Pymaia</p>
+                </div>
+              `,
+              metadata: { type: "security_alert", item_id: itemId, incident_type: "data_exfiltration" },
             });
           }
+
+          // Mark incident as notified
+          await supabase.from("security_incidents").update({
+            notified_users: true,
+          }).eq("item_id", itemId).eq("status", "open");
         }
       }
 

@@ -77,13 +77,18 @@ function checkTyposquatting(name: string): string[] {
   return flags;
 }
 
-// ── FORMAT VALIDATION ──
+// ── FORMAT VALIDATION (PRD 4.1) ──
 function validateFormat(content: string, installCommand: string): Array<{ issue: string; severity: "warning" | "error" }> {
   const issues: Array<{ issue: string; severity: "warning" | "error" }> = [];
 
+  // PRD 4.1: Size < 50KB
+  const sizeKB = new Blob([content]).size / 1024;
+  if (sizeKB > 50) {
+    issues.push({ issue: `Content exceeds 50KB size limit (${Math.round(sizeKB)}KB)`, severity: "error" });
+  }
+
   // Check install_command format
   if (installCommand) {
-    // Must start with known safe prefixes
     const safeStarts = ["npx", "npm", "yarn", "pnpm", "bunx", "bun", "pip", "cargo", "go ", "brew", "curl", "wget", "docker"];
     const cmdLower = installCommand.trim().toLowerCase();
     const hasSafeStart = safeStarts.some(s => cmdLower.startsWith(s));
@@ -91,27 +96,43 @@ function validateFormat(content: string, installCommand: string): Array<{ issue:
       issues.push({ issue: `Install command doesn't start with a recognized package manager`, severity: "warning" });
     }
 
-    // Check for pipe to shell (dangerous)
     if (/\|\s*(bash|sh|zsh)\b/.test(installCommand)) {
       issues.push({ issue: "Install command pipes to shell — potential arbitrary code execution", severity: "error" });
     }
 
-    // Check for sudo
     if (/\bsudo\b/.test(installCommand)) {
       issues.push({ issue: "Install command uses sudo — elevated privileges", severity: "error" });
     }
   }
 
-  // Check content length
-  if (content.length < 20) {
-    issues.push({ issue: "Content is too short for meaningful analysis", severity: "warning" });
+  // PRD 4.2: Quality checks — description > 50 chars
+  // Strip markdown formatting for length check
+  const plainContent = content.replace(/[#*`\-\[\]()>|]/g, "").trim();
+  if (plainContent.length < 50) {
+    issues.push({ issue: "Content too short — minimum 50 characters of meaningful text required", severity: "warning" });
+  }
+
+  // Check for placeholder/template content
+  const placeholderPatterns = [
+    /lorem ipsum/i, /todo:?\s*add/i, /placeholder/i, /example content/i,
+    /your (?:skill|plugin|description) here/i, /insert .* here/i,
+  ];
+  for (const pat of placeholderPatterns) {
+    if (pat.test(content)) {
+      issues.push({ issue: "Content appears to be placeholder or template text", severity: "warning" });
+      break;
+    }
+  }
+
+  // Check encoding — detect non-UTF-8 issues
+  if (/\uFFFD/.test(content)) {
+    issues.push({ issue: "Content contains replacement characters — possible encoding issue", severity: "warning" });
   }
 
   // Check for markdown YAML frontmatter validity
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (frontmatterMatch) {
     const fm = frontmatterMatch[1];
-    // Check for suspicious keys
     const suspiciousKeys = ["exec", "run", "script", "command", "shell", "eval"];
     for (const key of suspiciousKeys) {
       if (new RegExp(`^${key}\\s*:`, "mi").test(fm)) {
@@ -459,6 +480,56 @@ async function checkContentSimilarity(
   };
 }
 
+// ── PUBLISHER GITHUB VERIFICATION (PRD 5.1) ──
+async function verifyPublisher(githubUrl: string | null): Promise<{
+  verified: boolean;
+  account_age_days: number | null;
+  public_repos: number | null;
+  flags: string[];
+}> {
+  if (!githubUrl) return { verified: false, account_age_days: null, public_repos: null, flags: ["No GitHub URL provided"] };
+
+  const ghToken = Deno.env.get("GITHUB_TOKEN");
+  if (!ghToken) return { verified: false, account_age_days: null, public_repos: null, flags: ["GitHub verification unavailable"] };
+
+  const match = githubUrl.match(/github\.com\/([^\/]+)/);
+  if (!match) return { verified: false, account_age_days: null, public_repos: null, flags: ["Invalid GitHub URL"] };
+
+  const org = match[1];
+
+  try {
+    const res = await fetch(`https://api.github.com/users/${org}`, {
+      headers: { Authorization: `token ${ghToken}`, "User-Agent": "pymaia-security" },
+    });
+    if (!res.ok) return { verified: false, account_age_days: null, public_repos: null, flags: [`GitHub user not found: ${org}`] };
+
+    const user = await res.json();
+    const createdAt = new Date(user.created_at);
+    const ageDays = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const publicRepos = user.public_repos || 0;
+    const flags: string[] = [];
+
+    if (ageDays < 30) flags.push(`Account created ${ageDays} days ago — very new`);
+    else if (ageDays < 365) flags.push(`Account age: ${ageDays} days (< 1 year)`);
+
+    if (publicRepos < 3) flags.push(`Only ${publicRepos} public repos — low activity`);
+
+    // Check for suspicious patterns
+    if (user.bio && /hire|freelanc|cheap|hack/i.test(user.bio)) {
+      flags.push("Suspicious account bio");
+    }
+
+    return {
+      verified: ageDays >= 365 && publicRepos >= 5,
+      account_age_days: ageDays,
+      public_repos: publicRepos,
+      flags,
+    };
+  } catch {
+    return { verified: false, account_age_days: null, public_repos: null, flags: ["GitHub API error"] };
+  }
+}
+
 // ── SCAN FUNCTIONS ──
 function scanSecrets(content: string): Array<{ pattern: string; match: string; line?: number }> {
   const findings: Array<{ pattern: string; match: string; line?: number }> = [];
@@ -589,7 +660,7 @@ Deno.serve(async (req) => {
 
     // ── GATE MODE: scan content directly and return pass/fail ──
     if (gate_mode && content) {
-      const result = await runFullScan(content, body.slug || "", item_type, directInstallCmd || "", lovableApiKey, supabase);
+      const result = await runFullScan(content, body.slug || "", item_type, directInstallCmd || "", lovableApiKey, supabase, body.github_url || null);
       const pass = result.verdict === "SAFE";
       return new Response(JSON.stringify({ pass, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -626,7 +697,7 @@ Deno.serve(async (req) => {
         ].join("\n\n");
 
         const installCmd = (item as any).install_command || "";
-        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, lovableApiKey, supabase);
+        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, lovableApiKey, supabase, (item as any).github_url || null);
 
         await supabase.from(tableName).update({
           security_scan_result: result,
@@ -671,7 +742,7 @@ Deno.serve(async (req) => {
       ].join("\n\n");
     }
 
-    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey, supabase);
+    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey, supabase, body.github_url || null);
 
     if (item_id) {
       const tableName = item_type === "connector" ? "mcp_servers" : item_type === "plugin" ? "plugins" : "skills";
@@ -699,24 +770,9 @@ async function runFullScan(
   itemType: string,
   installCommand: string,
   lovableApiKey: string | undefined,
-  supabase?: any
-): Promise<{
-  verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS";
-  layers: {
-    secrets: { count: number; findings: any[] };
-    injection: { count: number; findings: any[]; critical: number; high: number };
-    typosquatting: { flags: string[] };
-    format: { issues: any[] };
-    hidden_content: { findings: any[] };
-    scope: { permissions: any[]; scope_assessment: string; undeclared_capabilities: string[] } | null;
-    hooks: { hooks: any[]; has_hooks: boolean; blocked_count: number; dangerous_count: number } | null;
-    plugin_decomposition: { components: any[]; has_settings_override: boolean; settings_issues: string[]; cross_component_risks: string[] } | null;
-    similarity: { duplicates: any[]; is_plagiarized: boolean } | null;
-    llm: { verdict: string; confidence: number; reasons: string[] } | null;
-  };
-  scanned_at: string;
-  version: string;
-}> {
+  supabase?: any,
+  githubUrl?: string | null
+): Promise<any> {
   // Layer 1: Secret scanning
   const secrets = scanSecrets(content);
 
@@ -753,7 +809,13 @@ async function runFullScan(
     similarityResult = await checkContentSimilarity(content, slug, itemType, supabase);
   }
 
-  // Layer 10: LLM analysis (skip if already clearly malicious)
+  // Layer 10: Publisher verification (PRD 5.1)
+  let publisherResult = null;
+  if (githubUrl) {
+    publisherResult = await verifyPublisher(githubUrl);
+  }
+
+  // Layer 11: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
   if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
       hiddenFindings.filter(f => f.severity === "high").length === 0 &&
@@ -782,6 +844,11 @@ async function runFullScan(
     verdict = "SUSPICIOUS";
   } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
+  } else if (publisherResult && !publisherResult.verified && publisherResult.flags.length > 0) {
+    // New publisher with flags — mark as suspicious
+    if (publisherResult.account_age_days !== null && publisherResult.account_age_days < 30) {
+      verdict = "SUSPICIOUS";
+    }
   } else if (llmResult?.verdict === "MALICIOUS") {
     verdict = "MALICIOUS";
   } else if (llmResult?.verdict === "SUSPICIOUS") {
@@ -805,9 +872,10 @@ async function runFullScan(
       hooks: hookAnalysis.has_hooks ? hookAnalysis : null,
       plugin_decomposition: pluginDecomp,
       similarity: similarityResult,
+      publisher: publisherResult,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "4.0.0",
+    version: "5.0.0",
   };
 }

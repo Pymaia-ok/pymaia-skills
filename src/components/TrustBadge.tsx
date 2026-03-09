@@ -1,4 +1,4 @@
-import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, Star, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock, UserX, Fingerprint } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,9 @@ interface TrustBadgeProps {
   showScore?: boolean;
   showWarnings?: boolean;
   itemType?: "skill" | "connector" | "plugin";
+  createdAt?: string;
+  isOfficial?: boolean;
+  creatorId?: string | null;
 }
 
 const BADGE_CONFIG: Record<string, { label: string; labelEs: string; color: string; icon: any; bg: string }> = {
@@ -28,9 +31,30 @@ function getBadgeFromScore(score: number): string {
   return "new";
 }
 
-function getWarnings(scanResult: any, itemType: string, isEs: boolean): Array<{ icon: any; text: string; color: string }> {
+function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt?: string, isOfficial?: boolean, creatorId?: string | null): Array<{ icon: any; text: string; color: string }> {
   const warnings: Array<{ icon: any; text: string; color: string }> = [];
   
+  // ── PRD 7.3: Publisher no verificado ──
+  if (!isOfficial && !creatorId) {
+    warnings.push({
+      icon: UserX,
+      text: isEs ? "Publisher no verificado" : "Unverified publisher",
+      color: "text-muted-foreground",
+    });
+  }
+
+  // ── PRD 7.3: Nuevo < 7 días ──
+  if (createdAt) {
+    const ageDays = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays < 7) {
+      warnings.push({
+        icon: Clock,
+        text: isEs ? "Publicado recientemente — menos historial de seguridad" : "Published recently — less security history",
+        color: "text-muted-foreground",
+      });
+    }
+  }
+
   if (!scanResult) return warnings;
   
   if (scanResult.verdict === "SUSPICIOUS") {
@@ -143,19 +167,35 @@ function getWarnings(scanResult: any, itemType: string, isEs: boolean): Array<{ 
     }
   }
 
-  // Publisher not verified warning
-  // New item warning (< 7 days) — handled via createdAt if provided
+  // PRD 7.3: Dependency con CVE medio
+  if (scanResult.layers?.dependencies?.has_vulnerabilities) {
+    const high = scanResult.layers.dependencies.high_count || 0;
+    const critical = scanResult.layers.dependencies.critical_count || 0;
+    if (critical > 0 || high > 0) {
+      warnings.push({
+        icon: ShieldAlert,
+        text: isEs ? "Tiene dependencias con vulnerabilidades conocidas" : "Has dependencies with known vulnerabilities",
+        color: "text-destructive",
+      });
+    } else {
+      warnings.push({
+        icon: AlertTriangle,
+        text: isEs ? "Tiene dependencias con vulnerabilidades conocidas (riesgo medio)" : "Has dependencies with known vulnerabilities (medium risk)",
+        color: "text-amber-500",
+      });
+    }
+  }
 
   return warnings;
 }
 
-export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill" }: TrustBadgeProps) => {
+export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill", createdAt, isOfficial, creatorId }: TrustBadgeProps) => {
   const { i18n } = useTranslation();
   const isEs = i18n.language === "es";
   const badgeKey = getBadgeFromScore(trustScore);
   const config = BADGE_CONFIG[badgeKey];
   const Icon = config.icon;
-  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs) : [];
+  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs, createdAt, isOfficial, creatorId) : [];
 
   const sizeClasses = {
     sm: "text-xs gap-1 px-1.5 py-0.5",
@@ -206,6 +246,27 @@ export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md"
         </div>
       )}
     </div>
+  );
+};
+
+// "Scanned by Pymaia" badge (PRD Phase 4)
+export const ScannedByPymaiaBadge = ({ size = "sm" }: { size?: "sm" | "md" }) => {
+  const sizeClasses = size === "sm" ? "text-[10px] px-1.5 py-0.5 gap-1" : "text-xs px-2 py-1 gap-1.5";
+  const iconSize = size === "sm" ? 10 : 12;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={`inline-flex items-center rounded-full border border-primary/20 bg-primary/5 text-primary font-medium ${sizeClasses}`}>
+            <Fingerprint size={iconSize} />
+            <span>Scanned by Pymaia</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs max-w-[200px]">
+          Multi-layer security scanning: secrets, injection, scope analysis & more
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
