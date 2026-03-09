@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { batchSize = 30, table = "both" } = await req.json().catch(() => ({}));
+    const { batchSize = 30, table = "all" } = await req.json().catch(() => ({}));
 
     const ghHeaders: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
