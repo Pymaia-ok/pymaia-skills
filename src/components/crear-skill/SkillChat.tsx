@@ -39,9 +39,13 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const inputRef = useRef(input); // always-current input value
   const [isScreenRecording, setIsScreenRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const screenChunksRef = useRef<Blob[]>([]);
+
+  // Keep inputRef in sync
+  useEffect(() => { inputRef.current = input; }, [input]);
 
   // Start conversation on mount
   useEffect(() => {
@@ -161,7 +165,14 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const [processingAttachments, setProcessingAttachments] = useState(false);
 
   const sendMessage = async () => {
-    const text = input.trim();
+    // Stop dictation first and grab the latest text from the ref
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+      recognitionRef.current = null;
+      setIsRecording(false);
+    }
+    // Use ref to get the most up-to-date input (avoids stale closure)
+    const text = inputRef.current.trim();
     if ((!text && attachments.length === 0) || streaming || processingAttachments) return;
 
     const currentAttachments = [...attachments];
@@ -233,6 +244,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
     if (isRecording && recognitionRef.current) {
       recognitionRef.current.stop();
+      recognitionRef.current = null;
       setIsRecording(false);
       return;
     }
@@ -243,7 +255,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     recognition.interimResults = true;
 
     // Capture the text that was in the input before recording started
-    const baseText = input ? (input.endsWith(" ") ? input : input + " ") : "";
+    const baseText = inputRef.current ? (inputRef.current.endsWith(" ") ? inputRef.current : inputRef.current + " ") : "";
     let accumulatedFinal = "";
 
     recognition.onresult = (event: any) => {
@@ -264,17 +276,19 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       if (event.error === "not-allowed") {
         toast.error("Permiso de micrófono denegado");
       }
+      recognitionRef.current = null;
       setIsRecording(false);
     };
 
     recognition.onend = () => {
+      recognitionRef.current = null;
       setIsRecording(false);
     };
 
     recognition.start();
     recognitionRef.current = recognition;
     setIsRecording(true);
-  }, [isRecording, input]);
+  }, [isRecording]);
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
