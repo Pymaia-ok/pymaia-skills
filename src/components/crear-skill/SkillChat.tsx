@@ -307,7 +307,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       try {
         const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const ctx = new AudioContext();
-        const dest = ctx.createMediaStreamAudioDestination();
+        const dest = (ctx as any).createMediaStreamAudioDestination ? (ctx as any).createMediaStreamAudioDestination() : ctx.createMediaStreamDestination();
 
         // Mix system audio tracks (if any) + mic
         screenStream.getAudioTracks().forEach((track) => {
