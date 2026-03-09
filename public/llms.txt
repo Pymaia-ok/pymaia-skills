@@ -35,7 +35,9 @@ Install the Pymaia Skills MCP Server so Claude automatically suggests relevant s
 }
 ```
 
-### Available Tools (10)
+### Available Tools (17)
+
+**Skills (10):**
 - `search_skills` — Search skills by keyword or natural language query
 - `get_skill_details` — Get full details of a specific skill by slug
 - `list_popular_skills` — List top skills sorted by installs or rating
@@ -46,6 +48,19 @@ Install the Pymaia Skills MCP Server so Claude automatically suggests relevant s
 - `compare_skills` — Compare two or more skills side by side
 - `get_directory_stats` — Get aggregate directory statistics
 - `get_install_command` — Get the install command for a specific skill
+
+**Connectors (3):**
+- `search_connectors` — Search MCP connectors by name, category, or description
+- `get_connector_details` — Get full details of a specific connector by slug
+- `list_popular_connectors` — List most popular connectors by GitHub stars
+
+**Plugins (3):**
+- `search_plugins` — Search plugins by name, category, or platform
+- `get_plugin_details` — Get full details of a specific plugin by slug
+- `list_popular_plugins` — List most popular plugins by installations
+
+**Unified (1):**
+- `explore_directory` — Search across skills, connectors, and plugins in one query
 
 ## MCP Connectors Directory
 

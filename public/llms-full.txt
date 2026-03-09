@@ -85,7 +85,9 @@ The Pymaia Skills MCP Server enables Claude to automatically recommend relevant 
 }
 ```
 
-### Available Tools (10)
+### Available Tools (17)
+
+#### Skills (10 tools)
 
 #### 1. search_skills
 Search for skills by keyword or natural language query.
@@ -134,6 +136,47 @@ Get aggregate statistics about the directory.
 Get the install command for a specific skill.
 - Parameters: `slug` (string, required)
 - Returns: Install command string ready to paste
+
+#### Connectors (3 tools)
+
+#### 11. search_connectors
+Search MCP connectors by name, category, or description. Connectors give Claude access to external tools and services.
+- Parameters: `query` (string, required), `category` (string), `limit` (number)
+- Returns: Array of connectors with name, slug, description, GitHub stars
+
+#### 12. get_connector_details
+Get detailed information about a specific MCP connector.
+- Parameters: `slug` (string, required)
+- Returns: Full connector info with credentials needed, install command, security status
+
+#### 13. list_popular_connectors
+List the most popular connectors sorted by GitHub stars.
+- Parameters: `category` (string), `limit` (number)
+- Returns: Array of top connectors
+
+#### Plugins (3 tools)
+
+#### 14. search_plugins
+Search plugins for Claude Code and Cowork platforms.
+- Parameters: `query` (string, required), `category` (string), `platform` (string), `limit` (number)
+- Returns: Array of plugins with name, description, platform, installs
+
+#### 15. get_plugin_details
+Get detailed information about a specific plugin.
+- Parameters: `slug` (string, required)
+- Returns: Full plugin info with security status, GitHub stars, platform
+
+#### 16. list_popular_plugins
+List the most popular plugins sorted by installations.
+- Parameters: `category` (string), `platform` (string), `limit` (number)
+- Returns: Array of top plugins
+
+#### Unified (1 tool)
+
+#### 17. explore_directory
+Search across the entire directory — skills, connectors, and plugins — in a single query.
+- Parameters: `query` (string, required), `limit` (number, default 3 per type)
+- Returns: Combined results grouped by type
 
 ### Example Conversations
 - "I need to prepare 10 campaign briefs by tomorrow" → Claude recommends Brief Generator and Campaign Planner
