@@ -67,7 +67,8 @@ const PrimerosPasos = () => {
                 { icon: Brain, label: isEs ? "¿Qué es Claude?" : "What is Claude?", href: "#claude" },
                 { icon: Monitor, label: isEs ? "Modos de Claude" : "Claude Modes", href: "#modes" },
                 { icon: Sparkles, label: isEs ? "¿Qué son las Skills?" : "What are Skills?", href: "#skills" },
-                { icon: Plug, label: isEs ? "Skills, Conectores y Plugins" : "Skills, Connectors & Plugi          { icon: Download, label: isEs ? "Instalá Claude Code" : "Install Claude Code", href: "#install" },
+                { icon: Plug, label: isEs ? "Skills, Conectores y Plugins" : "Skills, Connectors & Plugins", href: "#mcps" },
+                { icon: Download, label: isEs ? "Instalá Claude Code" : "Install Claude Code", href: "#install" },
                 { icon: Zap, label: isEs ? "Tu primera skill en 2 minutos" : "Your first skill in 2 minutes", href: "#first-skill" },
               ].map((item) => (
                 <a key={item.href} href={item.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors group">
@@ -361,11 +362,12 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
-        {/* ─── Section 4: Ecosistema de extensiplugin�plugin pluginiplugins" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
+        {/* ─── Section 4: Ecosistema de plugins ─── */}
+        <section id="mcps" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
           <motion.div {...fadeUp}>
-            <SectionBadge icon={Plug} label={isEs ? "Extensiones" : "Extensions"} />
+            <SectionBadge icon={Plug} label="Plugins" />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Extensiones" : "Claude's ecosystem:\nSkills, Connectors & Extensions"}
+              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Plugins" : "Claude's ecosystem:\nSkills, Connectors & Plugins"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
@@ -400,13 +402,13 @@ const PrimerosPasos = () => {
                 {
                   icon: Chrome,
                   emoji: "🧩",
-                  name: isEs ? "Extensión" : "Extension",
-                  what: isEs ? "Extensiones oficiales que amplían las capacidades de Claude" : "Official extensions that expand Claude's capabilities",
+                  name: "Plugin",
+                  what: isEs ? "Paquetes que combinan tools, skills e integraciones en un click" : "Packages that bundle tools, skills, and integrations for one-click install",
                   does: isEs
-                    ? "Las extensiones agregan capacidades nuevas directamente en la interfaz de Claude. Por ejemplo: Claude en Chrome para debuggear páginas web, Claude en Excel/PowerPoint para trabajar con datos, o conectores nativos de Google Workspace y Slack para acceder a tus archivos y mensajes."
-                    : "Extensions add new capabilities directly in Claude's interface. For example: Claude in Chrome for debugging web pages, Claude in Excel/PowerPoint for working with data, or native Google Workspace and Slack connectors to access your files and messages.",
-                  example: isEs ? "Claude en Chrome → Debuggea y modifica páginas web directamente" : "Claude in Chrome → Debug and modify web pages directly",
-                  category: isEs ? "Funcionalidad" : "Functionality",
+                    ? "Los plugins son paquetes listos para instalar desde claude.com/plugins. Combinan skills, herramientas e integraciones en una sola instalación. Ejemplo: el plugin de Frontend Design combina skills de diseño con herramientas para generar código listo para producción."
+                    : "Plugins are packages ready to install from claude.com/plugins. They bundle skills, tools, and integrations into a single installation. Example: the Frontend Design plugin combines design skills with tools to generate production-ready code.",
+                  example: isEs ? "Plugin Frontend Design → Skills + tools de diseño en un click" : "Frontend Design plugin → Design skills + tools in one click",
+                  category: isEs ? "Paquete" : "Package",
                 },
               ].map((concept) => (
                 <div key={concept.name} className="p-6 rounded-2xl bg-secondary border border-border">
@@ -444,8 +446,8 @@ const PrimerosPasos = () => {
                   <p className="text-sm opacity-80">{isEs ? "Le dan ACCESO a herramientas" : "Give ACCESS to tools"}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-background/10">
-                  <p className="font-semibold mb-1">🧩 Extensiones</p>
-                  <p className="text-sm opacity-80">{isEs ? "Le agregan FUNCIONALIDAD nueva" : "Add new FUNCTIONALITY"}</p>
+                  <p className="font-semibold mb-1">🧩 Plugins</p>
+                  <p className="text-sm opacity-80">{isEs ? "Combinan todo en UN PAQUETE instalable" : "Bundle everything in ONE installable PACKAGE"}</p>
                 </div>
               </div>
               <p className="text-sm opacity-70 mt-4">
