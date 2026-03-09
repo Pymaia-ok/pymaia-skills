@@ -1,0 +1,125 @@
+// rescan-security v1.0 — Periodic re-scanning with updated patterns
+// Re-scans previously scanned items to catch new threats
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const { batch_size = 10 } = await req.json().catch(() => ({}));
+    let rescanned = 0;
+    let newFlags = 0;
+
+    const tables = [
+      { name: "skills", type: "skill" },
+      { name: "mcp_servers", type: "connector" },
+      { name: "plugins", type: "plugin" },
+    ];
+
+    for (const table of tables) {
+      // Get items scanned > 7 days ago (re-scan weekly)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: items } = await supabase
+        .from(table.name)
+        .select("id, slug")
+        .eq("status", "approved")
+        .not("security_scanned_at", "is", null)
+        .lt("security_scanned_at", sevenDaysAgo)
+        .order("security_scanned_at", { ascending: true })
+        .limit(batch_size);
+
+      if (!items || items.length === 0) continue;
+
+      for (const item of items) {
+        // Call scan-security for each item
+        try {
+          const res = await fetch(`${supabaseUrl}/functions/v1/scan-security`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              item_id: item.id,
+              item_type: table.type,
+            }),
+          });
+
+          if (res.ok) {
+            const result = await res.json();
+            rescanned++;
+
+            // Check if status changed to worse
+            if (result.verdict === "MALICIOUS" || result.verdict === "SUSPICIOUS") {
+              // Get previous scan result
+              const { data: current } = await supabase
+                .from(table.name)
+                .select("security_scan_result")
+                .eq("id", item.id)
+                .single();
+
+              const prevVerdict = (current as any)?.security_scan_result?.verdict;
+              if (prevVerdict === "SAFE" && result.verdict !== "SAFE") {
+                newFlags++;
+
+                // Create incident for newly flagged items
+                await supabase.from("security_incidents").insert({
+                  item_id: item.id,
+                  item_type: table.type,
+                  item_slug: (item as any).slug,
+                  severity: result.verdict === "MALICIOUS" ? "P1" : "P2",
+                  trigger_type: "rescan",
+                  description: `Re-scan detected new issues: ${result.verdict}. Previous: ${prevVerdict || "unknown"}.`,
+                  scan_result: result,
+                });
+
+                await supabase.from("automation_logs").insert({
+                  function_name: "rescan-security",
+                  action_type: "new_flag_on_rescan",
+                  reason: `${table.type} "${(item as any).slug}" newly flagged as ${result.verdict} on re-scan`,
+                  skill_id: table.type === "skill" ? item.id : null,
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to rescan ${table.type} ${item.id}:`, e);
+        }
+      }
+    }
+
+    // Also trigger trust score recalculation
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/calculate-trust-score`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ batch_size: 50 }),
+      });
+    } catch { /* non-critical */ }
+
+    return new Response(JSON.stringify({ rescanned, newFlags }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("rescan-security error:", (e as Error).message);
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

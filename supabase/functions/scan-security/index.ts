@@ -229,6 +229,176 @@ function analyzeMcpScope(content: string, installCommand: string): {
   return { permissions, scope_assessment, undeclared_capabilities: undeclared };
 }
 
+// ── HOOK STATIC ANALYSIS (Phase 2 — CVE-2025-59536) ──
+const HOOK_WHITELIST = [
+  /^prettier\b/i, /^eslint\b/i, /^tsc\b/i, /^jest\b/i, /^vitest\b/i,
+  /^npm\s+(?:run|test|build)\b/i, /^yarn\s+(?:run|test|build)\b/i,
+  /^pnpm\s+(?:run|test|build)\b/i, /^bun\s+(?:run|test|build)\b/i,
+  /^cargo\s+(?:test|build|clippy)\b/i, /^go\s+(?:test|build|vet)\b/i,
+  /^python\s+-m\s+(?:pytest|unittest|black|flake8)\b/i,
+];
+
+const HOOK_BLACKLIST: Array<{ pattern: RegExp; reason: string }> = [
+  { pattern: /\b(?:curl|wget|nc|ncat)\b/i, reason: "Network calls in hooks" },
+  { pattern: /\brm\s+-rf\s+[\/~]/i, reason: "Destructive file deletion" },
+  { pattern: /\bchmod\s+(?:777|a\+[rwx])/i, reason: "Dangerous permission change" },
+  { pattern: /\beval\b/i, reason: "Dynamic code execution" },
+  { pattern: /\breverse.?shell\b/i, reason: "Reverse shell attempt" },
+  { pattern: /base64.*\|\s*(?:bash|sh)/i, reason: "Base64 decode to shell" },
+  { pattern: /~\/\.(?:ssh|aws|config|gnupg)/i, reason: "Access to sensitive config dirs" },
+  { pattern: /\.claude\/(?:settings|permissions)/i, reason: "Claude settings override" },
+  { pattern: /ANTHROPIC_(?:API_KEY|BASE_URL)/i, reason: "Anthropic credential access" },
+  { pattern: /\bsudo\b/i, reason: "Elevated privileges" },
+  { pattern: /\bmkfifo\b/i, reason: "Named pipe (common in reverse shells)" },
+  { pattern: /\/dev\/tcp\//i, reason: "TCP device access" },
+];
+
+function analyzeHooks(content: string): {
+  hooks: Array<{ command: string; classification: "SAFE" | "REVIEW_REQUIRED" | "DANGEROUS" | "BLOCKED"; reason?: string }>;
+  has_hooks: boolean;
+  blocked_count: number;
+  dangerous_count: number;
+} {
+  const hooks: Array<{ command: string; classification: "SAFE" | "REVIEW_REQUIRED" | "DANGEROUS" | "BLOCKED"; reason?: string }> = [];
+
+  // Extract hook patterns from content
+  const hookPatterns = [
+    /(?:pre|post)_?(?:commit|push|checkout|save|session|tool_call|compile)[\s:=]+[`"']?([^`"'\n]+)/gi,
+    /hooks?\s*[:=]\s*\{[^}]*(?:command|run|exec)[\s:=]+[`"']?([^`"'\n]+)/gi,
+    /"(?:pre|post)_\w+":\s*"([^"]+)"/gi,
+    /command:\s*"([^"]+)"/gi,
+  ];
+
+  const extractedCommands = new Set<string>();
+  for (const pattern of hookPatterns) {
+    let match;
+    while ((match = pattern.exec(content)) !== null) {
+      if (match[1]) extractedCommands.add(match[1].trim());
+    }
+  }
+
+  for (const cmd of extractedCommands) {
+    // Check blacklist first
+    let blocked = false;
+    for (const bl of HOOK_BLACKLIST) {
+      if (bl.pattern.test(cmd)) {
+        hooks.push({ command: cmd, classification: "BLOCKED", reason: bl.reason });
+        blocked = true;
+        break;
+      }
+    }
+    if (blocked) continue;
+
+    // Check whitelist
+    const isWhitelisted = HOOK_WHITELIST.some(wl => wl.test(cmd));
+    if (isWhitelisted) {
+      hooks.push({ command: cmd, classification: "SAFE" });
+      continue;
+    }
+
+    // Classify remaining
+    if (/\b(?:build|compile|generate|format|lint)\b/i.test(cmd)) {
+      hooks.push({ command: cmd, classification: "REVIEW_REQUIRED", reason: "Build/file operation" });
+    } else if (/\b(?:http|fetch|request|api|post|get)\b/i.test(cmd)) {
+      hooks.push({ command: cmd, classification: "DANGEROUS", reason: "Potential network operation" });
+    } else {
+      hooks.push({ command: cmd, classification: "REVIEW_REQUIRED", reason: "Unrecognized command" });
+    }
+  }
+
+  return {
+    hooks,
+    has_hooks: hooks.length > 0,
+    blocked_count: hooks.filter(h => h.classification === "BLOCKED").length,
+    dangerous_count: hooks.filter(h => h.classification === "DANGEROUS").length,
+  };
+}
+
+// ── PLUGIN DECOMPOSITION & CROSS-COMPONENT ANALYSIS (Phase 2) ──
+function decomposePlugin(content: string): {
+  components: Array<{ type: string; name: string; content_snippet: string }>;
+  has_settings_override: boolean;
+  settings_issues: string[];
+  cross_component_risks: string[];
+} {
+  const components: Array<{ type: string; name: string; content_snippet: string }> = [];
+  const settingsIssues: string[] = [];
+  const crossRisks: string[] = [];
+
+  // Detect skills
+  const skillMatches = content.match(/(?:skills?\/[\w-]+\.md|SKILL\.md)/gi);
+  if (skillMatches) {
+    skillMatches.forEach(m => components.push({ type: "skill", name: m, content_snippet: "" }));
+  }
+
+  // Detect MCP configs
+  const mcpMatches = content.match(/(?:\.mcp\.json|mcp_config|mcpServers)/gi);
+  if (mcpMatches) {
+    mcpMatches.forEach(m => components.push({ type: "mcp", name: m, content_snippet: "" }));
+  }
+
+  // Detect commands
+  const cmdMatches = content.match(/(?:commands?\/[\w-]+\.md|slash_commands?)/gi);
+  if (cmdMatches) {
+    cmdMatches.forEach(m => components.push({ type: "command", name: m, content_snippet: "" }));
+  }
+
+  // Detect agents/subagents
+  const agentMatches = content.match(/(?:agents?\/[\w-]+\.md|subagents?|allowed_tools)/gi);
+  if (agentMatches) {
+    agentMatches.forEach(m => components.push({ type: "agent", name: m, content_snippet: "" }));
+  }
+
+  // Settings override detection — CRITICAL
+  const settingsOverrides = [
+    { pattern: /ANTHROPIC_BASE_URL/gi, issue: "API redirect attempt — BLOCKED" },
+    { pattern: /permission_?rules?\s*[:=]/gi, issue: "Permission rules override — BLOCKED" },
+    { pattern: /safety_?checks?\s*[:=]\s*(?:false|disabled|off)/gi, issue: "Safety checks disabled — BLOCKED" },
+    { pattern: /add_?mcp_?server|mcpServers.*(?:http|ws)/gi, issue: "Undeclared MCP server addition — BLOCKED" },
+  ];
+
+  let hasSettingsOverride = false;
+  for (const so of settingsOverrides) {
+    if (so.pattern.test(content)) {
+      settingsIssues.push(so.issue);
+      hasSettingsOverride = true;
+    }
+  }
+
+  // Cross-component risk analysis
+  const hasSkill = components.some(c => c.type === "skill");
+  const hasMcp = components.some(c => c.type === "mcp");
+  const hasHook = /hooks?\s*[:=]/i.test(content);
+  const hasAgent = components.some(c => c.type === "agent");
+
+  if (hasSkill && hasMcp) {
+    // Check if skill instructs to use MCP for data exfiltration
+    if (/(?:send|upload|post|forward).*(?:mcp|server|tool)/i.test(content) &&
+        /(?:data|file|content|secret|key|credential)/i.test(content)) {
+      crossRisks.push("Skill may instruct MCP to exfiltrate data — requires manual review");
+    }
+  }
+
+  if (hasHook && hasAgent) {
+    crossRisks.push("Hook + Agent combination: hook may prepare environment for agent exploitation");
+  }
+
+  if (hasHook && hasMcp) {
+    crossRisks.push("Hook + MCP combination: hook may modify MCP config at runtime");
+  }
+
+  if (components.length >= 3) {
+    crossRisks.push(`Complex plugin with ${components.length} component types — requires enhanced review`);
+  }
+
+  return {
+    components,
+    has_settings_override: hasSettingsOverride,
+    settings_issues: settingsIssues,
+    cross_component_risks: crossRisks,
+  };
+}
+
 // ── SCAN FUNCTIONS ──
 function scanSecrets(content: string): Array<{ pattern: string; match: string; line?: number }> {
   const findings: Array<{ pattern: string; match: string; line?: number }> = [];
@@ -478,6 +648,8 @@ async function runFullScan(
     format: { issues: any[] };
     hidden_content: { findings: any[] };
     scope: { permissions: any[]; scope_assessment: string; undeclared_capabilities: string[] } | null;
+    hooks: { hooks: any[]; has_hooks: boolean; blocked_count: number; dangerous_count: number } | null;
+    plugin_decomposition: { components: any[]; has_settings_override: boolean; settings_issues: string[]; cross_component_risks: string[] } | null;
     llm: { verdict: string; confidence: number; reasons: string[] } | null;
   };
   scanned_at: string;
@@ -505,9 +677,19 @@ async function runFullScan(
     ? analyzeMcpScope(content, installCommand)
     : null;
 
-  // Layer 7: LLM analysis (skip if already clearly malicious)
+  // Layer 7: Hook static analysis (Phase 2)
+  const hookAnalysis = analyzeHooks(content);
+
+  // Layer 8: Plugin decomposition (Phase 2)
+  const pluginDecomp = (itemType === "plugin")
+    ? decomposePlugin(content)
+    : null;
+
+  // Layer 9: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
-  if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 && hiddenFindings.filter(f => f.severity === "high").length === 0) {
+  if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
+      hiddenFindings.filter(f => f.severity === "high").length === 0 &&
+      hookAnalysis.blocked_count === 0) {
     llmResult = await analyzeWithLLM(content, itemType, lovableApiKey, scopeAnalysis || undefined);
   }
 
@@ -518,7 +700,15 @@ async function runFullScan(
   
   if (secrets.length > 0 || criticalInjections.length > 0 || hiddenHigh.length > 0 || formatErrors.length > 0) {
     verdict = "MALICIOUS";
+  } else if (hookAnalysis.blocked_count > 0) {
+    verdict = "MALICIOUS"; // Blocked hooks = auto-reject
+  } else if (pluginDecomp?.has_settings_override) {
+    verdict = "MALICIOUS"; // Settings override = auto-reject
   } else if (highInjections.length > 0 || typoFlags.length > 0 || (scopeAnalysis?.scope_assessment === "excessive")) {
+    verdict = "SUSPICIOUS";
+  } else if (hookAnalysis.dangerous_count > 0) {
+    verdict = "SUSPICIOUS";
+  } else if (pluginDecomp?.cross_component_risks && pluginDecomp.cross_component_risks.length > 0) {
     verdict = "SUSPICIOUS";
   } else if (scopeAnalysis?.undeclared_capabilities && scopeAnalysis.undeclared_capabilities.length > 0) {
     verdict = "SUSPICIOUS";
@@ -542,9 +732,11 @@ async function runFullScan(
       format: { issues: formatIssues },
       hidden_content: { findings: hiddenFindings.slice(0, 10) },
       scope: scopeAnalysis,
+      hooks: hookAnalysis.has_hooks ? hookAnalysis : null,
+      plugin_decomposition: pluginDecomp,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "2.0.0",
+    version: "3.0.0",
   };
 }

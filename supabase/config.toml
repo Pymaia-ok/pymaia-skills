@@ -75,3 +75,12 @@ verify_jwt = false
 
 [functions.calculate-trust-score]
 verify_jwt = false
+
+[functions.version-monitor]
+verify_jwt = false
+
+[functions.security-incident]
+verify_jwt = false
+
+[functions.rescan-security]
+verify_jwt = false
