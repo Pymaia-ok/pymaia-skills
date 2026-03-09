@@ -579,7 +579,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
             </div>
             <button
               onClick={sendMessage}
-              disabled={(!input.trim() && attachments.length === 0) || streaming || isGenerating || processingAttachments}
+              disabled={(!input.trim() && attachments.length === 0) || streaming || isGenerating || processingAttachments || isRecording || isScreenRecording}
               className="p-2.5 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-30 shrink-0"
             >
               <Send className="w-5 h-5" />
