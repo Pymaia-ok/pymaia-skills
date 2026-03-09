@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import logoImg from "@/assets/logo.png";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const Navbar = () => {
   const location = useLocation();
