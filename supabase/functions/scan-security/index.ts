@@ -77,13 +77,18 @@ function checkTyposquatting(name: string): string[] {
   return flags;
 }
 
-// ── FORMAT VALIDATION ──
+// ── FORMAT VALIDATION (PRD 4.1) ──
 function validateFormat(content: string, installCommand: string): Array<{ issue: string; severity: "warning" | "error" }> {
   const issues: Array<{ issue: string; severity: "warning" | "error" }> = [];
 
+  // PRD 4.1: Size < 50KB
+  const sizeKB = new Blob([content]).size / 1024;
+  if (sizeKB > 50) {
+    issues.push({ issue: `Content exceeds 50KB size limit (${Math.round(sizeKB)}KB)`, severity: "error" });
+  }
+
   // Check install_command format
   if (installCommand) {
-    // Must start with known safe prefixes
     const safeStarts = ["npx", "npm", "yarn", "pnpm", "bunx", "bun", "pip", "cargo", "go ", "brew", "curl", "wget", "docker"];
     const cmdLower = installCommand.trim().toLowerCase();
     const hasSafeStart = safeStarts.some(s => cmdLower.startsWith(s));
@@ -91,27 +96,43 @@ function validateFormat(content: string, installCommand: string): Array<{ issue:
       issues.push({ issue: `Install command doesn't start with a recognized package manager`, severity: "warning" });
     }
 
-    // Check for pipe to shell (dangerous)
     if (/\|\s*(bash|sh|zsh)\b/.test(installCommand)) {
       issues.push({ issue: "Install command pipes to shell — potential arbitrary code execution", severity: "error" });
     }
 
-    // Check for sudo
     if (/\bsudo\b/.test(installCommand)) {
       issues.push({ issue: "Install command uses sudo — elevated privileges", severity: "error" });
     }
   }
 
-  // Check content length
-  if (content.length < 20) {
-    issues.push({ issue: "Content is too short for meaningful analysis", severity: "warning" });
+  // PRD 4.2: Quality checks — description > 50 chars
+  // Strip markdown formatting for length check
+  const plainContent = content.replace(/[#*`\-\[\]()>|]/g, "").trim();
+  if (plainContent.length < 50) {
+    issues.push({ issue: "Content too short — minimum 50 characters of meaningful text required", severity: "warning" });
+  }
+
+  // Check for placeholder/template content
+  const placeholderPatterns = [
+    /lorem ipsum/i, /todo:?\s*add/i, /placeholder/i, /example content/i,
+    /your (?:skill|plugin|description) here/i, /insert .* here/i,
+  ];
+  for (const pat of placeholderPatterns) {
+    if (pat.test(content)) {
+      issues.push({ issue: "Content appears to be placeholder or template text", severity: "warning" });
+      break;
+    }
+  }
+
+  // Check encoding — detect non-UTF-8 issues
+  if (/\uFFFD/.test(content)) {
+    issues.push({ issue: "Content contains replacement characters — possible encoding issue", severity: "warning" });
   }
 
   // Check for markdown YAML frontmatter validity
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (frontmatterMatch) {
     const fm = frontmatterMatch[1];
-    // Check for suspicious keys
     const suspiciousKeys = ["exec", "run", "script", "command", "shell", "eval"];
     for (const key of suspiciousKeys) {
       if (new RegExp(`^${key}\\s*:`, "mi").test(fm)) {
