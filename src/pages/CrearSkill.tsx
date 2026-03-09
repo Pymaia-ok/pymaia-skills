@@ -209,6 +209,11 @@ const CrearSkill = () => {
         is_public: config.is_public,
       });
 
+      // Mark draft as published
+      if (draftId) {
+        await supabase.from("skill_drafts").update({ status: "published" }).eq("id", draftId);
+      }
+
       toast.success(t("crearSkill.published"));
       navigate("/mis-skills");
     } catch {
