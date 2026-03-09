@@ -3,6 +3,7 @@ export default {
     home: "Home",
     explore: "Skills",
     connectors: "Connectors",
+    plugins: "Plugins",
     teams: "Teams",
     gettingStarted: "Getting Started",
     publish: "Publish",

@@ -51,6 +51,8 @@ const App = () => (
             <Route path="/mcp" element={<MCP />} />
             <Route path="/conectores" element={<Conectores />} />
             <Route path="/conector/:slug" element={<ConectorDetail />} />
+            <Route path="/plugins" element={<Plugins />} />
+            <Route path="/plugin/:slug" element={<PluginDetail />} />
             <Route path="/para/:roleSlug" element={<RoleLanding />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terminos" element={<Terms />} />

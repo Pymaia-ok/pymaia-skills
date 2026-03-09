@@ -4,6 +4,7 @@ export default {
     home: "Inicio",
     explore: "Skills",
     connectors: "Conectores",
+    plugins: "Plugins",
     teams: "Teams",
     gettingStarted: "Primeros pasos",
     publish: "Publicar",
