@@ -331,6 +331,29 @@ const CrearSkill = () => {
         is_public: config.is_public,
       });
 
+      // If also publishing as plugin, generate wrapper and insert
+      if (config.publish_as_plugin) {
+        try {
+          const { data: wrapper, error: wrapError } = await supabase.functions.invoke("generate-skill", {
+            body: { action: "wrap_plugin", skill },
+          });
+          if (wrapError) throw wrapError;
+
+          await submitPlugin({
+            slug: slug,
+            name: wrapper.plugin_name || skill.name,
+            description: wrapper.plugin_description || skill.tagline,
+            category: config.category,
+            creator_id: user.id,
+            source: "community",
+          });
+          toast.success("Plugin publicado en el marketplace");
+        } catch (e) {
+          console.error("Plugin publish error:", e);
+          toast.error("La skill se publicó pero hubo un error al crear el plugin");
+        }
+      }
+
       // Mark draft as published
       if (draftId) {
         await supabase.from("skill_drafts").update({ status: "published" }).eq("id", draftId);
