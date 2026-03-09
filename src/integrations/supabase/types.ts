@@ -174,6 +174,60 @@ export type Database = {
         }
         Relationships: []
       }
+      enterprise_applications: {
+        Row: {
+          api_documentation_url: string | null
+          company_description: string | null
+          company_name: string
+          company_website: string | null
+          contact_email: string
+          created_at: string
+          id: string
+          plugin_slugs: string[]
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_documentation_url?: string | null
+          company_description?: string | null
+          company_name: string
+          company_website?: string | null
+          contact_email: string
+          created_at?: string
+          id?: string
+          plugin_slugs?: string[]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_documentation_url?: string | null
+          company_description?: string | null
+          company_name?: string
+          company_website?: string | null
+          contact_email?: string
+          created_at?: string
+          id?: string
+          plugin_slugs?: string[]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       installations: {
         Row: {
           created_at: string

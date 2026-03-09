@@ -21,6 +21,7 @@ import Privacy from "./pages/Privacy";
 import Plugins from "./pages/Plugins";
 import PluginDetail from "./pages/PluginDetail";
 import RoleLanding from "./pages/RoleLanding";
+import Enterprise from "./pages/Enterprise";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/plugins" element={<Plugins />} />
             <Route path="/plugin/:slug" element={<PluginDetail />} />
             <Route path="/para/:roleSlug" element={<RoleLanding />} />
+            <Route path="/enterprise" element={<Enterprise />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
