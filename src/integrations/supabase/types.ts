@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          function_name: string
+          id: string
+          metadata: Json | null
+          reason: string
+          skill_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          function_name: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+          skill_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          function_name?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+          skill_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           clicked_at: string | null
@@ -488,6 +526,7 @@ export type Database = {
       }
       skills: {
         Row: {
+          auto_approved_reason: string | null
           avg_rating: number
           category: string
           created_at: string
@@ -506,6 +545,7 @@ export type Database = {
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
+          quality_score: number | null
           readme_raw: string | null
           readme_summary: string | null
           required_mcps: Json | null
@@ -526,6 +566,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          auto_approved_reason?: string | null
           avg_rating?: number
           category?: string
           created_at?: string
@@ -544,6 +585,7 @@ export type Database = {
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
+          quality_score?: number | null
           readme_raw?: string | null
           readme_summary?: string | null
           required_mcps?: Json | null
@@ -564,6 +606,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          auto_approved_reason?: string | null
           avg_rating?: number
           category?: string
           created_at?: string
@@ -582,6 +625,7 @@ export type Database = {
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
+          quality_score?: number | null
           readme_raw?: string | null
           readme_summary?: string | null
           required_mcps?: Json | null
@@ -629,6 +673,7 @@ export type Database = {
       fetch_skill_by_share_token: {
         Args: { _slug: string; _token: string }
         Returns: {
+          auto_approved_reason: string | null
           avg_rating: number
           category: string
           created_at: string
@@ -647,6 +692,7 @@ export type Database = {
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
+          quality_score: number | null
           readme_raw: string | null
           readme_summary: string | null
           required_mcps: Json | null

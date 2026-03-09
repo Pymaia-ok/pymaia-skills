@@ -1,24 +1,17 @@
-import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchAllSkills, updateSkillStatus, checkIsAdmin } from "@/lib/api";
+import { checkIsAdmin } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Clock, Languages, Play, Square, RefreshCw, ShieldCheck, ShieldAlert, Shield } from "lucide-react";
-import { toast } from "sonner";
+import {
+  Activity, Languages, RefreshCw, ShieldCheck, ShieldAlert, Shield,
+  CheckCircle2, XCircle, Clock, TrendingUp, Zap, Database
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 
 const Admin = () => {
   const { user, loading } = useAuth();
-  const queryClient = useQueryClient();
-  const [translating, setTranslating] = useState(false);
-  const abortRef = useRef(false);
-  const [batchProgress, setBatchProgress] = useState({ translated: 0, errors: 0 });
-  const [syncingConnectors, setSyncingConnectors] = useState(false);
-  const syncAbortRef = useRef(false);
-  const [syncProgress, setSyncProgress] = useState({ imported: 0, pages: 0, errors: 0 });
 
   const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -26,129 +19,93 @@ const Admin = () => {
     enabled: !!user?.id,
   });
 
-  const { data: skills = [] } = useQuery({
-    queryKey: ["admin-skills"],
-    queryFn: fetchAllSkills,
+  // ── Metrics ──
+  const { data: skillStats } = useQuery({
+    queryKey: ["admin-skill-stats"],
+    queryFn: async () => {
+      const [approved, pending, rejected, total_installs] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "rejected"),
+        supabase.from("skills").select("install_count").eq("status", "approved"),
+      ]);
+      const installs = (total_installs.data || []).reduce((s, r) => s + (r.install_count || 0), 0);
+      return {
+        approved: approved.count ?? 0,
+        pending: pending.count ?? 0,
+        rejected: rejected.count ?? 0,
+        installs,
+      };
+    },
     enabled: !!isAdmin,
+    refetchInterval: 30000,
   });
 
-  // Count translated vs untranslated approved skills
   const { data: translationStats } = useQuery({
     queryKey: ["translation-stats"],
     queryFn: async () => {
       const { count: untranslated } = await supabase
-        .from("skills")
-        .select("id", { count: "exact", head: true })
+        .from("skills").select("id", { count: "exact", head: true })
         .eq("status", "approved")
         .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null");
       const { count: total } = await supabase
-        .from("skills")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "approved");
+        .from("skills").select("id", { count: "exact", head: true }).eq("status", "approved");
       return { untranslated: untranslated ?? 0, total: total ?? 0 };
     },
     enabled: !!isAdmin,
-    refetchInterval: 30000, // refresh every 30s to show progress
+    refetchInterval: 30000,
   });
 
-  // Connector stats
   const { data: connectorStats } = useQuery({
     queryKey: ["connector-stats"],
     queryFn: async () => {
-      const { count } = await supabase
-        .from("mcp_servers")
-        .select("id", { count: "exact", head: true });
-      return { total: count ?? 0 };
+      const { count } = await supabase.from("mcp_servers").select("id", { count: "exact", head: true });
+      const { count: untranslated } = await supabase
+        .from("mcp_servers").select("id", { count: "exact", head: true })
+        .eq("status", "approved").is("description_es", null);
+      return { total: count ?? 0, untranslated: untranslated ?? 0 };
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const { data: securityStats } = useQuery({
+    queryKey: ["security-stats"],
+    queryFn: async () => {
+      const [verified, flagged, unverified] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").eq("security_status", "verified"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").eq("security_status", "flagged"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").eq("security_status", "unverified"),
+      ]);
+      return { verified: verified.count ?? 0, flagged: flagged.count ?? 0, unverified: unverified.count ?? 0 };
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const { data: recentLogs } = useQuery({
+    queryKey: ["automation-logs"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("automation_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return data || [];
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 15000,
+  });
+
+  const { data: cronJobs } = useQuery({
+    queryKey: ["cron-jobs"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("has_role", { _user_id: user!.id, _role: "admin" as const });
+      // We can't query cron.job directly via client, so we'll show known crons statically
+      return null;
     },
     enabled: !!isAdmin,
   });
-
-  const startConnectorSync = useCallback(async () => {
-    setSyncingConnectors(true);
-    syncAbortRef.current = false;
-    setSyncProgress({ imported: 0, pages: 0, errors: 0 });
-
-    let currentPage = 1;
-    let totalImported = 0;
-
-    while (!syncAbortRef.current) {
-      try {
-        const { data, error } = await supabase.functions.invoke("sync-connectors", {
-          body: { page: currentPage, pageSize: 50, maxPages: 5 },
-        });
-        if (error) throw error;
-
-        totalImported += data.imported ?? 0;
-        currentPage = data.next_page ?? currentPage + 5;
-        setSyncProgress(p => ({ imported: totalImported, pages: p.pages + (data.pages_processed ?? 0), errors: p.errors + (data.errors ?? 0) }));
-        queryClient.invalidateQueries({ queryKey: ["connector-stats"] });
-
-        if ((data.pages_processed ?? 0) === 0 || data.imported === 0) {
-          toast.success(`¡Sync completo! ${totalImported} conectores importados.`);
-          break;
-        }
-
-        await new Promise(r => setTimeout(r, 500));
-      } catch (e) {
-        setSyncProgress(p => ({ ...p, errors: p.errors + 1 }));
-        if (syncProgress.errors >= 3) {
-          toast.error("Demasiados errores. Deteniendo sync.");
-          break;
-        }
-        await new Promise(r => setTimeout(r, 2000));
-      }
-    }
-
-    setSyncingConnectors(false);
-  }, [queryClient]);
-
-  const stopConnectorSync = useCallback(() => {
-    syncAbortRef.current = true;
-  }, []);
-
-  const startTranslation = useCallback(async () => {
-    setTranslating(true);
-    abortRef.current = false;
-    setBatchProgress({ translated: 0, errors: 0 });
-
-    let totalTranslated = 0;
-    let consecutiveErrors = 0;
-
-    while (!abortRef.current) {
-      try {
-        const { data, error } = await supabase.functions.invoke("translate-skills", {
-          body: { batchSize: 30 },
-        });
-        if (error) throw error;
-        
-        totalTranslated += data.translated ?? 0;
-        consecutiveErrors = 0;
-        setBatchProgress(p => ({ ...p, translated: totalTranslated }));
-        queryClient.invalidateQueries({ queryKey: ["translation-stats"] });
-
-        if (data.remaining === 0) {
-          toast.success(`¡Traducción completa! ${totalTranslated} skills traducidas en esta sesión.`);
-          break;
-        }
-
-        await new Promise(r => setTimeout(r, 1000));
-      } catch (e) {
-        consecutiveErrors++;
-        setBatchProgress(p => ({ ...p, errors: p.errors + 1 }));
-        if (consecutiveErrors >= 5) {
-          toast.error("Demasiados errores consecutivos. Deteniendo.");
-          break;
-        }
-        await new Promise(r => setTimeout(r, 3000));
-      }
-    }
-
-    setTranslating(false);
-  }, [queryClient]);
-
-  const stopTranslation = useCallback(() => {
-    abortRef.current = true;
-  }, []);
 
   if (loading || checkingAdmin) return null;
   if (!user) return <Navigate to="/auth" replace />;
@@ -163,267 +120,162 @@ const Admin = () => {
     );
   }
 
-  const pending = skills.filter(s => s.status === "pending");
-  const approved = skills.filter(s => s.status === "approved");
-  const rejected = skills.filter(s => s.status === "rejected");
-  const totalInstalls = approved.reduce((sum, s) => sum + s.install_count, 0);
-
-
-  const handleAction = async (skillId: string, status: "approved" | "rejected") => {
-    try {
-      await updateSkillStatus(skillId, status);
-      toast.success(status === "approved" ? "Skill aprobada" : "Skill rechazada");
-      queryClient.invalidateQueries({ queryKey: ["admin-skills"] });
-    } catch {
-      toast.error("Error al actualizar");
-    }
-  };
-
   const translatedCount = translationStats ? translationStats.total - translationStats.untranslated : 0;
   const translationTotal = translationStats?.total ?? 0;
   const translationPercent = translationTotal > 0 ? (translatedCount / translationTotal) * 100 : 0;
+  const securityTotal = (securityStats?.verified ?? 0) + (securityStats?.flagged ?? 0) + (securityStats?.unverified ?? 0);
+  const securityPercent = securityTotal > 0 ? ((securityStats?.verified ?? 0) / securityTotal) * 100 : 0;
+
+  const CRON_LIST = [
+    { name: "Auto-approve skills", freq: "Cada 3 min", batch: 100 },
+    { name: "Quality maintenance", freq: "Cada 10 min", batch: 50 },
+    { name: "Traducir skills", freq: "Cada 1 min", batch: 100 },
+    { name: "Traducir conectores", freq: "Cada 2 min", batch: 30 },
+    { name: "Sync estrellas skills", freq: "Cada 1 min", batch: 80 },
+    { name: "Sync estrellas conectores", freq: "Cada 2 min", batch: 50 },
+    { name: "Verificar seguridad", freq: "Cada 2 min", batch: 30 },
+    { name: "Enriquecer skills IA", freq: "Cada 3 min", batch: 10 },
+    { name: "Sync Smithery", freq: "Diario 6:00 UTC", batch: "auto" },
+    { name: "Sync Official Registry", freq: "Diario 6:30 UTC", batch: "auto" },
+    { name: "Sync GitHub Curated", freq: "Diario 7:00 UTC", batch: "auto" },
+    { name: "Sync skills diario", freq: "Diario 6:00 UTC", batch: "auto" },
+    { name: "Discover trending", freq: "Lunes 6:00 UTC", batch: "auto" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="pt-14 max-w-5xl mx-auto px-6 py-16">
+      <div className="pt-14 max-w-6xl mx-auto px-6 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="section-title mb-8">Panel de admin</h1>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Zap className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Panel de Control</h1>
+              <p className="text-sm text-muted-foreground">Todo automatizado · Actualización en tiempo real</p>
+            </div>
+          </div>
 
-          {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
             {[
-              { label: "Skills aprobadas", value: approved.length },
-              { label: "Pendientes", value: pending.length },
-              { label: "Rechazadas", value: rejected.length },
-              { label: "Instalaciones totales", value: totalInstalls.toLocaleString() },
+              { label: "Aprobadas", value: skillStats?.approved ?? "...", icon: CheckCircle2, color: "text-emerald-500" },
+              { label: "Pendientes", value: skillStats?.pending ?? "...", icon: Clock, color: "text-amber-500" },
+              { label: "Rechazadas", value: skillStats?.rejected ?? "...", icon: XCircle, color: "text-destructive" },
+              { label: "Instalaciones", value: (skillStats?.installs ?? 0).toLocaleString(), icon: TrendingUp, color: "text-primary" },
+              { label: "Conectores", value: connectorStats?.total ?? "...", icon: Database, color: "text-primary" },
             ].map(m => (
-              <div key={m.label} className="p-5 rounded-2xl bg-secondary">
-                <p className="text-2xl font-bold mb-1">{m.value}</p>
-                <p className="text-sm text-muted-foreground">{m.label}</p>
+              <div key={m.label} className="p-4 rounded-2xl bg-secondary">
+                <div className="flex items-center gap-2 mb-1">
+                  <m.icon className={`w-4 h-4 ${m.color}`} />
+                  <p className="text-2xl font-bold">{typeof m.value === 'number' ? m.value.toLocaleString() : m.value}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{m.label}</p>
               </div>
             ))}
           </div>
 
-          {/* Translation Status + Manual Boost */}
-          {translationStats && (
-            <div className="p-5 rounded-2xl bg-secondary mb-12">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Languages className="w-5 h-5" />
-                  Traducción automática
-                </h2>
-                {translationStats.untranslated > 0 && (
-                  <Button
-                    size="sm"
-                    variant={translating ? "destructive" : "default"}
-                    onClick={translating ? stopTranslation : startTranslation}
-                  >
-                    {translating ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Traducir todo</>}
-                  </Button>
-                )}
+          {/* Automation Pipelines */}
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            {/* Translation */}
+            <div className="p-5 rounded-2xl bg-secondary">
+              <div className="flex items-center gap-2 mb-3">
+                <Languages className="w-5 h-5 text-primary" />
+                <h2 className="font-semibold">Traducción</h2>
               </div>
               <Progress value={translationPercent} className="h-2 mb-2" />
               <p className="text-sm text-muted-foreground">
-                {translatedCount.toLocaleString()} de {translationTotal.toLocaleString()} traducidas
-                {translationStats.untranslated > 0 && (
-                  <span> · {translationStats.untranslated.toLocaleString()} restantes</span>
-                )}
-                {translationStats.untranslated === 0 && " · ✓ Completo"}
-                {translating && (
-                  <span className="text-foreground font-medium"> · Traduciendo... ({batchProgress.translated} en esta sesión)</span>
-                )}
+                {translatedCount.toLocaleString()} / {translationTotal.toLocaleString()} skills
+                {translationStats?.untranslated === 0 && <span className="text-emerald-500 ml-1">✓</span>}
               </p>
+              {connectorStats && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Conectores: {(connectorStats.total - connectorStats.untranslated).toLocaleString()} / {connectorStats.total.toLocaleString()}
+                </p>
+              )}
             </div>
-          )}
 
-          {/* Connector Sync */}
-          <div className="p-5 rounded-2xl bg-secondary mb-12">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <RefreshCw className="w-5 h-5" />
-                Sincronizar conectores
-              </h2>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  size="sm"
-                  variant={syncingConnectors ? "destructive" : "default"}
-                  onClick={syncingConnectors ? stopConnectorSync : startConnectorSync}
-                >
-                  {syncingConnectors ? <><Square className="w-3 h-3 mr-1" /> Detener</> : <><Play className="w-3 h-3 mr-1" /> Smithery</>}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={syncingConnectors}
-                  onClick={async () => {
-                    setSyncingConnectors(true);
-                    setSyncProgress({ imported: 0, pages: 0, errors: 0 });
-                    let cursor: string | null = null;
-                    let totalImported = 0;
-                    for (let i = 0; i < 20; i++) {
-                      const { data, error } = await supabase.functions.invoke("sync-connectors", {
-                        body: { source: "official-registry", cursor, limit: 100, maxPages: 5 },
-                      });
-                      if (error) { toast.error("Error sync official registry"); break; }
-                      totalImported += data.imported ?? 0;
-                      cursor = data.next_cursor ?? null;
-                      setSyncProgress(p => ({ imported: totalImported, pages: p.pages + (data.pages_processed ?? 0), errors: p.errors + (data.errors ?? 0) }));
-                      queryClient.invalidateQueries({ queryKey: ["connector-stats"] });
-                      if (!cursor || data.imported === 0) break;
-                      await new Promise(r => setTimeout(r, 500));
-                    }
-                    toast.success(`${totalImported} conectores importados del registro oficial`);
-                    setSyncingConnectors(false);
-                  }}
-                >
-                  Official Registry
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={syncingConnectors}
-                  onClick={async () => {
-                    setSyncingConnectors(true);
-                    setSyncProgress({ imported: 0, pages: 0, errors: 0 });
-                    const { data, error } = await supabase.functions.invoke("sync-connectors", {
-                      body: { source: "awesome-mcp-servers" },
-                    });
-                    if (error) { toast.error("Error sync awesome-mcp-servers"); }
-                    else {
-                      toast.success(`${data.imported ?? 0} conectores importados de awesome-mcp-servers (${data.parsed ?? 0} parseados)`);
-                      setSyncProgress({ imported: data.imported ?? 0, pages: 1, errors: data.errors ?? 0 });
-                    }
-                    queryClient.invalidateQueries({ queryKey: ["connector-stats"] });
-                    setSyncingConnectors(false);
-                  }}
-                >
-                  GitHub Curated
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    toast.info("Traduciendo conectores...");
-                    let total = 0;
-                    for (let i = 0; i < 20; i++) {
-                      const { data, error } = await supabase.functions.invoke("translate-connectors", { body: { batchSize: 20 } });
-                      if (error) { toast.error("Error traduciendo"); break; }
-                      total += data.translated ?? 0;
-                      if (data.remaining === 0) break;
-                      await new Promise(r => setTimeout(r, 1000));
-                    }
-                    toast.success(`${total} conectores traducidos`);
-                  }}
-                >
-                  <Languages className="w-3 h-3 mr-1" /> Traducir
-                </Button>
+            {/* Security */}
+            <div className="p-5 rounded-2xl bg-secondary">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                <h2 className="font-semibold">Seguridad</h2>
+              </div>
+              <Progress value={securityPercent} className="h-2 mb-2" />
+              <div className="flex gap-3 text-sm">
+                <span className="flex items-center gap-1 text-emerald-500">
+                  <ShieldCheck className="w-3 h-3" /> {securityStats?.verified ?? 0}
+                </span>
+                <span className="flex items-center gap-1 text-destructive">
+                  <ShieldAlert className="w-3 h-3" /> {securityStats?.flagged ?? 0}
+                </span>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <Shield className="w-3 h-3" /> {securityStats?.unverified ?? 0}
+                </span>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {connectorStats?.total.toLocaleString() ?? "..."} conectores en la base
-              {syncingConnectors && (
-                <span className="text-foreground font-medium"> · Importando... ({syncProgress.imported} nuevos, {syncProgress.pages} páginas)</span>
-              )}
-              {syncProgress.errors > 0 && <span className="text-destructive"> · {syncProgress.errors} errores</span>}
-            </p>
-          </div>
 
-          {/* Security Verification */}
-          <div className="p-5 rounded-2xl bg-secondary mb-12">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5" />
-                Verificación de seguridad
-              </h2>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  toast.info("Verificando repos...");
-                  let totalProcessed = 0;
-                  for (let i = 0; i < 10; i++) {
-                    const { data, error } = await supabase.functions.invoke("verify-security", { body: { batchSize: 30 } });
-                    if (error) { toast.error("Error verificando"); break; }
-                    totalProcessed += data.processed ?? 0;
-                    if ((data.processed ?? 0) === 0) break;
-                    await new Promise(r => setTimeout(r, 1000));
-                  }
-                  toast.success(`${totalProcessed} repos verificados`);
-                  queryClient.invalidateQueries({ queryKey: ["admin-skills"] });
-                }}
-              >
-                <Play className="w-3 h-3 mr-1" /> Verificar repos
-              </Button>
+            {/* Connector Sync */}
+            <div className="p-5 rounded-2xl bg-secondary">
+              <div className="flex items-center gap-2 mb-3">
+                <RefreshCw className="w-5 h-5 text-primary" />
+                <h2 className="font-semibold">Sync Conectores</h2>
+              </div>
+              <p className="text-2xl font-bold">{connectorStats?.total.toLocaleString() ?? "..."}</p>
+              <p className="text-xs text-muted-foreground">
+                Smithery 6AM · Official 6:30AM · GitHub 7AM UTC
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Verifica licencia, README, actividad y estado de archivo de los repos en GitHub.
-            </p>
           </div>
 
-          {/* Pending Skills */}
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Pendientes de aprobación ({pending.length})
-          </h2>
-
-          {pending.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center">No hay skills pendientes.</p>
-          ) : (
-            <div className="space-y-3 mb-12">
-              {pending.map(skill => (
-                <div key={skill.id} className="p-5 rounded-2xl bg-secondary flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{skill.display_name}</h3>
-                    <p className="text-sm text-muted-foreground truncate">{skill.tagline}</p>
-                    {skill.github_url && (
-                      <a href={skill.github_url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground underline">
-                        GitHub
-                      </a>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleAction(skill.id, "approved")}
-                      className="p-2.5 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleAction(skill.id, "rejected")}
-                      className="p-2.5 rounded-xl bg-background text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+          {/* Active Cron Jobs */}
+          <div className="p-5 rounded-2xl bg-secondary mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-5 h-5 text-emerald-500" />
+              <h2 className="font-semibold">Trabajos automatizados activos</h2>
+              <span className="ml-auto text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 font-medium">
+                {CRON_LIST.length} activos
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {CRON_LIST.map(cron => (
+                <div key={cron.name} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg bg-background/50">
+                  <span className="font-medium">{cron.name}</span>
+                  <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                    <span>{cron.freq}</span>
+                    {typeof cron.batch === "number" && <span className="text-xs">·  {cron.batch}/lote</span>}
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
 
-          {/* All Skills */}
-          <h2 className="text-xl font-semibold mb-4">Todas las skills ({skills.length})</h2>
-          <div className="space-y-2">
-            {skills.map(skill => (
-              <div key={skill.id} className="p-4 rounded-xl bg-secondary flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-sm">{skill.display_name}</span>
-                </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-muted-foreground">{skill.install_count} installs</span>
-                  <span className="text-muted-foreground">⭐ {Number(skill.avg_rating).toFixed(1)}</span>
-                  {(skill as any).security_status === "verified" && <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
-                  {(skill as any).security_status === "flagged" && <ShieldAlert className="w-3.5 h-3.5 text-destructive" />}
-                  {(skill as any).security_status === "unverified" && <Shield className="w-3.5 h-3.5 text-muted-foreground" />}
-                  <span className={`px-2 py-1 rounded-full font-medium ${
-                    skill.status === "approved" ? "bg-foreground/10 text-foreground" :
-                    skill.status === "pending" ? "bg-accent text-muted-foreground" :
-                    "bg-destructive/10 text-destructive"
-                  }`}>
-                    {skill.status}
-                  </span>
-                </div>
+          {/* Recent Automation Logs */}
+          <div className="p-5 rounded-2xl bg-secondary">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5" />
+              <h2 className="font-semibold">Actividad reciente</h2>
+            </div>
+            {(!recentLogs || recentLogs.length === 0) ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Los logs de automatización aparecerán aquí...
+              </p>
+            ) : (
+              <div className="space-y-1 max-h-80 overflow-y-auto">
+                {recentLogs.map(log => (
+                  <div key={log.id} className="flex items-center gap-3 text-sm py-2 px-3 rounded-lg bg-background/50">
+                    {log.action_type === "auto_approve" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                    {log.action_type === "auto_reject" && <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                    {log.action_type?.startsWith("quality") && <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                    <span className="flex-1 truncate">{log.reason}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(log.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </motion.div>
       </div>
