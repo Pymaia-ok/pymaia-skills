@@ -297,10 +297,39 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     }
 
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: "screen" } as any,
-        audio: true,
+        audio: true, // system audio if available
       });
+
+      // Try to capture microphone audio and mix it in
+      let stream = screenStream;
+      try {
+        const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctx = new AudioContext();
+        const dest = (ctx as any).createMediaStreamAudioDestination ? (ctx as any).createMediaStreamAudioDestination() : ctx.createMediaStreamDestination();
+
+        // Mix system audio tracks (if any) + mic
+        screenStream.getAudioTracks().forEach((track) => {
+          ctx.createMediaStreamSource(new MediaStream([track])).connect(dest);
+        });
+        ctx.createMediaStreamSource(micStream).connect(dest);
+
+        // Combine screen video + mixed audio
+        stream = new MediaStream([
+          ...screenStream.getVideoTracks(),
+          ...dest.stream.getAudioTracks(),
+        ]);
+
+        // Clean up mic when screen sharing stops
+        screenStream.getVideoTracks()[0].addEventListener("ended", () => {
+          micStream.getTracks().forEach((t) => t.stop());
+          ctx.close();
+        });
+      } catch {
+        // Mic denied or unavailable — continue with screen-only
+        console.log("Mic not available, recording screen only");
+      }
 
       const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
       screenChunksRef.current = [];

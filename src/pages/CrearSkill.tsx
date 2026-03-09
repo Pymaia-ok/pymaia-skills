@@ -123,12 +123,18 @@ const CrearSkill = () => {
       });
   }, [user, searchParams]);
 
-  // Auto-save conversation every 30s during chat phase
+  // Auto-save conversation periodically and on meaningful changes
   const lastSavedRef = useRef<string>("");
 
   const saveConversationDraft = useCallback(async () => {
     if (!user || messages.length < 2) return; // need at least 1 exchange
-    const fingerprint = JSON.stringify(messages);
+    const statusMap: Record<Step, string> = {
+      chat: "interviewing",
+      preview: skill ? "generated" : "interviewing",
+      playground: "generated",
+      publish: testResults ? "tested" : "generated",
+    };
+    const fingerprint = JSON.stringify({ messages, skill, quality, testResults, step });
     if (fingerprint === lastSavedRef.current) return; // no changes
     lastSavedRef.current = fingerprint;
 
@@ -136,7 +142,7 @@ const CrearSkill = () => {
       const payload = {
         user_id: user.id,
         conversation: messages as any,
-        status: "interviewing",
+        status: statusMap[step] || "interviewing",
         generated_skill: skill as any ?? null,
         quality_score: quality?.score ?? null,
         quality_feedback: quality?.feedback ?? null,
@@ -152,14 +158,21 @@ const CrearSkill = () => {
     } catch (e) {
       console.error("Auto-save failed", e);
     }
-  }, [user, messages, skill, quality, testResults, draftId]);
+  }, [user, messages, skill, quality, testResults, draftId, step]);
 
-  // Periodic auto-save
+  // Periodic auto-save (all phases, not just chat)
   useEffect(() => {
-    if (step !== "chat" || messages.length < 2) return;
+    if (messages.length < 2) return;
     const interval = setInterval(saveConversationDraft, 30000);
     return () => clearInterval(interval);
-  }, [step, messages.length, saveConversationDraft]);
+  }, [messages.length, saveConversationDraft]);
+
+  // Save on step/skill/quality/testResults changes (debounced)
+  useEffect(() => {
+    if (messages.length < 2) return;
+    const timeout = setTimeout(saveConversationDraft, 3000);
+    return () => clearTimeout(timeout);
+  }, [step, skill, quality, testResults, saveConversationDraft]);
 
   // Save on page unload
   useEffect(() => {
