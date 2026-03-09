@@ -535,17 +535,29 @@ mcp.tool("explore_directory", {
     const q = args.query.toLowerCase();
 
     const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
-      supabase.from("skills").select("display_name, tagline, slug, category, install_count, install_command").eq("status", "approved").order("install_count", { ascending: false }).limit(20),
-      supabase.from("mcp_servers").select("name, description, slug, category, github_stars, is_official").eq("status", "approved").order("github_stars", { ascending: false }).limit(20),
-      supabase.from("plugins").select("name, description, slug, category, platform, install_count, is_official").eq("status", "approved").order("install_count", { ascending: false }).limit(20),
+      supabase.from("skills")
+        .select("display_name, tagline, slug, category, install_count, install_command")
+        .eq("status", "approved")
+        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
+        .order("install_count", { ascending: false })
+        .limit(lim),
+      supabase.from("mcp_servers")
+        .select("name, description, slug, category, github_stars, is_official")
+        .eq("status", "approved")
+        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+        .order("github_stars", { ascending: false })
+        .limit(lim),
+      supabase.from("plugins")
+        .select("name, description, slug, category, platform, install_count, is_official")
+        .eq("status", "approved")
+        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+        .order("install_count", { ascending: false })
+        .limit(lim),
     ]);
 
-    const filterMatch = (items: any[], fields: string[]) =>
-      items.filter((item: any) => fields.some(f => (item[f] || "").toLowerCase().includes(q))).slice(0, lim);
-
-    const skills = filterMatch(skillsRes.data || [], ["display_name", "tagline", "slug"]);
-    const connectors = filterMatch(connectorsRes.data || [], ["name", "description", "slug"]);
-    const plugins = filterMatch(pluginsRes.data || [], ["name", "description", "slug"]);
+    const skills = skillsRes.data || [];
+    const connectors = connectorsRes.data || [];
+    const plugins = pluginsRes.data || [];
 
     const sections: string[] = [];
 
