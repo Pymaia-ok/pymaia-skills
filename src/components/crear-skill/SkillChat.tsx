@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film, Mic, MicOff, Monitor, Square } from "lucide-react";
+import { Send, Sparkles, Loader2, Paperclip, Link2, X, FileText, Image, Film, Mic, MicOff, Monitor, Square, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { streamChat, type Msg } from "@/lib/streaming";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Attachment {
   id: string;
@@ -15,6 +16,7 @@ interface Attachment {
   url?: string;
   extractedText?: string;
   processing?: boolean;
+  previewUrl?: string;
 }
 
 interface SkillChatProps {
