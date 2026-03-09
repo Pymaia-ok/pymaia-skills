@@ -27,10 +27,15 @@ Deno.serve(async (req) => {
     }
 
     const tableName = type === "connector" ? "mcp_servers" : type === "plugin" ? "plugins" : "skills";
+    const hasIsOfficial = type !== "skill"; // skills table doesn't have is_official column
+
+    const selectFields = hasIsOfficial
+      ? "slug, trust_score, security_status, security_scanned_at, created_at, is_official"
+      : "slug, trust_score, security_status, security_scanned_at, created_at";
 
     const { data: item, error } = await supabase
       .from(tableName)
-      .select("slug, trust_score, security_status, security_scanned_at, created_at, is_official")
+      .select(selectFields)
       .eq("slug", slug)
       .eq("status", "approved")
       .single();
