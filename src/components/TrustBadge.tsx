@@ -73,6 +73,30 @@ function getWarnings(scanResult: any, itemType: string, t: any): Array<{ icon: a
     });
   }
 
+  if (scanResult.layers?.hidden_content?.findings?.length > 0) {
+    warnings.push({
+      icon: ShieldAlert,
+      text: t("security.hidden_content", "Hidden or obfuscated content detected"),
+      color: "text-destructive",
+    });
+  }
+
+  if (scanResult.layers?.scope?.scope_assessment === "excessive") {
+    warnings.push({
+      icon: AlertTriangle,
+      text: t("security.excessive_scope", "Excessive permissions — review carefully"),
+      color: "text-amber-500",
+    });
+  }
+
+  if (scanResult.layers?.format?.issues?.some((i: any) => i.severity === "error")) {
+    warnings.push({
+      icon: AlertTriangle,
+      text: t("security.format_issues", "Install command format concerns"),
+      color: "text-amber-500",
+    });
+  }
+
   return warnings;
 }
 
