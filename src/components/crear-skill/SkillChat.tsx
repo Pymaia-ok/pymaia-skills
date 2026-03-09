@@ -136,38 +136,49 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const [processingAttachments, setProcessingAttachments] = useState(false);
+
   const sendMessage = async () => {
     const text = input.trim();
-    if ((!text && attachments.length === 0) || streaming) return;
+    if ((!text && attachments.length === 0) || streaming || processingAttachments) return;
 
+    const currentAttachments = [...attachments];
+    const displayContent = text + (currentAttachments.length > 0 ? `\n\n📎 ${currentAttachments.map((a) => a.name).join(", ")}` : "");
+
+    // Show user message immediately with attachments
+    const displayMsg: Msg = { role: "user", content: displayContent };
+    const displayMessages = [...messages, displayMsg];
+    setMessages(displayMessages);
+    setInput("");
+    setAttachments([]);
+
+    // Process attachments in background
     let contextParts: string[] = [];
-    if (attachments.length > 0) {
-      toast.info("Procesando archivos adjuntos...");
-      for (const att of attachments) {
-        const extracted = await processAttachment(att);
-        if (extracted) contextParts.push(extracted);
+    if (currentAttachments.length > 0) {
+      setProcessingAttachments(true);
+      try {
+        const results = await Promise.all(
+          currentAttachments.map((att) => processAttachment(att))
+        );
+        contextParts = results.filter(Boolean);
+      } catch (e) {
+        console.error("Error processing attachments:", e);
+        toast.error("Error al procesar algunos archivos");
+      } finally {
+        setProcessingAttachments(false);
       }
     }
 
     let fullMessage = text;
     if (contextParts.length > 0) {
       const context = contextParts.join("\n\n---\n\n");
-      fullMessage = contextParts.length > 0 && text
+      fullMessage = text
         ? `${text}\n\n[Contexto extraído de archivos adjuntos]:\n${context}`
         : context;
     }
 
     const userMsg: Msg = { role: "user", content: fullMessage };
-    const displayMsg: Msg = {
-      role: "user",
-      content: text + (attachments.length > 0 ? `\n\n📎 ${attachments.map((a) => a.name).join(", ")}` : ""),
-    };
-
     const newMessages = [...messages, userMsg];
-    const displayMessages = [...messages, displayMsg];
-    setMessages(displayMessages);
-    setInput("");
-    setAttachments([]);
     setStreaming(true);
 
     let assistantText = "";
@@ -269,10 +280,13 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
                 ))}
               </AnimatePresence>
 
-              {streaming && messages[messages.length - 1]?.role !== "assistant" && (
+              {(streaming || processingAttachments) && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex justify-start">
-                  <div className="bg-secondary rounded-2xl rounded-bl-lg px-5 py-3.5">
+                  <div className="bg-secondary rounded-2xl rounded-bl-lg px-5 py-3.5 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    {processingAttachments && (
+                      <span className="text-xs text-muted-foreground">Procesando archivos...</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -394,7 +408,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
             </div>
             <button
               onClick={sendMessage}
-              disabled={(!input.trim() && attachments.length === 0) || streaming || isGenerating}
+              disabled={(!input.trim() && attachments.length === 0) || streaming || isGenerating || processingAttachments}
               className="p-2.5 rounded-xl bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-30 shrink-0"
             >
               <Send className="w-5 h-5" />
