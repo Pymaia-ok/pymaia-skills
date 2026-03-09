@@ -698,7 +698,8 @@ async function runFullScan(
   slug: string,
   itemType: string,
   installCommand: string,
-  lovableApiKey: string | undefined
+  lovableApiKey: string | undefined,
+  supabase?: any
 ): Promise<{
   verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS";
   layers: {
@@ -710,6 +711,7 @@ async function runFullScan(
     scope: { permissions: any[]; scope_assessment: string; undeclared_capabilities: string[] } | null;
     hooks: { hooks: any[]; has_hooks: boolean; blocked_count: number; dangerous_count: number } | null;
     plugin_decomposition: { components: any[]; has_settings_override: boolean; settings_issues: string[]; cross_component_risks: string[] } | null;
+    similarity: { duplicates: any[]; is_plagiarized: boolean } | null;
     llm: { verdict: string; confidence: number; reasons: string[] } | null;
   };
   scanned_at: string;
@@ -745,7 +747,13 @@ async function runFullScan(
     ? decomposePlugin(content)
     : null;
 
-  // Layer 9: LLM analysis (skip if already clearly malicious)
+  // Layer 9: Content similarity check (PRD 4.1 item 6)
+  let similarityResult = null;
+  if (supabase && slug) {
+    similarityResult = await checkContentSimilarity(content, slug, itemType, supabase);
+  }
+
+  // Layer 10: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
   if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
       hiddenFindings.filter(f => f.severity === "high").length === 0 &&
@@ -761,9 +769,9 @@ async function runFullScan(
   if (secrets.length > 0 || criticalInjections.length > 0 || hiddenHigh.length > 0 || formatErrors.length > 0) {
     verdict = "MALICIOUS";
   } else if (hookAnalysis.blocked_count > 0) {
-    verdict = "MALICIOUS"; // Blocked hooks = auto-reject
+    verdict = "MALICIOUS";
   } else if (pluginDecomp?.has_settings_override) {
-    verdict = "MALICIOUS"; // Settings override = auto-reject
+    verdict = "MALICIOUS";
   } else if (highInjections.length > 0 || typoFlags.length > 0 || (scopeAnalysis?.scope_assessment === "excessive")) {
     verdict = "SUSPICIOUS";
   } else if (hookAnalysis.dangerous_count > 0) {
@@ -771,6 +779,8 @@ async function runFullScan(
   } else if (pluginDecomp?.cross_component_risks && pluginDecomp.cross_component_risks.length > 0) {
     verdict = "SUSPICIOUS";
   } else if (scopeAnalysis?.undeclared_capabilities && scopeAnalysis.undeclared_capabilities.length > 0) {
+    verdict = "SUSPICIOUS";
+  } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
   } else if (llmResult?.verdict === "MALICIOUS") {
     verdict = "MALICIOUS";
@@ -794,9 +804,10 @@ async function runFullScan(
       scope: scopeAnalysis,
       hooks: hookAnalysis.has_hooks ? hookAnalysis : null,
       plugin_decomposition: pluginDecomp,
+      similarity: similarityResult,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "3.0.0",
+    version: "4.0.0",
   };
 }
