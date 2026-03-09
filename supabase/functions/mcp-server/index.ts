@@ -514,7 +514,7 @@ mcp.tool("search_plugins", {
   },
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const queryLower = args.query.toLowerCase();
+    const queryLower = sanitizeForPostgrest(args.query);
 
     let q = supabase
       .from("plugins")
@@ -531,6 +531,22 @@ mcp.tool("search_plugins", {
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     let results = matched || [];
+
+    // Word-split fallback for multi-word queries
+    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
+    if (results.length === 0 && words.length > 1) {
+      results = await wordSplitSearch(
+        "plugins",
+        "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count",
+        words, "install_count", lim,
+        (qb: any) => {
+          if (args.category) qb = qb.eq("category", args.category);
+          if (args.platform) qb = qb.eq("platform", args.platform);
+          return qb;
+        },
+      );
+    }
+
     if (results.length === 0) {
       let fallback = supabase
         .from("plugins")
