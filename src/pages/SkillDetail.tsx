@@ -255,6 +255,16 @@ const SkillDetail = () => {
                 <FileArchive className="w-4 h-4" />
                 {t("detail.downloadZip", "ZIP para Claude.ai")}
               </button>
+              {user && skill.creator_id === user.id && (
+                <button
+                  onClick={handleConvertToPlugin}
+                  disabled={convertingToPlugin}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm disabled:opacity-50"
+                >
+                  {convertingToPlugin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+                  Publicar como plugin
+                </button>
+              )}
               <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-6">
