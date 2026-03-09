@@ -231,6 +231,14 @@ const PluginDetail = () => {
 
             {/* Badges */}
             <div className="flex flex-wrap items-center gap-3 mb-8">
+              <TrustBadge
+                trustScore={(plugin as any).trust_score || 0}
+                securityStatus={(plugin as any).security_status}
+                scanResult={(plugin as any).security_scan_result}
+                showWarnings
+                itemType="plugin"
+              />
+
               {plugin.is_anthropic_verified ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold">
                   <BadgeCheck className="w-3.5 h-3.5" />
@@ -246,17 +254,7 @@ const PluginDetail = () => {
                   <ShieldCheck className="w-3.5 h-3.5" />
                   {isEs ? "Oficial" : "Official"}
                 </span>
-              ) : plugin.security_status === "verified" ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  {isEs ? "Verificado" : "Verified"}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
-                  <ShieldQuestion className="w-3.5 h-3.5" />
-                  {isEs ? "Comunitario" : "Community"}
-                </span>
-              )}
+              ) : null}
 
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
                 {plugin.platform === "both" ? "Claude Code + Cowork" : plugin.platform === "claude-code" ? "Claude Code" : "Cowork"}
@@ -275,6 +273,10 @@ const PluginDetail = () => {
                   {Number(plugin.avg_rating).toFixed(1)} ({plugin.review_count})
                 </span>
               )}
+
+              <div className="ml-auto">
+                <SecurityReportButton itemType="plugin" itemId={plugin.id} itemSlug={plugin.slug} />
+              </div>
             </div>
 
             {/* Install options */}
