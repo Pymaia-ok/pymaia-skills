@@ -328,6 +328,75 @@ export type Database = {
         }
         Relationships: []
       }
+      plugins: {
+        Row: {
+          category: string
+          created_at: string
+          creator_id: string | null
+          description: string
+          description_es: string | null
+          github_url: string | null
+          homepage: string | null
+          icon_url: string | null
+          id: string
+          install_count: number
+          is_anthropic_verified: boolean
+          is_official: boolean
+          name: string
+          name_es: string | null
+          platform: string
+          security_status: string
+          slug: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          creator_id?: string | null
+          description?: string
+          description_es?: string | null
+          github_url?: string | null
+          homepage?: string | null
+          icon_url?: string | null
+          id?: string
+          install_count?: number
+          is_anthropic_verified?: boolean
+          is_official?: boolean
+          name: string
+          name_es?: string | null
+          platform?: string
+          security_status?: string
+          slug: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          creator_id?: string | null
+          description?: string
+          description_es?: string | null
+          github_url?: string | null
+          homepage?: string | null
+          icon_url?: string | null
+          id?: string
+          install_count?: number
+          is_anthropic_verified?: boolean
+          is_official?: boolean
+          name?: string
+          name_es?: string | null
+          platform?: string
+          security_status?: string
+          slug?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
