@@ -83,6 +83,7 @@ const Index = () => {
         <PopularSkills />
         <BundlesSection />
         <ConnectorsSection />
+        <PluginsSection />
         <BeforeAfterSection />
         <McpBannerSection />
         <FinalCTA />
