@@ -149,12 +149,13 @@ const Navbar = () => {
             {i18n.language === "es" ? "EN" : "ES"}
           </button>
 
+          <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="flex items-center gap-1.5 text-sm py-1.5 text-muted-foreground">
+            <Plus className="w-3.5 h-3.5" />
+            {t("nav.createSkill")}
+          </Link>
+
           {user ? (
             <>
-              <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="flex items-center gap-1.5 text-sm py-1.5 text-muted-foreground">
-                <Plus className="w-3.5 h-3.5" />
-                {t("nav.publish")}
-              </Link>
               <Link to="/mis-skills" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground">
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">{initials}</AvatarFallback>
