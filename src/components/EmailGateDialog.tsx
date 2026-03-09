@@ -109,6 +109,8 @@ const EmailGateDialog = forwardRef<HTMLDivElement, EmailGateDialogProps>(({ open
       </DialogContent>
     </Dialog>
   );
-};
+});
+
+EmailGateDialog.displayName = "EmailGateDialog";
 
 export default EmailGateDialog;
