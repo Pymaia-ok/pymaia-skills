@@ -742,7 +742,7 @@ Deno.serve(async (req) => {
       ].join("\n\n");
     }
 
-    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey, supabase);
+    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey, supabase, body.github_url || null);
 
     if (item_id) {
       const tableName = item_type === "connector" ? "mcp_servers" : item_type === "plugin" ? "plugins" : "skills";
