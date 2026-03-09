@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { checkIsAdmin } from "@/lib/api";
@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Activity, Languages, RefreshCw, ShieldCheck, ShieldAlert, Shield,
   CheckCircle2, XCircle, Clock, TrendingUp, Zap, Database,
-  AlertTriangle, FileWarning, Eye
+  AlertTriangle, FileWarning, Eye, ListChecks, ThumbsUp, ThumbsDown, RotateCw
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const Admin = () => {
   const { user, loading } = useAuth();
