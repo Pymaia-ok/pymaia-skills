@@ -330,29 +330,38 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         console.log("Mic not available, recording screen only");
       }
 
-      const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+        ? "video/webm;codecs=vp9"
+        : MediaRecorder.isTypeSupported("video/webm")
+          ? "video/webm"
+          : "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       screenChunksRef.current = [];
+      console.log("[ScreenRec] Recorder created, mimeType:", recorder.mimeType);
 
       recorder.ondataavailable = (e) => {
+        console.log("[ScreenRec] ondataavailable, size:", e.data.size);
         if (e.data.size > 0) screenChunksRef.current.push(e.data);
       };
 
       recorder.onstop = () => {
+        console.log("[ScreenRec] onstop fired, chunks:", screenChunksRef.current.length);
         // Clean up all tracks and audio context AFTER recorder finishes
         stream.getTracks().forEach((t) => t.stop());
         screenStream.getTracks().forEach((t) => t.stop());
         micStreamRef?.getTracks().forEach((t) => t.stop());
         audioCtxRef?.close().catch(() => {});
 
-        setIsScreenRecording(false);
         mediaRecorderRef.current = null;
 
-        const blob = new Blob(screenChunksRef.current, { type: "video/webm" });
+        const blob = new Blob(screenChunksRef.current, { type: recorder.mimeType || "video/webm" });
+        console.log("[ScreenRec] blob size:", blob.size);
         if (blob.size === 0) {
+          setIsScreenRecording(false);
           toast.error("La grabación salió vacía, intentá de nuevo");
           return;
         }
-        const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: "video/webm" });
+        const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: blob.type });
         const previewUrl = URL.createObjectURL(blob);
 
         const attachment: Attachment = {
@@ -363,18 +372,35 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           processing: false,
           previewUrl,
         };
-        setAttachments((prev) => [...prev, attachment]);
-        toast.success("Grabación lista — tocá para previsualizarla");
+
+        // Use setTimeout to ensure state update happens in a clean React cycle
+        setTimeout(() => {
+          setIsScreenRecording(false);
+          setAttachments((prev) => {
+            console.log("[ScreenRec] setAttachments called, prev:", prev.length, "new total:", prev.length + 1);
+            return [...prev, attachment];
+          });
+          toast.success("Grabación lista — tocá para previsualizarla");
+        }, 0);
+      };
+
+      recorder.onerror = (e: any) => {
+        console.error("[ScreenRec] recorder error:", e);
+        setIsScreenRecording(false);
+        mediaRecorderRef.current = null;
+        toast.error("Error en la grabación");
       };
 
       // Handle user stopping share via browser UI — only stop recorder, cleanup happens in onstop
       screenStream.getVideoTracks()[0].addEventListener("ended", () => {
+        console.log("[ScreenRec] Video track ended");
         if (recorder.state === "recording") recorder.stop();
       });
 
-      recorder.start();
+      recorder.start(1000); // Collect data every second for reliability
       mediaRecorderRef.current = recorder;
       setIsScreenRecording(true);
+      console.log("[ScreenRec] Recording started");
     } catch (e: any) {
       if (e.name !== "NotAllowedError") {
         console.error("Screen recording error:", e);
