@@ -94,6 +94,8 @@ const SkillCard = forwardRef<HTMLDivElement, SkillCardProps>(({ skill, index = 0
       </Link>
     </motion.div>
   );
-};
+});
+
+SkillCard.displayName = "SkillCard";
 
 export default SkillCard;
