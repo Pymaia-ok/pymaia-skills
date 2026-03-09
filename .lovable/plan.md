@@ -1,34 +1,36 @@
 
 
-## Auditoría de calidad — Packs por Rol (v3 FINAL)
+## Agregar Polar al catálogo de conectores
 
-### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
+### Situación actual
+Polar (polar.sh) **no existe** como registro curado en `mcp_servers`. Solo hay un registro no relacionado ("Polaralias/personal-context-mcp").
 
-| Pack | Skills | Estado | Cambios v3 |
-|---|---|---|---|
-| **Marketer** | 8 | ✅ Excelente | Sin cambios |
-| **DevOps** | 8 | ✅ Excelente | Sin cambios |
-| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
-| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
-| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
-| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
-| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
-| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
-| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
-| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
-| **Founder** | 6 | ✅ Bueno | Sin cambios |
-| **Consultor** | 6 | ✅ Bueno | Sin cambios |
-| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
-| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
-| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
+### Acción
+Insertar un registro curado con la información oficial de Polar:
 
-### Acciones ejecutadas
-1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
-2. ✅ Arquitecto desactivado (honestidad > cantidad)
-3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
-4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
-5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
-6. ✅ 277 skills legal-tech indexadas desde GitHub
-7. ✅ 107 skills education-technology indexadas desde GitHub
-8. ✅ Wizard actualizado (14 roles, tasks renombrados)
-9. ✅ i18n ES/EN actualizados
+```sql
+INSERT INTO mcp_servers (slug, name, description, description_es, category, status, source, is_official, homepage, icon_url, install_command, credentials_needed)
+VALUES (
+  'polar',
+  'Polar',
+  'Merchant of Record platform with MCP server for managing products, subscriptions, usage-based billing, and customer portals. Handles international sales taxes and compliance.',
+  'Plataforma Merchant of Record con servidor MCP para gestionar productos, suscripciones, facturación por uso y portales de clientes. Maneja impuestos internacionales y compliance.',
+  'apis',
+  'approved',
+  'curated',
+  true,
+  'https://polar.sh/docs/integrate/mcp',
+  'https://polar.sh/assets/brand/polar_og.jpg',
+  'npx -y @anthropic-ai/mcp-remote https://api.polar.sh/mcp',
+  ARRAY['POLAR_ACCESS_TOKEN']
+);
+```
+
+Datos clave extraídos de la documentación oficial:
+- **Endpoint MCP**: `https://api.polar.sh/mcp` (streamable HTTP)
+- **Categoría**: `apis` (pagos/suscripciones)
+- **Comando de instalación**: usa `@anthropic-ai/mcp-remote` como wrapper para clientes SSE
+- **Credenciales**: requiere `POLAR_ACCESS_TOKEN`
+
+No se requieren cambios en el frontend — el registro aparecerá automáticamente en `/conectores` y en el buscador global.
+
