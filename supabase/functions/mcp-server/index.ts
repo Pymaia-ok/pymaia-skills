@@ -591,7 +591,7 @@ mcp.tool("explore_directory", {
     ]);
 
     const skills = skillsRes.data || [];
-    const connectors = connectorsRes.data || [];
+    const connectors = deduplicateConnectors(connectorsRes.data || []);
     const plugins = pluginsRes.data || [];
 
     const sections: string[] = [];
