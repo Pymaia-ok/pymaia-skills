@@ -1,34 +1,34 @@
 
 
-## Auditoría de calidad — Packs por Rol (v3 FINAL)
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
+### Implementado en esta sesión
 
-| Pack | Skills | Estado | Cambios v3 |
-|---|---|---|---|
-| **Marketer** | 8 | ✅ Excelente | Sin cambios |
-| **DevOps** | 8 | ✅ Excelente | Sin cambios |
-| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
-| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
-| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
-| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
-| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
-| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
-| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
-| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
-| **Founder** | 6 | ✅ Bueno | Sin cambios |
-| **Consultor** | 6 | ✅ Bueno | Sin cambios |
-| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
-| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
-| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
+| Gap | Estado | Implementación |
+|---|---|---|
+| **Dependency Audit (CVE checks)** | ✅ Implementado | Layer 12 en `scan-security` v6.0 — lee `package.json`/`requirements.txt` del repo GitHub, consulta GitHub Advisory Database API. CVSS>7 bloquea, CVSS>9 recomienda delist. |
+| **Network Security Check (MCPs)** | ✅ Implementado | `check-mcp-health` v2.0 — valida HTTPS, puertos seguros, no IPs internas, no credenciales en URL, SSL errors. |
+| **Publisher notification on report** | ✅ Implementado | `security-incident` v2.0 — notifica al publisher vía `send-email` cuando recibe 1 reporte. Notifica también en delist. |
+| **Review Queue en Admin** | ✅ Implementado | Nuevo tab "Review Queue" en `/admin` con items flagged/suspicious, botones Approve/Reject/Rescan. |
+| **Full catalog re-scan rotation** | ✅ Implementado | `rescan-security` v2.0 — ordena por `security_scanned_at ASC` (nulls first), rota el catálogo completo semanalmente. |
+| **Publisher account status check** | ✅ Implementado | `version-monitor` v2.0 — verifica que las cuentas GitHub de publishers sigan activas, crea incidente P2 si eliminada/suspendida. |
+| **Uninstall spike detection** | ✅ Implementado | `security-incident` acción `check_uninstall_spikes` — detecta tasa de uninstall >30% como trigger de review. |
 
-### Acciones ejecutadas
-1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
-2. ✅ Arquitecto desactivado (honestidad > cantidad)
-3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
-4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
-5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
-6. ✅ 277 skills legal-tech indexadas desde GitHub
-7. ✅ 107 skills education-technology indexadas desde GitHub
-8. ✅ Wizard actualizado (14 roles, tasks renombrados)
-9. ✅ i18n ES/EN actualizados
+### Items no implementables en esta plataforma
+- ML model (Fase 4) — requiere infra ML externa
+- Snyk Agent Scan — requiere API key de pago
+- Docker image scan (Trivy/Grype) — no ejecutable en edge functions
+
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API) ← NUEVO
+12. LLM analysis (Gemini 2.5 Flash)
