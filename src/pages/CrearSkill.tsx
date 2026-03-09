@@ -304,6 +304,7 @@ const CrearSkill = () => {
     price_amount: number | null;
     required_mcps?: RequiredMcp[];
     is_public: boolean;
+    publish_as_plugin: boolean;
   }) => {
     if (!skill || !user) return;
     setIsPublishing(true);
