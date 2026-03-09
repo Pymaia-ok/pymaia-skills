@@ -269,9 +269,16 @@ const ConectorDetail = () => {
                           </h2>
                           <div
                             onClick={() => {
-                              navigator.clipboard.writeText(cliCmd);
-                              setCopied(true);
-                              setTimeout(() => setCopied(false), 2000);
+                              const scanResult = (connector as any).security_scan_result;
+                              const hasPermWarnings = scanResult?.layers?.scope?.permissions?.length > 0;
+                              if (hasPermWarnings) {
+                                setPendingCopyCmd(cliCmd);
+                                setShowInstallConfirm(true);
+                              } else {
+                                navigator.clipboard.writeText(cliCmd);
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              }
                             }}
                             className="flex items-center justify-between p-4 rounded-xl bg-foreground text-background cursor-pointer hover:opacity-90 transition-opacity group"
                           >
