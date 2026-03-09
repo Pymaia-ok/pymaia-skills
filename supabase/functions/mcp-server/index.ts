@@ -655,13 +655,16 @@ mcpApp.get("/", (c) => c.json({
   version: "3.0.0",
   rateLimit: "30 requests/minute per IP",
   tools: [
-    "search_skills", "get_skill_details",
-    "list_popular_skills", "list_new_skills",
-    "list_categories", "search_by_role",
-    "recommend_for_task", "compare_skills",
+    "search_skills", "get_skill_details", "list_popular_skills", "list_new_skills",
+    "list_categories", "search_by_role", "recommend_for_task", "compare_skills",
     "get_directory_stats", "get_install_command",
+    "search_connectors", "get_connector_details", "list_popular_connectors",
+    "search_plugins", "get_plugin_details", "list_popular_plugins",
+    "explore_directory",
   ],
   categories: ["desarrollo", "diseño", "marketing", "automatización", "productividad", "legal", "negocios", "creatividad", "datos", "ia"],
+  connectorCategories: ["dev-tools", "data", "communication", "productivity", "ai", "cloud", "design", "business", "finance", "marketing", "security", "analytics"],
+  pluginCategories: ["development", "productivity", "design", "data", "marketing", "business", "communication", "security", "ai", "education"],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
 
