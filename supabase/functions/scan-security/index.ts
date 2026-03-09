@@ -660,7 +660,7 @@ Deno.serve(async (req) => {
 
     // ── GATE MODE: scan content directly and return pass/fail ──
     if (gate_mode && content) {
-      const result = await runFullScan(content, body.slug || "", item_type, directInstallCmd || "", lovableApiKey, supabase);
+      const result = await runFullScan(content, body.slug || "", item_type, directInstallCmd || "", lovableApiKey, supabase, body.github_url || null);
       const pass = result.verdict === "SAFE";
       return new Response(JSON.stringify({ pass, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
