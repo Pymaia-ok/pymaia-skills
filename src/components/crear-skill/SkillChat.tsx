@@ -341,8 +341,11 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         setIsScreenRecording(false);
+        mediaRecorderRef.current = null;
 
+        console.log("[Screen Recording] onstop fired, chunks:", screenChunksRef.current.length);
         const blob = new Blob(screenChunksRef.current, { type: "video/webm" });
+        console.log("[Screen Recording] blob size:", blob.size);
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: "video/webm" });
         const previewUrl = URL.createObjectURL(blob);
 
@@ -354,7 +357,10 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           processing: false,
           previewUrl,
         };
-        setAttachments((prev) => [...prev, attachment]);
+        setAttachments((prev) => {
+          console.log("[Screen Recording] Adding attachment, prev count:", prev.length);
+          return [...prev, attachment];
+        });
         toast.success("Grabación lista — tocá para previsualizarla");
       };
 
