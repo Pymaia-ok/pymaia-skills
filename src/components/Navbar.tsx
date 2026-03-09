@@ -72,15 +72,16 @@ const Navbar = () => {
 
           <div className="w-px h-5 bg-border mx-1" />
 
+          <Link
+            to="/crear-skill"
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {t("nav.createSkill")}
+          </Link>
+
           {user ? (
             <>
-              <Link
-                to="/crear-skill"
-                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {t("nav.publish")}
-              </Link>
 
               <div className="w-px h-5 bg-border mx-1" />
 

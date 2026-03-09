@@ -44,6 +44,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/crear-skill" element={<CrearSkill />} />
             <Route path="/publicar" element={<Navigate to="/crear-skill" replace />} />
+            <Route path="/crear" element={<Navigate to="/crear-skill" replace />} />
             <Route path="/mis-skills" element={<MisSkills />} />
             <Route path="/u/:username" element={<UserProfile />} />
             <Route path="/mcp" element={<MCP />} />

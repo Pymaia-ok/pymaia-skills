@@ -2,8 +2,10 @@ import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2, Package, Plug, BookOpen } from "lucide-react";
 import { useCallback, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 
@@ -13,6 +15,7 @@ const PluginDetail = () => {
   const navigate = useNavigate();
   const isEs = i18n.language === "es";
   const [copied, setCopied] = useState(false);
+  const [showFullReadme, setShowFullReadme] = useState(false);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) navigate(-1);
@@ -33,10 +36,64 @@ const PluginDetail = () => {
     enabled: !!slug,
   });
 
-  // Extract the plugin identifier from homepage URL (e.g., https://claude.com/plugins/slack → slack)
+  // Fetch README from GitHub
+  const { data: readme } = useQuery({
+    queryKey: ["plugin-readme", plugin?.github_url],
+    queryFn: async () => {
+      if (!plugin?.github_url) return null;
+      const match = plugin.github_url.match(/github\.com\/([^/]+)\/([^/]+)/);
+      if (!match) return null;
+      const [, owner, repo] = match;
+      const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`);
+      if (!res.ok) {
+        const res2 = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/master/README.md`);
+        if (!res2.ok) return null;
+        return res2.text();
+      }
+      return res.text();
+    },
+    enabled: !!plugin?.github_url,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Find related skills (skills that mention the plugin name)
+  const { data: relatedSkills = [] } = useQuery({
+    queryKey: ["plugin-related-skills", plugin?.name],
+    queryFn: async () => {
+      if (!plugin?.name) return [];
+      const searchTerm = plugin.name.toLowerCase().replace(/-plugin$/, "").replace(/\s+plugin$/i, "");
+      const { data, error } = await supabase
+        .from("skills")
+        .select("*")
+        .eq("status", "approved")
+        .or(`display_name.ilike.%${searchTerm}%,tagline.ilike.%${searchTerm}%`)
+        .limit(6);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!plugin,
+  });
+
+  // Find related connectors
+  const { data: relatedConnectors = [] } = useQuery({
+    queryKey: ["plugin-related-connectors", plugin?.name],
+    queryFn: async () => {
+      if (!plugin?.name) return [];
+      const searchTerm = plugin.name.toLowerCase().replace(/-plugin$/, "").replace(/\s+plugin$/i, "");
+      const { data, error } = await supabase
+        .from("mcp_servers")
+        .select("name, slug, icon_url, category, description, description_es")
+        .eq("status", "approved")
+        .or(`name.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`)
+        .limit(6);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!plugin,
+  });
+
   const pluginId = plugin?.homepage?.match(/claude\.com\/plugins\/([^/?#]+)/)?.[1] || plugin?.slug?.replace(/-plugin$/, "");
 
-  // Build install URLs
   const coworkUrl = plugin?.is_official
     ? `https://claude.ai/redirect/claudedotcom.v1.0920c6c1-6b38-4271-8d4e-842e466c7ca3/desktop/customize/plugins/new?marketplace=anthropics/knowledge-work-plugins&plugin=${pluginId}`
     : plugin?.github_url || plugin?.homepage || "#";
@@ -51,7 +108,7 @@ const PluginDetail = () => {
     navigator.clipboard.writeText(codeCommand);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [codeCommand, setCopied]);
+  }, [codeCommand]);
 
   const showCowork = plugin?.platform === "cowork" || plugin?.platform === "both";
   const showCode = plugin?.platform === "claude-code" || plugin?.platform === "both";
@@ -95,6 +152,7 @@ const PluginDetail = () => {
           </button>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            {/* Header */}
             <div className="flex items-center gap-4 mb-6">
               {plugin.icon_url ? (
                 <img src={plugin.icon_url} alt={plugin.name} className="w-14 h-14 rounded-xl" />
@@ -215,6 +273,65 @@ const PluginDetail = () => {
               </div>
             )}
 
+            {/* Related Connectors */}
+            {relatedConnectors.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Plug className="w-4 h-4" />
+                  {isEs ? "Conectores relacionados" : "Related connectors"}
+                </h2>
+                <div className="space-y-2">
+                  {relatedConnectors.map((conn: any) => (
+                    <Link
+                      key={conn.slug}
+                      to={`/conector/${conn.slug}`}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border hover:border-foreground/20 transition-colors"
+                    >
+                      {conn.icon_url ? (
+                        <img src={conn.icon_url} alt={conn.name} className="w-8 h-8 rounded-lg object-contain" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary">{conn.name[0]}</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">{conn.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {isEs && conn.description_es ? conn.description_es : conn.description}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* README */}
+            {readme && (
+              <div className="mb-8">
+                <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  {isEs ? "Documentación" : "Documentation"}
+                </h2>
+                <div className="p-6 rounded-2xl bg-secondary/50 border border-border">
+                  <div className={`prose prose-sm dark:prose-invert max-w-none ${!showFullReadme ? "max-h-[300px] overflow-hidden relative" : ""}`}>
+                    <ReactMarkdown>{readme}</ReactMarkdown>
+                    {!showFullReadme && (
+                      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-secondary/50 to-transparent" />
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowFullReadme(!showFullReadme)}
+                    className="mt-3 text-sm text-primary hover:underline font-medium"
+                  >
+                    {showFullReadme
+                      ? (isEs ? "Mostrar menos" : "Show less")
+                      : (isEs ? "Leer documentación completa" : "Read full documentation")}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* GitHub link */}
             {plugin.github_url && (
               <div className="mb-8">
@@ -227,6 +344,21 @@ const PluginDetail = () => {
                   <Github className="w-4 h-4" />
                   {isEs ? "Ver código fuente" : "View source code"}
                 </a>
+              </div>
+            )}
+
+            {/* Related Skills */}
+            {relatedSkills.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  {isEs ? "Skills relacionadas" : "Related skills"}
+                </h2>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {relatedSkills.map((skill: any, i: number) => (
+                    <SkillCard key={skill.id} skill={skill} index={i} />
+                  ))}
+                </div>
               </div>
             )}
 
