@@ -237,7 +237,11 @@ const PluginDetail = () => {
                 scanResult={(plugin as any).security_scan_result}
                 showWarnings
                 itemType="plugin"
+                createdAt={plugin.created_at}
+                isOfficial={plugin.is_official}
+                creatorId={plugin.creator_id}
               />
+              {(plugin as any).security_scanned_at && <ScannedByPymaiaBadge />}
 
               {plugin.is_anthropic_verified ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold">

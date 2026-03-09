@@ -183,7 +183,11 @@ const ConectorDetail = () => {
                 scanResult={(connector as any).security_scan_result}
                 showWarnings
                 itemType="connector"
+                createdAt={connector.created_at}
+                isOfficial={connector.is_official}
+                creatorId={null}
               />
+              {(connector as any).security_scanned_at && <ScannedByPymaiaBadge />}
 
               {/* Official vs Community badge */}
               {connector.is_official ? (

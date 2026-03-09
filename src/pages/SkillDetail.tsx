@@ -276,7 +276,11 @@ const SkillDetail = () => {
                 scanResult={(skill as any).security_scan_result}
                 showWarnings
                 itemType="skill"
+                createdAt={skill.created_at}
+                isOfficial={false}
+                creatorId={skill.creator_id}
               />
+              {(skill as any).security_scanned_at && <ScannedByPymaiaBadge />}
               {(skill as any).last_commit_at && (() => {
                 const months = (Date.now() - new Date((skill as any).last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
                 return months <= 6 ? (
