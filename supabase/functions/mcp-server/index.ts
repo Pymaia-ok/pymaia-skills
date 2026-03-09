@@ -310,23 +310,37 @@ mcp.tool("search_connectors", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+    const queryLower = args.query.toLowerCase();
+
+    // Server-side search using ilike for accurate results
     let q = supabase
       .from("mcp_servers")
-      .select("name, slug, description, category, github_stars, github_url, install_command, is_official, icon_url")
+      .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
       .eq("status", "approved")
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
       .order("github_stars", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .limit(lim);
 
     if (args.category) q = q.eq("category", args.category);
 
-    const { data, error } = await q;
+    const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const queryLower = args.query.toLowerCase();
-    const matched = (data || []).filter(
-      (c: any) => c.name.toLowerCase().includes(queryLower) || c.description.toLowerCase().includes(queryLower) || c.slug.includes(queryLower)
-    );
-    const results = matched.length > 0 ? matched : (data || []).slice(0, 3);
+    // If no server-side matches, fall back to top connectors
+    let results = matched || [];
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("mcp_servers")
+        .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
+        .eq("status", "approved")
+        .order("github_stars", { ascending: false })
+        .limit(3);
+      if (args.category) fallback = fallback.eq("category", args.category);
+      const { data: topData } = await fallback;
+      results = topData || [];
+    }
+
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No connectors found." }] };
 
     const text = results
