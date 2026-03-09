@@ -136,38 +136,49 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const [processingAttachments, setProcessingAttachments] = useState(false);
+
   const sendMessage = async () => {
     const text = input.trim();
-    if ((!text && attachments.length === 0) || streaming) return;
+    if ((!text && attachments.length === 0) || streaming || processingAttachments) return;
 
+    const currentAttachments = [...attachments];
+    const displayContent = text + (currentAttachments.length > 0 ? `\n\n📎 ${currentAttachments.map((a) => a.name).join(", ")}` : "");
+
+    // Show user message immediately with attachments
+    const displayMsg: Msg = { role: "user", content: displayContent };
+    const displayMessages = [...messages, displayMsg];
+    setMessages(displayMessages);
+    setInput("");
+    setAttachments([]);
+
+    // Process attachments in background
     let contextParts: string[] = [];
-    if (attachments.length > 0) {
-      toast.info("Procesando archivos adjuntos...");
-      for (const att of attachments) {
-        const extracted = await processAttachment(att);
-        if (extracted) contextParts.push(extracted);
+    if (currentAttachments.length > 0) {
+      setProcessingAttachments(true);
+      try {
+        const results = await Promise.all(
+          currentAttachments.map((att) => processAttachment(att))
+        );
+        contextParts = results.filter(Boolean);
+      } catch (e) {
+        console.error("Error processing attachments:", e);
+        toast.error("Error al procesar algunos archivos");
+      } finally {
+        setProcessingAttachments(false);
       }
     }
 
     let fullMessage = text;
     if (contextParts.length > 0) {
       const context = contextParts.join("\n\n---\n\n");
-      fullMessage = contextParts.length > 0 && text
+      fullMessage = text
         ? `${text}\n\n[Contexto extraído de archivos adjuntos]:\n${context}`
         : context;
     }
 
     const userMsg: Msg = { role: "user", content: fullMessage };
-    const displayMsg: Msg = {
-      role: "user",
-      content: text + (attachments.length > 0 ? `\n\n📎 ${attachments.map((a) => a.name).join(", ")}` : ""),
-    };
-
     const newMessages = [...messages, userMsg];
-    const displayMessages = [...messages, displayMsg];
-    setMessages(displayMessages);
-    setInput("");
-    setAttachments([]);
     setStreaming(true);
 
     let assistantText = "";
