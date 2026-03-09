@@ -188,11 +188,24 @@ const RoleLanding = () => {
         {/* Skills Grid */}
         <section className="py-16 bg-secondary/30">
           <div className="max-w-5xl mx-auto px-6">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {skills.map((skill, i) => (
-                <SkillCard key={skill.id} skill={skill} index={i} />
-              ))}
-            </div>
+            {skills.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {skills.map((skill, i) => (
+                  <SkillCard key={skill.id} skill={skill} index={i} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <span className="text-5xl mb-4 block">🔧</span>
+                <h3 className="text-xl font-semibold mb-2">{t("roleLanding.emptyTitle", "Estamos preparando este pack")}</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  {t("roleLanding.emptyDescription", "Estamos curando las mejores skills para este rol. Mientras tanto, explorá el directorio completo.")}
+                </p>
+                <Button variant="outline" className="rounded-full" asChild>
+                  <Link to="/explorar">{t("roleLanding.exploreAll", "Explorar todas las skills")}</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 
