@@ -399,6 +399,66 @@ function decomposePlugin(content: string): {
   };
 }
 
+// ── CONTENT SIMILARITY CHECK (PRD 4.1 item 6) ──
+async function checkContentSimilarity(
+  content: string,
+  slug: string,
+  itemType: string,
+  supabase: any
+): Promise<{ duplicates: Array<{ slug: string; similarity: number }>; is_plagiarized: boolean }> {
+  const duplicates: Array<{ slug: string; similarity: number }> = [];
+
+  // Simple content fingerprinting: extract key sentences, hash them
+  const sentences = content
+    .replace(/[#*`\-\[\]()]/g, "")
+    .split(/[.!?\n]+/)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 30);
+
+  if (sentences.length < 3) return { duplicates: [], is_plagiarized: false };
+
+  // Create a fingerprint from the longest sentences
+  const fingerprint = sentences.sort((a, b) => b.length - a.length).slice(0, 5).join(" ");
+
+  // Search existing items for similar content
+  const tableName = itemType === "connector" ? "mcp_servers" : itemType === "plugin" ? "plugins" : "skills";
+  const contentField = itemType === "skill" ? "description_human" : "description";
+  
+  try {
+    const { data: existing } = await supabase
+      .from(tableName)
+      .select(`slug, ${contentField}`)
+      .eq("status", "approved")
+      .neq("slug", slug)
+      .limit(200);
+
+    if (existing) {
+      for (const item of existing) {
+        const existingContent = ((item as any)[contentField] || "").toLowerCase();
+        if (existingContent.length < 30) continue;
+
+        // Simple Jaccard similarity on word sets
+        const wordsA = new Set(fingerprint.split(/\s+/).filter(w => w.length > 3));
+        const wordsB = new Set(existingContent.split(/\s+/).filter((w: string) => w.length > 3));
+        const intersection = [...wordsA].filter(w => wordsB.has(w)).length;
+        const union = new Set([...wordsA, ...wordsB]).size;
+        const similarity = union > 0 ? intersection / union : 0;
+
+        if (similarity > 0.6) {
+          duplicates.push({ slug: (item as any).slug, similarity: Math.round(similarity * 100) });
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Similarity check error:", e);
+  }
+
+  return {
+    duplicates: duplicates.sort((a, b) => b.similarity - a.similarity).slice(0, 5),
+    is_plagiarized: duplicates.some(d => d.similarity > 80),
+  };
+}
+
 // ── SCAN FUNCTIONS ──
 function scanSecrets(content: string): Array<{ pattern: string; match: string; line?: number }> {
   const findings: Array<{ pattern: string; match: string; line?: number }> = [];
