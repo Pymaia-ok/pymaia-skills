@@ -95,6 +95,7 @@ const CrearSkill = () => {
   const [isRefining, setIsRefining] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftLoading, setDraftLoading] = useState(() => !!searchParams.get("draft"));
 
@@ -337,6 +338,7 @@ const CrearSkill = () => {
     setIsTesting(false);
   };
 
+
   const handlePublish = async (config: { 
     category: string; 
     industry: string[]; 
@@ -349,6 +351,36 @@ const CrearSkill = () => {
   }) => {
     if (!skill || !user) return;
     setIsPublishing(true);
+    setScanResult(null);
+
+    // ── Security Gate: scan before publishing ──
+    try {
+      const contentToScan = [skill.name, skill.tagline, skill.description, skill.instructions, skill.install_command].join("\n\n");
+      const slug = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      
+      const { data: scanData, error: scanError } = await supabase.functions.invoke("scan-security", {
+        body: {
+          gate_mode: true,
+          content: contentToScan,
+          install_command: skill.install_command,
+          slug,
+          item_type: "skill",
+        },
+      });
+
+      if (!scanError && scanData && !scanData.pass) {
+        setScanResult(scanData);
+        setIsPublishing(false);
+        toast.error("Se detectaron problemas de seguridad — revisá los detalles");
+        return;
+      }
+      if (scanData) setScanResult(scanData);
+    } catch (err) {
+      console.error("Security gate error:", err);
+      // Allow publish if scan infra fails
+    }
+
+    // ── Publish ──
     try {
       const slug = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       const useCases = skill.examples.map((ex) => ({
