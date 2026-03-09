@@ -69,3 +69,9 @@ verify_jwt = false
 
 [functions.sync-plugins]
 verify_jwt = false
+
+[functions.scan-security]
+verify_jwt = false
+
+[functions.calculate-trust-score]
+verify_jwt = false
