@@ -296,6 +296,248 @@ mcp.tool("compare_skills", {
   },
 });
 
+// ─── CONNECTOR TOOLS ───
+
+mcp.tool("search_connectors", {
+  description: "Search MCP connectors (integrations) by name, category, or description. Connectors give Claude access to external tools and services like Slack, GitHub, databases, etc.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Search query" },
+      category: { type: "string", description: "Optional category filter: dev-tools, data, communication, productivity, ai, cloud, design, business, finance, marketing, security, analytics, automation" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+    required: ["query"],
+  },
+  handler: async (args: { query: string; category?: string; limit?: number }) => {
+    let q = supabase
+      .from("mcp_servers")
+      .select("name, slug, description, category, github_stars, github_url, install_command, is_official, icon_url")
+      .eq("status", "approved")
+      .order("github_stars", { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
+
+    if (args.category) q = q.eq("category", args.category);
+
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const queryLower = args.query.toLowerCase();
+    const matched = (data || []).filter(
+      (c: any) => c.name.toLowerCase().includes(queryLower) || c.description.toLowerCase().includes(queryLower) || c.slug.includes(queryLower)
+    );
+    const results = matched.length > 0 ? matched : (data || []).slice(0, 3);
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No connectors found." }] };
+
+    const text = results
+      .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}`)
+      .join("\n\n---\n\n");
+
+    return { content: [{ type: "text" as const, text }] };
+  },
+});
+
+mcp.tool("get_connector_details", {
+  description: "Get detailed information about a specific MCP connector by slug.",
+  inputSchema: {
+    type: "object",
+    properties: { slug: { type: "string", description: "The slug identifier of the connector" } },
+    required: ["slug"],
+  },
+  handler: async (args: { slug: string }) => {
+    const { data: c, error } = await supabase
+      .from("mcp_servers").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
+
+    if (error || !c) return { content: [{ type: "text" as const, text: `Connector "${args.slug}" not found.` }] };
+
+    const creds = Array.isArray(c.credentials_needed) && c.credentials_needed.length > 0
+      ? `\n🔑 Credentials: ${c.credentials_needed.join(", ")}` : "";
+
+    const text = `# ${c.name}${c.is_official ? " ✅ Official" : ""}\n\n📂 Category: ${c.category}\n⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars${creds}\n🔒 Security: ${c.security_status}\n\n${c.description}\n\n${c.github_url ? `GitHub: ${c.github_url}\n` : ""}${c.homepage ? `Homepage: ${c.homepage}\n` : ""}${c.docs_url ? `Docs: ${c.docs_url}\n` : ""}\n## Install\n\`\`\`\n${c.install_command}\n\`\`\``;
+
+    return { content: [{ type: "text" as const, text }] };
+  },
+});
+
+mcp.tool("list_popular_connectors", {
+  description: "List the most popular MCP connectors sorted by GitHub stars.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      category: { type: "string", description: "Optional category filter" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+  },
+  handler: async (args: { category?: string; limit?: number }) => {
+    let q = supabase
+      .from("mcp_servers")
+      .select("name, slug, description, category, github_stars, is_official, install_command")
+      .eq("status", "approved")
+      .order("github_stars", { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
+
+    if (args.category) q = q.eq("category", args.category);
+
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const text = (data || [])
+      .map((c: any, i: number) => `${i + 1}. **${c.name}** [${c.category}]${c.is_official ? " ✅" : ""} — ${c.description}\n   ⭐ ${(c.github_stars || 0).toLocaleString()} stars`)
+      .join("\n\n");
+
+    return { content: [{ type: "text" as const, text: text || "No connectors available." }] };
+  },
+});
+
+// ─── PLUGIN TOOLS ───
+
+mcp.tool("search_plugins", {
+  description: "Search plugins for Claude Code and Cowork platforms by name or category.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Search query" },
+      category: { type: "string", description: "Optional category filter: development, productivity, design, data, marketing, business, communication, security, ai, education" },
+      platform: { type: "string", description: "Optional platform filter: claude-code, cowork" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+    required: ["query"],
+  },
+  handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
+    let q = supabase
+      .from("plugins")
+      .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
+      .eq("status", "approved")
+      .order("install_count", { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
+
+    if (args.category) q = q.eq("category", args.category);
+    if (args.platform) q = q.eq("platform", args.platform);
+
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const queryLower = args.query.toLowerCase();
+    const matched = (data || []).filter(
+      (p: any) => p.name.toLowerCase().includes(queryLower) || p.description.toLowerCase().includes(queryLower) || p.slug.includes(queryLower)
+    );
+    const results = matched.length > 0 ? matched : (data || []).slice(0, 3);
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No plugins found." }] };
+
+    const text = results
+      .map((p: any) => {
+        const badges = [p.is_anthropic_verified ? "🏅 Anthropic Verified" : "", p.is_official ? "✅ Official" : ""].filter(Boolean).join(" ");
+        return `**${p.name}** [${p.category}] ${badges}\n${p.description}\n📦 ${p.platform} · ${p.install_count.toLocaleString()} installs`;
+      })
+      .join("\n\n---\n\n");
+
+    return { content: [{ type: "text" as const, text }] };
+  },
+});
+
+mcp.tool("get_plugin_details", {
+  description: "Get detailed information about a specific plugin by slug.",
+  inputSchema: {
+    type: "object",
+    properties: { slug: { type: "string", description: "The slug identifier of the plugin" } },
+    required: ["slug"],
+  },
+  handler: async (args: { slug: string }) => {
+    const { data: p, error } = await supabase
+      .from("plugins").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
+
+    if (error || !p) return { content: [{ type: "text" as const, text: `Plugin "${args.slug}" not found.` }] };
+
+    const badges = [p.is_anthropic_verified ? "🏅 Anthropic Verified" : "", p.is_official ? "✅ Official" : ""].filter(Boolean).join(" · ");
+
+    const text = `# ${p.name} ${badges}\n\n📂 Category: ${p.category}\n📦 Platform: ${p.platform}\n⭐ ${p.github_stars.toLocaleString()} GitHub stars · ${p.install_count.toLocaleString()} installs\n🔒 Security: ${p.security_status}\n\n${p.description}\n\n${p.github_url ? `GitHub: ${p.github_url}\n` : ""}${p.homepage ? `Homepage: ${p.homepage}` : ""}`;
+
+    return { content: [{ type: "text" as const, text }] };
+  },
+});
+
+mcp.tool("list_popular_plugins", {
+  description: "List the most popular plugins sorted by installations.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      category: { type: "string", description: "Optional category filter" },
+      platform: { type: "string", description: "Optional platform: claude-code, cowork" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+  },
+  handler: async (args: { category?: string; platform?: string; limit?: number }) => {
+    let q = supabase
+      .from("plugins")
+      .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified")
+      .eq("status", "approved")
+      .order("install_count", { ascending: false })
+      .limit(Math.min(args.limit || 5, 10));
+
+    if (args.category) q = q.eq("category", args.category);
+    if (args.platform) q = q.eq("platform", args.platform);
+
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+
+    const text = (data || [])
+      .map((p: any, i: number) => {
+        const badge = p.is_anthropic_verified ? " 🏅" : p.is_official ? " ✅" : "";
+        return `${i + 1}. **${p.name}**${badge} [${p.category}] — ${p.description}\n   📦 ${p.platform} · ${p.install_count.toLocaleString()} installs`;
+      })
+      .join("\n\n");
+
+    return { content: [{ type: "text" as const, text: text || "No plugins available." }] };
+  },
+});
+
+// ─── UNIFIED SEARCH ───
+
+mcp.tool("explore_directory", {
+  description: "Search across the entire Pymaia directory — skills, MCP connectors, and plugins — in a single query. Great for broad discovery.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Search query describing what you're looking for" },
+      limit: { type: "number", description: "Max results per type (default: 3)" },
+    },
+    required: ["query"],
+  },
+  handler: async (args: { query: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 3, 5);
+    const q = args.query.toLowerCase();
+
+    const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
+      supabase.from("skills").select("display_name, tagline, slug, category, install_count, install_command").eq("status", "approved").order("install_count", { ascending: false }).limit(20),
+      supabase.from("mcp_servers").select("name, description, slug, category, github_stars, is_official").eq("status", "approved").order("github_stars", { ascending: false }).limit(20),
+      supabase.from("plugins").select("name, description, slug, category, platform, install_count, is_official").eq("status", "approved").order("install_count", { ascending: false }).limit(20),
+    ]);
+
+    const filterMatch = (items: any[], fields: string[]) =>
+      items.filter((item: any) => fields.some(f => (item[f] || "").toLowerCase().includes(q))).slice(0, lim);
+
+    const skills = filterMatch(skillsRes.data || [], ["display_name", "tagline", "slug"]);
+    const connectors = filterMatch(connectorsRes.data || [], ["name", "description", "slug"]);
+    const plugins = filterMatch(pluginsRes.data || [], ["name", "description", "slug"]);
+
+    const sections: string[] = [];
+
+    if (skills.length > 0) {
+      sections.push("## 🧠 Skills\n\n" + skills.map((s: any) => `- **${s.display_name}** [${s.category}] — ${s.tagline}\n  \`${s.install_command}\``).join("\n"));
+    }
+    if (connectors.length > 0) {
+      sections.push("## 🔌 MCP Connectors\n\n" + connectors.map((c: any) => `- **${c.name}** [${c.category}]${c.is_official ? " ✅" : ""} — ${c.description}`).join("\n"));
+    }
+    if (plugins.length > 0) {
+      sections.push("## 🧩 Plugins\n\n" + plugins.map((p: any) => `- **${p.name}** [${p.category}] (${p.platform}) — ${p.description}`).join("\n"));
+    }
+
+    if (sections.length === 0) return { content: [{ type: "text" as const, text: `No results found for "${args.query}".` }] };
+
+    return { content: [{ type: "text" as const, text: `# Directory results for "${args.query}"\n\n${sections.join("\n\n")}` }] };
+  },
+});
+
 // ─── STATS TOOLS ───
 
 mcp.tool("get_directory_stats", {
