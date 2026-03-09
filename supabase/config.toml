@@ -84,3 +84,9 @@ verify_jwt = false
 
 [functions.rescan-security]
 verify_jwt = false
+
+[functions.trust-score-api]
+verify_jwt = false
+
+[functions.check-mcp-health]
+verify_jwt = false

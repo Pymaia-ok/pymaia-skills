@@ -770,24 +770,9 @@ async function runFullScan(
   itemType: string,
   installCommand: string,
   lovableApiKey: string | undefined,
-  supabase?: any
-): Promise<{
-  verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS";
-  layers: {
-    secrets: { count: number; findings: any[] };
-    injection: { count: number; findings: any[]; critical: number; high: number };
-    typosquatting: { flags: string[] };
-    format: { issues: any[] };
-    hidden_content: { findings: any[] };
-    scope: { permissions: any[]; scope_assessment: string; undeclared_capabilities: string[] } | null;
-    hooks: { hooks: any[]; has_hooks: boolean; blocked_count: number; dangerous_count: number } | null;
-    plugin_decomposition: { components: any[]; has_settings_override: boolean; settings_issues: string[]; cross_component_risks: string[] } | null;
-    similarity: { duplicates: any[]; is_plagiarized: boolean } | null;
-    llm: { verdict: string; confidence: number; reasons: string[] } | null;
-  };
-  scanned_at: string;
-  version: string;
-}> {
+  supabase?: any,
+  githubUrl?: string | null
+): Promise<any> {
   // Layer 1: Secret scanning
   const secrets = scanSecrets(content);
 
@@ -824,7 +809,13 @@ async function runFullScan(
     similarityResult = await checkContentSimilarity(content, slug, itemType, supabase);
   }
 
-  // Layer 10: LLM analysis (skip if already clearly malicious)
+  // Layer 10: Publisher verification (PRD 5.1)
+  let publisherResult = null;
+  if (githubUrl) {
+    publisherResult = await verifyPublisher(githubUrl);
+  }
+
+  // Layer 11: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
   if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
       hiddenFindings.filter(f => f.severity === "high").length === 0 &&
@@ -853,6 +844,11 @@ async function runFullScan(
     verdict = "SUSPICIOUS";
   } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
+  } else if (publisherResult && !publisherResult.verified && publisherResult.flags.length > 0) {
+    // New publisher with flags — mark as suspicious
+    if (publisherResult.account_age_days !== null && publisherResult.account_age_days < 30) {
+      verdict = "SUSPICIOUS";
+    }
   } else if (llmResult?.verdict === "MALICIOUS") {
     verdict = "MALICIOUS";
   } else if (llmResult?.verdict === "SUSPICIOUS") {
@@ -876,9 +872,10 @@ async function runFullScan(
       hooks: hookAnalysis.has_hooks ? hookAnalysis : null,
       plugin_decomposition: pluginDecomp,
       similarity: similarityResult,
+      publisher: publisherResult,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "4.0.0",
+    version: "5.0.0",
   };
 }
