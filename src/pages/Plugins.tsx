@@ -180,9 +180,14 @@ const Plugins = () => {
                           <ShieldCheck className="w-3 h-3" />
                           {isEs ? "Oficial" : "Official"}
                         </span>
+                      ) : plugin.security_status === "verified" ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
+                          <ShieldCheck className="w-3 h-3" />
+                          {isEs ? "Verificado" : "Verified"}
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-muted-foreground text-[10px] font-semibold">
-                          {isEs ? "Comunitario" : "Community"}
+                           {isEs ? "Comunitario" : "Community"}
                         </span>
                       )}
                       {plugin.install_count > 0 && (
