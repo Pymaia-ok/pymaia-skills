@@ -118,6 +118,64 @@ const Admin = () => {
     refetchInterval: 15000,
   });
 
+  // Review queue: items flagged or with SUSPICIOUS verdict
+  const { data: reviewQueue } = useQuery({
+    queryKey: ["review-queue"],
+    queryFn: async () => {
+      const items: any[] = [];
+      const tables = [
+        { name: "skills" as const, type: "skill" },
+        { name: "plugins" as const, type: "plugin" },
+        { name: "mcp_servers" as const, type: "connector" },
+      ];
+      for (const t of tables) {
+        const nameField = t.name === "skills" ? "display_name" : "name";
+        const { data } = await supabase
+          .from(t.name)
+          .select(`id, slug, ${nameField}, security_status, security_scan_result, security_scanned_at, status`)
+          .or("security_status.eq.flagged,security_status.eq.unverified")
+          .eq("status", "approved")
+          .not("security_scan_result", "is", null)
+          .order("security_scanned_at", { ascending: false })
+          .limit(30);
+        if (data) {
+          items.push(...data.map((d: any) => ({
+            ...d,
+            item_type: t.type,
+            name: d[nameField] || d.slug,
+            verdict: d.security_scan_result?.verdict || "UNKNOWN",
+          })));
+        }
+      }
+      // Sort: SUSPICIOUS/MALICIOUS first
+      return items.sort((a, b) => {
+        const order: Record<string, number> = { MALICIOUS: 0, SUSPICIOUS: 1, SAFE: 2, UNKNOWN: 3 };
+        return (order[a.verdict] ?? 3) - (order[b.verdict] ?? 3);
+      });
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
+  const queryClient = useQueryClient();
+
+  const reviewAction = useMutation({
+    mutationFn: async ({ id, itemType, action }: { id: string; itemType: string; action: "approve" | "reject" | "rescan" }) => {
+      const tableName = itemType === "connector" ? "mcp_servers" : itemType === "plugin" ? "plugins" : "skills";
+      if (action === "approve") {
+        await supabase.from(tableName).update({ security_status: "verified" }).eq("id", id);
+      } else if (action === "reject") {
+        await supabase.from(tableName).update({ status: "rejected", security_status: "flagged" }).eq("id", id);
+      } else if (action === "rescan") {
+        await supabase.functions.invoke("scan-security", { body: { item_id: id, item_type: itemType } });
+      }
+    },
+    onSuccess: (_, vars) => {
+      toast.success(`Item ${vars.action === "approve" ? "aprobado" : vars.action === "reject" ? "rechazado" : "re-escaneando"}`)
+      queryClient.invalidateQueries({ queryKey: ["review-queue"] });
+    },
+  });
+
   // Trust score distribution
   const { data: trustDistribution } = useQuery({
     queryKey: ["trust-distribution"],
