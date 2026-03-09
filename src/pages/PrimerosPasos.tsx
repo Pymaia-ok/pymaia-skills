@@ -67,7 +67,7 @@ const PrimerosPasos = () => {
                 { icon: Brain, label: isEs ? "¿Qué es Claude?" : "What is Claude?", href: "#claude" },
                 { icon: Monitor, label: isEs ? "Modos de Claude" : "Claude Modes", href: "#modes" },
                 { icon: Sparkles, label: isEs ? "¿Qué son las Skills?" : "What are Skills?", href: "#skills" },
-                { icon: Plug, label: isEs ? "Skills, Conectores y Plugins" : "Skills, Connectors & Plugins", href: "#mcps" },
+                { icon: Plug, label: isEs ? "Skills, Conectores y Plugins" : "Skills, Connectors & Plugief: "#mcps" },
                 { icon: Download, label: isEs ? "Instalá Claude Code" : "Install Claude Code", href: "#install" },
                 { icon: Zap, label: isEs ? "Tu primera skill en 2 minutos" : "Your first skill in 2 minutes", href: "#first-skill" },
               ].map((item) => (
@@ -362,7 +362,7 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
-        {/* ─── Section 4: Ecosistema de extensiones ─── */}
+        {/* ─── Section 4: Ecosistema de extensiplugin�─ */}
         <section id="mcps" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
           <motion.div {...fadeUp}>
             <SectionBadge icon={Plug} label={isEs ? "Extensiones" : "Extensions"} />
