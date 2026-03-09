@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import SkillChat from "@/components/crear-skill/SkillChat";
 import SkillPreview from "@/components/crear-skill/SkillPreview";
 import SkillPublishConfig from "@/components/crear-skill/SkillPublishConfig";
+import PluginTemplateSelector, { type PluginTemplate } from "@/components/crear-skill/PluginTemplateSelector";
+import McpApiWizard from "@/components/crear-skill/McpApiWizard";
 import type { Msg } from "@/lib/streaming";
 
 interface StepProps {
@@ -16,7 +18,7 @@ interface StepProps {
   setStep: (step: "chat" | "preview" | "playground" | "publish") => void;
 }
 
-type Step = "chat" | "preview" | "playground" | "publish";
+type Step = "template" | "mcp-wizard" | "chat" | "preview" | "playground" | "publish";
 
 interface RequiredMcp {
   name: string;
@@ -68,12 +70,23 @@ interface TestResults {
   critical_gaps: string[];
 }
 
+// Template context injected as system message
+const templateContextMap: Record<PluginTemplate, string> = {
+  "skill": "El usuario quiere crear un plugin simple basado en un SKILL.md. Solo genera un workflow de texto sin conexiones externas.",
+  "api-connector": "El usuario quiere crear un plugin que se conecta a una API externa vía MCP server. Preguntale qué API quiere conectar y qué quiere hacer con ella.",
+  "workflow": "El usuario quiere crear un workflow completo con múltiples skills, commands y posiblemente MCPs. Preguntale qué proceso quiere automatizar end-to-end.",
+  "slash-command": "El usuario quiere crear un slash command rápido para Claude. Preguntale qué acción debería ejecutar el comando y con qué nombre (ej: /deploy, /review).",
+  "subagent": "El usuario quiere crear un subagente especializado que Claude pueda invocar. Preguntale en qué dominio se especializa el agente y qué tareas debería resolver autónomamente.",
+};
+
 const CrearSkill = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
-  const [step, setStep] = useState<Step>("chat");
+  const [step, setStep] = useState<Step>("template");
+  const [selectedTemplate, setSelectedTemplate] = useState<PluginTemplate | null>(null);
+  const [mcpContext, setMcpContext] = useState<any>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [skill, setSkill] = useState<GeneratedSkill | null>(null);
   const [quality, setQuality] = useState<Quality | null>(null);
@@ -85,7 +98,7 @@ const CrearSkill = () => {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftLoading, setDraftLoading] = useState(() => !!searchParams.get("draft"));
 
-  // Load draft from URL param
+  // Load draft from URL param — skip template selector if resuming
   useEffect(() => {
     const draftParam = searchParams.get("draft");
     if (!draftParam || !user) return;
@@ -118,6 +131,8 @@ const CrearSkill = () => {
             setTestResults(data.test_results as any);
           }
           setStep(data.status === "tested" ? "preview" : data.status === "generated" ? "preview" : "chat");
+        } else {
+          setStep("chat");
         }
         setDraftLoading(false);
       });
@@ -127,15 +142,15 @@ const CrearSkill = () => {
   const lastSavedRef = useRef<string>("");
 
   const saveConversationDraft = useCallback(async () => {
-    if (!user || messages.length < 2) return; // need at least 1 exchange
-    const statusMap: Record<Step, string> = {
+    if (!user || messages.length < 2) return;
+    const statusMap: Record<string, string> = {
       chat: "interviewing",
       preview: skill ? "generated" : "interviewing",
       playground: "generated",
       publish: testResults ? "tested" : "generated",
     };
     const fingerprint = JSON.stringify({ messages, skill, quality, testResults, step });
-    if (fingerprint === lastSavedRef.current) return; // no changes
+    if (fingerprint === lastSavedRef.current) return;
     lastSavedRef.current = fingerprint;
 
     try {
@@ -160,27 +175,23 @@ const CrearSkill = () => {
     }
   }, [user, messages, skill, quality, testResults, draftId, step]);
 
-  // Periodic auto-save (all phases, not just chat)
   useEffect(() => {
     if (messages.length < 2) return;
     const interval = setInterval(saveConversationDraft, 30000);
     return () => clearInterval(interval);
   }, [messages.length, saveConversationDraft]);
 
-  // Save on step/skill/quality/testResults changes (debounced)
   useEffect(() => {
     if (messages.length < 2) return;
     const timeout = setTimeout(saveConversationDraft, 3000);
     return () => clearTimeout(timeout);
   }, [step, skill, quality, testResults, saveConversationDraft]);
 
-  // Save on page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (messages.length >= 2 && user) {
         const fingerprint = JSON.stringify(messages);
         if (fingerprint !== lastSavedRef.current) {
-          // Use sendBeacon for reliability on close
           const payload = {
             user_id: user.id,
             conversation: messages,
@@ -206,7 +217,27 @@ const CrearSkill = () => {
   if (loading || draftLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Save or update draft in skill_drafts table
+  // Handle template selection
+  const handleTemplateSelect = (template: PluginTemplate) => {
+    setSelectedTemplate(template);
+    if (template === "api-connector") {
+      setStep("mcp-wizard");
+    } else {
+      // Inject template context as initial system-like message
+      const context = templateContextMap[template];
+      setMessages([{ role: "assistant", content: `🎯 **Template: ${template === "skill" ? "Skill simple" : template === "workflow" ? "Workflow completo" : template === "slash-command" ? "Slash command" : "Subagente"}**\n\n${context}\n\n¿Qué querés crear?` }]);
+      setStep("chat");
+    }
+  };
+
+  // Handle MCP wizard completion
+  const handleMcpWizardComplete = (result: any) => {
+    setMcpContext(result);
+    const contextMsg = `🔌 **API Connector configurado**\n\nAPI: \`${result.api_url}\`\nAuth: ${result.auth_type}\nEndpoints: ${result.endpoints.length} seleccionados\n\nYa generé el servidor MCP. Ahora describime qué querés que haga el plugin con esta API. ¿Qué workflow o automatización necesitás?`;
+    setMessages([{ role: "assistant", content: contextMsg }]);
+    setStep("chat");
+  };
+
   const saveDraft = async (
     skillData: GeneratedSkill,
     qualityData: Quality | null,
@@ -240,15 +271,27 @@ const CrearSkill = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-skill", {
-        body: { conversation: messages, action: "generate" },
-      });
+      const body: any = { conversation: messages, action: "generate" };
+      // Inject MCP context if available from wizard
+      if (mcpContext) {
+        body.mcp_context = {
+          api_url: mcpContext.api_url,
+          auth_type: mcpContext.auth_type,
+          skill_context: mcpContext.skill_context,
+          endpoints: mcpContext.endpoints,
+        };
+      }
+      // Inject template type
+      if (selectedTemplate) {
+        body.template_type = selectedTemplate;
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-skill", { body });
       if (error) throw error;
       setSkill(data.skill);
       setQuality(data.quality);
       setTestResults(null);
       setStep("preview");
-      // Auto-save as draft
       await saveDraft(data.skill, data.quality, null, messages, "generated");
       toast.success("Borrador guardado automáticamente");
     } catch (e) {
@@ -270,7 +313,6 @@ const CrearSkill = () => {
       setQuality(data.quality);
       setTestResults(null);
       toast.success(t("crearSkill.skillUpdated"));
-      // Update draft
       await saveDraft(data.skill, data.quality, null, messages, "generated");
     } catch {
       toast.error(t("crearSkill.errorRefine"));
@@ -288,7 +330,6 @@ const CrearSkill = () => {
       if (error) throw error;
       setTestResults(data);
       toast.success(t("crearSkill.testsDone", { passed: data.test_results.filter((t: any) => t.passed).length, total: data.test_results.length }));
-      // Update draft with test results
       await saveDraft(skill, quality, data, messages, "tested");
     } catch {
       toast.error(t("crearSkill.errorTests"));
@@ -331,7 +372,6 @@ const CrearSkill = () => {
         is_public: config.is_public,
       });
 
-      // If also publishing as plugin, generate wrapper and insert
       if (config.publish_as_plugin) {
         try {
           const { data: wrapper, error: wrapError } = await supabase.functions.invoke("generate-skill", {
@@ -354,7 +394,6 @@ const CrearSkill = () => {
         }
       }
 
-      // Mark draft as published
       if (draftId) {
         await supabase.from("skill_drafts").update({ status: "published" }).eq("id", draftId);
       }
@@ -370,6 +409,27 @@ const CrearSkill = () => {
   return (
     <div className="min-h-screen h-screen bg-background flex flex-col overflow-hidden">
       <div className="pt-14 flex-1 flex flex-col min-h-0">
+        {step === "template" && (
+          <div className="flex-1 overflow-y-auto">
+            <PluginTemplateSelector
+              onSelect={handleTemplateSelect}
+              onSkip={() => {
+                setSelectedTemplate("skill");
+                setStep("chat");
+              }}
+            />
+          </div>
+        )}
+
+        {step === "mcp-wizard" && (
+          <div className="flex-1 overflow-y-auto">
+            <McpApiWizard
+              onComplete={handleMcpWizardComplete}
+              onBack={() => setStep("template")}
+            />
+          </div>
+        )}
+
         {step === "chat" && (
           <div className="flex-1 flex flex-col min-h-0">
             <SkillChat
