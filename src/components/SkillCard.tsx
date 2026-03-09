@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Star, Heart, ShieldCheck, Download } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { TrustBadgeCompact } from "@/components/TrustBadge";
 
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;

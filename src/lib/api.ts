@@ -93,6 +93,8 @@ export interface SkillFromDB {
   creator_id: string | null;
   created_at: string;
   security_status?: string;
+  trust_score?: number | null;
+  security_scan_result?: any;
   last_commit_at?: string | null;
 }
 
