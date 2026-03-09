@@ -57,6 +57,8 @@ const App = () => (
             <Route path="/para/:roleSlug" element={<RoleLanding />} />
             <Route path="/enterprise" element={<Enterprise />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/seguridad" element={<SecurityAdvisories />} />
+            <Route path="/security" element={<Navigate to="/seguridad" replace />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
             {/* English aliases for LLM discoverability */}
