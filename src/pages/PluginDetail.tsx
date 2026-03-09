@@ -61,7 +61,7 @@ const PluginDetail = () => {
     );
   }
 
-  const installUrl = `https://claude.com/plugins/${plugin.slug}`;
+  const installUrl = plugin?.homepage || (plugin?.github_url ? plugin.github_url : `https://claude.com/plugins/${plugin?.slug}`);
 
   return (
     <div className="min-h-screen bg-background">
