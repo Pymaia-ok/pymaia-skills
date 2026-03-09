@@ -62,7 +62,7 @@ const PluginDetail = () => {
     );
   }
 
-  const [copied, setCopied] = useState(false);
+
 
   // Extract the plugin identifier from homepage URL (e.g., https://claude.com/plugins/slack → slack)
   const pluginId = plugin?.homepage?.match(/claude\.com\/plugins\/([^/?#]+)/)?.[1] || plugin?.slug?.replace(/-plugin$/, "");
