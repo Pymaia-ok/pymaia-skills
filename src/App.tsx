@@ -58,6 +58,11 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
+            {/* English aliases for LLM discoverability */}
+            <Route path="/skills" element={<Navigate to="/explorar" replace />} />
+            <Route path="/connectors" element={<Navigate to="/conectores" replace />} />
+            <Route path="/explore" element={<Navigate to="/explorar" replace />} />
+            <Route path="/getting-started" element={<Navigate to="/primeros-pasos" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
