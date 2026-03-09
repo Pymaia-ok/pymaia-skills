@@ -492,6 +492,17 @@ export default {
     setupStep3: "¡Listo! Las skills que lo usen van a funcionar automáticamente",
   },
 
+  plugins: {
+    title: "Plugins",
+    subtitle: "Paquetes que combinan herramientas, skills y MCPs en una sola instalación para Claude Code y Cowork.",
+    searchPlaceholder: "Buscar plugins...",
+    backToPlugins: "Plugins",
+    securityWarningTitle: "Plugin comunitario",
+    securityWarning: "Los plugins de la comunidad pueden instalar software de terceros no verificado. Revisá siempre el contenido antes de instalarlo.",
+    whatArePlugins: "¿Qué son los plugins?",
+    whatArePluginsDesc: "Los plugins empaquetan múltiples MCPs, skills y herramientas en una sola descarga. En vez de instalar cada componente por separado, tenés todo lo que necesitás en un click.",
+  },
+
   trust: {
     verified: "Verificado",
     active: "Activo",
