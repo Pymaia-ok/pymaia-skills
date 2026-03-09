@@ -328,8 +328,47 @@ export type Database = {
         }
         Relationships: []
       }
+      plugin_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          plugin_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          plugin_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          plugin_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plugin_reviews_plugin_id_fkey"
+            columns: ["plugin_id"]
+            isOneToOne: false
+            referencedRelation: "plugins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plugins: {
         Row: {
+          avg_rating: number
           category: string
           created_at: string
           creator_id: string | null
@@ -347,6 +386,7 @@ export type Database = {
           name: string
           name_es: string | null
           platform: string
+          review_count: number
           security_checked_at: string | null
           security_notes: string | null
           security_status: string
@@ -356,6 +396,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avg_rating?: number
           category?: string
           created_at?: string
           creator_id?: string | null
@@ -373,6 +414,7 @@ export type Database = {
           name: string
           name_es?: string | null
           platform?: string
+          review_count?: number
           security_checked_at?: string | null
           security_notes?: string | null
           security_status?: string
@@ -382,6 +424,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avg_rating?: number
           category?: string
           created_at?: string
           creator_id?: string | null
@@ -399,6 +442,7 @@ export type Database = {
           name?: string
           name_es?: string | null
           platform?: string
+          review_count?: number
           security_checked_at?: string | null
           security_notes?: string | null
           security_status?: string
