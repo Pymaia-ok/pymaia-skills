@@ -899,7 +899,13 @@ async function runFullScan(
     publisherResult = await verifyPublisher(githubUrl);
   }
 
-  // Layer 11: LLM analysis (skip if already clearly malicious)
+  // Layer 11: Dependency audit (PRD 5.1 item 4)
+  let dependencyResult = null;
+  if (githubUrl) {
+    dependencyResult = await auditDependencies(githubUrl);
+  }
+
+  // Layer 12: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
   if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
       hiddenFindings.filter(f => f.severity === "high").length === 0 &&
