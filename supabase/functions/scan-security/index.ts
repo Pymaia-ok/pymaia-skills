@@ -480,6 +480,56 @@ async function checkContentSimilarity(
   };
 }
 
+// ── PUBLISHER GITHUB VERIFICATION (PRD 5.1) ──
+async function verifyPublisher(githubUrl: string | null): Promise<{
+  verified: boolean;
+  account_age_days: number | null;
+  public_repos: number | null;
+  flags: string[];
+}> {
+  if (!githubUrl) return { verified: false, account_age_days: null, public_repos: null, flags: ["No GitHub URL provided"] };
+
+  const ghToken = Deno.env.get("GITHUB_TOKEN");
+  if (!ghToken) return { verified: false, account_age_days: null, public_repos: null, flags: ["GitHub verification unavailable"] };
+
+  const match = githubUrl.match(/github\.com\/([^\/]+)/);
+  if (!match) return { verified: false, account_age_days: null, public_repos: null, flags: ["Invalid GitHub URL"] };
+
+  const org = match[1];
+
+  try {
+    const res = await fetch(`https://api.github.com/users/${org}`, {
+      headers: { Authorization: `token ${ghToken}`, "User-Agent": "pymaia-security" },
+    });
+    if (!res.ok) return { verified: false, account_age_days: null, public_repos: null, flags: [`GitHub user not found: ${org}`] };
+
+    const user = await res.json();
+    const createdAt = new Date(user.created_at);
+    const ageDays = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const publicRepos = user.public_repos || 0;
+    const flags: string[] = [];
+
+    if (ageDays < 30) flags.push(`Account created ${ageDays} days ago — very new`);
+    else if (ageDays < 365) flags.push(`Account age: ${ageDays} days (< 1 year)`);
+
+    if (publicRepos < 3) flags.push(`Only ${publicRepos} public repos — low activity`);
+
+    // Check for suspicious patterns
+    if (user.bio && /hire|freelanc|cheap|hack/i.test(user.bio)) {
+      flags.push("Suspicious account bio");
+    }
+
+    return {
+      verified: ageDays >= 365 && publicRepos >= 5,
+      account_age_days: ageDays,
+      public_repos: publicRepos,
+      flags,
+    };
+  } catch {
+    return { verified: false, account_age_days: null, public_repos: null, flags: ["GitHub API error"] };
+  }
+}
+
 // ── SCAN FUNCTIONS ──
 function scanSecrets(content: string): Array<{ pattern: string; match: string; line?: number }> {
   const findings: Array<{ pattern: string; match: string; line?: number }> = [];
