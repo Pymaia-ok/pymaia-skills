@@ -1,46 +1,34 @@
 
 
-## Problema: búsqueda de conectores en el MCP server falla con queries de múltiples palabras
+## Auditoría de calidad — Packs por Rol (v3 FINAL)
 
-### Causa raíz
-El filtro `.or()` de PostgREST tiene problemas con queries que contienen espacios. Cuando se busca `meta ads`, el filtro genera:
-```
-name.ilike.%meta ads%,slug.ilike.%meta ads%,description.ilike.%meta ads%
-```
-PostgREST puede malinterpretar esto porque los espacios y caracteres especiales dentro del patrón interfieren con el parsing del filtro. Además, queries como `meta,ads` (con coma) romperían completamente la sintaxis.
+### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
 
-### Solución
+| Pack | Skills | Estado | Cambios v3 |
+|---|---|---|---|
+| **Marketer** | 8 | ✅ Excelente | Sin cambios |
+| **DevOps** | 8 | ✅ Excelente | Sin cambios |
+| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
+| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
+| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
+| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
+| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
+| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
+| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
+| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
+| **Founder** | 6 | ✅ Bueno | Sin cambios |
+| **Consultor** | 6 | ✅ Bueno | Sin cambios |
+| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
+| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
+| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
 
-Sanitizar la query para PostgREST y además hacer búsqueda por palabras individuales como fallback. Aplica a las 3 herramientas de búsqueda: `search_connectors`, `search_skills`, y `search_plugins`.
-
-**Archivo: `supabase/functions/mcp-server/index.ts`**
-
-1. Agregar una función helper para sanitizar queries para PostgREST:
-```typescript
-function sanitizeForPostgrest(query: string): string {
-  // Escape characters that break PostgREST filter parsing
-  return query.replace(/[,()."\\]/g, "").trim();
-}
-```
-
-2. En `search_connectors`, `search_skills`, y `search_plugins`:
-   - Sanitizar la query antes de usar en `.or()`
-   - Si no hay resultados con la frase completa, hacer un segundo intento buscando por cada palabra individual (e.g., buscar `%meta%` AND `%ads%` por separado)
-   - Agregar también búsqueda en `description_es` para conectores
-
-3. Para la búsqueda por palabras individuales, construir el filtro dinámicamente:
-```typescript
-// Si la búsqueda con frase completa no da resultados, 
-// intentar con cada palabra por separado
-const words = sanitized.split(/\s+/).filter(w => w.length >= 2);
-if (results.length === 0 && words.length > 1) {
-  // Buscar registros que contengan TODAS las palabras en al menos un campo
-  let q = supabase.from("mcp_servers")...
-  for (const word of words) {
-    q = q.or(`name.ilike.%${word}%,slug.ilike.%${word}%,description.ilike.%${word}%`);
-  }
-}
-```
-
-Esto garantiza que `meta ads`, `facebook ads`, `google sheets`, etc. siempre encuentren resultados.
-
+### Acciones ejecutadas
+1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
+2. ✅ Arquitecto desactivado (honestidad > cantidad)
+3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
+4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
+5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
+6. ✅ 277 skills legal-tech indexadas desde GitHub
+7. ✅ 107 skills education-technology indexadas desde GitHub
+8. ✅ Wizard actualizado (14 roles, tasks renombrados)
+9. ✅ i18n ES/EN actualizados

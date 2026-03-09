@@ -11,6 +11,45 @@ const mcp = new McpServer({
   version: "1.0.0",
 });
 
+// Sanitize queries for PostgREST .or() filter parsing
+function sanitizeForPostgrest(query: string): string {
+  return query.replace(/[,()."\\]/g, "").trim().toLowerCase();
+}
+
+// Build word-split fallback query for multi-word searches
+async function wordSplitSearch(
+  table: "skills" | "mcp_servers" | "plugins",
+  selectCols: string,
+  words: string[],
+  orderCol: string,
+  limit: number,
+  extraFilters?: (q: any) => any,
+): Promise<any[]> {
+  const nameCol = table === "skills" ? "display_name" : "name";
+  const descCol = "description";
+  // Build a query that matches ALL words (each word must appear in at least one field)
+  let q = supabase.from(table).select(selectCols);
+  if (table === "skills") q = q.eq("status", "approved");
+  else q = q.eq("status", "approved");
+  
+  for (const word of words) {
+    const cols = [`${nameCol}.ilike.%${word}%`, `slug.ilike.%${word}%`, `${descCol}.ilike.%${word}%`];
+    if (table === "mcp_servers") cols.push(`description_es.ilike.%${word}%`);
+    if (table === "skills") {
+      cols.push(`tagline.ilike.%${word}%`);
+      cols.push(`tagline_es.ilike.%${word}%`);
+    }
+    if (table === "plugins") cols.push(`description_es.ilike.%${word}%`);
+    q = q.or(cols.join(","));
+  }
+  
+  if (extraFilters) q = extraFilters(q);
+  q = q.order(orderCol, { ascending: false }).limit(limit);
+  
+  const { data } = await q;
+  return data || [];
+}
+
 // ─── DISCOVERY TOOLS ───
 
 mcp.tool("search_skills", {
@@ -26,9 +65,8 @@ mcp.tool("search_skills", {
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const q = args.query.toLowerCase();
+    const q = sanitizeForPostgrest(args.query);
 
-    // Server-side search for accurate results
     let dbQuery = supabase
       .from("skills")
       .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
@@ -44,7 +82,18 @@ mcp.tool("search_skills", {
 
     let results = matched || [];
 
-    // Fallback to top skills if no match
+    // Word-split fallback for multi-word queries
+    const words = q.split(/\s+/).filter(w => w.length >= 2);
+    if (results.length === 0 && words.length > 1) {
+      results = await wordSplitSearch(
+        "skills",
+        "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles",
+        words, "install_count", lim,
+        args.category ? (qb: any) => qb.eq("category", args.category) : undefined,
+      );
+    }
+
+    // Fallback to top skills if still no match
     if (results.length === 0) {
       let fallback = supabase
         .from("skills")
@@ -346,14 +395,13 @@ mcp.tool("search_connectors", {
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const queryLower = args.query.toLowerCase();
+    const queryLower = sanitizeForPostgrest(args.query);
 
-    // Server-side search using ilike for accurate results
     let q = supabase
       .from("mcp_servers")
       .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
       .eq("status", "approved")
-      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%,description_es.ilike.%${queryLower}%`)
       .order("github_stars", { ascending: false })
       .limit(lim);
 
@@ -362,8 +410,20 @@ mcp.tool("search_connectors", {
     const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    // Deduplicate by brand (prefer official over community)
     let results = deduplicateConnectors(matched || []);
+
+    // Word-split fallback for multi-word queries
+    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
+    if (results.length === 0 && words.length > 1) {
+      const fallbackData = await wordSplitSearch(
+        "mcp_servers",
+        "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url",
+        words, "github_stars", lim,
+        args.category ? (qb: any) => qb.eq("category", args.category) : undefined,
+      );
+      results = deduplicateConnectors(fallbackData);
+    }
+
     if (results.length === 0) {
       let fallback = supabase
         .from("mcp_servers")
@@ -454,7 +514,7 @@ mcp.tool("search_plugins", {
   },
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const queryLower = args.query.toLowerCase();
+    const queryLower = sanitizeForPostgrest(args.query);
 
     let q = supabase
       .from("plugins")
@@ -471,6 +531,22 @@ mcp.tool("search_plugins", {
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     let results = matched || [];
+
+    // Word-split fallback for multi-word queries
+    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
+    if (results.length === 0 && words.length > 1) {
+      results = await wordSplitSearch(
+        "plugins",
+        "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count",
+        words, "install_count", lim,
+        (qb: any) => {
+          if (args.category) qb = qb.eq("category", args.category);
+          if (args.platform) qb = qb.eq("platform", args.platform);
+          return qb;
+        },
+      );
+    }
+
     if (results.length === 0) {
       let fallback = supabase
         .from("plugins")
@@ -567,32 +643,30 @@ mcp.tool("explore_directory", {
   },
   handler: async (args: { query: string; limit?: number }) => {
     const lim = Math.min(args.limit || 3, 5);
-    const q = args.query.toLowerCase();
+    const q = sanitizeForPostgrest(args.query);
+    const words = q.split(/\s+/).filter(w => w.length >= 2);
 
-    const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
-      supabase.from("skills")
-        .select("display_name, tagline, slug, category, install_count, install_command")
-        .eq("status", "approved")
-        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
-        .order("install_count", { ascending: false })
-        .limit(lim),
-      supabase.from("mcp_servers")
-        .select("name, description, slug, category, github_stars, is_official")
-        .eq("status", "approved")
-        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
-        .order("github_stars", { ascending: false })
-        .limit(lim),
-      supabase.from("plugins")
-        .select("name, description, slug, category, platform, install_count, is_official")
-        .eq("status", "approved")
-        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
-        .order("install_count", { ascending: false })
-        .limit(lim),
+    async function searchTable(table: "skills" | "mcp_servers" | "plugins", selectCols: string, orderCol: string) {
+      const nameCol = table === "skills" ? "display_name" : "name";
+      let query = supabase.from(table).select(selectCols).eq("status", "approved")
+        .or(`${nameCol}.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+        .order(orderCol, { ascending: false }).limit(lim);
+      const { data } = await query;
+      if ((data || []).length > 0) return data!;
+      // Word-split fallback
+      if (words.length > 1) {
+        return await wordSplitSearch(table, selectCols, words, orderCol, lim);
+      }
+      return [];
+    }
+
+    const [skills, connectorsRaw, plugins] = await Promise.all([
+      searchTable("skills", "display_name, tagline, slug, category, install_count, install_command", "install_count"),
+      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official", "github_stars"),
+      searchTable("plugins", "name, description, slug, category, platform, install_count, is_official", "install_count"),
     ]);
 
-    const skills = skillsRes.data || [];
-    const connectors = deduplicateConnectors(connectorsRes.data || []);
-    const plugins = pluginsRes.data || [];
+    const connectors = deduplicateConnectors(connectorsRaw);
 
     const sections: string[] = [];
 
