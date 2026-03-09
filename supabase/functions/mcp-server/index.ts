@@ -310,6 +310,27 @@ mcp.tool("compare_skills", {
   },
 });
 
+// Deduplicate connectors by brand: prefer is_official, then curated source, then highest stars
+function deduplicateConnectors(connectors: any[]): any[] {
+  const brandMap = new Map<string, any>();
+  for (const c of connectors) {
+    // Normalize brand key: lowercase, remove common suffixes like -mcp, -server
+    const brand = c.name.toLowerCase().replace(/[-_](mcp|server|connector)$/i, "").replace(/\s+/g, "-");
+    const existing = brandMap.get(brand);
+    if (!existing) {
+      brandMap.set(brand, c);
+    } else {
+      // Prefer official, then higher stars
+      if (c.is_official && !existing.is_official) {
+        brandMap.set(brand, c);
+      } else if (c.is_official === existing.is_official && (c.github_stars || 0) > (existing.github_stars || 0)) {
+        brandMap.set(brand, c);
+      }
+    }
+  }
+  return Array.from(brandMap.values());
+}
+
 // ─── CONNECTOR TOOLS ───
 
 mcp.tool("search_connectors", {
