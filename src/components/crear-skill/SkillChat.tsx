@@ -516,6 +516,18 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
               >
                 {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
+              <button
+                onClick={toggleScreenRecording}
+                disabled={streaming || isGenerating}
+                className={`p-2.5 rounded-xl transition-colors disabled:opacity-40 ${
+                  isScreenRecording
+                    ? "text-red-500 bg-red-500/10 hover:bg-red-500/20 animate-pulse"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+                title={isScreenRecording ? "Detener grabación" : "Grabar pantalla"}
+              >
+                {isScreenRecording ? <Square className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+              </button>
             </div>
             <div className="flex-1 relative">
               <textarea
