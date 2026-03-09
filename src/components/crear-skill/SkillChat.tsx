@@ -165,7 +165,14 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const [processingAttachments, setProcessingAttachments] = useState(false);
 
   const sendMessage = async () => {
-    const text = input.trim();
+    // Stop dictation first and grab the latest text from the ref
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+      recognitionRef.current = null;
+      setIsRecording(false);
+    }
+    // Use ref to get the most up-to-date input (avoids stale closure)
+    const text = inputRef.current.trim();
     if ((!text && attachments.length === 0) || streaming || processingAttachments) return;
 
     const currentAttachments = [...attachments];
