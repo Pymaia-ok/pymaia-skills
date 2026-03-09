@@ -45,7 +45,7 @@ const App = () => (
             <Route path="/publicar" element={<Navigate to="/crear-skill" replace />} />
             <Route path="/mis-skills" element={<MisSkills />} />
             <Route path="/u/:username" element={<UserProfile />} />
-            <Route path="/teams" element={<Teaement={<MCP />} />
+            <Route path="/mcp" element={<MCP />} />
             <Route path="/conectores" element={<Conectores />} />
             <Route path="/conector/:slug" element={<ConectorDetail />} />
             <Route path="/plugins" element={<Plugins />} />
