@@ -33,6 +33,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
