@@ -13,6 +13,7 @@ import CrearSkill from "./pages/CrearSkill";
 import UserProfile from "./pages/UserProfile";
 import Conectores from "./pages/Conectores";
 import ConectorDetail from "./pages/ConectorDetail";
+import MCP from "./pages/MCP";
 import Admin from "./pages/Admin";
 import MisSkills from "./pages/MisSkills";
 import Terms from "./pages/Terms";
