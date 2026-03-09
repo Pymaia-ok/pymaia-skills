@@ -10,7 +10,7 @@ const Footer = () => {
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
     { to: "/mcp", label: t("nav.mcp") },
-    { to: "/teams", label: t("nav.teams") },
+    
     { to: "/crear-skill", label: t("nav.publish") },
   ];
 
