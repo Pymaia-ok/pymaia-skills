@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { submitSkill } from "@/lib/api";
+import { submitSkill, submitPlugin } from "@/lib/api";
 import { toast } from "sonner";
 import SkillChat from "@/components/crear-skill/SkillChat";
 import SkillPreview from "@/components/crear-skill/SkillPreview";
