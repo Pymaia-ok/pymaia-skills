@@ -643,32 +643,30 @@ mcp.tool("explore_directory", {
   },
   handler: async (args: { query: string; limit?: number }) => {
     const lim = Math.min(args.limit || 3, 5);
-    const q = args.query.toLowerCase();
+    const q = sanitizeForPostgrest(args.query);
+    const words = q.split(/\s+/).filter(w => w.length >= 2);
 
-    const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
-      supabase.from("skills")
-        .select("display_name, tagline, slug, category, install_count, install_command")
-        .eq("status", "approved")
-        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
-        .order("install_count", { ascending: false })
-        .limit(lim),
-      supabase.from("mcp_servers")
-        .select("name, description, slug, category, github_stars, is_official")
-        .eq("status", "approved")
-        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
-        .order("github_stars", { ascending: false })
-        .limit(lim),
-      supabase.from("plugins")
-        .select("name, description, slug, category, platform, install_count, is_official")
-        .eq("status", "approved")
-        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
-        .order("install_count", { ascending: false })
-        .limit(lim),
+    async function searchTable(table: "skills" | "mcp_servers" | "plugins", selectCols: string, orderCol: string) {
+      const nameCol = table === "skills" ? "display_name" : "name";
+      let query = supabase.from(table).select(selectCols).eq("status", "approved")
+        .or(`${nameCol}.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+        .order(orderCol, { ascending: false }).limit(lim);
+      const { data } = await query;
+      if ((data || []).length > 0) return data!;
+      // Word-split fallback
+      if (words.length > 1) {
+        return await wordSplitSearch(table, selectCols, words, orderCol, lim);
+      }
+      return [];
+    }
+
+    const [skills, connectorsRaw, plugins] = await Promise.all([
+      searchTable("skills", "display_name, tagline, slug, category, install_count, install_command", "install_count"),
+      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official", "github_stars"),
+      searchTable("plugins", "name, description, slug, category, platform, install_count, is_official", "install_count"),
     ]);
 
-    const skills = skillsRes.data || [];
-    const connectors = deduplicateConnectors(connectorsRes.data || []);
-    const plugins = pluginsRes.data || [];
+    const connectors = deduplicateConnectors(connectorsRaw);
 
     const sections: string[] = [];
 
