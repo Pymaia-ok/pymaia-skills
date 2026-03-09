@@ -11,7 +11,7 @@ import PrimerosPasos from "./pages/PrimerosPasos";
 import Auth from "./pages/Auth";
 import CrearSkill from "./pages/CrearSkill";
 import UserProfile from "./pages/UserProfile";
-import Teams from "./pages/Teams";
+
 import MCP from "./pages/MCP";
 import Conectores from "./pages/Conectores";
 import ConectorDetail from "./pages/ConectorDetail";
