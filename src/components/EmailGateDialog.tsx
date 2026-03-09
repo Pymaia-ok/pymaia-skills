@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ interface EmailGateDialogProps {
   onEmailCaptured: (email: string) => void;
 }
 
-const EmailGateDialog = ({ open, onOpenChange, skillId, skillName, skillSlug, onEmailCaptured }: EmailGateDialogProps) => {
+const EmailGateDialog = forwardRef<HTMLDivElement, EmailGateDialogProps>(({ open, onOpenChange, skillId, skillName, skillSlug, onEmailCaptured }, ref) => {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
