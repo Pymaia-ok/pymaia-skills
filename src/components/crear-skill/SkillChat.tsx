@@ -455,21 +455,25 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           {/* Attachments preview */}
           {attachments.length > 0 && (
             <div className="pt-3 flex flex-wrap gap-2">
-              {attachments.map((att) => (
-                <div
-                  key={att.id}
-                  className="flex items-center gap-1.5 bg-secondary rounded-full px-3 py-1.5 text-xs"
-                >
-                  {getAttachmentIcon(att.name)}
-                  <span className="max-w-[120px] truncate">{att.name}</span>
-                  <button
-                    onClick={() => removeAttachment(att.id)}
-                    className="text-muted-foreground hover:text-foreground"
+              {attachments.map((att) => {
+                const isVideo = att.name.match(/\.(webm|mp4|mov|avi)$/i);
+                return (
+                  <div
+                    key={att.id}
+                    className={`flex items-center gap-1.5 bg-secondary rounded-full px-3 py-1.5 text-xs ${isVideo && att.previewUrl ? "cursor-pointer hover:bg-secondary/80" : ""}`}
+                    onClick={() => isVideo && att.previewUrl && setPreviewAttachment(att)}
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+                    {isVideo && att.previewUrl ? <Play className="w-3 h-3" /> : getAttachmentIcon(att.name)}
+                    <span className="max-w-[120px] truncate">{att.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
