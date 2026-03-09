@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle } from "lucide-react";
-import { useCallback } from "react";
+import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 
@@ -12,6 +12,7 @@ const PluginDetail = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isEs = i18n.language === "es";
+  const [copied, setCopied] = useState(false);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) navigate(-1);
@@ -31,6 +32,29 @@ const PluginDetail = () => {
     },
     enabled: !!slug,
   });
+
+  // Extract the plugin identifier from homepage URL (e.g., https://claude.com/plugins/slack → slack)
+  const pluginId = plugin?.homepage?.match(/claude\.com\/plugins\/([^/?#]+)/)?.[1] || plugin?.slug?.replace(/-plugin$/, "");
+
+  // Build install URLs
+  const coworkUrl = plugin?.is_official
+    ? `https://claude.ai/redirect/claudedotcom.v1.0920c6c1-6b38-4271-8d4e-842e466c7ca3/desktop/customize/plugins/new?marketplace=anthropics/knowledge-work-plugins&plugin=${pluginId}`
+    : plugin?.github_url || plugin?.homepage || "#";
+
+  const codeCommand = plugin?.is_official
+    ? `claude plugin install ${pluginId}@claude-plugins-official`
+    : plugin?.github_url
+      ? `claude plugin install ${plugin.github_url}`
+      : `claude plugin install ${pluginId}`;
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(codeCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [codeCommand, setCopied]);
+
+  const showCowork = plugin?.platform === "cowork" || plugin?.platform === "both";
+  const showCode = plugin?.platform === "claude-code" || plugin?.platform === "both";
 
   useSEO({
     title: plugin ? `${plugin.name} — Plugins` : "Plugin",
@@ -60,8 +84,6 @@ const PluginDetail = () => {
       </div>
     );
   }
-
-  const installUrl = plugin?.homepage || (plugin?.github_url ? plugin.github_url : `https://claude.com/plugins/${plugin?.slug}`);
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,17 +154,48 @@ const PluginDetail = () => {
               )}
             </div>
 
-            {/* Install CTA */}
-            <div className="mb-8">
-              <a
-                href={installUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-foreground text-background font-semibold hover:opacity-90 transition-opacity"
-              >
-                {isEs ? "Instalar en Claude" : "Install in Claude"}
-                <ExternalLink className="w-4 h-4" />
-              </a>
+            {/* Install options */}
+            <div className="mb-8 space-y-3">
+              <p className="text-sm font-semibold text-muted-foreground mb-2">
+                {isEs ? "Instalar en" : "Install in"}
+              </p>
+
+              {showCowork && (
+                <a
+                  href={coworkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-foreground text-background font-semibold hover:opacity-90 transition-opacity group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Users2 className="w-5 h-5" />
+                    <span>Claude Cowork</span>
+                  </div>
+                  <ExternalLink className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                </a>
+              )}
+
+              {showCode && (
+                <button
+                  onClick={handleCopy}
+                  className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-secondary border border-border text-foreground font-semibold hover:bg-secondary/80 transition-colors group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Monitor className="w-5 h-5 flex-shrink-0" />
+                    <div className="text-left min-w-0">
+                      <span className="block">Claude Code</span>
+                      <code className="text-xs text-muted-foreground font-mono truncate block max-w-[300px] sm:max-w-[400px]">
+                        {codeCommand}
+                      </code>
+                    </div>
+                  </div>
+                  {copied ? (
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  ) : (
+                    <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Security warning for community plugins */}
