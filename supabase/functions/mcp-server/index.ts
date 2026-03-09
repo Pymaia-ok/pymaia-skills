@@ -362,8 +362,8 @@ mcp.tool("search_connectors", {
     const { data: matched, error } = await q;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    // If no server-side matches, fall back to top connectors
-    let results = matched || [];
+    // Deduplicate by brand (prefer official over community)
+    let results = deduplicateConnectors(matched || []);
     if (results.length === 0) {
       let fallback = supabase
         .from("mcp_servers")
@@ -373,7 +373,7 @@ mcp.tool("search_connectors", {
         .limit(3);
       if (args.category) fallback = fallback.eq("category", args.category);
       const { data: topData } = await fallback;
-      results = topData || [];
+      results = deduplicateConnectors(topData || []);
     }
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No connectors found." }] };
