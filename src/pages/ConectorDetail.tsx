@@ -63,7 +63,6 @@ const ConectorDetail = () => {
         .not("required_mcps", "is", null)
         .limit(12);
       if (error) throw error;
-      // Filter client-side for skills that mention this connector
       return data.filter((skill) => {
         const mcps = skill.required_mcps as any[];
         if (!Array.isArray(mcps)) return false;
@@ -73,6 +72,24 @@ const ConectorDetail = () => {
             m.server?.toLowerCase().includes(connector!.slug.toLowerCase())
         );
       });
+    },
+    enabled: !!connector,
+  });
+
+  // Find plugins that relate to this connector
+  const { data: relatedPlugins = [] } = useQuery({
+    queryKey: ["connector-plugins", connector?.name],
+    queryFn: async () => {
+      if (!connector?.name) return [];
+      const searchTerm = connector.name.toLowerCase();
+      const { data, error } = await supabase
+        .from("plugins" as any)
+        .select("name, name_es, slug, icon_url, description, description_es, is_anthropic_verified, is_official, platform, install_count")
+        .eq("status", "approved")
+        .or(`name.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`)
+        .limit(6);
+      if (error) return [];
+      return data || [];
     },
     enabled: !!connector,
   });
