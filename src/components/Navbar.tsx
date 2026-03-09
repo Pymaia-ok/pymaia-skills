@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import logoImg from "@/assets/logo.png";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const Navbar = () => {
   const location = useLocation();
@@ -62,6 +63,10 @@ const Navbar = () => {
 
         {/* Zone 3: Actions (desktop) */}
         <div className="hidden md:flex items-center gap-2">
+          <GlobalSearch />
+
+          <div className="w-px h-5 bg-border mx-1" />
+
           <button
             onClick={toggleLang}
             aria-label={t("nav.switchLang", { lang: i18n.language === "es" ? "EN" : "ES" })}
@@ -118,10 +123,13 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile toggle */}
-        <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {/* Mobile actions */}
+        <div className="md:hidden flex items-center">
+          <GlobalSearch />
+          <button className="p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}

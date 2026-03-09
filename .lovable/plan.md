@@ -1,35 +1,34 @@
 
 
-## Buscador Global en el Navbar
+## Auditoría de calidad — Packs por Rol (v3 FINAL)
 
-### Enfoque
-Usar `CommandDialog` (cmdk) como un buscador global estilo Spotlight/⌘K que busca en paralelo en las 3 tablas: skills, conectores (mcp_servers) y plugins.
+### Estado: 14 packs activos, 1 desactivado, 100% skills verificadas
 
-### Componente nuevo: `src/components/GlobalSearch.tsx`
-- Botón en el navbar con icono Search + shortcut hint "⌘K"
-- Al hacer click o presionar ⌘K / Ctrl+K, abre un `CommandDialog` (ya existe el componente cmdk en el proyecto)
-- Input con debounce de 300ms
-- Busca en paralelo en 3 tablas usando Supabase:
-  - `skills` → filtra `status = approved`, busca en `display_name`, `display_name_es`, `tagline`, `tagline_es` con `ilike`
-  - `mcp_servers` → filtra `status = approved`, busca en `name`, `description`, `description_es`
-  - `plugins` → filtra `status = approved`, busca en `name`, `name_es`, `description`, `description_es`
-- Resultados agrupados en 3 secciones: Skills, Conectores, Plugins (max 5 por grupo)
-- Al seleccionar un resultado, navega a `/skill/:slug`, `/conector/:slug`, o `/plugin/:slug`
-- Estado vacío muestra sugerencias rápidas (categorías populares)
-- Loading state con skeleton
+| Pack | Skills | Estado | Cambios v3 |
+|---|---|---|---|
+| **Marketer** | 8 | ✅ Excelente | Sin cambios |
+| **DevOps** | 8 | ✅ Excelente | Sin cambios |
+| **Data Analyst** | 8 | ✅ Excelente | Sin cambios |
+| **Product Manager** | 8 | ✅ Excelente | Sin cambios |
+| **RRHH** | 8 | ✅ Muy bueno | Sin cambios |
+| **Ventas** | 7 | ✅ Muy bueno | Sin cambios |
+| **Abogado** | 8 | ✅ Muy bueno | +contract-review, +nda-triage (Anthropic official). Removido accessibility-compliance (era WCAG web). 13 skills enriquecidas con IA. |
+| **Médico** | 8 | ✅ Muy bueno | Reemplazado iso-13485 (dispositivos médicos) por rare-disease-diagnosis (medicina real). Descriptions enriquecidas con IA. |
+| **Data Engineer** | 8 | ✅ Bueno | Renombrado de "Ingeniero". Nuevo enfoque: pipelines, SQL, calidad de datos, estadísticas. |
+| **Diseñador** | 8 | ✅ Bueno | Todas las skills ahora son de diseño UX/UI real. Descriptions enriquecidas. |
+| **Founder** | 6 | ✅ Bueno | Sin cambios |
+| **Consultor** | 6 | ✅ Bueno | Sin cambios |
+| **Profesor** | 8 | ✅ Aceptable | +summarize, +document-review |
+| **Productividad** | 8 | ✅ Aceptable | +obsidian, +google-calendar, +apple-notes |
+| **Arquitecto** | - | 🔴 Desactivado | No existen skills CAD/BIM en la DB |
 
-### Cambios en `src/components/Navbar.tsx`
-- Importar `GlobalSearch`
-- En desktop (Zone 3): agregar botón de búsqueda antes del language toggle
-- En mobile: agregar botón de búsqueda al lado del hamburger menu
-- El botón muestra icono Search + "⌘K" en desktop, solo icono en mobile
-
-### UX
-- Keyboard shortcut ⌘K (Mac) / Ctrl+K (Windows) abre el dialog desde cualquier página
-- Los resultados muestran: icono de tipo (Zap para skills, Plug para conectores, Package para plugins), nombre, tagline truncado, y categoría como badge
-- ESC cierra el dialog
-- Click fuera cierra el dialog
-
-### i18n
-- Agregar keys en `src/i18n/es.ts` y `src/i18n/en.ts`: `search.placeholder`, `search.skills`, `search.connectors`, `search.plugins`, `search.noResults`, `search.hint`
-
+### Acciones ejecutadas
+1. ✅ 13 skills con descripciones genéricas enriquecidas con IA (Gemini 2.5 Flash)
+2. ✅ Arquitecto desactivado (honestidad > cantidad)
+3. ✅ Ingeniero → Data Engineer (coherente con las skills reales)
+4. ✅ Abogado reforzado con contract-review + nda-triage de Anthropic
+5. ✅ Médico corregido: iso-13485 → rare-disease-diagnosis
+6. ✅ 277 skills legal-tech indexadas desde GitHub
+7. ✅ 107 skills education-technology indexadas desde GitHub
+8. ✅ Wizard actualizado (14 roles, tasks renombrados)
+9. ✅ i18n ES/EN actualizados
