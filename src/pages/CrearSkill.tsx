@@ -127,6 +127,9 @@ const CrearSkill = () => {
       setQuality(data.quality);
       setTestResults(null);
       setStep("preview");
+      // Auto-save as draft
+      await saveDraft(data.skill, data.quality, null, messages, "generated");
+      toast.success("Borrador guardado automáticamente");
     } catch (e) {
       console.error(e);
       toast.error(t("crearSkill.errorGenerate"));
@@ -146,6 +149,8 @@ const CrearSkill = () => {
       setQuality(data.quality);
       setTestResults(null);
       toast.success(t("crearSkill.skillUpdated"));
+      // Update draft
+      await saveDraft(data.skill, data.quality, null, messages, "generated");
     } catch {
       toast.error(t("crearSkill.errorRefine"));
     }
