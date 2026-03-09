@@ -167,6 +167,8 @@ const CrearSkill = () => {
       if (error) throw error;
       setTestResults(data);
       toast.success(t("crearSkill.testsDone", { passed: data.test_results.filter((t: any) => t.passed).length, total: data.test_results.length }));
+      // Update draft with test results
+      await saveDraft(skill, quality, data, messages, "tested");
     } catch {
       toast.error(t("crearSkill.errorTests"));
     }
