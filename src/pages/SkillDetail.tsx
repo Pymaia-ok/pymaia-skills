@@ -189,6 +189,40 @@ const SkillDetail = () => {
     setSubmitting(false);
   };
 
+  const handleConvertToPlugin = async () => {
+    if (!user || !skill) return;
+    setConvertingToPlugin(true);
+    try {
+      const skillData = {
+        name: skill.display_name,
+        tagline: skill.tagline,
+        description: skill.description_human,
+        install_command: skill.install_command,
+      };
+      const { data: wrapper, error: wrapError } = await supabase.functions.invoke("generate-skill", {
+        body: { action: "wrap_plugin", skill: skillData },
+      });
+      if (wrapError) throw wrapError;
+
+      await submitPlugin({
+        slug: skill.slug,
+        name: wrapper.plugin_name || skill.display_name,
+        description: wrapper.plugin_description || skill.tagline,
+        category: skill.category,
+        creator_id: user.id,
+        source: "community",
+      });
+      toast.success("¡Plugin publicado! Aparecerá en la sección Plugins.");
+    } catch (e: any) {
+      if (e?.code === "23505") {
+        toast.error("Ya existe un plugin con este nombre");
+      } else {
+        toast.error("Error al convertir a plugin");
+      }
+    }
+    setConvertingToPlugin(false);
+  };
+
   const installSteps = [
     { title: t("detail.step1Title"), description: t("detail.step1Desc") },
     { title: t("detail.step2Title"), description: t("detail.step2Desc") },
