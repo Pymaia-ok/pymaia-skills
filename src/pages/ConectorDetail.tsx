@@ -32,6 +32,8 @@ const ConectorDetail = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [showInstallConfirm, setShowInstallConfirm] = useState(false);
+  const [pendingCopyCmd, setPendingCopyCmd] = useState("");
   const isEs = i18n.language === "es";
 
   const handleBack = useCallback(() => {
