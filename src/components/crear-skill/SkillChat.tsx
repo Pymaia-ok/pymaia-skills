@@ -280,10 +280,13 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
                 ))}
               </AnimatePresence>
 
-              {streaming && messages[messages.length - 1]?.role !== "assistant" && (
+              {(streaming || processingAttachments) && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex justify-start">
-                  <div className="bg-secondary rounded-2xl rounded-bl-lg px-5 py-3.5">
+                  <div className="bg-secondary rounded-2xl rounded-bl-lg px-5 py-3.5 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    {processingAttachments && (
+                      <span className="text-xs text-muted-foreground">Procesando archivos...</span>
+                    )}
                   </div>
                 </div>
               )}
