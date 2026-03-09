@@ -204,6 +204,60 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     }
   };
 
+  const toggleRecording = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Tu navegador no soporta dictado por voz");
+      return;
+    }
+
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-AR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let finalTranscript = "";
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interim = transcript;
+        }
+      }
+      setInput((prev) => {
+        const base = prev.endsWith(" ") ? prev : prev ? prev + " " : "";
+        return base + finalTranscript + interim;
+      });
+      finalTranscript = "";
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        toast.error("Permiso de micrófono denegado");
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+  }, [isRecording]);
+
   const getAttachmentIcon = (name: string) => {
     const ext = name.split(".").pop()?.toLowerCase() || "";
     if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) return <Image className="w-3 h-3" />;
