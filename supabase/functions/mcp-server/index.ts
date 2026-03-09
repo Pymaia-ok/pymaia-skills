@@ -11,6 +11,45 @@ const mcp = new McpServer({
   version: "1.0.0",
 });
 
+// Sanitize queries for PostgREST .or() filter parsing
+function sanitizeForPostgrest(query: string): string {
+  return query.replace(/[,()."\\]/g, "").trim().toLowerCase();
+}
+
+// Build word-split fallback query for multi-word searches
+async function wordSplitSearch(
+  table: "skills" | "mcp_servers" | "plugins",
+  selectCols: string,
+  words: string[],
+  orderCol: string,
+  limit: number,
+  extraFilters?: (q: any) => any,
+): Promise<any[]> {
+  const nameCol = table === "skills" ? "display_name" : "name";
+  const descCol = "description";
+  // Build a query that matches ALL words (each word must appear in at least one field)
+  let q = supabase.from(table).select(selectCols);
+  if (table === "skills") q = q.eq("status", "approved");
+  else q = q.eq("status", "approved");
+  
+  for (const word of words) {
+    const cols = [`${nameCol}.ilike.%${word}%`, `slug.ilike.%${word}%`, `${descCol}.ilike.%${word}%`];
+    if (table === "mcp_servers") cols.push(`description_es.ilike.%${word}%`);
+    if (table === "skills") {
+      cols.push(`tagline.ilike.%${word}%`);
+      cols.push(`tagline_es.ilike.%${word}%`);
+    }
+    if (table === "plugins") cols.push(`description_es.ilike.%${word}%`);
+    q = q.or(cols.join(","));
+  }
+  
+  if (extraFilters) q = extraFilters(q);
+  q = q.order(orderCol, { ascending: false }).limit(limit);
+  
+  const { data } = await q;
+  return data || [];
+}
+
 // ─── DISCOVERY TOOLS ───
 
 mcp.tool("search_skills", {
