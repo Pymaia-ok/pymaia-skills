@@ -43,7 +43,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const [isScreenRecording, setIsScreenRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const screenChunksRef = useRef<Blob[]>([]);
-  const [pendingRecording, setPendingRecording] = useState<Attachment | null>(null);
+  // pendingRecording removed - using direct setAttachments now
 
   // Keep inputRef in sync
   useEffect(() => { inputRef.current = input; }, [input]);
