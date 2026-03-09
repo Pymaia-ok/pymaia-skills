@@ -250,21 +250,65 @@ const ConectorDetail = () => {
 
             {/* Install command */}
             {connector.install_command ? (
-              <div className="mb-8">
-                <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Terminal className="w-4 h-4" />
-                  {t("connectors.installCommand")}
-                </h2>
-                <div
-                  onClick={handleCopy}
-                  className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer hover:bg-accent transition-colors group"
-                >
-                  <code className="text-sm text-foreground font-mono">{connector.install_command}</code>
-                  {copied ? (
-                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
-                  )}
+              <div className="mb-8 space-y-4">
+                {/* One-liner CLI command */}
+                {(() => {
+                  // Extract the URL from the install_command JSON
+                  try {
+                    const parsed = JSON.parse(connector.install_command);
+                    const serverName = Object.keys(parsed.mcpServers || {})[0];
+                    const serverConfig = parsed.mcpServers?.[serverName];
+                    const url = serverConfig?.url;
+                    if (url && serverName) {
+                      const cliCmd = `claude mcp add ${serverName} --transport http ${url}`;
+                      return (
+                        <div>
+                          <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                            <Terminal className="w-4 h-4" />
+                            {isEs ? "Instalación rápida (1 comando)" : "Quick install (1 command)"}
+                          </h2>
+                          <div
+                            onClick={() => {
+                              navigator.clipboard.writeText(cliCmd);
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
+                            }}
+                            className="flex items-center justify-between p-4 rounded-xl bg-foreground text-background cursor-pointer hover:opacity-90 transition-opacity group"
+                          >
+                            <code className="text-sm font-mono break-all">{cliCmd}</code>
+                            {copied ? (
+                              <Check className="w-4 h-4 flex-shrink-0 ml-3" />
+                            ) : (
+                              <Copy className="w-4 h-4 flex-shrink-0 ml-3 opacity-60 group-hover:opacity-100" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {isEs ? "Pegá esto en Claude Code y listo. Para otros clientes, usá la configuración JSON." : "Paste this in Claude Code and you're done. For other clients, use the JSON config."}
+                          </p>
+                        </div>
+                      );
+                    }
+                  } catch {}
+                  return null;
+                })()}
+
+                {/* JSON config (collapsible-style secondary) */}
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <Terminal className="w-4 h-4" />
+                    {isEs ? "Configuración JSON" : "JSON configuration"}
+                  </h2>
+                  <div
+                    onClick={handleCopy}
+                    className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer hover:bg-accent transition-colors group"
+                  >
+                    <code className="text-sm text-foreground font-mono break-all">{connector.install_command}</code>
+                    {copied ? (
+                      <Check className="w-4 h-4 text-primary flex-shrink-0 ml-3" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground flex-shrink-0 ml-3" />
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
