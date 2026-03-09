@@ -399,6 +399,66 @@ function decomposePlugin(content: string): {
   };
 }
 
+// ── CONTENT SIMILARITY CHECK (PRD 4.1 item 6) ──
+async function checkContentSimilarity(
+  content: string,
+  slug: string,
+  itemType: string,
+  supabase: any
+): Promise<{ duplicates: Array<{ slug: string; similarity: number }>; is_plagiarized: boolean }> {
+  const duplicates: Array<{ slug: string; similarity: number }> = [];
+
+  // Simple content fingerprinting: extract key sentences, hash them
+  const sentences = content
+    .replace(/[#*`\-\[\]()]/g, "")
+    .split(/[.!?\n]+/)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 30);
+
+  if (sentences.length < 3) return { duplicates: [], is_plagiarized: false };
+
+  // Create a fingerprint from the longest sentences
+  const fingerprint = sentences.sort((a, b) => b.length - a.length).slice(0, 5).join(" ");
+
+  // Search existing items for similar content
+  const tableName = itemType === "connector" ? "mcp_servers" : itemType === "plugin" ? "plugins" : "skills";
+  const contentField = itemType === "skill" ? "description_human" : "description";
+  
+  try {
+    const { data: existing } = await supabase
+      .from(tableName)
+      .select(`slug, ${contentField}`)
+      .eq("status", "approved")
+      .neq("slug", slug)
+      .limit(200);
+
+    if (existing) {
+      for (const item of existing) {
+        const existingContent = ((item as any)[contentField] || "").toLowerCase();
+        if (existingContent.length < 30) continue;
+
+        // Simple Jaccard similarity on word sets
+        const wordsA = new Set(fingerprint.split(/\s+/).filter(w => w.length > 3));
+        const wordsB = new Set(existingContent.split(/\s+/).filter((w: string) => w.length > 3));
+        const intersection = [...wordsA].filter(w => wordsB.has(w)).length;
+        const union = new Set([...wordsA, ...wordsB]).size;
+        const similarity = union > 0 ? intersection / union : 0;
+
+        if (similarity > 0.6) {
+          duplicates.push({ slug: (item as any).slug, similarity: Math.round(similarity * 100) });
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Similarity check error:", e);
+  }
+
+  return {
+    duplicates: duplicates.sort((a, b) => b.similarity - a.similarity).slice(0, 5),
+    is_plagiarized: duplicates.some(d => d.similarity > 80),
+  };
+}
+
 // ── SCAN FUNCTIONS ──
 function scanSecrets(content: string): Array<{ pattern: string; match: string; line?: number }> {
   const findings: Array<{ pattern: string; match: string; line?: number }> = [];
@@ -529,7 +589,7 @@ Deno.serve(async (req) => {
 
     // ── GATE MODE: scan content directly and return pass/fail ──
     if (gate_mode && content) {
-      const result = await runFullScan(content, body.slug || "", item_type, directInstallCmd || "", lovableApiKey);
+      const result = await runFullScan(content, body.slug || "", item_type, directInstallCmd || "", lovableApiKey, supabase);
       const pass = result.verdict === "SAFE";
       return new Response(JSON.stringify({ pass, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -566,7 +626,7 @@ Deno.serve(async (req) => {
         ].join("\n\n");
 
         const installCmd = (item as any).install_command || "";
-        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, lovableApiKey);
+        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, lovableApiKey, supabase);
 
         await supabase.from(tableName).update({
           security_scan_result: result,
@@ -611,7 +671,7 @@ Deno.serve(async (req) => {
       ].join("\n\n");
     }
 
-    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey);
+    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey, supabase);
 
     if (item_id) {
       const tableName = item_type === "connector" ? "mcp_servers" : item_type === "plugin" ? "plugins" : "skills";
@@ -638,7 +698,8 @@ async function runFullScan(
   slug: string,
   itemType: string,
   installCommand: string,
-  lovableApiKey: string | undefined
+  lovableApiKey: string | undefined,
+  supabase?: any
 ): Promise<{
   verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS";
   layers: {
@@ -650,6 +711,7 @@ async function runFullScan(
     scope: { permissions: any[]; scope_assessment: string; undeclared_capabilities: string[] } | null;
     hooks: { hooks: any[]; has_hooks: boolean; blocked_count: number; dangerous_count: number } | null;
     plugin_decomposition: { components: any[]; has_settings_override: boolean; settings_issues: string[]; cross_component_risks: string[] } | null;
+    similarity: { duplicates: any[]; is_plagiarized: boolean } | null;
     llm: { verdict: string; confidence: number; reasons: string[] } | null;
   };
   scanned_at: string;
@@ -685,7 +747,13 @@ async function runFullScan(
     ? decomposePlugin(content)
     : null;
 
-  // Layer 9: LLM analysis (skip if already clearly malicious)
+  // Layer 9: Content similarity check (PRD 4.1 item 6)
+  let similarityResult = null;
+  if (supabase && slug) {
+    similarityResult = await checkContentSimilarity(content, slug, itemType, supabase);
+  }
+
+  // Layer 10: LLM analysis (skip if already clearly malicious)
   let llmResult = null;
   if (lovableApiKey && criticalInjections.length === 0 && secrets.length === 0 &&
       hiddenFindings.filter(f => f.severity === "high").length === 0 &&
@@ -701,9 +769,9 @@ async function runFullScan(
   if (secrets.length > 0 || criticalInjections.length > 0 || hiddenHigh.length > 0 || formatErrors.length > 0) {
     verdict = "MALICIOUS";
   } else if (hookAnalysis.blocked_count > 0) {
-    verdict = "MALICIOUS"; // Blocked hooks = auto-reject
+    verdict = "MALICIOUS";
   } else if (pluginDecomp?.has_settings_override) {
-    verdict = "MALICIOUS"; // Settings override = auto-reject
+    verdict = "MALICIOUS";
   } else if (highInjections.length > 0 || typoFlags.length > 0 || (scopeAnalysis?.scope_assessment === "excessive")) {
     verdict = "SUSPICIOUS";
   } else if (hookAnalysis.dangerous_count > 0) {
@@ -711,6 +779,8 @@ async function runFullScan(
   } else if (pluginDecomp?.cross_component_risks && pluginDecomp.cross_component_risks.length > 0) {
     verdict = "SUSPICIOUS";
   } else if (scopeAnalysis?.undeclared_capabilities && scopeAnalysis.undeclared_capabilities.length > 0) {
+    verdict = "SUSPICIOUS";
+  } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
   } else if (llmResult?.verdict === "MALICIOUS") {
     verdict = "MALICIOUS";
@@ -734,9 +804,10 @@ async function runFullScan(
       scope: scopeAnalysis,
       hooks: hookAnalysis.has_hooks ? hookAnalysis : null,
       plugin_decomposition: pluginDecomp,
+      similarity: similarityResult,
       llm: llmResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "3.0.0",
+    version: "4.0.0",
   };
 }

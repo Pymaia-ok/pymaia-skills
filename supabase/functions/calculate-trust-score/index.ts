@@ -1,4 +1,4 @@
-// calculate-trust-score v1.0 — Computes Trust Score (0-100) for skills, connectors, plugins
+// calculate-trust-score v2.0 — Computes Trust Score (0-100) with actual abuse report check
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Trusted publishers (same as auto-approve)
 const TRUSTED_PUBLISHERS = [
   "anthropics", "anthropic", "vercel", "microsoft", "google", "aws",
   "openai", "langchain-ai", "supabase", "stripe", "modelcontextprotocol",
@@ -14,14 +13,14 @@ const TRUSTED_PUBLISHERS = [
   "mongodb", "prisma", "drizzle-team", "trpc",
 ];
 
-function calculateTrustScore(item: any): {
+async function calculateTrustScore(item: any, abuseCount: number): Promise<{
   total: number;
   security: number;
   publisher: number;
   community: number;
   longevity: number;
   badge: string;
-} {
+}> {
   let security = 0;
   let publisher = 0;
   let community = 0;
@@ -31,28 +30,25 @@ function calculateTrustScore(item: any): {
   const scanResult = item.security_scan_result as any;
   
   if (item.security_status === "verified") {
-    security += 15; // Passed security verification
+    security += 15;
   } else if (item.security_status === "unverified") {
     security += 5;
   }
-  // Flagged = 0
 
   if (scanResult) {
     if (scanResult.verdict === "SAFE") {
-      security += 15; // Clean scan
+      security += 15;
     } else if (scanResult.verdict === "SUSPICIOUS") {
       security += 5;
     }
-    // MALICIOUS = 0
 
     if (scanResult.layers?.secrets?.count === 0) {
-      security += 5; // No secrets
+      security += 5;
     }
     if (scanResult.layers?.injection?.count === 0) {
-      security += 5; // No injection patterns
+      security += 5;
     }
   } else {
-    // No scan yet — give partial credit if security_status is good
     if (item.security_status === "verified") security += 5;
   }
 
@@ -61,15 +57,15 @@ function calculateTrustScore(item: any): {
   const ghOrg = ghMatch?.[1]?.toLowerCase();
 
   if (ghOrg && TRUSTED_PUBLISHERS.includes(ghOrg)) {
-    publisher += 15; // Trusted publisher
+    publisher += 15;
   }
 
   if (item.is_official) {
-    publisher += 10; // Official connector/plugin
+    publisher += 10;
   } else if (item.source === "curated") {
     publisher += 7;
   } else if (item.creator_id) {
-    publisher += 3; // Platform creator
+    publisher += 3;
   }
 
   // ── COMMUNITY SCORE (0-20) ──
@@ -81,13 +77,18 @@ function calculateTrustScore(item: any): {
   if (installs > 500 || stars > 500) community += 5;
   else if (installs > 100 || stars > 100) community += 3;
   
-  if (installs > 100 || stars > 100) community += 5; // Significant adoption
+  if (installs > 100 || stars > 100) community += 5;
   
   if (rating >= 4.0 && reviews >= 3) community += 5;
   else if (rating >= 3.5 && reviews >= 1) community += 2;
 
-  // No abuse reports bonus (check security_reports count)
-  community += 5; // Default bonus, will be reduced by abuse reports later
+  // Abuse reports check — deduct from default 5pt bonus
+  if (abuseCount === 0) {
+    community += 5; // No abuse reports
+  } else if (abuseCount <= 2) {
+    community += 2; // Some reports, partial credit
+  }
+  // 3+ reports = 0 bonus
 
   // ── LONGEVITY SCORE (0-15) ──
   const createdAt = new Date(item.created_at);
@@ -97,9 +98,8 @@ function calculateTrustScore(item: any): {
   if (ageDays > 90) longevity += 5;
   else if (ageDays > 30) longevity += 3;
 
-  if (ageDays > 30) longevity += 5; // Survived initial period
+  if (ageDays > 30) longevity += 5;
 
-  // Active maintenance
   if (item.last_commit_at) {
     const lastCommit = new Date(item.last_commit_at);
     const commitAge = (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24 * 30);
@@ -109,7 +109,6 @@ function calculateTrustScore(item: any): {
 
   const total = Math.min(100, security + publisher + community + longevity);
 
-  // Determine badge
   let badge = "new";
   if (total >= 90) badge = "official";
   else if (total >= 80) badge = "verified";
@@ -148,7 +147,14 @@ Deno.serve(async (req) => {
       if (!items) continue;
 
       for (const item of items) {
-        const score = calculateTrustScore(item);
+        // Check actual abuse report count
+        const { count: abuseCount } = await supabase
+          .from("security_reports")
+          .select("id", { count: "exact", head: true })
+          .eq("item_id", item.id)
+          .eq("status", "open");
+
+        const score = await calculateTrustScore(item, abuseCount ?? 0);
         
         await supabase.from(t.name).update({
           trust_score: score.total,

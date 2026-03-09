@@ -2,9 +2,11 @@ import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github, Plug } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github, Plug, AlertTriangle, HardDrive, Wifi } from "lucide-react";
 import { TrustBadge } from "@/components/TrustBadge";
 import SecurityReportButton from "@/components/SecurityReportButton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useState, useCallback } from "react";
 import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +32,8 @@ const ConectorDetail = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [showInstallConfirm, setShowInstallConfirm] = useState(false);
+  const [pendingCopyCmd, setPendingCopyCmd] = useState("");
   const isEs = i18n.language === "es";
 
   const handleBack = useCallback(() => {
@@ -265,9 +269,16 @@ const ConectorDetail = () => {
                           </h2>
                           <div
                             onClick={() => {
-                              navigator.clipboard.writeText(cliCmd);
-                              setCopied(true);
-                              setTimeout(() => setCopied(false), 2000);
+                              const scanResult = (connector as any).security_scan_result;
+                              const hasPermWarnings = scanResult?.layers?.scope?.permissions?.length > 0;
+                              if (hasPermWarnings) {
+                                setPendingCopyCmd(cliCmd);
+                                setShowInstallConfirm(true);
+                              } else {
+                                navigator.clipboard.writeText(cliCmd);
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              }
                             }}
                             className="flex items-center justify-between p-4 rounded-xl bg-foreground text-background cursor-pointer hover:opacity-90 transition-opacity group"
                           >
@@ -432,6 +443,68 @@ const ConectorDetail = () => {
           </motion.div>
         </div>
       </div>
+      {/* Permission confirmation dialog (PRD 9.2) */}
+      <Dialog open={showInstallConfirm} onOpenChange={setShowInstallConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              {isEs ? "Confirmar instalación" : "Confirm Installation"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {/* Permission list */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{isEs ? "Este conector tiene acceso a:" : "This connector has access to:"}</p>
+              <div className="space-y-1.5">
+                {((connector as any)?.security_scan_result?.layers?.scope?.permissions || []).map((p: any, i: number) => (
+                  <div key={i} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
+                    p.risk === "critical" || p.risk === "high" 
+                      ? "bg-destructive/10 text-destructive" 
+                      : p.risk === "medium" 
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" 
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {p.category === "read_fs" || p.category === "write_fs" ? <HardDrive className="w-4 h-4 shrink-0" /> :
+                     p.category === "network" ? <Wifi className="w-4 h-4 shrink-0" /> :
+                     p.category === "exec" ? <Terminal className="w-4 h-4 shrink-0" /> :
+                     <ShieldAlert className="w-4 h-4 shrink-0" />}
+                    <span className="capitalize">{p.category.replace("_", " ")}</span>
+                    <span className="text-xs opacity-70 ml-auto">{p.risk}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Trust score */}
+            <div className="flex items-center justify-between text-sm p-3 rounded-lg bg-muted">
+              <span>Trust Score</span>
+              <span className="font-semibold">{(connector as any)?.trust_score || 0}/100</span>
+            </div>
+
+            {/* Publisher verification */}
+            <p className="text-xs text-muted-foreground">
+              {connector?.is_official 
+                ? (isEs ? "✓ Publisher oficial verificado" : "✓ Verified official publisher")
+                : (isEs ? "Publisher no verificado" : "Unverified publisher")}
+            </p>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setShowInstallConfirm(false)} className="flex-1">
+                {isEs ? "Cancelar" : "Cancel"}
+              </Button>
+              <Button onClick={() => {
+                navigator.clipboard.writeText(pendingCopyCmd);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+                setShowInstallConfirm(false);
+              }} className="flex-1">
+                {isEs ? "Instalar" : "Install"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
