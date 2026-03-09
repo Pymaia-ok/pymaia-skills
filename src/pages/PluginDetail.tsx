@@ -33,6 +33,29 @@ const PluginDetail = () => {
     enabled: !!slug,
   });
 
+  // Extract the plugin identifier from homepage URL (e.g., https://claude.com/plugins/slack → slack)
+  const pluginId = plugin?.homepage?.match(/claude\.com\/plugins\/([^/?#]+)/)?.[1] || plugin?.slug?.replace(/-plugin$/, "");
+
+  // Build install URLs
+  const coworkUrl = plugin?.is_official
+    ? `https://claude.ai/redirect/claudedotcom.v1.0920c6c1-6b38-4271-8d4e-842e466c7ca3/desktop/customize/plugins/new?marketplace=anthropics/knowledge-work-plugins&plugin=${pluginId}`
+    : plugin?.github_url || plugin?.homepage || "#";
+
+  const codeCommand = plugin?.is_official
+    ? `claude plugin install ${pluginId}@claude-plugins-official`
+    : plugin?.github_url
+      ? `claude plugin install ${plugin.github_url}`
+      : `claude plugin install ${pluginId}`;
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(codeCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [codeCommand, setCopied]);
+
+  const showCowork = plugin?.platform === "cowork" || plugin?.platform === "both";
+  const showCode = plugin?.platform === "claude-code" || plugin?.platform === "both";
+
   useSEO({
     title: plugin ? `${plugin.name} — Plugins` : "Plugin",
     description: plugin?.description || "",
@@ -61,31 +84,6 @@ const PluginDetail = () => {
       </div>
     );
   }
-
-
-
-  // Extract the plugin identifier from homepage URL (e.g., https://claude.com/plugins/slack → slack)
-  const pluginId = plugin?.homepage?.match(/claude\.com\/plugins\/([^/?#]+)/)?.[1] || plugin?.slug?.replace(/-plugin$/, "");
-
-  // Build install URLs
-  const coworkUrl = plugin?.is_official
-    ? `https://claude.ai/redirect/claudedotcom.v1.0920c6c1-6b38-4271-8d4e-842e466c7ca3/desktop/customize/plugins/new?marketplace=anthropics/knowledge-work-plugins&plugin=${pluginId}`
-    : plugin?.github_url || plugin?.homepage || "#";
-
-  const codeCommand = plugin?.is_official
-    ? `claude plugin install ${pluginId}@claude-plugins-official`
-    : plugin?.github_url
-      ? `claude plugin install ${plugin.github_url}`
-      : `claude plugin install ${pluginId}`;
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(codeCommand);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [codeCommand]);
-
-  const showCowork = plugin?.platform === "cowork" || plugin?.platform === "both";
-  const showCode = plugin?.platform === "claude-code" || plugin?.platform === "both";
 
   return (
     <div className="min-h-screen bg-background">
