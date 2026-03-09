@@ -8,6 +8,7 @@ import TwoPathsSection from "@/components/landing/TwoPathsSection";
 import WizardSection from "@/components/landing/WizardSection";
 import PopularSkills from "@/components/landing/PopularSkills";
 import ConnectorsSection from "@/components/landing/ConnectorsSection";
+import PluginsSection from "@/components/landing/PluginsSection";
 import BundlesSection from "@/components/landing/BundlesSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import McpBannerSection from "@/components/landing/McpBannerSection";
