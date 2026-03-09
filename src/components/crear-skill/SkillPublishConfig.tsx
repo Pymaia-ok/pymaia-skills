@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Rocket, Plus, Trash2, ExternalLink, Globe, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, Rocket, Plus, Trash2, ExternalLink, Globe, Lock, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SKILL_CATEGORIES } from "@/lib/api";
