@@ -545,6 +545,16 @@ export default {
     nowPublic: "Skill ahora es pública",
     nowPrivate: "Skill ahora es privada",
     visibilityError: "Error al cambiar visibilidad",
+    draftsTitle: "Borradores",
+    draftsEmpty: "No tenés borradores",
+    draftContinue: "Continuar",
+    draftDelete: "Eliminar borrador",
+    draftDeleted: "Borrador eliminado",
+    draftStatus_interviewing: "En entrevista",
+    draftStatus_generated: "Generada",
+    draftStatus_tested: "Testeada",
+    draftScore: "Score: {{score}}",
+    draftNoName: "Skill sin nombre",
   },
 
   crearSkill: {
