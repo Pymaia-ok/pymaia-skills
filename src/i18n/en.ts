@@ -3,6 +3,7 @@ export default {
     home: "Home",
     explore: "Skills",
     connectors: "Connectors",
+    plugins: "Plugins",
     teams: "Teams",
     gettingStarted: "Getting Started",
     publish: "Publish",
@@ -476,6 +477,17 @@ export default {
     setupStep1: "Install the connector with the command above",
     setupStep2: "Configure the required credentials",
     setupStep3: "Done! Skills that use it will work automatically",
+  },
+
+  plugins: {
+    title: "Plugins",
+    subtitle: "Bundles that combine tools, skills and MCPs in a single install for Claude Code and Cowork.",
+    searchPlaceholder: "Search plugins...",
+    backToPlugins: "Plugins",
+    securityWarningTitle: "Community plugin",
+    securityWarning: "Community plugins may install unverified third-party software. Always review the contents before installing.",
+    whatArePlugins: "What are plugins?",
+    whatArePluginsDesc: "Plugins bundle multiple MCPs, skills, and tools into a single download. Instead of installing each component separately, you get everything you need in one click.",
   },
 
   trust: {

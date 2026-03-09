@@ -19,6 +19,8 @@ import Admin from "./pages/Admin";
 import MisSkills from "./pages/MisSkills";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Plugins from "./pages/Plugins";
+import PluginDetail from "./pages/PluginDetail";
 import RoleLanding from "./pages/RoleLanding";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="/mcp" element={<MCP />} />
             <Route path="/conectores" element={<Conectores />} />
             <Route path="/conector/:slug" element={<ConectorDetail />} />
+            <Route path="/plugins" element={<Plugins />} />
+            <Route path="/plugin/:slug" element={<PluginDetail />} />
             <Route path="/para/:roleSlug" element={<RoleLanding />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terminos" element={<Terms />} />
