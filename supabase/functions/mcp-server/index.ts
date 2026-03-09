@@ -25,23 +25,37 @@ mcp.tool("search_skills", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+    const q = args.query.toLowerCase();
+
+    // Server-side search for accurate results
     let dbQuery = supabase
       .from("skills")
       .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
       .eq("status", "approved")
+      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
       .order("install_count", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .limit(lim);
 
     if (args.category) dbQuery = dbQuery.eq("category", args.category);
 
-    const { data: skills, error } = await dbQuery;
+    const { data: matched, error } = await dbQuery;
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const q = args.query.toLowerCase();
-    const matched = (skills || []).filter(
-      (s: any) => s.display_name.toLowerCase().includes(q) || s.tagline.toLowerCase().includes(q)
-    );
-    const results = matched.length > 0 ? matched : (skills || []).slice(0, 3);
+    let results = matched || [];
+
+    // Fallback to top skills if no match
+    if (results.length === 0) {
+      let fallback = supabase
+        .from("skills")
+        .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
+        .eq("status", "approved")
+        .order("install_count", { ascending: false })
+        .limit(3);
+      if (args.category) fallback = fallback.eq("category", args.category);
+      const { data: topData } = await fallback;
+      results = topData || [];
+    }
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes." }] };
 
