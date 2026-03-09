@@ -54,6 +54,20 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
   useEffect(scrollToBottom, [messages]);
 
+  // Auto-trigger generation when interview is complete
+  useEffect(() => {
+    if (messages.length === 0 || streaming || isGenerating) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role === "assistant" && lastMsg.content.includes("[ENTREVISTA_COMPLETA]")) {
+      // Strip marker from displayed message
+      const cleaned = lastMsg.content.replace(/\[ENTREVISTA_COMPLETA\]/g, "").trimEnd();
+      setMessages(messages.map((m, i) => i === messages.length - 1 ? { ...m, content: cleaned } : m));
+      // Auto-trigger generation after a brief delay
+      const timer = setTimeout(() => onGenerate(), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, streaming, isGenerating]);
+
   // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
