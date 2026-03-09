@@ -43,7 +43,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const [isScreenRecording, setIsScreenRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const screenChunksRef = useRef<Blob[]>([]);
-  const [pendingRecording, setPendingRecording] = useState<Attachment | null>(null);
+  // pendingRecording removed - using direct setAttachments now
 
   // Keep inputRef in sync
   useEffect(() => { inputRef.current = input; }, [input]);
@@ -291,15 +291,8 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     setIsRecording(true);
   }, [isRecording]);
 
-  // Effect: when pendingRecording is set, add it to attachments
-  useEffect(() => {
-    if (pendingRecording) {
-      console.log("[ScreenRec] useEffect: adding pending recording to attachments");
-      setAttachments((prev) => [...prev, pendingRecording]);
-      toast.success("Grabación lista — tocá para previsualizarla");
-      setPendingRecording(null);
-    }
-  }, [pendingRecording]);
+  // Debug: log attachments on every render
+  console.log("[SkillChat] render, attachments:", attachments.length, attachments.map(a => a.name));
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
@@ -382,15 +375,22 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: blob.type });
         const previewUrl = URL.createObjectURL(blob);
 
-        // Use state setter to trigger the useEffect which adds to attachments
-        setPendingRecording({
+        const newAtt: Attachment = {
           id: crypto.randomUUID(),
           type: "file",
           name: file.name,
           file,
           processing: false,
           previewUrl,
+        };
+        console.log("[ScreenRec] about to setAttachments with:", newAtt.name);
+        setAttachments((prev) => {
+          console.log("[ScreenRec] setAttachments prev:", prev.length);
+          const next = [...prev, newAtt];
+          console.log("[ScreenRec] setAttachments next:", next.length);
+          return next;
         });
+        toast.success("Grabación lista — tocá para previsualizarla");
       };
 
       recorder.onerror = () => {
