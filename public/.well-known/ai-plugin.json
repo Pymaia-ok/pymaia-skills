@@ -9,8 +9,8 @@
   },
   "api": {
     "type": "mcp",
-    "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/sse",
-    "transport": "sse"
+    "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp",
+    "transport": "streamable-http"
   },
   "logo_url": "https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png",
   "contact_email": "info@pymaia.com",

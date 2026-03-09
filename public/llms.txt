@@ -24,12 +24,26 @@ IA, Desarrollo, Automatización, Diseño, Productividad, Datos, Marketing, Legal
 Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing.
 
 ### Installation
+
+**Option A — Streamable HTTP** (Claude Code, Cursor, Windsurf):
+```json
+{
+  "mcpServers": {
+    "pymaia-skills": {
+      "type": "streamable-http",
+      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"
+    }
+  }
+}
+```
+
+**Option B — Via npx proxy** (Claude Desktop):
 ```json
 {
   "mcpServers": {
     "pymaia-skills": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/sse"]
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"]
     }
   }
 }

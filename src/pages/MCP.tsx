@@ -5,20 +5,27 @@ import { useTranslation } from "react-i18next";
 
 const MCP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server/mcp`;
 
-const mcpConfig = JSON.stringify(
+const streamableConfig = JSON.stringify(
   { mcpServers: { "pymaia-skills": { type: "streamable-http", url: MCP_URL } } },
   null,
   2
 );
 
+const npxConfig = JSON.stringify(
+  { mcpServers: { "pymaia-skills": { command: "npx", args: ["-y", "@anthropic-ai/mcp-remote", MCP_URL] } } },
+  null,
+  2
+);
+
 const MCP = () => {
-  const [copied, setCopied] = useState(false);
+  const [copiedA, setCopiedA] = useState(false);
+  const [copiedB, setCopiedB] = useState(false);
   const { t } = useTranslation();
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(mcpConfig);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = (text: string, setter: (v: boolean) => void) => {
+    navigator.clipboard.writeText(text);
+    setter(true);
+    setTimeout(() => setter(false), 2000);
   };
 
   const chatExamples = [
@@ -50,14 +57,36 @@ const MCP = () => {
             </div>
             <div className="flex gap-6">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-semibold">2</div>
-              <div>
-                <h3 className="font-semibold mb-2">{t("mcp.step2Title")}</h3>
-                <p className="text-sm text-muted-foreground mb-3">{t("mcp.step2Desc")}</p>
-                <div className="relative p-4 rounded-xl bg-foreground text-background font-mono text-sm">
-                  <pre className="overflow-x-auto whitespace-pre-wrap break-all">{mcpConfig}</pre>
-                  <button onClick={handleCopy} className="absolute top-3 right-3 p-2 rounded-lg hover:bg-background/10 transition-colors">
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  </button>
+              <div className="flex-1 space-y-5">
+                <div>
+                  <h3 className="font-semibold mb-2">{t("mcp.step2Title")}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">{t("mcp.step2Desc")}</p>
+                </div>
+
+                {/* Option A */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Opción A — Streamable HTTP <span className="font-normal">(Claude Code, Cursor, Windsurf)</span>
+                  </p>
+                  <div className="relative p-4 rounded-xl bg-foreground text-background font-mono text-sm">
+                    <pre className="overflow-x-auto whitespace-pre-wrap break-all">{streamableConfig}</pre>
+                    <button onClick={() => handleCopy(streamableConfig, setCopiedA)} className="absolute top-3 right-3 p-2 rounded-lg hover:bg-background/10 transition-colors">
+                      {copiedA ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Option B */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Opción B — Via npx proxy <span className="font-normal">(Claude Desktop)</span>
+                  </p>
+                  <div className="relative p-4 rounded-xl bg-foreground text-background font-mono text-sm">
+                    <pre className="overflow-x-auto whitespace-pre-wrap break-all">{npxConfig}</pre>
+                    <button onClick={() => handleCopy(npxConfig, setCopiedB)} className="absolute top-3 right-3 p-2 rounded-lg hover:bg-background/10 transition-colors">
+                      {copiedB ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
