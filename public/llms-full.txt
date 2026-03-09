@@ -73,7 +73,14 @@ No coding required. No terminal knowledge needed. Install any skill in 2 minutes
 
 The Pymaia Skills MCP Server enables Claude to automatically recommend relevant skills based on your conversation context. Compatible with Claude Code, Cursor, Windsurf, and any MCP-compatible client.
 
-### Installation
+### Quick Install (Claude Code)
+
+Run this single command in Claude Code — no config files to edit:
+```
+claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp
+```
+
+### Manual Configuration
 
 **Option A — Streamable HTTP** (Claude Code, Cursor, Windsurf):
 ```json

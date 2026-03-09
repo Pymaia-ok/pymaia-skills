@@ -23,7 +23,14 @@ IA, Desarrollo, Automatización, Diseño, Productividad, Datos, Marketing, Legal
 
 Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing.
 
-### Installation
+### Quick Install (Claude Code)
+
+Run this single command in Claude Code:
+```
+claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp
+```
+
+### Manual Configuration
 
 **Option A — Streamable HTTP** (Claude Code, Cursor, Windsurf):
 ```json
