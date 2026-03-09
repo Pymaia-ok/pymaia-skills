@@ -344,11 +344,6 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         if (e.data.size > 0) screenChunksRef.current.push(e.data);
       };
 
-      recorder.ondataavailable = (e) => {
-        console.log("[ScreenRec] ondataavailable, size:", e.data.size);
-        if (e.data.size > 0) screenChunksRef.current.push(e.data);
-      };
-
       recorder.onstop = () => {
         console.log("[ScreenRec] onstop fired, chunks:", screenChunksRef.current.length);
         try {
