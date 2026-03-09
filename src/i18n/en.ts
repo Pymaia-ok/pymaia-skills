@@ -69,6 +69,11 @@ export default {
     connectorsSubtitle: "Skills become more powerful when connected to the tools you already use. Gmail, Slack, GitHub and more.",
     connectorsCtaAll: "View all connectors",
 
+    pluginsTag: "Plugins",
+    pluginsTitle: "Official plugins for Claude Code",
+    pluginsSubtitle: "Verified by Anthropic. Install professional tools with a single command.",
+    pluginsCtaAll: "View all plugins",
+
     beforeAfterTitle: "The before & after",
     beforeAfterSubtitle: "Real cases of how skills transform daily work.",
     bamarketerRole: "Marketer",
