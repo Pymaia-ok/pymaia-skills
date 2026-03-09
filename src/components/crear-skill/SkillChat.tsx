@@ -36,6 +36,9 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const [isScreenRecording, setIsScreenRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const screenChunksRef = useRef<Blob[]>([]);
 
   // Start conversation on mount
   useEffect(() => {
