@@ -63,6 +63,10 @@ const Navbar = () => {
 
         {/* Zone 3: Actions (desktop) */}
         <div className="hidden md:flex items-center gap-2">
+          <GlobalSearch />
+
+          <div className="w-px h-5 bg-border mx-1" />
+
           <button
             onClick={toggleLang}
             aria-label={t("nav.switchLang", { lang: i18n.language === "es" ? "EN" : "ES" })}
