@@ -319,7 +319,8 @@ const SkillDetail = () => {
                   <span className="text-xs font-medium">{t("detail.privateSkill", "Skill privada")}</span>
                 </div>
               )}
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
+                <SecurityReportButton itemType="skill" itemId={skill.id} itemSlug={skill.slug} />
                 <ShareButton
                   url={(() => {
                     const base = `https://pymaiaskills.lovable.app/skill/${skill.slug}`;
