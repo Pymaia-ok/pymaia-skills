@@ -344,27 +344,45 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         if (e.data.size > 0) screenChunksRef.current.push(e.data);
       };
 
+      recorder.ondataavailable = (e) => {
+        console.log("[ScreenRec] ondataavailable, size:", e.data.size);
+        if (e.data.size > 0) screenChunksRef.current.push(e.data);
+      };
+
       recorder.onstop = () => {
         console.log("[ScreenRec] onstop fired, chunks:", screenChunksRef.current.length);
-        // Clean up all tracks and audio context AFTER recorder finishes
-        stream.getTracks().forEach((t) => t.stop());
-        screenStream.getTracks().forEach((t) => t.stop());
-        micStreamRef?.getTracks().forEach((t) => t.stop());
-        audioCtxRef?.close().catch(() => {});
+        try {
+          stream.getTracks().forEach((t) => t.stop());
+          screenStream.getTracks().forEach((t) => t.stop());
+          micStreamRef?.getTracks().forEach((t) => t.stop());
+          audioCtxRef?.close().catch(() => {});
+        } catch (cleanupErr) {
+          console.warn("[ScreenRec] cleanup error:", cleanupErr);
+        }
 
         mediaRecorderRef.current = null;
+        setIsScreenRecording(false);
 
-        const blob = new Blob(screenChunksRef.current, { type: recorder.mimeType || "video/webm" });
-        console.log("[ScreenRec] blob size:", blob.size);
-        if (blob.size === 0) {
-          setIsScreenRecording(false);
+        const chunks = screenChunksRef.current;
+        console.log("[ScreenRec] total chunks:", chunks.length, "sizes:", chunks.map(c => c.size));
+        
+        if (chunks.length === 0) {
           toast.error("La grabación salió vacía, intentá de nuevo");
           return;
         }
+
+        const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
+        console.log("[ScreenRec] final blob size:", blob.size);
+        
+        if (blob.size === 0) {
+          toast.error("La grabación salió vacía, intentá de nuevo");
+          return;
+        }
+
         const file = new File([blob], `grabacion-${Date.now()}.webm`, { type: blob.type });
         const previewUrl = URL.createObjectURL(blob);
 
-        const attachment: Attachment = {
+        const newAttachment: Attachment = {
           id: crypto.randomUUID(),
           type: "file",
           name: file.name,
@@ -373,15 +391,9 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           previewUrl,
         };
 
-        // Use setTimeout to ensure state update happens in a clean React cycle
-        setTimeout(() => {
-          setIsScreenRecording(false);
-          setAttachments((prev) => {
-            console.log("[ScreenRec] setAttachments called, prev:", prev.length, "new total:", prev.length + 1);
-            return [...prev, attachment];
-          });
-          toast.success("Grabación lista — tocá para previsualizarla");
-        }, 0);
+        console.log("[ScreenRec] Adding attachment:", newAttachment.name);
+        setAttachments((prev) => [...prev, newAttachment]);
+        toast.success("Grabación lista — tocá para previsualizarla");
       };
 
       recorder.onerror = (e: any) => {
