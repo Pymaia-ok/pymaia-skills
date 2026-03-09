@@ -338,7 +338,6 @@ const CrearSkill = () => {
     setIsTesting(false);
   };
 
-  const [scanResult, setScanResult] = useState<any>(null);
 
   const handlePublish = async (config: { 
     category: string; 
