@@ -424,6 +424,102 @@ Rules:
       );
     }
 
+    if (action === "detect_api") {
+      const { api_url, api_description } = await req.json().catch(() => ({ api_url: "", api_description: "" }));
+      const detectPrompt = `Given this API information, detect the main endpoints available.
+
+API URL: ${api_url || "unknown"}
+Description: ${api_description || "unknown"}
+
+Try to infer common REST endpoints based on the description. If it sounds like a CRM, suggest CRUD endpoints for contacts, deals, etc. If it sounds like a messaging API, suggest send/receive endpoints.
+
+Respond ONLY with valid JSON (no markdown, no backticks):
+{
+  "endpoints": [
+    { "method": "GET", "path": "/resource", "summary": "What this endpoint does" }
+  ]
+}`;
+
+      const detectRaw = await callAI(
+        [
+          { role: "system", content: "You are an API expert. Detect REST API endpoints from descriptions." },
+          { role: "user", content: detectPrompt },
+        ],
+        "google/gemini-2.5-flash"
+      );
+
+      let detected;
+      try {
+        detected = JSON.parse(sanitizeJson(detectRaw));
+      } catch {
+        const match = detectRaw.match(/\{[\s\S]*\}/);
+        detected = match ? JSON.parse(sanitizeJson(match[0])) : { endpoints: [] };
+      }
+
+      return new Response(
+        JSON.stringify(detected),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "generate_mcp") {
+      const { api_url, api_description, auth_type, api_key_header, endpoints: selectedEndpoints } = await req.json().catch(() => ({}));
+
+      const mcpPrompt = `Generate a complete MCP (Model Context Protocol) server in TypeScript for Deno that connects to this API.
+
+API URL: ${api_url}
+Description: ${api_description || "External API"}
+Auth type: ${auth_type || "api-key"}
+Auth header: ${api_key_header || "Authorization"}
+Endpoints to expose as tools:
+${JSON.stringify(selectedEndpoints || [], null, 2)}
+
+Generate ONLY valid JSON (no markdown, no backticks):
+{
+  "mcp_server_code": "Full TypeScript source code for a Deno MCP server that exposes each endpoint as a tool. Use fetch() for HTTP calls. Include proper error handling, input validation, and type safety. The server should read credentials from environment variables.",
+  "mcp_config": {
+    "mcpServers": {
+      "api-name": {
+        "command": "deno",
+        "args": ["run", "--allow-net", "--allow-env", "src/server.ts"],
+        "env": { "API_KEY": "your-api-key-here", "API_BASE_URL": "${api_url}" }
+      }
+    }
+  },
+  "skill_context": "Context paragraph for the SKILL.md explaining what MCP tools are available and how to use them. Include tool names in mcp__servername__toolname format.",
+  "credentials_needed": ["List of environment variables the user needs to set"]
+}
+
+Rules:
+- Each endpoint becomes a tool with a descriptive name
+- Tool names should be snake_case
+- Include proper TypeScript types
+- Handle errors gracefully
+- Use environment variables for secrets, never hardcode`;
+
+      const mcpRaw = await callAI(
+        [
+          { role: "system", content: "You are an expert MCP server developer. Generate production-ready TypeScript MCP servers." },
+          { role: "user", content: mcpPrompt },
+        ],
+        "google/gemini-2.5-flash"
+      );
+
+      let mcpResult;
+      try {
+        mcpResult = JSON.parse(sanitizeJson(mcpRaw));
+      } catch {
+        const match = mcpRaw.match(/\{[\s\S]*\}/);
+        if (match) mcpResult = JSON.parse(sanitizeJson(match[0]));
+        else throw new Error("Failed to generate MCP server");
+      }
+
+      return new Response(
+        JSON.stringify(mcpResult),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: "Acción no válida" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
