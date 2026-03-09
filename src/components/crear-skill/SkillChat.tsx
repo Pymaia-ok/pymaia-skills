@@ -244,6 +244,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
 
     if (isRecording && recognitionRef.current) {
       recognitionRef.current.stop();
+      recognitionRef.current = null;
       setIsRecording(false);
       return;
     }
@@ -254,7 +255,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
     recognition.interimResults = true;
 
     // Capture the text that was in the input before recording started
-    const baseText = input ? (input.endsWith(" ") ? input : input + " ") : "";
+    const baseText = inputRef.current ? (inputRef.current.endsWith(" ") ? inputRef.current : inputRef.current + " ") : "";
     let accumulatedFinal = "";
 
     recognition.onresult = (event: any) => {
@@ -275,17 +276,19 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       if (event.error === "not-allowed") {
         toast.error("Permiso de micrófono denegado");
       }
+      recognitionRef.current = null;
       setIsRecording(false);
     };
 
     recognition.onend = () => {
+      recognitionRef.current = null;
       setIsRecording(false);
     };
 
     recognition.start();
     recognitionRef.current = recognition;
     setIsRecording(true);
-  }, [isRecording, input]);
+  }, [isRecording]);
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
