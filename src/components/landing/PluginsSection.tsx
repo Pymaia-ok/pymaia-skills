@@ -22,10 +22,14 @@ const FEATURED_SLUGS = [
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
-  development: "🛠️",
-  design: "🎨",
-  productivity: "📋",
   communication: "💬",
+  marketing: "📣",
+  sales: "🤝",
+  design: "🎨",
+  finance: "💰",
+  productivity: "📋",
+  operations: "⚙️",
+  analytics: "📊",
 };
 
 const PluginsSection = () => {
