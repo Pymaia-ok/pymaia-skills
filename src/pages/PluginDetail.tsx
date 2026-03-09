@@ -108,6 +108,11 @@ const PluginDetail = () => {
                   <ShieldCheck className="w-3.5 h-3.5" />
                   {isEs ? "Oficial" : "Official"}
                 </span>
+              ) : plugin.security_status === "verified" ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {isEs ? "Verificado" : "Verified"}
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-xs font-semibold">
                   <ShieldQuestion className="w-3.5 h-3.5" />
