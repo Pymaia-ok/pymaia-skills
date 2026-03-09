@@ -65,9 +65,8 @@ mcp.tool("search_skills", {
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const q = args.query.toLowerCase();
+    const q = sanitizeForPostgrest(args.query);
 
-    // Server-side search for accurate results
     let dbQuery = supabase
       .from("skills")
       .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
@@ -83,7 +82,18 @@ mcp.tool("search_skills", {
 
     let results = matched || [];
 
-    // Fallback to top skills if no match
+    // Word-split fallback for multi-word queries
+    const words = q.split(/\s+/).filter(w => w.length >= 2);
+    if (results.length === 0 && words.length > 1) {
+      results = await wordSplitSearch(
+        "skills",
+        "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles",
+        words, "install_count", lim,
+        args.category ? (qb: any) => qb.eq("category", args.category) : undefined,
+      );
+    }
+
+    // Fallback to top skills if still no match
     if (results.length === 0) {
       let fallback = supabase
         .from("skills")
