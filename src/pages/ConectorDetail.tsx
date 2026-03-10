@@ -236,6 +236,16 @@ const ConectorDetail = () => {
                   </div>
                 </div>
               )}
+
+              {/* FAQ */}
+              <DetailFAQ
+                itemType="connector"
+                itemName={connector.name}
+                description={isEs && connector.description_es ? connector.description_es : connector.description}
+                category={connector.category}
+                hasApiKey={connector.credentials_needed?.length > 0}
+                securityStatus={connector.security_status}
+              />
             </div>
 
             {/* ─── Sidebar ─── */}

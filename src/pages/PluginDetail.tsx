@@ -278,6 +278,15 @@ const PluginDetail = () => {
                   </div>
                 </div>
               )}
+
+              {/* FAQ */}
+              <DetailFAQ
+                itemType="plugin"
+                itemName={isEs && plugin.name_es ? plugin.name_es : plugin.name}
+                description={isEs && plugin.description_es ? plugin.description_es : plugin.description}
+                category={plugin.category}
+                securityStatus={(plugin as any).security_status}
+              />
             </div>
 
             {/* ─── Sidebar ─── */}

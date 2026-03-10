@@ -463,6 +463,15 @@ const SkillDetail = () => {
                   </div>
                 </div>
               </motion.div>
+
+              {/* FAQ */}
+              <DetailFAQ
+                itemType="skill"
+                itemName={displayName}
+                description={descriptionHuman}
+                category={skill.category}
+                securityStatus={(skill as any).security_status}
+              />
             </div>
 
             {/* ─── Sidebar ─── */}
