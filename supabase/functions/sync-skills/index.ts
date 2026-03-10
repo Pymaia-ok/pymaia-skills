@@ -1108,6 +1108,8 @@ Deno.serve(async (req) => {
       case "glama-crawl": discovered = await fetchGlamaCrawl(); break;
       case "pulsemcp-crawl": discovered = await fetchPulseMCPCrawl(); break;
       case "awesome-lists": discovered = await fetchAwesomeLists(); break;
+      case "skillssh-categories": discovered = await fetchSkillsShCategories(); break;
+      case "agentskill": discovered = await fetchAgentSkillSh(); break;
       case "all": {
         const [a, b, c] = await Promise.all([
           fetchSkillsMP("a").catch(() => [] as ParsedSkill[]),

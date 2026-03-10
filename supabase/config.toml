@@ -90,3 +90,6 @@ verify_jwt = false
 
 [functions.check-mcp-health]
 verify_jwt = false
+
+[functions.sync-composio]
+verify_jwt = false
