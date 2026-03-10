@@ -97,7 +97,7 @@ function assignVariant(goal: string, userId?: string): ABVariant {
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "8.2.0",
+  version: "8.3.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
@@ -2112,6 +2112,169 @@ mcp.tool("get_install_command", {
   },
 });
 
+// ─── suggest_stack ───
+mcp.tool("suggest_stack", {
+  description: "Given a project type or tech stack description, recommends a complete tool stack (skills + connectors + plugins). Different from solve_goal (which solves a single goal) — this builds a full environment setup for a project or role. Example: 'Next.js SaaS with Stripe billing' or 'marketing agency automation'.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      project_description: { type: "string", description: "Description of the project, tech stack, or work environment" },
+      max_items: { type: "number", description: "Max items per category (default: 5)" },
+    },
+    required: ["project_description"],
+  },
+  handler: async (args: { project_description: string; max_items?: number }) => {
+    const max = Math.min(args.max_items || 5, 8);
+    const intent = await classifyIntent(args.project_description);
+    const keywords = intent.keywords.length ? intent.keywords : args.project_description.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
+
+    // Search skills, connectors, plugins in parallel
+    const orFilter = keywords.map((k: string) => `name.ilike.%${sanitizeForPostgrest(k)}%,description.ilike.%${sanitizeForPostgrest(k)}%`).join(",");
+    const skillOrFilter = keywords.map((k: string) => `display_name.ilike.%${sanitizeForPostgrest(k)}%,tagline.ilike.%${sanitizeForPostgrest(k)}%`).join(",");
+
+    const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
+      supabase.from("skills").select("display_name, slug, tagline, category, install_command, avg_rating, install_count").eq("status", "approved").or(skillOrFilter).order("install_count", { ascending: false }).limit(max),
+      supabase.from("mcp_servers").select("name, slug, description, category, install_command, github_stars, is_official").eq("status", "approved").or(orFilter).order("github_stars", { ascending: false }).limit(max),
+      supabase.from("plugins").select("name, slug, description, category, platform, install_count, avg_rating").eq("status", "approved").or(orFilter).order("install_count", { ascending: false }).limit(max),
+    ]);
+
+    const sections: string[] = [`# Suggested Stack for: "${args.project_description}"\n`];
+
+    if (skillsRes.data?.length) {
+      sections.push("## 🧠 Skills\n" + skillsRes.data.map((s: any) => `- **${s.display_name}** [${s.category}] — ${s.tagline}\n  ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n  \`${s.install_command}\``).join("\n\n"));
+    }
+    if (connectorsRes.data?.length) {
+      const deduped = deduplicateConnectors(connectorsRes.data);
+      sections.push("## 🔌 Connectors\n" + deduped.map((c: any) => `- **${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} — ${c.description}\n  ⭐ ${(c.github_stars || 0).toLocaleString()} stars\n  \`${c.install_command}\``).join("\n\n"));
+    }
+    if (pluginsRes.data?.length) {
+      sections.push("## 📦 Plugins\n" + pluginsRes.data.map((p: any) => `- **${p.name}** [${p.category}] (${p.platform}) — ${p.description}\n  ${p.install_count.toLocaleString()} installs`).join("\n\n"));
+    }
+
+    if (sections.length === 1) {
+      sections.push("No matching tools found. Try a broader description or use `solve_goal` for goal-oriented recommendations.");
+    }
+
+    return { content: [{ type: "text" as const, text: sections.join("\n\n") }] };
+  },
+});
+
+// ─── check_compatibility ───
+mcp.tool("check_compatibility", {
+  description: "Lightweight compatibility check for 2-4 tool slugs. Returns a quick compatible/conflict/redundant verdict for each pair. For full analysis with data flow and synergies, use explain_combination instead.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slugs: { type: "array", items: { type: "string" }, description: "2-4 tool slugs (skills, connectors, or plugins)" },
+    },
+    required: ["slugs"],
+  },
+  handler: async (args: { slugs: string[] }) => {
+    if (args.slugs.length < 2 || args.slugs.length > 4) {
+      return { content: [{ type: "text" as const, text: "Please provide 2-4 tool slugs." }] };
+    }
+
+    // Check compatibility_matrix for known pairs
+    const pairs: string[] = [];
+    for (let i = 0; i < args.slugs.length; i++) {
+      for (let j = i + 1; j < args.slugs.length; j++) {
+        pairs.push(`${args.slugs[i]}:${args.slugs[j]}`);
+      }
+    }
+
+    const results: string[] = [`# Compatibility Check\n`];
+
+    for (let i = 0; i < args.slugs.length; i++) {
+      for (let j = i + 1; j < args.slugs.length; j++) {
+        const a = args.slugs[i], b = args.slugs[j];
+        const { data: matrix } = await supabase
+          .from("compatibility_matrix")
+          .select("status, reason")
+          .or(`and(item_a_slug.eq.${a},item_b_slug.eq.${b}),and(item_a_slug.eq.${b},item_b_slug.eq.${a})`)
+          .limit(1);
+
+        if (matrix?.length) {
+          const m = matrix[0];
+          const icon = m.status === "synergy" ? "✅" : m.status === "conflict" ? "⚠️" : "🔄";
+          results.push(`${icon} **${a}** ↔ **${b}**: ${m.status.toUpperCase()} — ${m.reason}`);
+        } else {
+          results.push(`✅ **${a}** ↔ **${b}**: COMPATIBLE (no known conflicts)`);
+        }
+      }
+    }
+
+    return { content: [{ type: "text" as const, text: results.join("\n") }] };
+  },
+});
+
+// ─── get_setup_guide ───
+mcp.tool("get_setup_guide", {
+  description: "Given a list of tool slugs (skills, connectors, plugins), returns a step-by-step setup guide with ordered install commands, credential requirements, and verification steps. Use after selecting tools with solve_goal, suggest_stack, or search.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slugs: { type: "array", items: { type: "string" }, description: "Tool slugs to generate setup guide for" },
+    },
+    required: ["slugs"],
+  },
+  handler: async (args: { slugs: string[] }) => {
+    // Fetch all items across tables
+    const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
+      supabase.from("skills").select("display_name, slug, install_command, required_mcps, category").eq("status", "approved").in("slug", args.slugs),
+      supabase.from("mcp_servers").select("name, slug, install_command, credentials_needed, category").eq("status", "approved").in("slug", args.slugs),
+      supabase.from("plugins").select("name, slug, category, platform").eq("status", "approved").in("slug", args.slugs),
+    ]);
+
+    const steps: string[] = [`# Setup Guide\n`];
+    let stepNum = 1;
+
+    // Connectors first (they're often prerequisites)
+    const connectors = connectorsRes.data || [];
+    if (connectors.length) {
+      steps.push(`## Step ${stepNum}: Install Connectors\nConnectors provide Claude access to external services.\n`);
+      for (const c of connectors) {
+        steps.push(`### ${c.name}\n\`\`\`\n${c.install_command}\n\`\`\``);
+        if (c.credentials_needed?.length) {
+          steps.push(`⚠️ **Credentials needed:** ${c.credentials_needed.join(", ")}`);
+        }
+      }
+      stepNum++;
+    }
+
+    // Skills second
+    const skills = skillsRes.data || [];
+    if (skills.length) {
+      steps.push(`## Step ${stepNum}: Install Skills\nSkills teach Claude professional expertise.\n`);
+      for (const s of skills) {
+        steps.push(`### ${s.display_name}\n\`\`\`\n${s.install_command}\n\`\`\``);
+        if (s.required_mcps && Array.isArray(s.required_mcps) && (s.required_mcps as any[]).length) {
+          const mcpNames = (s.required_mcps as any[]).map((m: any) => m.name || m).join(", ");
+          steps.push(`🔌 **Requires connectors:** ${mcpNames}`);
+        }
+      }
+      stepNum++;
+    }
+
+    // Plugins last
+    const plugins = pluginsRes.data || [];
+    if (plugins.length) {
+      steps.push(`## Step ${stepNum}: Install Plugins\nPlugins bundle multiple tools together.\n`);
+      for (const p of plugins) {
+        steps.push(`### ${p.name} (${p.platform})\nInstall from the ${p.platform} plugin marketplace.`);
+      }
+      stepNum++;
+    }
+
+    if (connectors.length === 0 && skills.length === 0 && plugins.length === 0) {
+      steps.push("No tools found with the provided slugs. Use `search_skills`, `search_connectors`, or `search_plugins` to find valid slugs.");
+    } else {
+      steps.push(`## Step ${stepNum}: Verify\nRestart Claude Code and test each tool by asking Claude to use it. Example: "Use [tool name] to help me with [task]."`);
+    }
+
+    return { content: [{ type: "text" as const, text: steps.join("\n\n") }] };
+  },
+});
+
 // ─── RATE LIMITER ───
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
@@ -2159,7 +2322,7 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.2.0",
+  version: "8.3.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
     description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
@@ -2180,6 +2343,7 @@ mcpApp.get("/", (c) => c.json({
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
     "generate_custom_skill", "suggest_for_skill_creation", "trending_solutions",
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
+    "suggest_stack", "check_compatibility", "get_setup_guide",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
