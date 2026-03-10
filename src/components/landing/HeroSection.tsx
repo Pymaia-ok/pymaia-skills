@@ -20,20 +20,13 @@ const TerminalDemo = () => {
     const timers = terminalLines.map((line, i) =>
       setTimeout(() => setVisibleLines(i + 1), line.delay)
     );
-    // Loop
-    const loopTimer = setTimeout(() => setVisibleLines(0), 7500);
-    const restartTimer = setTimeout(() => {
-      setVisibleLines(0);
-      // Restart the cycle
-      timers.forEach(clearTimeout);
-    }, 8000);
+    const loopTimer = setTimeout(() => setVisibleLines(0), 8000);
 
     return () => {
       timers.forEach(clearTimeout);
       clearTimeout(loopTimer);
-      clearTimeout(restartTimer);
     };
-  }, [visibleLines === 0 ? Date.now() : 0]);
+  }, [visibleLines]);
 
   return (
     <motion.div
