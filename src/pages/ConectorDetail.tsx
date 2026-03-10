@@ -124,7 +124,7 @@ const ConectorDetail = () => {
           {/* 2-column grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
-            <div className="min-w-0">
+            <div className="min-w-0 order-2 lg:order-none">
               {/* Install command */}
               {connector.install_command ? (
                 <div className="mb-8 space-y-4">
