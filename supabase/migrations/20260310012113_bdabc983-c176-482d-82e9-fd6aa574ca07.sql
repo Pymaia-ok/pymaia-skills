@@ -1,0 +1,2 @@
+ALTER TABLE public.mcp_servers ADD COLUMN IF NOT EXISTS readme_raw TEXT, ADD COLUMN IF NOT EXISTS readme_summary TEXT;
+ALTER TABLE public.plugins ADD COLUMN IF NOT EXISTS readme_raw TEXT, ADD COLUMN IF NOT EXISTS readme_summary TEXT;
