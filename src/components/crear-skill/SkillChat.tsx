@@ -24,6 +24,7 @@ interface SkillChatProps {
   setMessages: (msgs: Msg[]) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  generatingPhase?: string;
   userId?: string;
 }
 
