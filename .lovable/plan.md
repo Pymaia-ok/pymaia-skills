@@ -1,34 +1,53 @@
 
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+## Plan: Importar agency-agents + Nuevo pipeline de descubrimiento de repos populares
 
-### Implementado en esta sesión
+### Problema raíz
 
-| Gap | Estado | Implementación |
-|---|---|---|
-| **Dependency Audit (CVE checks)** | ✅ Implementado | Layer 12 en `scan-security` v6.0 — lee `package.json`/`requirements.txt` del repo GitHub, consulta GitHub Advisory Database API. CVSS>7 bloquea, CVSS>9 recomienda delist. |
-| **Network Security Check (MCPs)** | ✅ Implementado | `check-mcp-health` v2.0 — valida HTTPS, puertos seguros, no IPs internas, no credenciales en URL, SSL errors. |
-| **Publisher notification on report** | ✅ Implementado | `security-incident` v2.0 — notifica al publisher vía `send-email` cuando recibe 1 reporte. Notifica también en delist. |
-| **Review Queue en Admin** | ✅ Implementado | Nuevo tab "Review Queue" en `/admin` con items flagged/suspicious, botones Approve/Reject/Rescan. |
-| **Full catalog re-scan rotation** | ✅ Implementado | `rescan-security` v2.0 — ordena por `security_scanned_at ASC` (nulls first), rota el catálogo completo semanalmente. |
-| **Publisher account status check** | ✅ Implementado | `version-monitor` v2.0 — verifica que las cuentas GitHub de publishers sigan activas, crea incidente P2 si eliminada/suspendida. |
-| **Uninstall spike detection** | ✅ Implementado | `security-incident` acción `check_uninstall_spikes` — detecta tasa de uninstall >30% como trigger de review. |
+El repo `msitarzewski/agency-agents` (19k stars, 60+ agentes especializados, MIT license, actualizado ayer) no fue detectado porque:
+- No usa GitHub Topics estándar (`mcp-server`, `claude-skill`, etc.)
+- No tiene `SKILL.md` ni `.cursorrules` en la raíz
+- No está listado en ningún registry (skills.sh, smithery, etc.)
+- No aparece en las awesome-lists que rastreamos
 
-### Items no implementables en esta plataforma
-- ML model (Fase 4) — requiere infra ML externa
-- Snyk Agent Scan — requiere API key de pago
-- Docker image scan (Trivy/Grype) — no ejecutable en edge functions
+Hay un gap en el pipeline: **repos populares con contenido de agentes/skills que usan convenciones propias**.
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API) ← NUEVO
-12. LLM analysis (Gemini 2.5 Flash)
+### Solución: 2 partes
+
+#### Parte 1: Importar agency-agents ahora
+- Importar como 1 skill "monorepo" apuntando al repo completo (no 60 skills individuales, ya que son agentes dentro de un mismo proyecto)
+- Slug: `agency-agents`, source: `manual`, github_url: `https://github.com/msitarzewski/agency-agents`
+- Categoría: `ia`, roles: `developer, founder, marketer, disenador, consultor`
+- Las 19k stars se sincronizarán automáticamente via `sync-skill-stars`
+
+#### Parte 2: Nueva fuente — GitHub Popular Repos Search
+Agregar una **SOURCE 14** al `sync-skills` function que busque repos populares por keywords de contenido (no topics), filtrando por stars > 500:
+
+```text
+Queries de búsqueda:
+- "ai agent" stars:>500
+- "agent skills" stars:>500  
+- "claude agent" stars:>500
+- "cursor rules" stars:>500
+- "AI workflow" stars:>500
+- "prompt engineering" stars:>500
+```
+
+Esto usa la GitHub Search API estándar (`search/repositories`) con `q=` en vez de `topic:`, lo que captura repos por nombre/descripción sin depender de que el autor configure topics.
+
+**Cron**: Diario a las 7 AM UTC (antes del sync por topics de las 6 AM), para maximizar cobertura.
+
+### Cambios técnicos
+
+1. **DB**: Insert manual de agency-agents via SQL
+2. **Edge Function** `sync-skills/index.ts`: 
+   - Nueva función `fetchGitHubPopularSearch()` (~40 líneas)
+   - Nuevo case `"github-popular"` en el switch
+3. **Cron**: Nuevo job `sync-skills-github-popular` diario a 7 AM UTC
+4. **Awesome list**: Agregar `msitarzewski/agency-agents` a la lista de awesome repos para que sus links internos también se descubran
+
+### Resultado esperado
+- agency-agents aparece inmediatamente en el catálogo
+- Repos populares (>500 stars) con contenido de agentes se descubren automáticamente cada día
+- Se cierra el gap de descubrimiento para proyectos que no siguen convenciones estándar
+
