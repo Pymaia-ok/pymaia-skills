@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "5.0.0",
+  version: "6.0.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
