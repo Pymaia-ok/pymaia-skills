@@ -69,6 +69,8 @@ const Navbar = () => {
 
           <div className="w-px h-5 bg-border mx-1" />
 
+          <ThemeToggle />
+
           <button
             onClick={toggleLang}
             aria-label={t("nav.switchLang", { lang: i18n.language === "es" ? "EN" : "ES" })}
@@ -77,6 +79,8 @@ const Navbar = () => {
             <Globe className="w-3.5 h-3.5" />
             {i18n.language === "es" ? "EN" : "ES"}
           </button>
+
+          <NotificationBell />
 
           <div className="w-px h-5 bg-border mx-1" />
 
