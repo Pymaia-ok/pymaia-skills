@@ -311,7 +311,7 @@ const Plugins = () => {
                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{curatedPlugins.length}</span>
                   </div>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {curatedPlugins.map((plugin, i) => renderPluginCard(plugin, i))}
+                    {curatedPlugins.slice(0, visibleCount).map((plugin, i) => renderPluginCard(plugin, i))}
                   </div>
                 </div>
               )}
@@ -325,7 +325,7 @@ const Plugins = () => {
                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{communityPlugins.length}</span>
                   </div>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {communityPlugins.map((plugin, i) => renderPluginCard(plugin, i))}
+                    {communityPlugins.slice(0, Math.max(0, visibleCount - curatedPlugins.length)).map((plugin, i) => renderPluginCard(plugin, i))}
                   </div>
                 </div>
               )}
