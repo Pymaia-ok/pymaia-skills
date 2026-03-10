@@ -28,7 +28,7 @@ interface SkillChatProps {
   userId?: string;
 }
 
-export default function SkillChat({ messages, setMessages, onGenerate, isGenerating, userId }: SkillChatProps) {
+export default function SkillChat({ messages, setMessages, onGenerate, isGenerating, generatingPhase, userId }: SkillChatProps) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
