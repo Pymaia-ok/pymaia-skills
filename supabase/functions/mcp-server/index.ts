@@ -2343,6 +2343,7 @@ mcpApp.get("/", (c) => c.json({
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
     "generate_custom_skill", "suggest_for_skill_creation", "trending_solutions",
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
+    "suggest_stack", "check_compatibility", "get_setup_guide",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
