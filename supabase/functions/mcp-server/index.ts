@@ -817,19 +817,26 @@ mcp.tool("explore_directory", {
 
 // ─── HELPERS: Cross-catalog search & compatibility ───
 
-async function crossCatalogSearch(keywords: string[], limit = 5) {
+async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: string | null) {
   const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
   
   for (const kw of keywords.slice(0, 6)) {
     const q = sanitizeForPostgrest(kw);
     if (!q || q.length < 2) continue;
+
+    // Skills query: include private skills for authenticated API key users
+    let skillQuery = supabase.from("skills")
+      .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars, is_public, creator_id")
+      .or(
+        apiUserId
+          ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
+          : `and(status.eq.approved,is_public.eq.true)`
+      )
+      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
+      .order("install_count", { ascending: false }).limit(limit);
     
     const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
-      supabase.from("skills")
-        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars")
-        .eq("status", "approved")
-        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
-        .order("install_count", { ascending: false }).limit(limit),
+      skillQuery,
       supabase.from("mcp_servers")
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status")
         .eq("status", "approved")
@@ -892,6 +899,7 @@ mcp.tool("solve_goal", {
   },
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     const goalLower = args.goal.toLowerCase();
+    const apiUserId = currentApiKeyUserId;
 
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
@@ -925,7 +933,7 @@ mcp.tool("solve_goal", {
     const uniqueKeywords = [...new Set(allKeywords)];
 
     // 3. Cross-catalog search (with category hint from classifier)
-    const searchResults = await crossCatalogSearch(uniqueKeywords, 8);
+    const searchResults = await crossCatalogSearch(uniqueKeywords, 8, apiUserId);
     const allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
@@ -2315,28 +2323,29 @@ mcp.tool("get_setup_guide", {
   },
 });
 
-// ─── RATE LIMITER ───
+// ─── RATE LIMITER (tiered: 120/min authenticated, 30/min anonymous) ───
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 30; // max requests per window per IP
+const RATE_LIMIT_ANON = 30;
+const RATE_LIMIT_AUTH = 120;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(ip: string): boolean {
+function checkRateLimit(key: string, max: number): boolean {
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
   entry.count++;
-  return entry.count <= RATE_LIMIT_MAX;
+  return entry.count <= max;
 }
 
 // Cleanup stale entries every 5 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
-    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
   }
 }, 300_000);
 
@@ -2349,23 +2358,27 @@ const mcpApp = new Hono();
 
 // Rate limit middleware + API key auth for MCP endpoint
 mcpApp.use("/mcp", async (c, next) => {
+  // Resolve API key user first to determine rate limit tier
+  currentApiKeyUserId = await resolveApiKeyUser(c.req.header("authorization"));
+
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") || "unknown";
-  if (!checkRateLimit(ip)) {
+  const rateLimitKey = currentApiKeyUserId ? `user:${currentApiKeyUserId}` : `ip:${ip}`;
+  const rateLimitMax = currentApiKeyUserId ? RATE_LIMIT_AUTH : RATE_LIMIT_ANON;
+
+  if (!checkRateLimit(rateLimitKey, rateLimitMax)) {
     return c.json(
-      { error: "Rate limit exceeded. Max 30 requests per minute." },
+      { error: `Rate limit exceeded. Max ${rateLimitMax} requests per minute.` },
       429
     );
   }
-  // Resolve API key user and store in global context
-  currentApiKeyUserId = await resolveApiKeyUser(c.req.header("authorization"));
   await next();
 });
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
   version: "8.3.0",
-  rateLimit: "30 requests/minute per IP",
+  rateLimit: "30 req/min anonymous, 120 req/min with API key",
   agent: {
     description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
     capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration"],
