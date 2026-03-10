@@ -200,7 +200,7 @@ const SkillDetail = () => {
           {/* 2-column grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
-            <div className="min-w-0">
+            <div className="min-w-0 order-2 lg:order-none">
               {/* Install buttons */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
