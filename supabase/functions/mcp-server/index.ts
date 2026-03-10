@@ -142,7 +142,7 @@ async function wordSplitSearch(
 // ─── DISCOVERY TOOLS ───
 
 mcp.tool("search_skills", {
-  description: "Search the SkillHub directory for Agent Skills by name, tagline, or description. Returns install command, rating, and install count.",
+  description: "Search the SkillHub directory for Agent Skills by name, tagline, or description. Returns install command, rating, and install count. NOTE: For goal-oriented queries (e.g. 'I want to automate X'), use solve_goal instead — it searches skills, connectors, AND plugins simultaneously and returns curated solutions.",
   inputSchema: {
     type: "object",
     properties: {
@@ -195,7 +195,7 @@ mcp.tool("search_skills", {
       results = topData || [];
     }
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes." }] };
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching skills found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
     const text = results
       .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count.toLocaleString()} installs)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
@@ -472,7 +472,7 @@ function deduplicateConnectors(connectors: any[]): any[] {
 // ─── CONNECTOR TOOLS ───
 
 mcp.tool("search_connectors", {
-  description: "Search MCP connectors (integrations) by name, category, or description. Connectors give Claude access to external tools and services like Slack, GitHub, databases, etc.",
+  description: "Search MCP connectors (integrations) by name, category, or description. Connectors give Claude access to external tools and services like Slack, GitHub, databases, etc. NOTE: For goal-oriented queries (e.g. 'I want to run Meta Ads'), use solve_goal instead — it searches skills, connectors, AND plugins simultaneously and returns curated solutions.",
   inputSchema: {
     type: "object",
     properties: {
@@ -525,7 +525,7 @@ mcp.tool("search_connectors", {
       results = deduplicateConnectors(topData || []);
     }
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No connectors found." }] };
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching connectors found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
     const text = results
       .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}`)
@@ -838,7 +838,7 @@ async function getCompatibilityWarnings(items: any[]): Promise<string[]> {
 // ─── AGENT TOOLS (Pymaia Agent v5 — AI Solutions Architect) ───
 
 mcp.tool("solve_goal", {
-  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. Pass user_id to personalize based on install history. The core AI Solutions Architect tool.",
+  description: "⭐ PRIMARY TOOL — Use this FIRST for any goal or task. Given a business goal in natural language, the AI Solutions Architect searches 38K+ skills, MCP connectors, AND plugins simultaneously, then returns TWO curated options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step install commands. Examples: 'run Meta Ads campaigns', 'automate code reviews', 'set up outbound email'. Pass user_id to personalize based on install history.",
   inputSchema: {
     type: "object",
     properties: {
