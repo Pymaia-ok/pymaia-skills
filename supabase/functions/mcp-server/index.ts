@@ -926,6 +926,13 @@ mcp.tool("solve_goal", {
     }
 
     if (!matchedTemplate) sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
+    if (installedSlugs.size > 0) {
+      const alreadyInstalled = [...optionA, ...optionB].filter((i: any) => i._installed);
+      if (alreadyInstalled.length > 0) {
+        sections.push(`\n📌 **Personalized:** ${alreadyInstalled.length} tool(s) you already have were deprioritized. Showing new recommendations.`);
+      }
+      sections.push(`*Recommendations personalized based on your ${installedSlugs.size} installed tools.*`);
+    }
 
     if (matchedTemplate) {
       await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
