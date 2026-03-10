@@ -237,27 +237,117 @@ const Admin = () => {
   const p0Count = openIncidents.filter((i: any) => i.severity === "P0").length;
   const p1Count = openIncidents.filter((i: any) => i.severity === "P1").length;
 
-  const CRON_LIST = [
-    { name: "Auto-approve skills", freq: "Cada 3 min", batch: 100 },
-    { name: "Quality maintenance", freq: "Cada 10 min", batch: 50 },
-    { name: "Traducir skills", freq: "Cada 1 min", batch: 100 },
-    { name: "Traducir conectores", freq: "Cada 2 min", batch: 30 },
-    { name: "Sync estrellas skills", freq: "Cada 1 min", batch: 80 },
-    { name: "Sync estrellas conectores", freq: "Cada 2 min", batch: 50 },
-    { name: "Verificar seguridad", freq: "Cada 2 min", batch: 30 },
-    { name: "Security scan", freq: "Cada 5 min", batch: 10 },
-    { name: "Trust score calc", freq: "Cada 10 min", batch: 50 },
-    { name: "Version monitor + Publisher check", freq: "Cada 6 horas", batch: 30 },
-    { name: "Incident escalation + Publisher notify", freq: "Cada 15 min", batch: "auto" },
-    { name: "Re-scan rotación completa", freq: "Lunes 3:00 UTC", batch: 10 },
-    { name: "Enriquecer skills IA", freq: "Cada 3 min", batch: 10 },
-    { name: "MCP health + network security", freq: "Cada 12 horas", batch: 30 },
-    { name: "Uninstall spike detection", freq: "Cada 15 min", batch: "auto" },
-    { name: "Sync Smithery", freq: "Diario 6:00 UTC", batch: "auto" },
-    { name: "Sync Official Registry", freq: "Diario 6:30 UTC", batch: "auto" },
-    { name: "Sync GitHub Curated", freq: "Diario 7:00 UTC", batch: "auto" },
-    { name: "Sync skills diario", freq: "Diario 6:00 UTC", batch: "auto" },
-    { name: "Discover trending", freq: "Lunes 6:00 UTC", batch: "auto" },
+  // Live cron status from automation_logs
+  const { data: cronStatus } = useQuery({
+    queryKey: ["cron-live-status"],
+    queryFn: async () => {
+      // Get last 200 logs to derive per-function stats
+      const { data: logs } = await supabase
+        .from("automation_logs")
+        .select("function_name, action_type, reason, created_at, metadata")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (!logs) return {};
+
+      const byFunc: Record<string, { lastRun: string; count24h: number; lastAction: string; lastReason: string; errors: number; recentLogs: typeof logs }> = {};
+      const now = Date.now();
+      const h24 = 24 * 60 * 60 * 1000;
+
+      for (const log of logs) {
+        const fn = log.function_name;
+        if (!byFunc[fn]) {
+          byFunc[fn] = { lastRun: log.created_at, count24h: 0, lastAction: log.action_type, lastReason: log.reason, errors: 0, recentLogs: [] };
+        }
+        if (now - new Date(log.created_at).getTime() < h24) {
+          byFunc[fn].count24h++;
+        }
+        if (log.action_type?.includes("error") || log.action_type?.includes("fail")) {
+          byFunc[fn].errors++;
+        }
+        if (byFunc[fn].recentLogs.length < 5) {
+          byFunc[fn].recentLogs.push(log);
+        }
+      }
+      return byFunc;
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 10000, // every 10s
+  });
+
+  // Progress stats for specific pipelines
+  const { data: pipelineProgress } = useQuery({
+    queryKey: ["pipeline-progress"],
+    queryFn: async () => {
+      const [
+        totalApproved,
+        untranslatedSkills,
+        untranslatedConnectors,
+        totalConnectors,
+        unscannedSecurity,
+        scannedSecurity,
+        pendingSkills,
+        enrichPending,
+        totalPlugins,
+        untranslatedPlugins,
+      ] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null"),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved").is("description_es", null),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").is("security_scanned_at", null),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").not("security_scanned_at", "is", null),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").is("readme_summary", null).not("github_url", "is", null),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved").is("description_es", null),
+      ]);
+      return {
+        skills: { total: totalApproved.count ?? 0, untranslated: untranslatedSkills.count ?? 0 },
+        connectors: { total: totalConnectors.count ?? 0, untranslated: untranslatedConnectors.count ?? 0 },
+        plugins: { total: totalPlugins.count ?? 0, untranslated: untranslatedPlugins.count ?? 0 },
+        security: { scanned: scannedSecurity.count ?? 0, unscanned: unscannedSecurity.count ?? 0 },
+        pending: pendingSkills.count ?? 0,
+        enrichPending: enrichPending.count ?? 0,
+      };
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 15000,
+  });
+
+  type CronDef = {
+    name: string;
+    func: string;
+    freq: string;
+    pipeline?: { done: number; total: number; label: string };
+  };
+
+  const CRON_LIST: CronDef[] = [
+    { name: "Auto-approve skills", func: "auto-approve-skills", freq: "Cada 3 min",
+      pipeline: pipelineProgress ? { done: (pipelineProgress.skills.total), total: (pipelineProgress.skills.total + pipelineProgress.pending), label: `${pipelineProgress.pending} pendientes` } : undefined },
+    { name: "Quality maintenance", func: "quality-maintenance", freq: "Cada 10 min" },
+    { name: "Traducir skills", func: "translate-skills", freq: "Cada 1 min",
+      pipeline: pipelineProgress ? { done: pipelineProgress.skills.total - pipelineProgress.skills.untranslated, total: pipelineProgress.skills.total, label: `${pipelineProgress.skills.untranslated} faltan` } : undefined },
+    { name: "Traducir conectores", func: "translate-connectors", freq: "Cada 2 min",
+      pipeline: pipelineProgress ? { done: pipelineProgress.connectors.total - pipelineProgress.connectors.untranslated, total: pipelineProgress.connectors.total, label: `${pipelineProgress.connectors.untranslated} faltan` } : undefined },
+    { name: "Traducir plugins", func: "translate-plugins", freq: "Cada 3 min",
+      pipeline: pipelineProgress ? { done: pipelineProgress.plugins.total - pipelineProgress.plugins.untranslated, total: pipelineProgress.plugins.total, label: `${pipelineProgress.plugins.untranslated} faltan` } : undefined },
+    { name: "Sync estrellas skills", func: "sync-skill-stars", freq: "Cada 1 min" },
+    { name: "Sync estrellas conectores", func: "sync-connector-stars", freq: "Cada 2 min" },
+    { name: "Verificar seguridad", func: "verify-security", freq: "Cada 2 min" },
+    { name: "Security scan", func: "scan-security", freq: "Cada 5 min",
+      pipeline: pipelineProgress ? { done: pipelineProgress.security.scanned, total: pipelineProgress.security.scanned + pipelineProgress.security.unscanned, label: `${pipelineProgress.security.unscanned} sin escanear` } : undefined },
+    { name: "Trust score calc", func: "calculate-trust-score", freq: "Cada 10 min" },
+    { name: "Enriquecer skills IA", func: "enrich-skills-ai", freq: "Cada 3 min",
+      pipeline: pipelineProgress ? { done: pipelineProgress.skills.total - pipelineProgress.enrichPending, total: pipelineProgress.skills.total, label: `${pipelineProgress.enrichPending} faltan` } : undefined },
+    { name: "Fetch READMEs", func: "fetch-readme", freq: "Cada 3 min" },
+    { name: "Version monitor", func: "version-monitor", freq: "Cada 6 horas" },
+    { name: "Incident escalation", func: "security-incident", freq: "Cada 15 min" },
+    { name: "Re-scan rotación", func: "rescan-security", freq: "Lunes 3:00 UTC" },
+    { name: "MCP health check", func: "check-mcp-health", freq: "Cada 12 horas" },
+    { name: "Sync skills diario", func: "sync-skills", freq: "Diario 6:00 UTC" },
+    { name: "Sync plugins", func: "sync-plugins", freq: "Diario 6:00 UTC" },
+    { name: "Sync conectores", func: "sync-connectors", freq: "Diario 6:00 UTC" },
+    { name: "Discover trending", func: "discover-trending-skills", freq: "Lunes 6:00 UTC" },
   ];
 
   return (
