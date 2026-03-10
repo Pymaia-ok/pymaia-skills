@@ -24,7 +24,7 @@ const Explore = () => {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       name: "Explore Skills — Pymaia Skills",
-      description: "Browse 38,000+ professional skills for Claude Code across 19 categories.",
+      description: "Browse 35,000+ professional skills for Claude Code across 19 categories.",
       url: "https://pymaiaskills.lovable.app/explorar",
       isPartOf: {
         "@type": "WebSite",

@@ -37,7 +37,7 @@ const Index = () => {
           "@type": "WebSite",
           name: "Pymaia Skills",
           url: "https://pymaiaskills.lovable.app",
-          description: "The #1 skill directory for Claude Code. 38,000+ professional skills.",
+          description: "The #1 skill directory for Claude Code. 35,000+ professional skills.",
           potentialAction: {
             "@type": "SearchAction",
             target: "https://pymaiaskills.lovable.app/explorar?q={search_term_string}",
