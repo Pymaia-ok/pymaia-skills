@@ -346,15 +346,6 @@ const PluginDetail = () => {
                 <h3 className="font-semibold text-foreground mb-2 text-sm">{t("plugins.whatArePlugins")}</h3>
                 <p className="text-xs text-muted-foreground">{t("plugins.whatArePluginsDesc")}</p>
               </div>
-
-              {/* FAQ */}
-              <DetailFAQ
-                itemType="plugin"
-                itemName={isEs && plugin.name_es ? plugin.name_es : plugin.name}
-                description={isEs && plugin.description_es ? plugin.description_es : plugin.description}
-                category={plugin.category}
-                securityStatus={(plugin as any).security_status}
-              />
             </div>
           </div>
         </div>
