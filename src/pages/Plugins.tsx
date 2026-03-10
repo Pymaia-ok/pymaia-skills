@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, BadgeCheck, Download, SlidersHorizontal, ShieldCheck, Monitor, Users2, Star, Award } from "lucide-react";
+import { TrustBadgeCompact } from "@/components/TrustBadge";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
