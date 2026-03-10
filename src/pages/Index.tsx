@@ -5,6 +5,7 @@ import HowItWorks from "@/components/landing/HowItWorks";
 import StatsBar from "@/components/landing/StatsBar";
 import MarqueeSection from "@/components/landing/MarqueeSection";
 import TwoPathsSection from "@/components/landing/TwoPathsSection";
+import SkillCreatorSection from "@/components/landing/SkillCreatorSection";
 import WizardSection from "@/components/landing/WizardSection";
 import PopularSkills from "@/components/landing/PopularSkills";
 import ConnectorsSection from "@/components/landing/ConnectorsSection";
@@ -92,7 +93,9 @@ const Index = () => {
         <WizardSection allSkills={allSkills} />
         {/* 9. Two paths — meet user where they are */}
         <TwoPathsSection />
-        {/* 10. Bundles by profession */}
+        {/* 10. Skill Creator */}
+        <SkillCreatorSection />
+        {/* 11. Bundles by profession */}
         <BundlesSection />
         {/* 11. Connectors */}
         <ConnectorsSection />
