@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import Navbar from "@/components/Navbar";
+
 import { useAuth } from "@/hooks/useAuth";
 import { submitSkill } from "@/lib/api";
 import { toast } from "sonner";
