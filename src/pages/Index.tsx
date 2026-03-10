@@ -5,6 +5,7 @@ import HowItWorks from "@/components/landing/HowItWorks";
 import StatsBar from "@/components/landing/StatsBar";
 import MarqueeSection from "@/components/landing/MarqueeSection";
 import TwoPathsSection from "@/components/landing/TwoPathsSection";
+import SkillCreatorSection from "@/components/landing/SkillCreatorSection";
 import WizardSection from "@/components/landing/WizardSection";
 import PopularSkills from "@/components/landing/PopularSkills";
 import ConnectorsSection from "@/components/landing/ConnectorsSection";
