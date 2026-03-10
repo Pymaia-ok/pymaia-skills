@@ -1,34 +1,35 @@
 
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+# Plan: Add Few-Shot Examples to scan-security LLM Prompt
 
-### Implementado en esta sesión
+## What
+Enhance the LLM analysis in `scan-security/index.ts` (lines 664-682) by adding 8-10 concrete examples of flagged vs approved items directly in the system prompt. This teaches the model subtle patterns that regex layers miss.
 
-| Gap | Estado | Implementación |
-|---|---|---|
-| **Dependency Audit (CVE checks)** | ✅ Implementado | Layer 12 en `scan-security` v6.0 — lee `package.json`/`requirements.txt` del repo GitHub, consulta GitHub Advisory Database API. CVSS>7 bloquea, CVSS>9 recomienda delist. |
-| **Network Security Check (MCPs)** | ✅ Implementado | `check-mcp-health` v2.0 — valida HTTPS, puertos seguros, no IPs internas, no credenciales en URL, SSL errors. |
-| **Publisher notification on report** | ✅ Implementado | `security-incident` v2.0 — notifica al publisher vía `send-email` cuando recibe 1 reporte. Notifica también en delist. |
-| **Review Queue en Admin** | ✅ Implementado | Nuevo tab "Review Queue" en `/admin` con items flagged/suspicious, botones Approve/Reject/Rescan. |
-| **Full catalog re-scan rotation** | ✅ Implementado | `rescan-security` v2.0 — ordena por `security_scanned_at ASC` (nulls first), rota el catálogo completo semanalmente. |
-| **Publisher account status check** | ✅ Implementado | `version-monitor` v2.0 — verifica que las cuentas GitHub de publishers sigan activas, crea incidente P2 si eliminada/suspendida. |
-| **Uninstall spike detection** | ✅ Implementado | `security-incident` acción `check_uninstall_spikes` — detecta tasa de uninstall >30% como trigger de review. |
+## How
 
-### Items no implementables en esta plataforma
-- ML model (Fase 4) — requiere infra ML externa
-- Snyk Agent Scan — requiere API key de pago
-- Docker image scan (Trivy/Grype) — no ejecutable en edge functions
+Edit the `systemPrompt` in the `analyzeWithLLM` function (~line 664) to include a `## Examples` section with:
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API) ← NUEVO
-12. LLM analysis (Gemini 2.5 Flash)
+**5 MALICIOUS/SUSPICIOUS examples:**
+1. A skill that hides `curl` exfiltration inside markdown comments
+2. A skill using zero-width characters to hide "ignore previous instructions"
+3. A plugin that reads `~/.ssh/id_rsa` under the guise of "git config helper"
+4. A skill that redirects `ANTHROPIC_BASE_URL` to a proxy server
+5. A connector that requests `exec` permissions but claims to only read files
+
+**5 SAFE examples:**
+1. A standard coding best-practices skill (React patterns)
+2. A documentation generator skill with file read-only scope
+3. A code formatter plugin using eslint/prettier hooks
+4. A translation skill that only processes text input/output
+5. A design system reference skill with no tool calls
+
+Each example will be ~2-3 lines: a brief content snippet, the correct verdict, and a reason explaining why.
+
+## File Changes
+- `supabase/functions/scan-security/index.ts` — Update `systemPrompt` string in `analyzeWithLLM` (around line 664)
+
+## Impact
+- $0 cost (uses existing Gemini Flash calls)
+- Expected 30-40% reduction in false negatives on subtle attacks
+- No new dependencies or infrastructure
+
