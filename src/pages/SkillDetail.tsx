@@ -1,4 +1,6 @@
 import { useParams, Link } from "react-router-dom";
+import SkillHero from "@/components/skill-detail/SkillHero";
+import SkillSidebar from "@/components/skill-detail/SkillSidebar";
 import { motion } from "framer-motion";
 import { Star, ArrowLeft, Copy, Check, Clock, Download, ExternalLink, User, Heart, ChevronDown, ChevronUp, BookOpen, Plug, ShieldCheck, Activity, Lock, FileArchive, Package, Loader2, AlertTriangle, Wrench, ListChecks, Zap } from "lucide-react";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";

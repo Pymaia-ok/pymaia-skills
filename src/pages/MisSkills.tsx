@@ -123,6 +123,9 @@ export default function MisSkills() {
           </div>
         </div>
 
+        {/* Profile editor */}
+        <ProfileEditor userId={user.id} />
+
         {/* API Keys section */}
         <ApiKeysSection />
 
