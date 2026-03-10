@@ -2330,7 +2330,7 @@ const httpHandler = transport.bind(mcp);
 const app = new Hono();
 const mcpApp = new Hono();
 
-// Rate limit middleware for MCP endpoint
+// Rate limit middleware + API key auth for MCP endpoint
 mcpApp.use("/mcp", async (c, next) => {
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") || "unknown";
@@ -2339,6 +2339,11 @@ mcpApp.use("/mcp", async (c, next) => {
       { error: "Rate limit exceeded. Max 30 requests per minute." },
       429
     );
+  }
+  // Resolve API key user and store in header for downstream access
+  const userId = await resolveApiKeyUser(c.req.header("authorization"));
+  if (userId) {
+    c.req.raw.headers.set("x-pymaia-user-id", userId);
   }
   await next();
 });
