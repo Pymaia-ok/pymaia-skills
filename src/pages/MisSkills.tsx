@@ -3,6 +3,7 @@ import { Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Eye, Clock, Star, Download, BarChart3, Loader2, Globe, Lock, Trash2, ArrowRight } from "lucide-react";
 import ApiKeysSection from "@/components/mis-skills/ApiKeysSection";
+import ProfileEditor from "@/components/mis-skills/ProfileEditor";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { fetchUserSkills, type SkillFromDB } from "@/lib/api";
