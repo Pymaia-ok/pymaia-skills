@@ -30,6 +30,7 @@ const MCP = () => {
   const [copiedA, setCopiedA] = useState(false);
   const [copiedB, setCopiedB] = useState(false);
   const [copiedMd, setCopiedMd] = useState(false);
+  const [copiedAuth, setCopiedAuth] = useState(false);
   const { t } = useTranslation();
 
   const handleCopy = (text: string, setter: (v: boolean) => void) => {
