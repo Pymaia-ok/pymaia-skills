@@ -3,7 +3,7 @@ import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const MCP_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp-server/mcp`;
+const MCP_URL = "https://mcp.pymaia.com";
 
 const oneLineCommand = `claude mcp add pymaia-skills --transport http ${MCP_URL}`;
 

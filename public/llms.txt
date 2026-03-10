@@ -28,7 +28,7 @@ Install the Pymaia Skills MCP Server so Claude automatically suggests relevant s
 
 Run this single command in Claude Code:
 ```
-claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp
+claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
 ```
 
 ### Manual Configuration
@@ -39,7 +39,7 @@ claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supab
   "mcpServers": {
     "pymaia-skills": {
       "type": "streamable-http",
-      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"
+      "url": "https://mcp.pymaia.com"
     }
   }
 }
@@ -51,7 +51,7 @@ claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supab
   "mcpServers": {
     "pymaia-skills": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"]
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://mcp.pymaia.com"]
     }
   }
 }
@@ -66,7 +66,7 @@ To include your private skills in search results, generate an API key at /mis-sk
   "mcpServers": {
     "pymaia-skills": {
       "type": "streamable-http",
-      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp",
+      "url": "https://mcp.pymaia.com",
       "headers": {
         "Authorization": "Bearer pymsk_YOUR_API_KEY_HERE"
       }
