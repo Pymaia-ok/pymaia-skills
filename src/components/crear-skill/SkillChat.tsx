@@ -533,7 +533,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
                 ) : (
                   <Sparkles className="w-4 h-4" />
                 )}
-                {isGenerating ? "Generando skill..." : "Generar mi Skill"}
+                {isGenerating ? (generatingPhase || "Generando skill...") : "Generar mi Skill"}
               </Button>
             </motion.div>
           )}
