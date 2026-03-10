@@ -24,10 +24,11 @@ interface SkillChatProps {
   setMessages: (msgs: Msg[]) => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  generatingPhase?: string;
   userId?: string;
 }
 
-export default function SkillChat({ messages, setMessages, onGenerate, isGenerating, userId }: SkillChatProps) {
+export default function SkillChat({ messages, setMessages, onGenerate, isGenerating, generatingPhase, userId }: SkillChatProps) {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -532,7 +533,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
                 ) : (
                   <Sparkles className="w-4 h-4" />
                 )}
-                {isGenerating ? "Generando skill..." : "Generar mi Skill"}
+                {isGenerating ? (generatingPhase || "Generando skill...") : "Generar mi Skill"}
               </Button>
             </motion.div>
           )}
