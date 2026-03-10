@@ -1,6 +1,6 @@
 # Pymaia Skills — Full Documentation
 
-> The #1 skill directory for Claude Code. 38,000+ professional skills. Install any skill in 2 minutes.
+> The #1 skill directory for Claude Code. 38,000+ professional skills. AI Solutions Architect with 28 tools. Install any skill in 2 minutes.
 
 ## Overview
 
@@ -8,11 +8,14 @@ Pymaia Skills is a curated marketplace where professionals discover, install, an
 
 No coding required. No terminal knowledge needed. Install any skill in 2 minutes with a single command.
 
+The MCP server includes an **AI Solutions Architect** (`solve_goal`) that analyzes your goal in natural language and returns two curated solution options with trust scores, compatibility analysis, and step-by-step install commands.
+
 ## Key Numbers
 
 - 38,000+ skills available
 - 19 categories
 - 100+ MCP connectors
+- 28 MCP tools (AI Solutions Architect)
 - 2 min average install time
 - Community reviews and ratings
 
@@ -71,7 +74,7 @@ No coding required. No terminal knowledge needed. Install any skill in 2 minutes
 
 ## MCP Server
 
-The Pymaia Skills MCP Server enables Claude to automatically recommend relevant skills based on your conversation context. Compatible with Claude Code, Cursor, Windsurf, and any MCP-compatible client.
+The Pymaia Skills MCP Server enables Claude to automatically recommend relevant skills based on your conversation context. It includes an **AI Solutions Architect** that builds complete tool stacks for any professional goal. Compatible with Claude Code, Cursor, Windsurf, and any MCP-compatible client.
 
 ### Quick Install (Claude Code)
 
@@ -106,7 +109,9 @@ claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supab
 }
 ```
 
-### Available Tools (17)
+### Available Tools (28)
+
+> **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
 #### Skills (10 tools)
 
@@ -199,12 +204,73 @@ Search across the entire directory — skills, connectors, and plugins — in a 
 - Parameters: `query` (string, required), `limit` (number, default 3 per type)
 - Returns: Combined results grouped by type
 
+#### AI Solutions Architect (7 tools)
+
+#### 18. solve_goal
+The core AI agent tool. Describe any professional goal in natural language (e.g., "I want to send outbound emails via Gmail", "automate my code reviews", "build a marketing campaign"). Returns two curated solution options (A and B) with:
+- Trust scores and security badges for each recommended tool
+- Compatibility analysis between tools
+- Step-by-step install commands
+- Supports user history personalization (pass `user_id` to deprioritize already-installed tools)
+- Parameters: `goal` (string, required), `user_id` (string, optional), `context` (string, optional)
+
+#### 19. get_role_kit
+Get a complete, pre-curated toolkit for a professional role. Supports 14 roles: marketer, lawyer, developer, designer, consultant, founder, sales, hr, finance, healthcare, educator, product, support, data.
+- Parameters: `role` (string, required), `tier` ("essentials" | "advanced", default "essentials")
+- Returns: Curated list of skills, connectors, and plugins for that role with install commands
+
+#### 20. explain_combination
+Analyze the synergies, conflicts, and data flow between multiple tools.
+- Parameters: `slugs` (string[], required)
+- Returns: Compatibility status, data flow diagram, credential requirements, recommended install order
+
+#### 21. rate_recommendation
+Submit feedback on a previous recommendation to improve future suggestions.
+- Parameters: `goal` (string, required), `rating` (number 1-5), `chosen_option` ("A" | "B"), `comment` (string, optional)
+
+#### 22. generate_custom_skill
+Generate a complete SKILL.md or plugin.json file from a goal description.
+- Parameters: `goal` (string, required), `type` ("skill" | "plugin", default "skill")
+- Returns: Complete file content ready to save, with decision tree, workflow, and dependencies
+
+#### 23. suggest_for_skill_creation
+When building a new skill, get suggestions for required MCP connectors, similar existing skills, and dependency blocks.
+- Parameters: `skill_description` (string, required)
+- Returns: Recommended MCPs, similar skills to reference, dependency configuration
+
+#### 24. trending_solutions
+View trending goals, popular templates, and ecosystem insights.
+- Parameters: `period` ("week" | "month", default "week"), `limit` (number)
+- Returns: Top goals, most-used templates, rising skills
+
+#### Platform & Community (4 tools)
+
+#### 25. submit_goal_template
+Submit a reusable goal template to the community marketplace for review and publication.
+- Parameters: `display_name` (string), `description` (string), `domain` (string), `triggers` (string[]), `example_solutions` (object)
+
+#### 26. browse_community_templates
+Browse community-submitted goal templates.
+- Parameters: `domain` (string, optional), `status` ("approved" | "pending"), `limit` (number)
+- Returns: Array of community templates with upvotes and usage stats
+
+#### 27. agent_analytics
+View MCP server performance metrics: tool usage, satisfaction scores, popular goals, response times.
+- Parameters: `period` ("day" | "week" | "month"), `metric` ("usage" | "satisfaction" | "goals")
+- Returns: Analytics dashboard data
+
+#### 28. a2a_query
+Agent-to-Agent protocol for inter-agent communication. Allows other AI agents to query the Pymaia Skills catalog programmatically.
+- Parameters: `action` ("capabilities" | "search" | "recommend" | "catalog_stats"), `payload` (object)
+- Returns: Structured JSON response for agent consumption
+
 ### Example Conversations
-- "I need to prepare 10 campaign briefs by tomorrow" → Claude recommends Brief Generator and Campaign Planner
-- "I need to review a service contract" → Claude recommends Contract Reviewer
-- "What skills are marketers using most?" → Claude lists top marketing skills
-- "I want to automate my code reviews" → Claude recommends Code Review skills
-- "Help me create a financial model" → Claude recommends Finance modeling skills
+- "I need to send outbound emails via Gmail" → Claude uses `solve_goal` and returns Option A (email-mcp with SMTP) and Option B (Gmail API connector with OAuth2), with trust scores and install commands
+- "I need to prepare 10 campaign briefs by tomorrow" → Claude uses `solve_goal` to recommend Brief Generator + Campaign Planner with compatibility analysis
+- "I need to review a service contract" → Claude uses `solve_goal` to recommend Contract Reviewer with security badges
+- "What skills are marketers using most?" → Claude uses `get_role_kit` with role="marketer"
+- "I want to automate my code reviews" → Claude uses `solve_goal` with two options and install steps
+- "Help me create a financial model" → Claude uses `solve_goal` to recommend Finance modeling skills with trust scores
 
 ## MCP Connectors Directory
 
