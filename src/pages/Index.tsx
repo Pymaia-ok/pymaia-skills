@@ -12,7 +12,7 @@ import PluginsSection from "@/components/landing/PluginsSection";
 import BundlesSection from "@/components/landing/BundlesSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import McpBannerSection from "@/components/landing/McpBannerSection";
-import SocialProofBar from "@/components/landing/SocialProofBar";
+
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 import { fetchSkills } from "@/lib/api";
