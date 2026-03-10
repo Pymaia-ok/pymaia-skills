@@ -18,14 +18,18 @@ const features = [
   },
   {
     icon: Globe,
-    secondIcon: Lock,
     titleKey: "landing.creatorFeature2Title",
     descKey: "landing.creatorFeature2Desc",
   },
   {
-    icon: Play,
+    icon: Video,
     titleKey: "landing.creatorFeature3Title",
     descKey: "landing.creatorFeature3Desc",
+  },
+  {
+    icon: ShieldCheck,
+    titleKey: "landing.creatorFeature4Title",
+    descKey: "landing.creatorFeature4Desc",
   },
 ];
 
