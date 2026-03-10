@@ -7,6 +7,29 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+// ─── API KEY AUTH: resolve user_id from Bearer token ───
+async function sha256Hex(message: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function resolveApiKeyUser(authHeader: string | null): Promise<string | null> {
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token || !token.startsWith("pymsk_")) return null;
+  try {
+    const keyHash = await sha256Hex(token);
+    const { data } = await supabase.rpc("validate_api_key", { _key_hash: keyHash });
+    if (data) {
+      // Update last_used_at in background
+      supabase.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", keyHash).then(() => {});
+    }
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── ML INTENT CLASSIFIER ───
 // Uses Gemini Flash Lite to extract structured intent from natural language goals
 async function classifyIntent(goal: string, role?: string): Promise<{
