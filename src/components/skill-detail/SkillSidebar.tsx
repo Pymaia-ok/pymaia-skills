@@ -104,7 +104,7 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
 
       <div className="p-5 rounded-2xl border border-border bg-card space-y-3">
         <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{isEs ? "Categoría" : "Category"}</div>
-        <span className="text-sm text-foreground capitalize">{t(`categories.${skill.category}`, skill.category)}</span>
+        <span className="text-sm text-foreground capitalize">{String(t(`categories.${skill.category}`, skill.category))}</span>
         {skill.target_roles?.length > 0 && (
           <>
             <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-3">{isEs ? "Para" : "For"}</div>
