@@ -16,6 +16,8 @@ async function sha256Hex(message: string): Promise<string> {
 // Global per-request context for API key auth
 // Edge functions in Deno are single-threaded per isolate, so this is safe per-request
 let currentApiKeyUserId: string | null = null;
+
+async function resolveApiKeyUser(authHeader: string | null): Promise<string | null> {
   if (!authHeader) return null;
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!token || !token.startsWith("pymsk_")) return null;
