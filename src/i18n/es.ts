@@ -12,6 +12,7 @@ export default {
     signIn: "Ingresar",
     signOut: "Cerrar sesión",
     publishSkill: "Publicar skill",
+    mcp: "MCP Server",
   },
 
   // Index / Home

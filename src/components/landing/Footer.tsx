@@ -12,6 +12,7 @@ const Footer = () => {
     { to: "/enterprise", label: "Enterprise" },
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
     { to: "/mcp", label: t("nav.mcp") },
+    { to: "/api-docs", label: "Security API" },
     { to: "/crear-skill", label: t("nav.publish") },
   ];
 
