@@ -179,12 +179,12 @@ mcp.tool("search_skills", {
     },
     required: ["query"],
   },
-  handler: async (args: { query: string; category?: string; limit?: number }, extra?: any) => {
+  handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const q = sanitizeForPostgrest(args.query);
 
-    // Check for authenticated API key user
-    const apiUserId = (extra as any)?._requestHeaders?.get?.("x-pymaia-user-id") || null;
+    // Use global API key user context for private skill access
+    const apiUserId = currentApiKeyUserId;
 
     let dbQuery = supabase
       .from("skills")
