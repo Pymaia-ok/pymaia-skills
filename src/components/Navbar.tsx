@@ -40,6 +40,9 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border">
+      {/* Single GlobalSearch instance — handles ⌘K shortcut + dialog */}
+      <GlobalSearch />
+
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Zone 1: Logo */}
         <Link to="/" className="flex items-center shrink-0">
@@ -65,7 +68,6 @@ const Navbar = () => {
 
         {/* Zone 3: Actions (desktop) */}
         <div className="hidden md:flex items-center gap-2">
-          <GlobalSearch />
 
           <div className="w-px h-5 bg-border mx-1" />
 
@@ -131,7 +133,6 @@ const Navbar = () => {
 
         {/* Mobile actions */}
         <div className="md:hidden flex items-center">
-          <GlobalSearch />
           <button className="p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
