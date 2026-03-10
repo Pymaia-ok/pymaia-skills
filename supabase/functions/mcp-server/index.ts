@@ -1537,11 +1537,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect",
-  version: "6.0.0",
+  version: "7.0.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 2: Custom Generation — generates SKILL.md and plugin.json that orchestrate recommended tools.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Feedback loop"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 3: Intelligence — trending solutions, auto-generated templates, co-installation analysis.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop"],
   },
   tools: [
     "search_skills", "get_skill_details", "list_popular_skills", "list_new_skills",
@@ -1551,7 +1551,7 @@ mcpApp.get("/", (c) => c.json({
     "search_plugins", "get_plugin_details", "list_popular_plugins",
     "explore_directory",
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
-    "generate_custom_skill",
+    "generate_custom_skill", "trending_solutions",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
