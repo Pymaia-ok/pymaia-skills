@@ -250,17 +250,20 @@ Deno.serve(async (req) => {
 
     // ═══════════════════════════════════════
     // ACTION: lookup (default) — Single item
+    // Supports: ?slug=X or ?github_url=https://github.com/org/repo
     // ═══════════════════════════════════════
     const slug = url.searchParams.get("slug");
+    const githubUrlParam = url.searchParams.get("github_url");
     const type = url.searchParams.get("type") || "skill";
 
-    if (!slug) {
+    if (!slug && !githubUrlParam) {
       return new Response(JSON.stringify({
         api: "Pymaia Security Benchmark API",
-        version: "2.0",
+        version: "3.0",
         docs: "https://pymaiaskills.lovable.app/api-docs",
         endpoints: {
-          lookup: "GET ?slug=<slug>&type=<skill|connector|plugin>",
+          lookup_by_slug: "GET ?slug=<slug>&type=<skill|connector|plugin>",
+          lookup_by_github: "GET ?github_url=<github_repo_url> — searches all types, on-demand scan if not indexed",
           search: "GET ?action=search&q=<query>&type=<type>&min_score=<0-100>&limit=<1-100>",
           badge: "GET ?action=badge&slug=<slug>&type=<type> → SVG image",
         },
@@ -270,12 +273,197 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── GitHub URL lookup (cross-table search + on-demand scan) ──
+    if (githubUrlParam) {
+      // Normalize the URL
+      let normalizedUrl = githubUrlParam.trim().replace(/\/+$/, "");
+      if (!normalizedUrl.startsWith("http")) normalizedUrl = `https://${normalizedUrl}`;
+
+      // Extract org/repo for matching
+      const ghMatch = normalizedUrl.match(/github\.com\/([^\/]+\/[^\/]+)/i);
+      if (!ghMatch) {
+        return new Response(JSON.stringify({ error: "Invalid GitHub URL. Expected format: https://github.com/org/repo" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const repoPath = ghMatch[1].toLowerCase();
+      const searchPattern = `%${repoPath}%`;
+
+      // Search across all 3 tables
+      const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
+        supabase.from("skills").select("*").eq("status", "approved").ilike("github_url", searchPattern).limit(1),
+        supabase.from("mcp_servers").select("*").eq("status", "approved").ilike("github_url", searchPattern).limit(1),
+        supabase.from("plugins").select("*").eq("status", "approved").ilike("github_url", searchPattern).limit(1),
+      ]);
+
+      // Find the first match
+      let foundItem: any = null;
+      let foundType = "";
+      if (skillsRes.data?.length) { foundItem = skillsRes.data[0]; foundType = "skill"; }
+      else if (connectorsRes.data?.length) { foundItem = connectorsRes.data[0]; foundType = "connector"; }
+      else if (pluginsRes.data?.length) { foundItem = pluginsRes.data[0]; foundType = "plugin"; }
+
+      if (foundItem) {
+        // Found in our registry — return trust score
+        const trustScore = foundItem.trust_score || 0;
+        const badge = getBadgeInfo(trustScore);
+        const scanDetails = extractScanDetails(foundItem.security_scan_result);
+        const baseUrl = Deno.env.get("SUPABASE_URL")!;
+
+        return new Response(JSON.stringify({
+          source: "indexed",
+          slug: foundItem.slug,
+          name: foundItem.display_name || foundItem.name,
+          type: foundType,
+          trust_score: trustScore,
+          badge,
+          security_status: foundItem.security_status,
+          scanned_at: foundItem.security_scanned_at,
+          is_official: foundItem.is_official || false,
+          github_url: foundItem.github_url,
+          scan_details: scanDetails,
+          badge_svg: `${baseUrl}/functions/v1/trust-score-api?action=badge&slug=${foundItem.slug}&type=${foundType}`,
+          docs: "https://pymaiaskills.lovable.app/api-docs",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
+        });
+      }
+
+      // ── NOT INDEXED: On-demand scan ──
+      // Fetch README from GitHub to scan
+      const githubToken = Deno.env.get("GITHUB_TOKEN");
+      const apiUrl = `https://api.github.com/repos/${repoPath}`;
+
+      const headers: Record<string, string> = { "Accept": "application/vnd.github.v3+json", "User-Agent": "Pymaia-Security-API" };
+      if (githubToken) headers["Authorization"] = `token ${githubToken}`;
+
+      const repoRes = await fetch(apiUrl, { headers });
+      if (!repoRes.ok) {
+        return new Response(JSON.stringify({
+          error: "Repository not found on GitHub",
+          github_url: normalizedUrl,
+          suggestion: "Check the URL is correct and the repository is public.",
+        }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const repoData = await repoRes.json();
+
+      // Fetch README
+      let readmeContent = "";
+      try {
+        const readmeRes = await fetch(`${apiUrl}/readme`, { headers: { ...headers, "Accept": "application/vnd.github.v3.raw" } });
+        if (readmeRes.ok) readmeContent = await readmeRes.text();
+      } catch { /* no readme */ }
+
+      // Build scan content
+      const scanContent = [
+        repoData.name || "",
+        repoData.description || "",
+        readmeContent,
+      ].join("\n\n");
+
+      // Invoke scan-security in gate_mode
+      const baseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      const scanRes = await fetch(`${baseUrl}/functions/v1/scan-security`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          gate_mode: true,
+          content: scanContent.slice(0, 50000), // cap at 50KB
+          slug: repoPath.replace("/", "-"),
+          item_type: "skill",
+          github_url: normalizedUrl,
+          install_command: "",
+        }),
+      });
+
+      const scanResult = await scanRes.json();
+      const scanDetails = extractScanDetails(scanResult);
+
+      // If scan passes (SAFE), auto-index as a new skill
+      let autoIndexed = false;
+      let newSlug = "";
+      if (scanResult.verdict === "SAFE") {
+        newSlug = repoPath.replace("/", "-").toLowerCase().replace(/[^a-z0-9-]/g, "");
+
+        // Check if slug already exists
+        const { data: existing } = await supabase.from("skills").select("id").eq("slug", newSlug).single();
+
+        if (!existing) {
+          const { error: insertError } = await supabase.from("skills").insert({
+            slug: newSlug,
+            display_name: repoData.name || repoPath.split("/")[1],
+            tagline: (repoData.description || "").slice(0, 200) || "Auto-indexed from GitHub",
+            description_human: repoData.description || `Repository: ${repoPath}`,
+            install_command: `npx @anthropic-ai/claude-code skill add ${normalizedUrl}`,
+            github_url: normalizedUrl,
+            github_stars: repoData.stargazers_count || 0,
+            category: "general",
+            status: "approved",
+            security_status: "verified",
+            security_scan_result: scanResult,
+            security_scanned_at: new Date().toISOString(),
+            readme_raw: readmeContent.slice(0, 100000) || null,
+            auto_approved_reason: "On-demand scan via Security API — verdict SAFE",
+          });
+
+          if (!insertError) {
+            autoIndexed = true;
+            // Log the auto-indexing
+            await supabase.from("automation_logs").insert({
+              function_name: "trust-score-api",
+              action_type: "auto_index",
+              reason: `On-demand scan for ${normalizedUrl} — verdict SAFE, auto-indexed as ${newSlug}`,
+              metadata: { github_url: normalizedUrl, verdict: scanResult.verdict },
+            });
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({
+        source: autoIndexed ? "on_demand_indexed" : "on_demand_scan",
+        github_url: normalizedUrl,
+        repository: {
+          name: repoData.name,
+          full_name: repoData.full_name,
+          description: repoData.description,
+          stars: repoData.stargazers_count,
+          language: repoData.language,
+          created_at: repoData.created_at,
+          updated_at: repoData.updated_at,
+          archived: repoData.archived,
+          fork: repoData.fork,
+        },
+        scan_verdict: scanResult.verdict,
+        scan_details: scanDetails,
+        ...(autoIndexed ? {
+          slug: newSlug,
+          message: "Repository passed security scan and has been auto-indexed in Pymaia Skills registry.",
+          badge_svg: `${baseUrl}/functions/v1/trust-score-api?action=badge&slug=${newSlug}&type=skill`,
+        } : {
+          message: scanResult.verdict === "SAFE"
+            ? "Repository passed security scan."
+            : `Repository flagged as ${scanResult.verdict}. Review the scan details for more information.`,
+        }),
+        docs: "https://pymaiaskills.lovable.app/api-docs",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Standard slug lookup ──
     const tableName = getTableName(type);
 
     const { data: item, error } = await supabase
       .from(tableName)
       .select("*")
-      .eq("slug", slug)
+      .eq("slug", slug!)
       .eq("status", "approved")
       .single();
 
@@ -292,6 +480,7 @@ Deno.serve(async (req) => {
     const baseUrl = Deno.env.get("SUPABASE_URL")!;
 
     return new Response(JSON.stringify({
+      source: "indexed",
       slug: (item as any).slug,
       name: (item as any).display_name || (item as any).name,
       type,
