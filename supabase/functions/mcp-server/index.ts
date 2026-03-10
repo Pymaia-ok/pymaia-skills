@@ -1044,13 +1044,17 @@ mcp.tool("get_role_kit", {
     // Build response
     const sections: string[] = [];
     const roleLabel = args.role.charAt(0).toUpperCase() + args.role.slice(1);
+    const tierLabel = isAdvanced ? "Advanced" : "Essentials";
 
-    sections.push(`# 🎯 Tool Kit for ${roleLabel}\n`);
+    sections.push(`# 🎯 ${tierLabel} Kit for ${roleLabel}\n`);
+    if (!isAdvanced) {
+      sections.push(`*Free essentials kit. Use \`get_role_kit\` with \`tier: "advanced"\` for extended recommendations with stack-specific connectors and pre-built kits.*\n`);
+    }
 
     // Essential skills
     const essential = (roleSkills || []).slice(0, lim);
     if (essential.length > 0) {
-      sections.push(`## Essential Skills\n`);
+      sections.push(`## ${isAdvanced ? "Top" : "Essential"} Skills\n`);
       sections.push(`Top ${essential.length} skills used by ${roleLabel}s:\n`);
       for (let i = 0; i < essential.length; i++) {
         const s = essential[i];
@@ -1062,9 +1066,9 @@ mcp.tool("get_role_kit", {
       }
     }
 
-    // Stack-specific connectors
-    if (stackConnectors.length > 0) {
-      sections.push(`## Stack-Specific Connectors\n`);
+    // Stack-specific connectors (advanced tier or if stack provided)
+    if (stackConnectors.length > 0 && (isAdvanced || args.stack)) {
+      sections.push(`## Stack-Specific Connectors${!isAdvanced ? " ⭐" : ""}\n`);
       sections.push(`Based on your stack (${args.stack!.join(", ")}):\n`);
       for (const c of stackConnectors) {
         const official = c.is_official ? " ✅ Official" : "";
@@ -1074,12 +1078,31 @@ mcp.tool("get_role_kit", {
       sections.push("");
     }
 
-    // Bundles
-    if (bundles && bundles.length > 0) {
-      sections.push(`## Pre-built Kits\n`);
+    // Bundles (advanced tier only)
+    if (isAdvanced && bundles && bundles.length > 0) {
+      sections.push(`## Pre-built Kits ⭐\n`);
       for (const b of bundles) {
         sections.push(`${b.hero_emoji || "📦"} **${b.title}** — ${b.description}`);
         sections.push(`   Includes ${b.skill_slugs.length} tools\n`);
+      }
+    }
+
+    // Advanced: cross-reference with popular plugins for this role
+    if (isAdvanced) {
+      const { data: rolePlugins } = await supabase
+        .from("plugins")
+        .select("name, slug, description, category, install_count, trust_score, is_official")
+        .eq("status", "approved")
+        .order("install_count", { ascending: false })
+        .limit(5);
+      if (rolePlugins && rolePlugins.length > 0) {
+        sections.push(`## Recommended Plugins ⭐\n`);
+        for (const p of rolePlugins) {
+          const tb = (p.trust_score || 0) >= 70 ? "🟢" : (p.trust_score || 0) >= 40 ? "🟡" : "⚪";
+          sections.push(`- 🧩 **${p.name}** [${p.category}] ${tb} Trust: ${p.trust_score || "N/A"} · ${p.install_count.toLocaleString()} installs`);
+          sections.push(`  ${p.description}`);
+        }
+        sections.push("");
       }
     }
 
@@ -1094,6 +1117,10 @@ mcp.tool("get_role_kit", {
 
     if (essential.length === 0 && stackConnectors.length === 0) {
       sections.push(`No specific tools found for "${args.role}". Try \`explore_directory\` or \`solve_goal\` for a more targeted search.`);
+    }
+
+    if (!isAdvanced) {
+      sections.push(`\n---\n💎 *Want more? Use \`get_role_kit\` with \`tier: "advanced"\` for extended recommendations, stack-specific connectors, plugins, and pre-built kits.*`);
     }
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
