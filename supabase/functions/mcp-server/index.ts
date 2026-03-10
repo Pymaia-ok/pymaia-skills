@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "6.0.0",
+  version: "7.0.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
@@ -1335,6 +1335,94 @@ mcp.tool("generate_custom_skill", {
   },
 });
 
+// ─── PHASE 3: INTELLIGENCE TOOLS ───
+
+mcp.tool("trending_solutions", {
+  description: "Shows trending goals and popular solutions that other users are implementing right now. Discover what's hot in the ecosystem.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      period: { type: "string", description: "Time period: 'week' or 'month' (default: week)" },
+    },
+  },
+  handler: async (args: { period?: string }) => {
+    const days = args.period === "month" ? 30 : 7;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    // Get trending feedback
+    const { data: recentFeedback } = await supabase
+      .from("recommendation_feedback")
+      .select("goal, rating, chosen_option, created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false }).limit(200);
+
+    const goalScores: Record<string, { count: number; ratings: number[]; options: string[] }> = {};
+    for (const f of recentFeedback || []) {
+      const n = f.goal.toLowerCase().trim();
+      if (!goalScores[n]) goalScores[n] = { count: 0, ratings: [], options: [] };
+      goalScores[n].count++;
+      if (f.rating) goalScores[n].ratings.push(f.rating);
+      if (f.chosen_option) goalScores[n].options.push(f.chosen_option);
+    }
+
+    const trending = Object.entries(goalScores)
+      .sort(([, a], [, b]) => b.count - a.count)
+      .slice(0, 10);
+
+    // Get most used templates
+    const { data: topTemplates } = await supabase
+      .from("goal_templates")
+      .select("slug, display_name, domain, usage_count, description")
+      .eq("is_active", true)
+      .order("usage_count", { ascending: false }).limit(10);
+
+    // Get recently installed skills
+    const { data: recentInstalls } = await supabase
+      .from("skills")
+      .select("display_name, slug, category, install_count, tagline")
+      .eq("status", "approved")
+      .order("install_count", { ascending: false }).limit(5);
+
+    const sections: string[] = [];
+    sections.push(`# 🔥 Trending Solutions (last ${days} days)\n`);
+
+    if (trending.length > 0) {
+      sections.push(`## Popular Goals\n`);
+      for (let i = 0; i < trending.length; i++) {
+        const [goal, data] = trending[i];
+        const avg = data.ratings.length > 0 ? (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : "N/A";
+        const preferred = data.options.filter(o => o === "A").length >= data.options.filter(o => o === "B").length ? "A (Simple)" : "B (Flexible)";
+        sections.push(`${i + 1}. **"${goal}"** — ${data.count} requests, ⭐ ${avg}/5`);
+        if (data.options.length > 0) sections.push(`   Preferred: Option ${preferred}`);
+      }
+      sections.push("");
+    } else {
+      sections.push(`*No trending goals yet. Be the first to use \`solve_goal\`!*\n`);
+    }
+
+    if (topTemplates && topTemplates.length > 0) {
+      sections.push(`## Most Used Goal Templates\n`);
+      for (const t of topTemplates.filter(t => t.usage_count > 0)) {
+        sections.push(`- **${t.display_name}** [${t.domain}] — ${t.usage_count} uses`);
+        if (t.description) sections.push(`  *${t.description}*`);
+      }
+      sections.push("");
+    }
+
+    if (recentInstalls && recentInstalls.length > 0) {
+      sections.push(`## Most Installed Skills\n`);
+      for (const s of recentInstalls) {
+        sections.push(`- **${s.display_name}** [${s.category}] — ${s.install_count.toLocaleString()} installs`);
+        sections.push(`  ${s.tagline}`);
+      }
+    }
+
+    sections.push(`\n💡 *Use \`solve_goal\` with any trending goal to get a personalized solution.*`);
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
 // ─── STATS TOOLS ───
 
 mcp.tool("get_directory_stats", {
@@ -1449,11 +1537,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect",
-  version: "6.0.0",
+  version: "7.0.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 2: Custom Generation — generates SKILL.md and plugin.json that orchestrate recommended tools.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Feedback loop"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 3: Intelligence — trending solutions, auto-generated templates, co-installation analysis.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop"],
   },
   tools: [
     "search_skills", "get_skill_details", "list_popular_skills", "list_new_skills",
@@ -1463,7 +1551,7 @@ mcpApp.get("/", (c) => c.json({
     "search_plugins", "get_plugin_details", "list_popular_plugins",
     "explore_directory",
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
-    "generate_custom_skill",
+    "generate_custom_skill", "trending_solutions",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
