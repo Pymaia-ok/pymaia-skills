@@ -82,6 +82,8 @@ export default function ApiKeysSection() {
     }
   }
 
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+
   async function revokeKey(id: string) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
