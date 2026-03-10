@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight, BadgeCheck, Star, Download, SlidersHorizontal, ShieldCheck } from "lucide-react";
+import { TrustBadgeCompact } from "@/components/TrustBadge";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -297,6 +298,7 @@ const Conectores = () => {
                     </p>
                     {/* Trust metrics - always show */}
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50 flex-wrap">
+                      <TrustBadgeCompact trustScore={(connector as any).trust_score ?? 0} securityStatus={(connector as any).security_status} />
                       {connector.is_official ? (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold">
                           <BadgeCheck className="w-3 h-3" />
@@ -305,11 +307,6 @@ const Conectores = () => {
                       ) : (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-muted-foreground text-[10px] font-semibold">
                           {isEs ? "Comunitario" : "Community"}
-                        </span>
-                      )}
-                      {(connector as any).security_status === "verified" && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold">
-                          <ShieldCheck className="w-3 h-3" />
                         </span>
                       )}
                       {(connector.github_stars ?? 0) > 0 && (

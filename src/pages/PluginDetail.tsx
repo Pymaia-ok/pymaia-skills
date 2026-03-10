@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2, Package, Plug, BookOpen, Star, Award } from "lucide-react";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";
+import SecurityPanel from "@/components/SecurityPanel";
 import SecurityReportButton from "@/components/SecurityReportButton";
 import { useCallback, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -281,6 +282,24 @@ const PluginDetail = () => {
               <div className="ml-auto">
                 <SecurityReportButton itemType="plugin" itemId={plugin.id} itemSlug={plugin.slug} />
               </div>
+            </div>
+
+            {/* Security Panel */}
+            <div className="mb-8">
+              <SecurityPanel
+                trustScore={(plugin as any).trust_score || 0}
+                securityStatus={(plugin as any).security_status}
+                securityScannedAt={(plugin as any).security_scanned_at}
+                scanResult={(plugin as any).security_scan_result}
+                createdAt={plugin.created_at}
+                isOfficial={plugin.is_official}
+                creatorId={plugin.creator_id}
+                creatorName={null}
+                creatorUsername={null}
+                creatorAvatarUrl={null}
+                lastCommitAt={(plugin as any).last_commit_at}
+                itemType="plugin"
+              />
             </div>
 
             {/* Install options */}

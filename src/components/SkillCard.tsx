@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart, ShieldCheck, Download } from "lucide-react";
+import { Star, Heart, Download } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { TrustBadgeCompact } from "@/components/TrustBadge";
@@ -37,15 +37,7 @@ const SkillCard = forwardRef<HTMLDivElement, SkillCardProps>(({ skill, index = 0
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
             {catLabel}
           </span>
-          {(skill.trust_score != null && skill.trust_score > 0) && (
-            <TrustBadgeCompact trustScore={skill.trust_score} securityStatus={skill.security_status} />
-          )}
-          {skill.security_status === "verified" && !skill.trust_score && (
-            <span className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="w-3 h-3" />
-              {t("trust.verified")}
-            </span>
-          )}
+          <TrustBadgeCompact trustScore={skill.trust_score ?? 0} securityStatus={skill.security_status} />
           {skill.industry.slice(0, 1).map((ind) => (
             <span
               key={ind}

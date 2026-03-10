@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github, Plug, AlertTriangle, HardDrive, Wifi } from "lucide-react";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";
+import SecurityPanel from "@/components/SecurityPanel";
 import SecurityReportButton from "@/components/SecurityReportButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -221,6 +222,24 @@ const ConectorDetail = () => {
               <div className="ml-auto">
                 <SecurityReportButton itemType="connector" itemId={connector.id} itemSlug={connector.slug} />
               </div>
+            </div>
+
+            {/* Security Panel */}
+            <div className="mb-8">
+              <SecurityPanel
+                trustScore={(connector as any).trust_score || 0}
+                securityStatus={connector.security_status}
+                securityScannedAt={(connector as any).security_scanned_at}
+                scanResult={(connector as any).security_scan_result}
+                createdAt={connector.created_at}
+                isOfficial={connector.is_official}
+                creatorId={null}
+                creatorName={null}
+                creatorUsername={null}
+                creatorAvatarUrl={null}
+                lastCommitAt={connector.last_commit_at}
+                itemType="connector"
+              />
             </div>
 
             {/* Stats row */}
