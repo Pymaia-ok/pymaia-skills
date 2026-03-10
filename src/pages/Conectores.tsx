@@ -240,7 +240,7 @@ const Conectores = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((connector, i) => (
+              {filtered.slice(0, visibleCount).map((connector, i) => (
                 <motion.div
                   key={connector.id}
                   initial={{ opacity: 0, y: 20 }}
