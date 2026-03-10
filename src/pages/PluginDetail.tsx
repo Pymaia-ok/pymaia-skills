@@ -168,7 +168,7 @@ const PluginDetail = () => {
           {/* 2-column grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
-            <div className="min-w-0">
+            <div className="min-w-0 order-2 lg:order-none">
               {/* Install options */}
               <div className="mb-8 space-y-3">
                 <p className="text-sm font-semibold text-muted-foreground mb-2">{isEs ? "Instalar en" : "Install in"}</p>
