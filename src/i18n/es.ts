@@ -31,11 +31,18 @@ export default {
 
   // Landing sections
   landing: {
-    heroBadge: "Tu arquitecto de soluciones AI",
-    heroTitle: "Decile a Claude qué querés\nlograr. Nosotros armamos todo.",
-    heroSubtitle: "Pymaia Agent entiende tu objetivo, busca en 35K+ herramientas y te arma la solución perfecta: skills, conectores y plugins combinados, listos para instalar.",
-    heroCtaExplore: "Probar Pymaia Agent",
+    heroBadge: "38,000+ skills profesionales",
+    heroTitle: "Trabajá como un\nexperto en minutos.",
+    heroSubtitle: "Elegí una skill, instalala en Claude y listo. Tu IA ahora sabe hacer lo que antes te llevaba horas.",
+    heroCtaExplore: "Explorar skills",
     heroCtaLearn: "Cómo funciona",
+
+    marqueeTitle: "Skills para cada profesión",
+    marqueeSubtitle: "No importa a qué te dediques. Hay una skill que transforma tu trabajo.",
+
+    proofUsers: "Usado por miles de profesionales",
+    proofTime: "Instalación en 2 minutos",
+    proofRating: "4.8 ★ rating promedio",
 
     howTitle: "Cómo funciona",
     howSubtitle: "De cero a productivo en 3 pasos simples.",
@@ -101,9 +108,9 @@ export default {
     mcpSubtitle: "Instalá Pymaia Agent en Claude y decile qué querés lograr. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
     mcpCta: "Instalar Pymaia Agent",
 
-    ctaTitle: "Decile qué querés lograr.\nPymaia arma la solución.",
-    ctaSubtitle: "35K+ herramientas, un solo comando. Pymaia Agent es tu arquitecto de soluciones AI dentro de Claude.",
-    ctaExplore: "Probar Pymaia Agent",
+    ctaTitle: "Empezá a trabajar\ncomo un experto.",
+    ctaSubtitle: "38,000+ skills profesionales. Instalá la tuya en 2 minutos y transformá tu forma de trabajar.",
+    ctaExplore: "Explorar skills",
     ctaLearn: "Primeros pasos",
   },
 

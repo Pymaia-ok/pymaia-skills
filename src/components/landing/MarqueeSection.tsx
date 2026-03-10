@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const roles = [
   { emoji: "📣", label: "Marketing" },
@@ -48,11 +49,10 @@ const MarqueeStrip = ({
   duration?: number;
 }) => (
   <div className="relative overflow-hidden">
-    {/* Fade edges */}
     <div className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10 bg-gradient-to-r from-background to-transparent" />
     <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10 bg-gradient-to-l from-background to-transparent" />
     <motion.div
-      className="flex gap-4 w-max"
+      className="flex gap-3 w-max"
       animate={{ x: reverse ? ["0%", "-50%"] : ["-50%", "0%"] }}
       transition={{ duration, repeat: Infinity, ease: "linear" }}
     >
@@ -63,30 +63,32 @@ const MarqueeStrip = ({
 );
 
 const MarqueeSection = () => {
+  const { t } = useTranslation();
+
   return (
-    <section className="pt-4 pb-20 overflow-hidden">
+    <section className="pt-4 pb-16 overflow-hidden">
       {/* Roles marquee */}
-      <div className="mb-6">
+      <div className="mb-4">
         <MarqueeStrip duration={35}>
           {roles.map((role) => (
             <div
               key={role.label}
-              className="flex items-center gap-3 px-6 py-4 rounded-2xl border border-border bg-card whitespace-nowrap select-none"
+              className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border bg-card whitespace-nowrap select-none"
             >
-              <span className="text-2xl">{role.emoji}</span>
-              <span className="text-base font-semibold text-foreground">{role.label}</span>
+              <span className="text-xl">{role.emoji}</span>
+              <span className="text-sm font-semibold text-foreground">{role.label}</span>
             </div>
           ))}
         </MarqueeStrip>
       </div>
 
       {/* Skills marquee (reverse direction) */}
-      <div className="mb-14">
+      <div className="mb-12">
         <MarqueeStrip reverse duration={45}>
           {skills.map((skill) => (
             <div
               key={skill}
-              className="px-6 py-4 rounded-2xl bg-foreground text-background whitespace-nowrap select-none font-medium text-base"
+              className="px-5 py-3 rounded-xl bg-foreground text-background whitespace-nowrap select-none font-medium text-sm"
             >
               {skill}
             </div>
@@ -102,9 +104,9 @@ const MarqueeSection = () => {
           viewport={{ once: true, margin: "-100px" }}
           className="text-center"
         >
-          <h2 className="section-title mb-4">Skills para cada profesión</h2>
+          <h2 className="section-title mb-4">{t("landing.marqueeTitle")}</h2>
           <p className="text-muted-foreground text-lg">
-            No importa a qué te dediques. Hay una skill que transforma tu trabajo.
+            {t("landing.marqueeSubtitle")}
           </p>
         </motion.div>
       </div>

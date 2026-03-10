@@ -28,11 +28,18 @@ export default {
   },
 
   landing: {
-    heroBadge: "Your AI Solutions Architect",
-    heroTitle: "Tell Claude what you\nwant to achieve. We build it.",
-    heroSubtitle: "Pymaia Agent understands your goal, searches 35K+ tools, and assembles the perfect solution: skills, connectors, and plugins combined, ready to install.",
-    heroCtaExplore: "Try Pymaia Agent",
+    heroBadge: "38,000+ professional skills",
+    heroTitle: "Work like an expert\nin minutes.",
+    heroSubtitle: "Pick a skill, install it in Claude, and you're done. Your AI now knows how to do what used to take you hours.",
+    heroCtaExplore: "Explore skills",
     heroCtaLearn: "How it works",
+
+    marqueeTitle: "Skills for every profession",
+    marqueeSubtitle: "No matter what you do. There's a skill that transforms your work.",
+
+    proofUsers: "Used by thousands of professionals",
+    proofTime: "Install in 2 minutes",
+    proofRating: "4.8 ★ average rating",
 
     howTitle: "How it works",
     howSubtitle: "From zero to productive in 3 simple steps.",
@@ -98,9 +105,9 @@ export default {
     mcpSubtitle: "Install Pymaia Agent in Claude and tell it what you want to achieve. It analyzes your goal, searches the entire catalog, and builds the perfect tool combination.",
     mcpCta: "Install Pymaia Agent",
 
-    ctaTitle: "Tell it what you want.\nPymaia builds the solution.",
-    ctaSubtitle: "35K+ tools, one command. Pymaia Agent is your AI solutions architect inside Claude.",
-    ctaExplore: "Try Pymaia Agent",
+    ctaTitle: "Start working\nlike an expert.",
+    ctaSubtitle: "38,000+ professional skills. Install yours in 2 minutes and transform how you work.",
+    ctaExplore: "Explore skills",
     ctaLearn: "Getting started",
   },
 
