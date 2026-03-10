@@ -19,6 +19,8 @@ const CATEGORY_OPTIONS = [
   "development", "productivity", "writing", "data", "design", "marketing", "devops", "security", "ai", "general"
 ];
 
+const PAGE_SIZE = 30;
+
 const Plugins = () => {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,6 +29,7 @@ const Plugins = () => {
   const [verifiedFilter, setVerifiedFilter] = useState<string>(searchParams.get("filter") || "all");
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category") || "all");
   const [sourceFilter, setSourceFilter] = useState<string>(searchParams.get("source") || "all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const isEs = i18n.language === "es";
 
   useEffect(() => {
