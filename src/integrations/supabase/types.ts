@@ -52,6 +52,45 @@ export type Database = {
           },
         ]
       }
+      compatibility_matrix: {
+        Row: {
+          created_at: string
+          data_flow: string | null
+          id: string
+          item_a_slug: string
+          item_a_type: string
+          item_b_slug: string
+          item_b_type: string
+          reason: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_flow?: string | null
+          id?: string
+          item_a_slug: string
+          item_a_type?: string
+          item_b_slug: string
+          item_b_type?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_flow?: string | null
+          id?: string
+          item_a_slug?: string
+          item_a_type?: string
+          item_b_slug?: string
+          item_b_type?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           clicked_at: string | null
@@ -627,6 +666,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      recommendation_feedback: {
+        Row: {
+          chosen_option: string | null
+          comment: string | null
+          created_at: string
+          goal: string
+          id: string
+          matched_template_slug: string | null
+          rating: number | null
+          recommended_slugs: string[]
+          user_ip: string | null
+        }
+        Insert: {
+          chosen_option?: string | null
+          comment?: string | null
+          created_at?: string
+          goal: string
+          id?: string
+          matched_template_slug?: string | null
+          rating?: number | null
+          recommended_slugs?: string[]
+          user_ip?: string | null
+        }
+        Update: {
+          chosen_option?: string | null
+          comment?: string | null
+          created_at?: string
+          goal?: string
+          id?: string
+          matched_template_slug?: string | null
+          rating?: number | null
+          recommended_slugs?: string[]
+          user_ip?: string | null
         }
         Relationships: []
       }
