@@ -967,18 +967,20 @@ mcp.tool("rate_recommendation", {
 });
 
 mcp.tool("get_role_kit", {
-  description: "Returns a curated kit of recommended tools (skills, MCPs, plugins) for a specific professional role. Optionally filters by tech stack.",
+  description: "Returns a curated kit of recommended tools (skills, MCPs, plugins) for a specific professional role. Supports tiered kits: 'essentials' (free, top 5) and 'advanced' (extended, top 10 + stack-specific connectors + bundles). Optionally filters by tech stack.",
   inputSchema: {
     type: "object",
     properties: {
       role: { type: "string", description: "Professional role: marketer, developer, product-manager, designer, sales, consultant, lawyer, founder, data-analyst, devops, doctor, teacher, hr, other" },
       stack: { type: "array", items: { type: "string" }, description: "Optional: current tools/platforms (e.g., ['nextjs', 'supabase', 'figma'])" },
-      limit: { type: "number", description: "Max tools per section (default: 5)" },
+      tier: { type: "string", description: "Kit tier: 'essentials' (top 5 free skills) or 'advanced' (top 10 + connectors + bundles). Default: essentials" },
+      limit: { type: "number", description: "Max tools per section (default: 5 for essentials, 10 for advanced)" },
     },
     required: ["role"],
   },
-  handler: async (args: { role: string; stack?: string[]; limit?: number }) => {
-    const lim = Math.min(args.limit || 5, 10);
+  handler: async (args: { role: string; stack?: string[]; tier?: string; limit?: number }) => {
+    const isAdvanced = args.tier === "advanced";
+    const lim = Math.min(args.limit || (isAdvanced ? 10 : 5), 15);
     const roleLower = args.role.toLowerCase();
 
     // Map common role names to target_roles values
