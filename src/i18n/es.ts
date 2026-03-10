@@ -75,8 +75,10 @@ export default {
     creatorFeature1Desc: "El AI te guía paso a paso para transformar lo que sabés en una skill profesional.",
     creatorFeature2Title: "Pública o privada",
     creatorFeature2Desc: "Publicá para la comunidad o compartí con link secreto solo con quien vos quieras.",
-    creatorFeature3Title: "Playground integrado",
-    creatorFeature3Desc: "Probá tu skill en tiempo real antes de publicarla con tests automáticos.",
+    creatorFeature3Title: "Archivos, voz y grabaciones",
+    creatorFeature3Desc: "Compartí documentos, grabá flujos de pantalla o dictá por voz para que la IA entienda tu expertise.",
+    creatorFeature4Title: "Validación de seguridad",
+    creatorFeature4Desc: "Cada skill pasa por un escaneo automático de seguridad antes de publicarse.",
     creatorCta: "Crear mi primera skill",
 
     wizardTitle: "Encontrá la skill ideal",

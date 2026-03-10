@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageSquare, Globe, Lock, Play } from "lucide-react";
+import { ArrowRight, MessageSquare, Globe, Lock, Video, ShieldCheck } from "lucide-react";
 
 const chatLines = [
   { role: "ai", text: "¿Qué expertise querés empaquetar?" },
@@ -18,14 +18,18 @@ const features = [
   },
   {
     icon: Globe,
-    secondIcon: Lock,
     titleKey: "landing.creatorFeature2Title",
     descKey: "landing.creatorFeature2Desc",
   },
   {
-    icon: Play,
+    icon: Video,
     titleKey: "landing.creatorFeature3Title",
     descKey: "landing.creatorFeature3Desc",
+  },
+  {
+    icon: ShieldCheck,
+    titleKey: "landing.creatorFeature4Title",
+    descKey: "landing.creatorFeature4Desc",
   },
 ];
 
@@ -59,7 +63,7 @@ const SkillCreatorSection = () => {
               <div className="w-3 h-3 rounded-full bg-background/20" />
               <div className="w-3 h-3 rounded-full bg-background/20" />
               <div className="w-3 h-3 rounded-full bg-background/20" />
-              <span className="ml-2 text-xs text-background/40 font-mono">SkillForge</span>
+              <span className="ml-2 text-xs text-background/40 font-mono">Crear skill</span>
             </div>
             <div className="p-5 space-y-3 min-h-[140px]">
               {chatLines.map((line, i) => (
