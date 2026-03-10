@@ -853,7 +853,13 @@ mcp.tool("solve_goal", {
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     const goalLower = args.goal.toLowerCase();
 
-    // 1. Match goal templates
+    // 0. ML Intent Classification (replaces pure keyword matching)
+    const intent = await classifyIntent(args.goal, args.role);
+
+    // 0b. A/B variant assignment
+    const variant: ABVariant = assignVariant(args.goal, args.user_id);
+
+    // 1. Match goal templates (enhanced with AI-extracted keywords)
     const { data: templates } = await supabase.from("goal_templates").select("*").eq("is_active", true);
     let matchedTemplate: any = null;
     let bestScore = 0;
@@ -862,20 +868,23 @@ mcp.tool("solve_goal", {
       for (const trigger of (t.triggers || [])) {
         if (goalLower.includes(trigger.toLowerCase())) score += trigger.length;
       }
+      // Boost template match with AI-classified domain
+      if (intent.domain !== "general" && t.domain === intent.domain) score += 5;
+      if (intent.category && t.domain === intent.category) score += 3;
       if (score > bestScore) { bestScore = score; matchedTemplate = t; }
     }
 
     const capabilities = matchedTemplate?.capabilities || [];
-    const templateDomain = matchedTemplate?.domain || "general";
+    const templateDomain = matchedTemplate?.domain || intent.domain || "general";
 
-    // 2. Collect all search keywords
-    const allKeywords: string[] = [];
+    // 2. Collect search keywords (ML-enhanced + template + goal words)
+    const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
     const goalWords = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
     allKeywords.push(...goalWords);
     const uniqueKeywords = [...new Set(allKeywords)];
 
-    // 3. Cross-catalog search
+    // 3. Cross-catalog search (with category hint from classifier)
     const searchResults = await crossCatalogSearch(uniqueKeywords, 8);
     const allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
