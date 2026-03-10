@@ -717,4 +717,13 @@ export default {
     noName: "No name",
     empty: "Complete your profile so others can know you",
   },
+
+  notifications: {
+    label: "Notifications",
+    title: "Notifications",
+    markAllRead: "Mark all read",
+    empty: "No notifications yet",
+    skillApproved: "Your skill \"{{name}}\" was approved ✅",
+    skillRejected: "Your skill \"{{name}}\" was rejected",
+  },
 } as const;
