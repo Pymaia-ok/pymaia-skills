@@ -15,18 +15,20 @@ const terminalLines = [
 
 const TerminalDemo = () => {
   const [visibleLines, setVisibleLines] = useState(0);
+  const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
+    setVisibleLines(0);
     const timers = terminalLines.map((line, i) =>
       setTimeout(() => setVisibleLines(i + 1), line.delay)
     );
-    const loopTimer = setTimeout(() => setVisibleLines(0), 8000);
+    const loopTimer = setTimeout(() => setCycle((c) => c + 1), 8000);
 
     return () => {
       timers.forEach(clearTimeout);
       clearTimeout(loopTimer);
     };
-  }, [visibleLines]);
+  }, [cycle]);
 
   return (
     <motion.div
