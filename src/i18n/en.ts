@@ -72,8 +72,10 @@ export default {
     creatorFeature1Desc: "AI guides you step by step to turn what you know into a professional skill.",
     creatorFeature2Title: "Public or private",
     creatorFeature2Desc: "Publish for the community or share via secret link with whoever you want.",
-    creatorFeature3Title: "Built-in playground",
-    creatorFeature3Desc: "Test your skill in real time before publishing with automated tests.",
+    creatorFeature3Title: "Files, voice & screen recordings",
+    creatorFeature3Desc: "Share documents, record screen flows or dictate by voice so the AI understands your expertise.",
+    creatorFeature4Title: "Security validation",
+    creatorFeature4Desc: "Every skill goes through an automatic security scan before publishing.",
     creatorCta: "Create my first skill",
 
     wizardTitle: "Find the ideal skill",
