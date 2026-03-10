@@ -686,15 +686,75 @@ mcp.tool("explore_directory", {
   },
 });
 
-// ─── AGENT TOOLS (Pymaia Agent — AI Solutions Architect) ───
+// ─── HELPERS: Cross-catalog search & compatibility ───
+
+async function crossCatalogSearch(keywords: string[], limit = 5) {
+  const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
+  
+  for (const kw of keywords.slice(0, 6)) {
+    const q = sanitizeForPostgrest(kw);
+    if (!q || q.length < 2) continue;
+    
+    const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
+      supabase.from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars")
+        .eq("status", "approved")
+        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
+        .order("install_count", { ascending: false }).limit(limit),
+      supabase.from("mcp_servers")
+        .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status")
+        .eq("status", "approved")
+        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
+        .order("github_stars", { ascending: false }).limit(limit),
+      supabase.from("plugins")
+        .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified, trust_score, security_status, github_stars")
+        .eq("status", "approved")
+        .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
+        .order("install_count", { ascending: false }).limit(limit),
+    ]);
+    
+    if (sk) results.skills.push(...sk);
+    if (mc) results.connectors.push(...mc);
+    if (pl) results.plugins.push(...pl);
+  }
+  
+  const seenSlugs = new Set<string>();
+  results.skills = results.skills.filter(s => { if (seenSlugs.has(s.slug)) return false; seenSlugs.add(s.slug); return true; });
+  results.connectors = deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; }));
+  results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
+  
+  return results;
+}
+
+async function getCompatibilityWarnings(items: any[]): Promise<string[]> {
+  const warnings: string[] = [];
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const { data } = await supabase
+        .from("compatibility_matrix")
+        .select("*")
+        .or(`and(item_a_slug.eq.${items[i].slug},item_b_slug.eq.${items[j].slug}),and(item_a_slug.eq.${items[j].slug},item_b_slug.eq.${items[i].slug})`)
+        .limit(1);
+      const compat = data?.[0];
+      if (compat) {
+        if (compat.status === "conflict") warnings.push(`⛔ **Conflict**: ${items[i].name} + ${items[j].name} — ${compat.reason}`);
+        else if (compat.status === "redundant") warnings.push(`⚠️ **Redundant**: ${items[i].name} + ${items[j].name} — ${compat.reason}`);
+        else if (compat.status === "recommended" && compat.data_flow) warnings.push(`✅ **Synergy**: ${items[i].name} + ${items[j].name} — ${compat.data_flow}`);
+      }
+    }
+  }
+  return warnings;
+}
+
+// ─── AGENT TOOLS (Pymaia Agent v5 — AI Solutions Architect) ───
 
 mcp.tool("solve_goal", {
-  description: "Given a business goal in natural language, Pymaia Agent analyzes the need, searches across 35K+ skills, MCPs, and plugins, and returns a composed solution with multiple options, trust scores, and installation steps. This is the core 'AI Solutions Architect' tool.",
+  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. The core AI Solutions Architect tool.",
   inputSchema: {
     type: "object",
     properties: {
-      goal: { type: "string", description: "The user's goal in natural language (e.g., 'automate outbound sales', 'monitor competitors', 'set up a Next.js project')" },
-      role: { type: "string", description: "Optional: user's professional role for better recommendations" },
+      goal: { type: "string", description: "The user's goal in natural language (e.g., 'automate outbound sales', 'set up CI/CD pipeline')" },
+      role: { type: "string", description: "Optional: user's professional role" },
       technical_level: { type: "string", description: "Optional: non-technical, semi-technical, technical, developer" },
       budget: { type: "string", description: "Optional: free-only, paid-ok, enterprise" },
     },
@@ -703,117 +763,69 @@ mcp.tool("solve_goal", {
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string }) => {
     const goalLower = args.goal.toLowerCase();
 
-    // 1. Match against goal templates
-    const { data: templates } = await supabase
-      .from("goal_templates")
-      .select("*")
-      .eq("is_active", true);
-
+    // 1. Match goal templates
+    const { data: templates } = await supabase.from("goal_templates").select("*").eq("is_active", true);
     let matchedTemplate: any = null;
     let bestScore = 0;
-
     for (const t of templates || []) {
-      const triggers = t.triggers || [];
       let score = 0;
-      for (const trigger of triggers) {
-        if (goalLower.includes(trigger.toLowerCase())) {
-          score += trigger.length; // longer matches score higher
-        }
+      for (const trigger of (t.triggers || [])) {
+        if (goalLower.includes(trigger.toLowerCase())) score += trigger.length;
       }
-      if (score > bestScore) {
-        bestScore = score;
-        matchedTemplate = t;
-      }
+      if (score > bestScore) { bestScore = score; matchedTemplate = t; }
     }
 
-    // 2. Extract capabilities from template or fallback to keyword-based decomposition
     const capabilities = matchedTemplate?.capabilities || [];
-    const templateName = matchedTemplate?.display_name || "Custom goal";
     const templateDomain = matchedTemplate?.domain || "general";
 
-    // 3. Search across all 3 catalogs for each capability
-    type CapResult = { capability: string; required: boolean; skills: any[]; connectors: any[]; plugins: any[] };
-    const capResults: CapResult[] = [];
+    // 2. Collect all search keywords
+    const allKeywords: string[] = [];
+    for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
+    const goalWords = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
+    allKeywords.push(...goalWords);
+    const uniqueKeywords = [...new Set(allKeywords)];
 
-    for (const cap of capabilities) {
-      const keywords = (cap.keywords || []).slice(0, 3);
-      const searchTerms = keywords.join(" ");
-      const searchQ = sanitizeForPostgrest(searchTerms);
+    // 3. Cross-catalog search
+    const searchResults = await crossCatalogSearch(uniqueKeywords, 8);
+    const allItems = [
+      ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
+      ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
+      ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
+    ];
 
-      // Search skills
-      const { data: skillMatches } = await supabase
-        .from("skills")
-        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status")
-        .eq("status", "approved")
-        .or(`display_name.ilike.%${searchQ}%,tagline.ilike.%${searchQ}%,slug.ilike.%${searchQ}%`)
-        .order("install_count", { ascending: false })
-        .limit(3);
+    // 4. Score by relevance
+    const scored = allItems.map((item: any) => {
+      let score = 0;
+      const searchable = `${item.name} ${item.desc || ""} ${item.category || ""}`.toLowerCase();
+      for (const kw of goalWords) { if (searchable.includes(kw)) score += 3; }
+      for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
+      const stars = item.github_stars || item.install_count || 0;
+      if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
+      if (item.is_official) score += 3;
+      if (item.is_anthropic_verified) score += 2;
+      score += (item.trust_score || 0) / 20;
+      return { ...item, relevance: score };
+    }).sort((a: any, b: any) => b.relevance - a.relevance);
 
-      // Search connectors
-      const { data: mcpMatches } = await supabase
-        .from("mcp_servers")
-        .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status")
-        .eq("status", "approved")
-        .or(`name.ilike.%${searchQ}%,slug.ilike.%${searchQ}%,description.ilike.%${searchQ}%`)
-        .order("github_stars", { ascending: false })
-        .limit(3);
+    // 5. Compose Option A (simple — fewer tools, prefer plugins/bundles)
+    const optionA: any[] = [];
+    const usedA = new Set<string>();
+    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionA.length >= 3 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "connector")) { if (optionA.length >= 4 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionA.length >= 5 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
 
-      // Search plugins
-      const { data: pluginMatches } = await supabase
-        .from("plugins")
-        .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified, trust_score, security_status")
-        .eq("status", "approved")
-        .or(`name.ilike.%${searchQ}%,slug.ilike.%${searchQ}%,description.ilike.%${searchQ}%`)
-        .order("install_count", { ascending: false })
-        .limit(3);
+    // 6. Compose Option B (flexible — connectors first, then skills)
+    const optionB: any[] = [];
+    const usedB = new Set<string>();
+    for (const item of scored.filter((i: any) => i.type === "connector" && i.is_official)) { if (optionB.length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "connector" && !i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 3 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
 
-      capResults.push({
-        capability: cap.name,
-        required: cap.required,
-        skills: skillMatches || [],
-        connectors: deduplicateConnectors(mcpMatches || []),
-        plugins: pluginMatches || [],
-      });
-    }
+    // 7. Compatibility analysis
+    const [warningsA, warningsB] = await Promise.all([getCompatibilityWarnings(optionA), getCompatibilityWarnings(optionB)]);
 
-    // 4. Compose solution — pick best item per capability
-    const solutionItems: any[] = [];
-    const coveredCaps: string[] = [];
-
-    // First pass: check if any plugin covers multiple capabilities
-    for (const cr of capResults) {
-      for (const p of cr.plugins) {
-        if (!solutionItems.find((si: any) => si.slug === p.slug)) {
-          solutionItems.push({ type: "plugin", ...p, covers: [cr.capability] });
-          coveredCaps.push(cr.capability);
-          break;
-        }
-      }
-    }
-
-    // Second pass: fill gaps with best individual tools
-    for (const cr of capResults) {
-      if (coveredCaps.includes(cr.capability)) continue;
-
-      // Prefer official MCPs for action_execution
-      const bestMcp = cr.connectors.find((c: any) => c.is_official) || cr.connectors[0];
-      const bestSkill = cr.skills[0];
-
-      if (bestMcp && (!bestSkill || (bestMcp.trust_score || 0) >= (bestSkill.trust_score || 0))) {
-        solutionItems.push({ type: "connector", ...bestMcp, covers: [cr.capability] });
-      } else if (bestSkill) {
-        solutionItems.push({ type: "skill", ...bestSkill, covers: [cr.capability] });
-      }
-      coveredCaps.push(cr.capability);
-    }
-
-    // 5. Calculate overall trust
-    const trustScores = solutionItems.map((si: any) => si.trust_score || 0).filter((t: number) => t > 0);
-    const avgTrust = trustScores.length > 0 ? Math.round(trustScores.reduce((a: number, b: number) => a + b, 0) / trustScores.length) : 0;
-
-    // 6. Build response
+    // 8. Build response
     const sections: string[] = [];
-
     sections.push(`# 🎯 Pymaia Agent — Solution for: "${args.goal}"\n`);
 
     if (matchedTemplate) {
@@ -821,68 +833,95 @@ mcp.tool("solve_goal", {
       if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
     }
 
-    sections.push(`## Capabilities needed\n`);
-    for (const cap of capabilities) {
-      sections.push(`- ${cap.required ? "✅" : "➕"} **${cap.name}** (${cap.type})${cap.required ? "" : " — optional"}`);
-    }
-
-    sections.push(`\n## Recommended Solution\n`);
-    sections.push(`**Overall Trust Score: ${avgTrust}/100** ${avgTrust >= 70 ? "🟢 Verified" : avgTrust >= 40 ? "🟡 Reviewed" : "🔴 Unverified"}\n`);
-
-    // Deduplicate items for display
-    const uniqueItems = solutionItems.filter((item: any, index: number, self: any[]) =>
-      index === self.findIndex((t: any) => t.slug === item.slug)
-    );
-
-    for (let i = 0; i < uniqueItems.length; i++) {
-      const item = uniqueItems[i];
-      const trustBadge = (item.trust_score || 0) >= 70 ? "🟢" : (item.trust_score || 0) >= 40 ? "🟡" : "⚪";
-      const typeName = item.type === "connector" ? "MCP Connector" : item.type === "plugin" ? "Plugin" : "Skill";
-      const name = item.display_name || item.name;
-      const desc = item.tagline || item.description || "";
-      const official = item.is_official ? " ✅ Official" : "";
-      const verified = item.is_anthropic_verified ? " 🏅 Anthropic Verified" : "";
-
-      sections.push(`### ${i + 1}. ${typeName}: ${name}${official}${verified}`);
-      sections.push(`${trustBadge} Trust: ${item.trust_score || "N/A"}/100 · Security: ${item.security_status || "unverified"}`);
-      sections.push(`${desc}`);
-      sections.push(`Covers: ${(item.covers || []).join(", ")}`);
-      if (item.install_command) {
-        sections.push(`\n\`\`\`\n${item.install_command}\n\`\`\``);
+    if (capabilities.length > 0) {
+      sections.push(`## Capabilities needed\n`);
+      for (const cap of capabilities) {
+        sections.push(`- ${cap.required ? "✅" : "➕"} **${cap.name}** (${cap.type})${cap.required ? "" : " — optional"}`);
       }
       sections.push("");
     }
 
-    // Security warnings
-    const lowTrustItems = uniqueItems.filter((si: any) => (si.trust_score || 0) < 40 && (si.trust_score || 0) > 0);
-    if (lowTrustItems.length > 0) {
-      sections.push(`\n## ⚠️ Security Warnings\n`);
-      for (const lt of lowTrustItems) {
-        sections.push(`- **${lt.display_name || lt.name}** has a low Trust Score (${lt.trust_score}/100). Review carefully before installing.`);
+    function formatOption(label: string, subtitle: string, items: any[], warnings: string[]) {
+      if (items.length === 0) { sections.push(`## ${label}: ${subtitle}\n\n*No matching tools found.*\n`); return; }
+      const ts = items.map((i: any) => i.trust_score || 0).filter((t: number) => t > 0);
+      const avg = ts.length > 0 ? Math.round(ts.reduce((a: number, b: number) => a + b, 0) / ts.length) : 0;
+      const badge = avg >= 70 ? "🟢 Verified" : avg >= 40 ? "🟡 Reviewed" : "⚪ Unverified";
+      sections.push(`## ${label}: ${subtitle}`);
+      sections.push(`**Trust: ${avg}/100** ${badge} · **${items.length} tools**\n`);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const tb = (item.trust_score || 0) >= 70 ? "🟢" : (item.trust_score || 0) >= 40 ? "🟡" : "⚪";
+        const tn = item.type === "connector" ? "🔌 MCP" : item.type === "plugin" ? "🧩 Plugin" : "🧠 Skill";
+        const of = item.is_official ? " ✅ Official" : "";
+        const st = item.github_stars ? ` · ⭐ ${item.github_stars.toLocaleString()}` : "";
+        sections.push(`${i + 1}. ${tn} **${item.name}**${of}`);
+        sections.push(`   ${tb} Trust: ${item.trust_score || "N/A"}/100${st}`);
+        sections.push(`   ${item.desc || ""}`);
+        if (item.install_command) sections.push(`   \`${item.install_command}\``);
+        sections.push("");
+      }
+      if (warnings.length > 0) { sections.push(`**Compatibility:**`); for (const w of warnings) sections.push(`- ${w}`); sections.push(""); }
+      const low = items.filter((i: any) => (i.trust_score || 0) > 0 && (i.trust_score || 0) < 40);
+      if (low.length > 0) { sections.push(`**⚠️ Security:**`); for (const l of low) sections.push(`- ${l.name}: low Trust (${l.trust_score}/100)`); sections.push(""); }
+    }
+
+    formatOption("Option A", "Simple & Fast", optionA, warningsA);
+    formatOption("Option B", "Flexible & Customizable", optionB, warningsB);
+
+    // Recommendation logic
+    const conflictsA = warningsA.some(w => w.includes("Conflict"));
+    const conflictsB = warningsB.some(w => w.includes("Conflict"));
+    const synA = warningsA.filter(w => w.includes("Synergy")).length;
+    const synB = warningsB.filter(w => w.includes("Synergy")).length;
+    let rec = "A", reason = "Fewer tools, faster setup";
+    if (conflictsA && !conflictsB) { rec = "B"; reason = "Option A has conflicts"; }
+    else if (synB > synA) { rec = "B"; reason = "More tool synergies"; }
+    else if (args.technical_level === "developer") { rec = "B"; reason = "More control for developers"; }
+    else if (args.technical_level === "non-technical") { rec = "A"; reason = "Simpler for non-technical users"; }
+
+    sections.push(`## 💡 Recommendation: Option ${rec}\n*${reason}*\n`);
+
+    // Quick install
+    const best = rec === "A" ? optionA : optionB;
+    if (best.length > 0) {
+      sections.push(`## 🚀 Quick Install (Option ${rec})\n`);
+      const ordered = [...best.filter((i: any) => i.type === "connector"), ...best.filter((i: any) => i.type !== "connector")];
+      for (let i = 0; i < ordered.length; i++) {
+        if (ordered[i].install_command) sections.push(`**Step ${i + 1}:** ${ordered[i].name}\n\`\`\`\n${ordered[i].install_command}\n\`\`\`\n`);
       }
     }
 
-    // Installation guide
-    sections.push(`\n## 🚀 Installation Guide\n`);
-    sections.push(`Install in this order:\n`);
-    for (let i = 0; i < uniqueItems.length; i++) {
-      const item = uniqueItems[i];
-      if (item.install_command) {
-        sections.push(`**Step ${i + 1}:** ${item.display_name || item.name}`);
-        sections.push(`\`\`\`\n${item.install_command}\n\`\`\`\n`);
-      }
-    }
+    if (!matchedTemplate) sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
 
-    if (!matchedTemplate) {
-      sections.push(`\n*No exact goal template matched. Results are based on keyword analysis. The more specific your goal, the better the recommendations.*`);
-    }
-
-    // Increment usage count
     if (matchedTemplate) {
       await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
     }
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+mcp.tool("rate_recommendation", {
+  description: "Submit feedback on a Pymaia Agent recommendation. Helps improve future recommendations.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      goal: { type: "string", description: "The original goal" },
+      chosen_option: { type: "string", description: "Which option was chosen: A, B, or neither" },
+      rating: { type: "number", description: "Rating 1-5 (5 = very helpful)" },
+      comment: { type: "string", description: "Optional feedback" },
+    },
+    required: ["goal", "rating"],
+  },
+  handler: async (args: { goal: string; chosen_option?: string; rating: number; comment?: string }) => {
+    await supabase.from("recommendation_feedback").insert({
+      goal: args.goal,
+      chosen_option: args.chosen_option || null,
+      rating: Math.min(5, Math.max(1, args.rating)),
+      comment: args.comment || null,
+      recommended_slugs: [],
+    });
+    return { content: [{ type: "text" as const, text: `✅ Thank you for your feedback! Rating: ${args.rating}/5${args.comment ? ` — "${args.comment}"` : ""}` }] };
   },
 });
 
