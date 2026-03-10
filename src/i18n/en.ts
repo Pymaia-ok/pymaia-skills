@@ -11,6 +11,7 @@ export default {
     signIn: "Sign In",
     signOut: "Sign Out",
     publishSkill: "Publish skill",
+    mcp: "MCP Server",
   },
 
   home: {
