@@ -60,6 +60,7 @@ const Conectores = () => {
     if (search) params.set("q", search);
     if (selectedCategory) params.set("cat", selectedCategory);
     if (officialFilter !== "all") params.set("filter", officialFilter);
+    setVisibleCount(PAGE_SIZE);
     setSearchParams(params, { replace: true });
   }, [search, selectedCategory, officialFilter, setSearchParams]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

@@ -39,6 +39,7 @@ const Plugins = () => {
     if (verifiedFilter !== "all") params.set("filter", verifiedFilter);
     if (categoryFilter !== "all") params.set("category", categoryFilter);
     if (sourceFilter !== "all") params.set("source", sourceFilter);
+    setVisibleCount(PAGE_SIZE);
     setSearchParams(params, { replace: true });
   }, [search, platformFilter, verifiedFilter, categoryFilter, sourceFilter, setSearchParams]);
 
