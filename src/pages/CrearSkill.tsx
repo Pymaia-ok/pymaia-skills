@@ -239,6 +239,7 @@ const CrearSkill = () => {
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    setGeneratingPhase("Analizando conversación...");
     try {
       const body: any = { conversation: messages, action: "generate" };
       if (mcpContext) {
@@ -250,7 +251,13 @@ const CrearSkill = () => {
         };
       }
 
+      // Show phase progress
+      const phaseTimer = setTimeout(() => setGeneratingPhase("Generando SKILL.md..."), 5000);
+      const phaseTimer2 = setTimeout(() => setGeneratingPhase("Evaluando calidad..."), 20000);
+
       const { data, error } = await supabase.functions.invoke("generate-skill", { body });
+      clearTimeout(phaseTimer);
+      clearTimeout(phaseTimer2);
       if (error) throw error;
       setSkill(data.skill);
       setQuality(data.quality);
@@ -262,6 +269,7 @@ const CrearSkill = () => {
       console.error(e);
       toast.error(t("crearSkill.errorGenerate"));
     }
+    setGeneratingPhase("");
     setIsGenerating(false);
   };
 
