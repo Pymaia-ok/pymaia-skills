@@ -1869,12 +1869,17 @@ mcpApp.use("/mcp", async (c, next) => {
 });
 
 mcpApp.get("/", (c) => c.json({
-  message: "Pymaia Agent — AI Solutions Architect",
-  version: "7.0.0",
+  message: "Pymaia Agent — AI Solutions Architect & Platform",
+  version: "8.0.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 3: Intelligence — trending solutions, auto-generated templates, co-installation analysis.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 4: Platform — community templates marketplace, A2A multi-agent compatibility, analytics dashboard, enterprise catalogs.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs"],
+  },
+  a2a: {
+    protocol: "A2A-compatible",
+    description: "Other AI agents can query Pymaia via the a2a_query tool for structured catalog search and recommendations.",
+    actions: ["capabilities", "search", "recommend", "catalog_stats"],
   },
   tools: [
     "search_skills", "get_skill_details", "list_popular_skills", "list_new_skills",
@@ -1885,6 +1890,7 @@ mcpApp.get("/", (c) => c.json({
     "explore_directory",
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
     "generate_custom_skill", "trending_solutions",
+    "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
