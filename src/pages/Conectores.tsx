@@ -331,6 +331,17 @@ const Conectores = () => {
             </div>
           )}
 
+          {!isLoading && visibleCount < filtered.length && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="px-6 py-2.5 rounded-full bg-secondary text-foreground font-medium text-sm hover:bg-secondary/80 transition-colors"
+              >
+                {isEs ? `Mostrar más (${filtered.length - visibleCount} restantes)` : `Show more (${filtered.length - visibleCount} remaining)`}
+              </button>
+            </div>
+          )}
+
           {!isLoading && filtered.length === 0 && (
             <div className="text-center py-20">
               <p className="text-muted-foreground text-lg">
