@@ -661,4 +661,34 @@ export default {
     badgeTiers: "Badge Tiers",
     rateLimitTitle: "Rate Limits & Usage Notes",
   },
+
+  userProfile: {
+    notFound: "User not found",
+    back: "Back",
+    defaultName: "User",
+    publishedSkills: "published skills",
+    reviews: "reviews",
+    publishedSkillsTitle: "Published skills",
+    writtenReviews: "Written reviews",
+    saves: "Saves",
+  },
+
+  privacy: {
+    title: "Privacy Policy",
+    lastUpdated: "Last updated: March 4, 2026",
+    content: `<h2>1. Information we collect</h2><p>We collect the following information when you use Pymaia Skills:</p><ul><li><strong>Account data:</strong> email, name, and profile picture when you sign up.</li><li><strong>Usage data:</strong> pages visited, skills viewed and installed, interactions with the Platform.</li><li><strong>Technical data:</strong> IP address, browser type, operating system, to improve security and performance.</li></ul><h2>2. How we use your information</h2><ul><li>To operate and maintain the Platform.</li><li>To personalize your experience and recommend relevant skills.</li><li>To generate aggregate and anonymous statistics about Platform usage.</li><li>To communicate with you about important updates or changes.</li><li>To prevent fraud and protect Platform security.</li></ul><h2>3. Data sharing</h2><p>We do not sell or rent your personal information. We may share data with:</p><ul><li><strong>Service providers:</strong> who help us operate the Platform (hosting, authentication, analytics), under confidentiality agreements.</li><li><strong>Legal requirements:</strong> when necessary to comply with the law or protect our rights.</li></ul><h2>4. Storage and security</h2><p>Your data is stored on secure servers. We implement technical and organizational measures to protect your information, including encryption in transit and at rest. However, no system is 100% secure.</p><h2>5. Your rights</h2><p>You have the right to:</p><ul><li>Access the personal data we hold about you.</li><li>Request correction of inaccurate data.</li><li>Request deletion of your account and associated data.</li><li>Withdraw your consent at any time.</li></ul><h2>6. Cookies</h2><p>We use essential cookies for Platform operation (authentication, language preferences). We do not use third-party cookies for advertising purposes.</p><h2>7. Minors</h2><p>The Platform is not intended for minors under 18 years of age. We do not intentionally collect information from minors.</p><h2>8. Changes to this policy</h2><p>We may update this policy periodically. We will post any changes on this page with the update date.</p><h2>9. Contact</h2><p>For privacy inquiries or to exercise your rights, contact us at <a href="mailto:info@pymaia.com" class="text-foreground underline">info@pymaia.com</a>.</p>`,
+  },
+
+  terms: {
+    title: "Terms and Conditions",
+    lastUpdated: "Last updated: March 4, 2026",
+    content: `<h2>1. Acceptance of terms</h2><p>By accessing and using Pymaia Skills ("the Platform"), operated by Pymaia ("we"), you accept these Terms and Conditions. If you disagree, do not use the Platform.</p><h2>2. Service description</h2><p>Pymaia Skills is a directory of skills (instructions and configurations) designed to be used with Anthropic's Claude Code. The Platform allows discovering, sharing, and installing skills that boost productivity.</p><h2>3. Usage requirements</h2><ul><li>You must be at least 18 years old or the age of majority in your jurisdiction.</li><li>You are responsible for maintaining the security of your account.</li><li>You may not use the Platform for illegal or unauthorized activities.</li></ul><h2>4. User accounts</h2><p>To access certain features, you may need to create an account. You are responsible for all activity under your account and for maintaining the confidentiality of your credentials.</p><h2>5. User content</h2><ul><li>By publishing a skill, you grant Pymaia a non-exclusive, worldwide, royalty-free license to display, distribute, and promote such content within the Platform.</li><li>You are solely responsible for the content you publish and warrant that you have the necessary rights to it.</li><li>We reserve the right to remove content that violates these terms.</li></ul><h2>6. Intellectual property</h2><p>The Platform, its design, brand, code, and original content are owned by Pymaia. Skills published by users belong to their respective authors, subject to the license granted in section 5.</p><h2>7. Limitation of liability</h2><ul><li>Skills are provided "as is" without warranties of any kind.</li><li>Pymaia is not responsible for direct, indirect, or consequential damages arising from the use of skills installed through the Platform.</li><li>We do not guarantee uninterrupted service availability.</li></ul><h2>8. Third-party services</h2><p>The Platform works in conjunction with Anthropic's Claude Code. Use of Claude Code is subject to Anthropic's terms of service. Pymaia is not responsible for changes, interruptions, or issues in third-party services.</p><h2>9. Modifications</h2><p>We reserve the right to modify these terms at any time. Changes will be effective upon posting on this page. Continued use of the Platform constitutes acceptance of the modified terms.</p><h2>10. Termination</h2><p>We may suspend or cancel your access to the Platform at any time, with or without cause, with or without prior notice.</p><h2>11. Contact</h2><p>For inquiries about these terms, contact us at <a href="mailto:info@pymaia.com" class="text-foreground underline">info@pymaia.com</a>.</p>`,
+  },
+
+  apiKeys: {
+    confirmRevokeTitle: "Revoke this API key?",
+    confirmRevokeDesc: "This action is irreversible. Requests using this key will stop working immediately.",
+    cancel: "Cancel",
+    confirmRevoke: "Revoke",
+  },
 } as const;
