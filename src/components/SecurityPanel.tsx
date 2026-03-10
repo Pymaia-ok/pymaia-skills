@@ -57,7 +57,6 @@ export const SecurityPanel = ({
 }: SecurityPanelProps) => {
   const { t, i18n } = useTranslation();
   const isEs = i18n.language === "es";
-  const StatusIcon = getStatusIcon(securityStatus);
 
   const ageDays = createdAt ? (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24) : null;
   const commitMonths = lastCommitAt ? (Date.now() - new Date(lastCommitAt).getTime()) / (1000 * 60 * 60 * 24 * 30) : null;
