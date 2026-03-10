@@ -122,10 +122,10 @@ export default {
 
   tasks: {
     marketer: {
-      contenido: "Create content faster",
-      analizar: "Analyze results & metrics",
-      clientes: "Manage clients",
-      reportes: "Prepare reports",
+      contenido: "Create content & copy",
+      seo: "Optimize SEO & positioning",
+      email: "Automate email marketing",
+      social: "Manage social media",
     },
     abogado: {
       contratos: "Review contracts",
