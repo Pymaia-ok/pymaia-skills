@@ -319,6 +319,8 @@ export type Database = {
           is_official: boolean
           last_commit_at: string | null
           name: string
+          readme_raw: string | null
+          readme_summary: string | null
           security_checked_at: string | null
           security_notes: string | null
           security_scan_result: Json | null
@@ -350,6 +352,8 @@ export type Database = {
           is_official?: boolean
           last_commit_at?: string | null
           name: string
+          readme_raw?: string | null
+          readme_summary?: string | null
           security_checked_at?: string | null
           security_notes?: string | null
           security_scan_result?: Json | null
@@ -381,6 +385,8 @@ export type Database = {
           is_official?: boolean
           last_commit_at?: string | null
           name?: string
+          readme_raw?: string | null
+          readme_summary?: string | null
           security_checked_at?: string | null
           security_notes?: string | null
           security_scan_result?: Json | null
@@ -453,6 +459,8 @@ export type Database = {
           name: string
           name_es: string | null
           platform: string
+          readme_raw: string | null
+          readme_summary: string | null
           review_count: number
           security_checked_at: string | null
           security_notes: string | null
@@ -485,6 +493,8 @@ export type Database = {
           name: string
           name_es?: string | null
           platform?: string
+          readme_raw?: string | null
+          readme_summary?: string | null
           review_count?: number
           security_checked_at?: string | null
           security_notes?: string | null
@@ -517,6 +527,8 @@ export type Database = {
           name?: string
           name_es?: string | null
           platform?: string
+          readme_raw?: string | null
+          readme_summary?: string | null
           review_count?: number
           security_checked_at?: string | null
           security_notes?: string | null
