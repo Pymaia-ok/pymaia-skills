@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, BadgeCheck, ShieldCheck, ShieldQuestion, Download, Github, AlertTriangle, Copy, Check, Monitor, Users2, Package, Plug, BookOpen, Star, Award } from "lucide-react";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";
+import SecurityPanel from "@/components/SecurityPanel";
 import SecurityReportButton from "@/components/SecurityReportButton";
 import { useCallback, useState } from "react";
 import ReactMarkdown from "react-markdown";

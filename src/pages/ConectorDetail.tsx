@@ -224,6 +224,24 @@ const ConectorDetail = () => {
               </div>
             </div>
 
+            {/* Security Panel */}
+            <div className="mb-8">
+              <SecurityPanel
+                trustScore={(connector as any).trust_score || 0}
+                securityStatus={connector.security_status}
+                securityScannedAt={(connector as any).security_scanned_at}
+                scanResult={(connector as any).security_scan_result}
+                createdAt={connector.created_at}
+                isOfficial={connector.is_official}
+                creatorId={null}
+                creatorName={null}
+                creatorUsername={null}
+                creatorAvatarUrl={null}
+                lastCommitAt={connector.last_commit_at}
+                itemType="connector"
+              />
+            </div>
+
             {/* Stats row */}
             {((connector.github_stars ?? 0) > 0 || (connector.external_use_count ?? 0) > 0 || connector.github_url) && (
               <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-muted-foreground">
