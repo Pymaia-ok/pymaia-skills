@@ -80,7 +80,7 @@ The Pymaia Skills MCP Server enables Claude to automatically recommend relevant 
 
 Run this single command in Claude Code — no config files to edit:
 ```
-claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp
+claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
 ```
 
 ### Manual Configuration

@@ -9,7 +9,7 @@
   },
   "api": {
     "type": "mcp",
-    "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp",
+    "url": "https://mcp.pymaia.com",
     "transport": "streamable-http"
   },
   "logo_url": "https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png",

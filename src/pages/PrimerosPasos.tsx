@@ -642,7 +642,7 @@ const PrimerosPasos = () => {
                 {isEs ? "Pegá esto en tu terminal:" : "Paste this in your terminal:"}
               </p>
               <div className="p-4 rounded-xl bg-background/10 font-mono text-sm break-all">
-                claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server
+                claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
               </div>
               <p className="text-sm opacity-60 mt-4">
                 {isEs

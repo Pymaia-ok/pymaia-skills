@@ -28,7 +28,7 @@ Install the Pymaia Skills MCP Server so Claude automatically suggests relevant s
 
 Run this single command in Claude Code:
 ```
-claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp
+claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
 ```
 
 ### Manual Configuration
