@@ -43,12 +43,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: "bg-gray-500",
 };
 
+const PAGE_SIZE = 30;
+
 const Conectores = () => {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get("cat") || null);
   const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">((searchParams.get("filter") as any) || "all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sync state to URL params
@@ -57,6 +60,7 @@ const Conectores = () => {
     if (search) params.set("q", search);
     if (selectedCategory) params.set("cat", selectedCategory);
     if (officialFilter !== "all") params.set("filter", officialFilter);
+    setVisibleCount(PAGE_SIZE);
     setSearchParams(params, { replace: true });
   }, [search, selectedCategory, officialFilter, setSearchParams]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -237,7 +241,7 @@ const Conectores = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((connector, i) => (
+              {filtered.slice(0, visibleCount).map((connector, i) => (
                 <motion.div
                   key={connector.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -325,6 +329,17 @@ const Conectores = () => {
                   </Link>
                 </motion.div>
               ))}
+            </div>
+          )}
+
+          {!isLoading && visibleCount < filtered.length && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="px-6 py-2.5 rounded-full bg-secondary text-foreground font-medium text-sm hover:bg-secondary/80 transition-colors"
+              >
+                {isEs ? `Mostrar más (${filtered.length - visibleCount} restantes)` : `Show more (${filtered.length - visibleCount} remaining)`}
+              </button>
             </div>
           )}
 

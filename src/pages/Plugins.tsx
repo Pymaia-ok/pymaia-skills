@@ -19,6 +19,8 @@ const CATEGORY_OPTIONS = [
   "development", "productivity", "writing", "data", "design", "marketing", "devops", "security", "ai", "general"
 ];
 
+const PAGE_SIZE = 30;
+
 const Plugins = () => {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,6 +29,7 @@ const Plugins = () => {
   const [verifiedFilter, setVerifiedFilter] = useState<string>(searchParams.get("filter") || "all");
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category") || "all");
   const [sourceFilter, setSourceFilter] = useState<string>(searchParams.get("source") || "all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const isEs = i18n.language === "es";
 
   useEffect(() => {
@@ -36,6 +39,7 @@ const Plugins = () => {
     if (verifiedFilter !== "all") params.set("filter", verifiedFilter);
     if (categoryFilter !== "all") params.set("category", categoryFilter);
     if (sourceFilter !== "all") params.set("source", sourceFilter);
+    setVisibleCount(PAGE_SIZE);
     setSearchParams(params, { replace: true });
   }, [search, platformFilter, verifiedFilter, categoryFilter, sourceFilter, setSearchParams]);
 
@@ -308,7 +312,7 @@ const Plugins = () => {
                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{curatedPlugins.length}</span>
                   </div>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {curatedPlugins.map((plugin, i) => renderPluginCard(plugin, i))}
+                    {curatedPlugins.slice(0, visibleCount).map((plugin, i) => renderPluginCard(plugin, i))}
                   </div>
                 </div>
               )}
@@ -322,14 +326,25 @@ const Plugins = () => {
                     <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{communityPlugins.length}</span>
                   </div>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {communityPlugins.map((plugin, i) => renderPluginCard(plugin, i))}
+                    {communityPlugins.slice(0, Math.max(0, visibleCount - curatedPlugins.length)).map((plugin, i) => renderPluginCard(plugin, i))}
                   </div>
                 </div>
               )}
             </>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((plugin, i) => renderPluginCard(plugin, i))}
+              {filtered.slice(0, visibleCount).map((plugin, i) => renderPluginCard(plugin, i))}
+            </div>
+          )}
+
+          {!isLoading && visibleCount < filtered.length && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="px-6 py-2.5 rounded-full bg-secondary text-foreground font-medium text-sm hover:bg-secondary/80 transition-colors"
+              >
+                {isEs ? `Mostrar más (${filtered.length - visibleCount} restantes)` : `Show more (${filtered.length - visibleCount} remaining)`}
+              </button>
             </div>
           )}
 
