@@ -6,30 +6,40 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// 12 plugins across diverse business areas — no repeats
 const FEATURED_SLUGS = [
   "slack-plugin",          // Comunicación
-  "brand-voice",           // Marketing
-  "sales-development",     // Ventas
   "figma-plugin",          // Diseño
-  "financial-analysis",    // Finanzas
   "atlassian-plugin",      // Productividad
-  "asana-plugin",          // Gestión de tareas
-  "operations",            // Operaciones
-  "design-plugin",         // Diseño UX
-  "circleback",            // Reuniones
   "linear-plugin",         // Gestión de proyectos
-  "equity-research",       // Investigación financiera
+  "asana-plugin",          // Gestión de tareas
+  "posthog",               // Analítica
+  "brand-voice",           // Marketing
+  "financial-analysis",    // Finanzas
+  "operations",            // Operaciones
+  "apollo-plugin",         // Ventas
+  "circleback",            // Reuniones
+  "equity-research",       // Investigación
 ];
 
-const CATEGORY_ICONS: Record<string, string> = {
+const CATEGORY_EMOJIS: Record<string, string> = {
   communication: "💬",
-  marketing: "📣",
-  sales: "🤝",
   design: "🎨",
-  finance: "💰",
   productivity: "📋",
-  operations: "⚙️",
   analytics: "📊",
+  marketing: "📣",
+  finance: "💰",
+  operations: "⚙️",
+  sales: "🤝",
+  ai: "🤖",
+  research: "🔬",
+  hr: "👥",
+  legal: "⚖️",
+  data: "📈",
+  support: "🎧",
+  product: "🗺️",
+  security: "🔒",
+  development: "💻",
 };
 
 const PluginsSection = () => {
@@ -82,25 +92,16 @@ const PluginsSection = () => {
             >
               <Link
                 to={`/plugin/${p.slug}`}
-                className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-background hover:bg-accent border border-border transition-all group relative"
+                className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-background hover:bg-accent border border-border transition-all group relative h-36"
               >
                 {p.is_anthropic_verified && (
                   <span className="absolute top-2 right-2">
                     <Shield className="w-3.5 h-3.5 text-primary" />
                   </span>
                 )}
-                {p.icon_url ? (
-                  <img
-                    src={p.icon_url}
-                    alt={p.name}
-                    className="w-8 h-8 object-contain"
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="text-3xl">
-                    {CATEGORY_ICONS[p.category] || "🧩"}
-                  </span>
-                )}
+                <span className="text-3xl">
+                  {CATEGORY_EMOJIS[p.category] || "🧩"}
+                </span>
                 <span className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors truncate max-w-full text-center">
                   {p.name}
                 </span>
