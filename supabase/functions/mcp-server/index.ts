@@ -1405,6 +1405,82 @@ mcp.tool("generate_custom_skill", {
   },
 });
 
+// ─── PHASE 2b: SKILLFORGE ↔ AGENT INTEGRATION ───
+
+mcp.tool("suggest_for_skill_creation", {
+  description: "Given a skill idea or goal, suggests existing tools from the catalog that the new skill could integrate with or build upon. Use when creating a new skill in SkillForge to find complementary MCPs and existing skills.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_idea: { type: "string", description: "Description of the skill being created (e.g., 'automated code review with security checks')" },
+      skill_category: { type: "string", description: "Category of the new skill: desarrollo, diseño, marketing, automatización, productividad, legal, negocios, creatividad, datos, ia" },
+    },
+    required: ["skill_idea"],
+  },
+  handler: async (args: { skill_idea: string; skill_category?: string }) => {
+    const goalWords = args.skill_idea.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
+    const searchResults = await crossCatalogSearch(goalWords, 6);
+
+    const sections: string[] = [];
+    sections.push(`# 🔧 Recommended Integrations for Your New Skill\n`);
+    sections.push(`*Based on: "${args.skill_idea}"*\n`);
+
+    // Connectors the new skill could use as dependencies
+    const connectors = searchResults.connectors.slice(0, 5);
+    if (connectors.length > 0) {
+      sections.push(`## 🔌 MCP Connectors to Integrate\n`);
+      sections.push(`Your skill could use these as \`required_mcps\` dependencies:\n`);
+      for (const c of connectors) {
+        const tb = (c.trust_score || 0) >= 70 ? "🟢" : (c.trust_score || 0) >= 40 ? "🟡" : "⚪";
+        sections.push(`- **${c.name}** [${c.category}] ${tb} Trust: ${c.trust_score || "N/A"}`);
+        sections.push(`  ${c.description}`);
+        if (c.install_command) sections.push(`  Install: \`${c.install_command}\``);
+        if (c.credentials_needed?.length > 0) sections.push(`  Credentials: ${c.credentials_needed.join(", ")}`);
+        sections.push("");
+      }
+    }
+
+    // Existing skills that are similar (avoid duplication)
+    const similar = searchResults.skills.slice(0, 5);
+    if (similar.length > 0) {
+      sections.push(`## 🧠 Similar Existing Skills\n`);
+      sections.push(`Check these to avoid duplication or find inspiration:\n`);
+      for (const s of similar) {
+        sections.push(`- **${s.display_name}** [${s.category}] — ${s.tagline}`);
+        sections.push(`  ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs`);
+        sections.push(`  \`${s.install_command}\`\n`);
+      }
+    }
+
+    // Plugins that could complement
+    const plugins = searchResults.plugins.slice(0, 3);
+    if (plugins.length > 0) {
+      sections.push(`## 🧩 Complementary Plugins\n`);
+      for (const p of plugins) {
+        sections.push(`- **${p.name}** [${p.category}] — ${p.description}`);
+      }
+      sections.push("");
+    }
+
+    // Suggestion for SKILL.md dependencies section
+    if (connectors.length > 0) {
+      sections.push(`## 📝 Suggested Dependencies Block for SKILL.md\n`);
+      sections.push("```yaml");
+      sections.push("required_mcps:");
+      for (const c of connectors.slice(0, 3)) {
+        sections.push(`  - name: "${c.name}"`);
+        sections.push(`    slug: "${c.slug}"`);
+        if (c.install_command) sections.push(`    install_command: "${c.install_command}"`);
+      }
+      sections.push("```\n");
+    }
+
+    sections.push(`💡 *Use \`generate_custom_skill\` to auto-generate a SKILL.md that orchestrates these tools.*`);
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
 // ─── PHASE 3: INTELLIGENCE TOOLS ───
 
 mcp.tool("trending_solutions", {
