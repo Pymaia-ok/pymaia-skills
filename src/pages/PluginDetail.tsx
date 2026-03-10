@@ -284,6 +284,24 @@ const PluginDetail = () => {
               </div>
             </div>
 
+            {/* Security Panel */}
+            <div className="mb-8">
+              <SecurityPanel
+                trustScore={(plugin as any).trust_score || 0}
+                securityStatus={(plugin as any).security_status}
+                securityScannedAt={(plugin as any).security_scanned_at}
+                scanResult={(plugin as any).security_scan_result}
+                createdAt={plugin.created_at}
+                isOfficial={plugin.is_official}
+                creatorId={plugin.creator_id}
+                creatorName={null}
+                creatorUsername={null}
+                creatorAvatarUrl={null}
+                lastCommitAt={(plugin as any).last_commit_at}
+                itemType="plugin"
+              />
+            </div>
+
             {/* Install options */}
             <div className="mb-8 space-y-3">
               <p className="text-sm font-semibold text-muted-foreground mb-2">
