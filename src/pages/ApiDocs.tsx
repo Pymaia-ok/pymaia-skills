@@ -598,8 +598,10 @@ export default function ApiDocs() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>• <strong className="text-foreground">Rate limit:</strong> 60 requests per minute per IP address.</p>
-              <p>• <strong className="text-foreground">Authentication:</strong> None required. The API is fully public.</p>
+              <p>• <strong className="text-foreground">Security Benchmark API:</strong> 60 requests per minute per IP (no auth required).</p>
+              <p>• <strong className="text-foreground">MCP Server (anonymous):</strong> 30 requests per minute per IP.</p>
+              <p>• <strong className="text-foreground">MCP Server (with API key):</strong> 120 requests per minute per user.</p>
+              <p>• <strong className="text-foreground">Authentication:</strong> Security Benchmark API is public. MCP Server supports optional <code className="bg-background px-1 rounded text-xs font-mono">pymsk_</code> API keys for private skills access.</p>
               <p>• <strong className="text-foreground">Caching:</strong> Responses are cached for 5 minutes (lookup/search) or 1 hour (badges).</p>
               <p>• <strong className="text-foreground">CORS:</strong> All origins allowed. Use directly from browser or server.</p>
               <p>• <strong className="text-foreground">On-demand scans:</strong> Unindexed GitHub repos are scanned in real-time (5-15s). SAFE repos are auto-indexed.</p>
