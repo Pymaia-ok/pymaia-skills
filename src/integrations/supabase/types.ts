@@ -47,6 +47,39 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          label: string
+          last_used_at: string | null
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          label?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          label?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       automation_logs: {
         Row: {
           action_type: string
@@ -1456,6 +1489,7 @@ export type Database = {
           video_url: string
         }[]
       }
+      validate_api_key: { Args: { _key_hash: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
