@@ -591,6 +591,77 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
+        {/* ─── Section 7: MCP de Pymaia Skills ─── */}
+        <section id="pymaia-mcp" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
+          <motion.div {...fadeUp}>
+            <SectionBadge icon={Bot} label="MCP Server" />
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+              {isEs ? "Instalá el MCP de Pymaia Skills" : "Install the Pymaia Skills MCP"}
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
+              {isEs
+                ? "En vez de buscar skills manualmente, instalá nuestro MCP Server y Claude te recomienda la skill perfecta automáticamente mientras trabajás."
+                : "Instead of searching for skills manually, install our MCP Server and Claude automatically recommends the perfect skill while you work."}
+            </p>
+
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              {[
+                {
+                  emoji: "🔍",
+                  title: isEs ? "Búsqueda inteligente" : "Smart search",
+                  desc: isEs
+                    ? "Claude busca en +35,000 skills, conectores y plugins por vos."
+                    : "Claude searches through 35,000+ skills, connectors and plugins for you.",
+                },
+                {
+                  emoji: "🎯",
+                  title: isEs ? "Recomendaciones por rol" : "Role-based recommendations",
+                  desc: isEs
+                    ? "Decile tu rol y te arma un kit personalizado de skills."
+                    : "Tell it your role and it builds a personalized skill kit.",
+                },
+                {
+                  emoji: "⚡",
+                  title: isEs ? "Instalación directa" : "Direct installation",
+                  desc: isEs
+                    ? "Claude instala las skills sin que salgas de la terminal."
+                    : "Claude installs skills without you leaving the terminal.",
+                },
+              ].map((card) => (
+                <div key={card.title} className="p-5 rounded-2xl bg-secondary border border-border">
+                  <span className="text-2xl mb-3 block">{card.emoji}</span>
+                  <h3 className="font-semibold mb-2">{card.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Install command */}
+            <div className="p-6 rounded-2xl bg-foreground text-background">
+              <p className="text-sm opacity-60 mb-3 font-mono">
+                {isEs ? "Pegá esto en tu terminal:" : "Paste this in your terminal:"}
+              </p>
+              <div className="p-4 rounded-xl bg-background/10 font-mono text-sm break-all">
+                claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server
+              </div>
+              <p className="text-sm opacity-60 mt-4">
+                {isEs
+                  ? "Eso es todo. La próxima vez que abras Claude Code, ya va a tener acceso al catálogo completo de Pymaia Skills."
+                  : "That's it. Next time you open Claude Code, it'll have access to the full Pymaia Skills catalog."}
+              </p>
+            </div>
+
+            <div className="mt-6 text-center">
+              <Link to="/mcp">
+                <Button variant="outline" size="lg" className="rounded-full text-base px-8 h-12 gap-2">
+                  {isEs ? "Más sobre el MCP Server" : "More about the MCP Server"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </section>
+
         {/* ─── Bonus: Tips ─── */}
         <section className="max-w-4xl mx-auto px-6 pb-20">
           <motion.div {...fadeUp}>
