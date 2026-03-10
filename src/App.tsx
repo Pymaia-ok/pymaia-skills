@@ -24,6 +24,7 @@ import RoleLanding from "./pages/RoleLanding";
 import Enterprise from "./pages/Enterprise";
 import NotFound from "./pages/NotFound";
 import SecurityAdvisories from "./pages/SecurityAdvisories";
+import ApiDocs from "./pages/ApiDocs";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 
