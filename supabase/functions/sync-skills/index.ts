@@ -823,6 +823,66 @@ async function fetchGitHubCodeSearch(query: string): Promise<ParsedSkill[]> {
   return skills;
 }
 
+// ─── SOURCE 14: GitHub Popular Repos Search (keyword-based, not topic-based) ───
+
+async function fetchGitHubPopularSearch(searchQuery: string): Promise<ParsedSkill[]> {
+  const token = Deno.env.get("GITHUB_TOKEN");
+  if (!token) { console.log("[github-popular] No GITHUB_TOKEN, skipping"); return []; }
+
+  console.log(`[github-popular] Searching "${searchQuery}"...`);
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+  const perPage = 100;
+  const maxPages = 3;
+
+  for (let page = 1; page <= maxPages; page++) {
+    try {
+      const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(searchQuery)}&sort=stars&order=desc&per_page=${perPage}&page=${page}`;
+      const res = await fetch(url, {
+        headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json", "User-Agent": "SkillStoreBot/1.0" },
+      });
+
+      if (res.status === 403 || res.status === 422) { console.log(`[github-popular] Rate limited at page ${page}`); break; }
+      if (!res.ok) { console.error(`[github-popular] HTTP ${res.status}`); break; }
+
+      const json = await res.json();
+      const items = json?.items || [];
+      if (items.length === 0) break;
+
+      for (const item of items) {
+        const owner = item.owner?.login || "";
+        const repo = item.name || "";
+        if (!owner || !repo) continue;
+        // Only index repos with significant traction
+        if ((item.stargazers_count || 0) < 500) continue;
+
+        const key = `${owner}/${repo}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        skills.push({
+          name: slugFromName(repo),
+          owner,
+          repo,
+          installCount: item.stargazers_count || 0,
+          stars: item.stargazers_count || 0,
+          description: item.description || "",
+          source: "github-popular",
+        });
+      }
+
+      if (items.length < perPage) break;
+      await new Promise(r => setTimeout(r, 1500));
+    } catch (e) {
+      console.error(`[github-popular] Error page=${page}:`, (e as Error).message);
+      break;
+    }
+  }
+
+  console.log(`[github-popular] "${searchQuery}": ${skills.length} repos (stars>=500)`);
+  return skills;
+}
+
 // ─── SOURCE 10: Awesome Lists — scrape README.md for repo links ───
 
 async function fetchAwesomeLists(): Promise<ParsedSkill[]> {
@@ -836,6 +896,7 @@ async function fetchAwesomeLists(): Promise<ParsedSkill[]> {
     "appcypher/awesome-mcp-servers",
     "VoltAgent/awesome-agent-skills",
     "travisvn/awesome-claude-skills",
+    "msitarzewski/agency-agents",
   ];
 
   for (const repoPath of repos) {
