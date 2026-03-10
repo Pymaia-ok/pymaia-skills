@@ -425,6 +425,7 @@ const CrearSkill = () => {
               setMessages={setMessages}
               onGenerate={handleGenerate}
               isGenerating={isGenerating}
+              generatingPhase={generatingPhase}
               userId={user.id}
             />
           </div>
