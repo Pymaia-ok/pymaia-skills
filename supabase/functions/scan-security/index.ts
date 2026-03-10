@@ -830,7 +830,7 @@ Deno.serve(async (req) => {
         ].join("\n\n");
 
         const installCmd = (item as any).install_command || "";
-        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, lovableApiKey, supabase, (item as any).github_url || null);
+        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, skip_llm ? undefined : lovableApiKey, supabase, (item as any).github_url || null);
 
         await supabase.from(tableName).update({
           security_scan_result: result,
