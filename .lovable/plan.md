@@ -1,34 +1,54 @@
 
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+## Plan: API Pública de Seguridad Pymaia + Documentación Interactiva
 
-### Implementado en esta sesión
+### Objetivo
+Expandir la `trust-score-api` existente en una API pública completa de seguridad, con documentación interactiva en `/api-docs`, badges SVG embebibles, y endpoint de búsqueda/listado.
 
-| Gap | Estado | Implementación |
-|---|---|---|
-| **Dependency Audit (CVE checks)** | ✅ Implementado | Layer 12 en `scan-security` v6.0 — lee `package.json`/`requirements.txt` del repo GitHub, consulta GitHub Advisory Database API. CVSS>7 bloquea, CVSS>9 recomienda delist. |
-| **Network Security Check (MCPs)** | ✅ Implementado | `check-mcp-health` v2.0 — valida HTTPS, puertos seguros, no IPs internas, no credenciales en URL, SSL errors. |
-| **Publisher notification on report** | ✅ Implementado | `security-incident` v2.0 — notifica al publisher vía `send-email` cuando recibe 1 reporte. Notifica también en delist. |
-| **Review Queue en Admin** | ✅ Implementado | Nuevo tab "Review Queue" en `/admin` con items flagged/suspicious, botones Approve/Reject/Rescan. |
-| **Full catalog re-scan rotation** | ✅ Implementado | `rescan-security` v2.0 — ordena por `security_scanned_at ASC` (nulls first), rota el catálogo completo semanalmente. |
-| **Publisher account status check** | ✅ Implementado | `version-monitor` v2.0 — verifica que las cuentas GitHub de publishers sigan activas, crea incidente P2 si eliminada/suspendida. |
-| **Uninstall spike detection** | ✅ Implementado | `security-incident` acción `check_uninstall_spikes` — detecta tasa de uninstall >30% como trigger de review. |
+---
 
-### Items no implementables en esta plataforma
-- ML model (Fase 4) — requiere infra ML externa
-- Snyk Agent Scan — requiere API key de pago
-- Docker image scan (Trivy/Grype) — no ejecutable en edge functions
+### 1. Expandir Edge Function `trust-score-api`
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API) ← NUEVO
-12. LLM analysis (Gemini 2.5 Flash)
+Agregar 3 rutas al endpoint existente usando path parsing:
+
+- **`GET ?slug=X&type=Y`** (existente) — Agregar campo `scan_details` con las capas del escaneo (secrets, injection, typosquatting, scope, hidden_content, dependencies) mostrando solo conteo y estado (sin exponer datos sensibles del scan raw).
+
+- **`GET ?action=search&q=term&type=skill`** (nuevo) — Endpoint de búsqueda/listado que devuelve items con su trust score. Parámetros: `q` (búsqueda), `type`, `min_score`, `badge`, `limit` (max 100).
+
+- **`GET ?action=badge&slug=X&type=Y`** (nuevo) — Devuelve un SVG dinámico estilo shields.io con el Trust Score y badge color. Para embeber en READMEs de GitHub con `![Trust Score](url)`.
+
+### 2. Página `/api-docs` — Documentación Interactiva
+
+Nueva página React con:
+
+- Descripción de la API y su propósito (benchmark de seguridad)
+- Endpoints documentados con ejemplos de request/response
+- "Try it" interactivo: input para slug/type que hace la llamada en vivo y muestra el JSON formateado
+- Sección de badges con código markdown/HTML para copiar
+- Explicación del sistema de scoring (security 40pts, publisher 25pts, community 20pts, longevity 15pts)
+
+### 3. Archivos a crear/modificar
+
+| Archivo | Cambio |
+|---|---|
+| `supabase/functions/trust-score-api/index.ts` | Expandir con rutas search, badge SVG, y scan_details |
+| `src/pages/ApiDocs.tsx` | Nueva página de documentación interactiva |
+| `src/App.tsx` | Agregar ruta `/api-docs` |
+| `src/i18n/es.ts` | Traducciones para la página |
+| `src/i18n/en.ts` | Traducciones para la página |
+
+### 4. Detalle del Badge SVG
+
+El endpoint generará SVGs dinámicos con colores según badge:
+- `official` (>=90): dorado
+- `verified` (>=80): esmeralda  
+- `trusted` (>=60): verde
+- `reviewed` (>=40): azul
+- `new` (<40): gris
+
+Formato: `Trust Score | 85 verified` con el escudo de Pymaia.
+
+### 5. Rate Limiting
+
+Implementar rate limiting simple en la edge function usando un Map en memoria con IP + ventana de 1 minuto, máximo 60 requests. No requiere tabla adicional.
+
