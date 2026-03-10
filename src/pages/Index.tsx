@@ -12,7 +12,7 @@ import PluginsSection from "@/components/landing/PluginsSection";
 import BundlesSection from "@/components/landing/BundlesSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import McpBannerSection from "@/components/landing/McpBannerSection";
-import SocialProofBar from "@/components/landing/SocialProofBar";
+
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
 import { fetchSkills } from "@/lib/api";
@@ -77,8 +77,7 @@ const Index = () => {
       <div className="pt-14">
         {/* 1. Hero — emotional hook + terminal demo */}
         <HeroSection />
-        {/* 2. Social proof — quick trust signals */}
-        <SocialProofBar />
+        {/* 2. Marquee — visual energy, shows breadth */}
         {/* 3. Marquee — visual energy, shows breadth */}
         <MarqueeSection />
         {/* 4. Stats — hard numbers */}
