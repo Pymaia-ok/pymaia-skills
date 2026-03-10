@@ -310,6 +310,18 @@ export default {
     confirmSent: "We sent you a confirmation link.",
     terms: "By continuing, you accept our",
     and: "and",
+    forgotTitle: "Reset your password",
+    forgotSubtitle: "We'll send you a link to reset your password.",
+    forgotBtn: "Send reset link",
+    forgotLink: "Forgot your password?",
+    resetSent: "We sent you a reset link. Check your inbox.",
+    backToLogin: "← Back to sign in",
+    newPasswordTitle: "New password",
+    newPasswordSubtitle: "Choose a new password for your account.",
+    newPasswordPlaceholder: "New password (min. 6 characters)",
+    resetBtn: "Save new password",
+    passwordUpdated: "Password updated",
+    passwordUpdatedDesc: "Your password was updated successfully.",
   },
 
   mcp: {
