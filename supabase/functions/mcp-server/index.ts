@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "8.0.0",
+  version: "8.1.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
@@ -749,7 +749,7 @@ async function getCompatibilityWarnings(items: any[]): Promise<string[]> {
 // ─── AGENT TOOLS (Pymaia Agent v5 — AI Solutions Architect) ───
 
 mcp.tool("solve_goal", {
-  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. The core AI Solutions Architect tool.",
+  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. Pass user_id to personalize based on install history. The core AI Solutions Architect tool.",
   inputSchema: {
     type: "object",
     properties: {
@@ -757,10 +757,11 @@ mcp.tool("solve_goal", {
       role: { type: "string", description: "Optional: user's professional role" },
       technical_level: { type: "string", description: "Optional: non-technical, semi-technical, technical, developer" },
       budget: { type: "string", description: "Optional: free-only, paid-ok, enterprise" },
+      user_id: { type: "string", description: "Optional: user UUID for personalized recommendations based on install history" },
     },
     required: ["goal"],
   },
-  handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string }) => {
+  handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     const goalLower = args.goal.toLowerCase();
 
     // 1. Match goal templates
@@ -806,6 +807,39 @@ mcp.tool("solve_goal", {
       score += (item.trust_score || 0) / 20;
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
+
+    // 4b. Personalization: adjust scores based on user install history
+    let installedSlugs = new Set<string>();
+    let userCategories: Record<string, number> = {};
+    if (args.user_id) {
+      const { data: installs } = await supabase
+        .from("installations")
+        .select("skill_id")
+        .eq("user_id", args.user_id)
+        .limit(200);
+      if (installs && installs.length > 0) {
+        const skillIds = installs.map((i: any) => i.skill_id);
+        const { data: installedSkills } = await supabase
+          .from("skills")
+          .select("slug, category")
+          .in("id", skillIds);
+        for (const s of installedSkills || []) {
+          installedSlugs.add(s.slug);
+          userCategories[s.category] = (userCategories[s.category] || 0) + 1;
+        }
+        // Re-score: deprioritize already-installed, boost same-category
+        for (const item of scored) {
+          if (installedSlugs.has(item.slug)) {
+            item.relevance -= 10; // Deprioritize already installed
+            item._installed = true;
+          }
+          if (userCategories[item.category]) {
+            item.relevance += Math.min(userCategories[item.category], 3); // Boost preferred categories
+          }
+        }
+        scored.sort((a: any, b: any) => b.relevance - a.relevance);
+      }
+    }
 
     // 5. Compose Option A (simple — fewer tools, prefer plugins/bundles)
     const optionA: any[] = [];
@@ -892,6 +926,13 @@ mcp.tool("solve_goal", {
     }
 
     if (!matchedTemplate) sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
+    if (installedSlugs.size > 0) {
+      const alreadyInstalled = [...optionA, ...optionB].filter((i: any) => i._installed);
+      if (alreadyInstalled.length > 0) {
+        sections.push(`\n📌 **Personalized:** ${alreadyInstalled.length} tool(s) you already have were deprioritized. Showing new recommendations.`);
+      }
+      sections.push(`*Recommendations personalized based on your ${installedSlugs.size} installed tools.*`);
+    }
 
     if (matchedTemplate) {
       await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
@@ -926,18 +967,20 @@ mcp.tool("rate_recommendation", {
 });
 
 mcp.tool("get_role_kit", {
-  description: "Returns a curated kit of recommended tools (skills, MCPs, plugins) for a specific professional role. Optionally filters by tech stack.",
+  description: "Returns a curated kit of recommended tools (skills, MCPs, plugins) for a specific professional role. Supports tiered kits: 'essentials' (free, top 5) and 'advanced' (extended, top 10 + stack-specific connectors + bundles). Optionally filters by tech stack.",
   inputSchema: {
     type: "object",
     properties: {
       role: { type: "string", description: "Professional role: marketer, developer, product-manager, designer, sales, consultant, lawyer, founder, data-analyst, devops, doctor, teacher, hr, other" },
       stack: { type: "array", items: { type: "string" }, description: "Optional: current tools/platforms (e.g., ['nextjs', 'supabase', 'figma'])" },
-      limit: { type: "number", description: "Max tools per section (default: 5)" },
+      tier: { type: "string", description: "Kit tier: 'essentials' (top 5 free skills) or 'advanced' (top 10 + connectors + bundles). Default: essentials" },
+      limit: { type: "number", description: "Max tools per section (default: 5 for essentials, 10 for advanced)" },
     },
     required: ["role"],
   },
-  handler: async (args: { role: string; stack?: string[]; limit?: number }) => {
-    const lim = Math.min(args.limit || 5, 10);
+  handler: async (args: { role: string; stack?: string[]; tier?: string; limit?: number }) => {
+    const isAdvanced = args.tier === "advanced";
+    const lim = Math.min(args.limit || (isAdvanced ? 10 : 5), 15);
     const roleLower = args.role.toLowerCase();
 
     // Map common role names to target_roles values
@@ -1001,13 +1044,17 @@ mcp.tool("get_role_kit", {
     // Build response
     const sections: string[] = [];
     const roleLabel = args.role.charAt(0).toUpperCase() + args.role.slice(1);
+    const tierLabel = isAdvanced ? "Advanced" : "Essentials";
 
-    sections.push(`# 🎯 Tool Kit for ${roleLabel}\n`);
+    sections.push(`# 🎯 ${tierLabel} Kit for ${roleLabel}\n`);
+    if (!isAdvanced) {
+      sections.push(`*Free essentials kit. Use \`get_role_kit\` with \`tier: "advanced"\` for extended recommendations with stack-specific connectors and pre-built kits.*\n`);
+    }
 
     // Essential skills
     const essential = (roleSkills || []).slice(0, lim);
     if (essential.length > 0) {
-      sections.push(`## Essential Skills\n`);
+      sections.push(`## ${isAdvanced ? "Top" : "Essential"} Skills\n`);
       sections.push(`Top ${essential.length} skills used by ${roleLabel}s:\n`);
       for (let i = 0; i < essential.length; i++) {
         const s = essential[i];
@@ -1019,9 +1066,9 @@ mcp.tool("get_role_kit", {
       }
     }
 
-    // Stack-specific connectors
-    if (stackConnectors.length > 0) {
-      sections.push(`## Stack-Specific Connectors\n`);
+    // Stack-specific connectors (advanced tier or if stack provided)
+    if (stackConnectors.length > 0 && (isAdvanced || args.stack)) {
+      sections.push(`## Stack-Specific Connectors${!isAdvanced ? " ⭐" : ""}\n`);
       sections.push(`Based on your stack (${args.stack!.join(", ")}):\n`);
       for (const c of stackConnectors) {
         const official = c.is_official ? " ✅ Official" : "";
@@ -1031,12 +1078,31 @@ mcp.tool("get_role_kit", {
       sections.push("");
     }
 
-    // Bundles
-    if (bundles && bundles.length > 0) {
-      sections.push(`## Pre-built Kits\n`);
+    // Bundles (advanced tier only)
+    if (isAdvanced && bundles && bundles.length > 0) {
+      sections.push(`## Pre-built Kits ⭐\n`);
       for (const b of bundles) {
         sections.push(`${b.hero_emoji || "📦"} **${b.title}** — ${b.description}`);
         sections.push(`   Includes ${b.skill_slugs.length} tools\n`);
+      }
+    }
+
+    // Advanced: cross-reference with popular plugins for this role
+    if (isAdvanced) {
+      const { data: rolePlugins } = await supabase
+        .from("plugins")
+        .select("name, slug, description, category, install_count, trust_score, is_official")
+        .eq("status", "approved")
+        .order("install_count", { ascending: false })
+        .limit(5);
+      if (rolePlugins && rolePlugins.length > 0) {
+        sections.push(`## Recommended Plugins ⭐\n`);
+        for (const p of rolePlugins) {
+          const tb = (p.trust_score || 0) >= 70 ? "🟢" : (p.trust_score || 0) >= 40 ? "🟡" : "⚪";
+          sections.push(`- 🧩 **${p.name}** [${p.category}] ${tb} Trust: ${p.trust_score || "N/A"} · ${p.install_count.toLocaleString()} installs`);
+          sections.push(`  ${p.description}`);
+        }
+        sections.push("");
       }
     }
 
@@ -1051,6 +1117,10 @@ mcp.tool("get_role_kit", {
 
     if (essential.length === 0 && stackConnectors.length === 0) {
       sections.push(`No specific tools found for "${args.role}". Try \`explore_directory\` or \`solve_goal\` for a more targeted search.`);
+    }
+
+    if (!isAdvanced) {
+      sections.push(`\n---\n💎 *Want more? Use \`get_role_kit\` with \`tier: "advanced"\` for extended recommendations, stack-specific connectors, plugins, and pre-built kits.*`);
     }
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
@@ -1330,6 +1400,82 @@ mcp.tool("generate_custom_skill", {
     if (hasConflicts) {
       sections.push(`\n> ⛔ **Warning:** This combination contains conflicting tools. Review the conflicts above and consider removing one of the conflicting tools.`);
     }
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+// ─── PHASE 2b: SKILLFORGE ↔ AGENT INTEGRATION ───
+
+mcp.tool("suggest_for_skill_creation", {
+  description: "Given a skill idea or goal, suggests existing tools from the catalog that the new skill could integrate with or build upon. Use when creating a new skill in SkillForge to find complementary MCPs and existing skills.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_idea: { type: "string", description: "Description of the skill being created (e.g., 'automated code review with security checks')" },
+      skill_category: { type: "string", description: "Category of the new skill: desarrollo, diseño, marketing, automatización, productividad, legal, negocios, creatividad, datos, ia" },
+    },
+    required: ["skill_idea"],
+  },
+  handler: async (args: { skill_idea: string; skill_category?: string }) => {
+    const goalWords = args.skill_idea.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
+    const searchResults = await crossCatalogSearch(goalWords, 6);
+
+    const sections: string[] = [];
+    sections.push(`# 🔧 Recommended Integrations for Your New Skill\n`);
+    sections.push(`*Based on: "${args.skill_idea}"*\n`);
+
+    // Connectors the new skill could use as dependencies
+    const connectors = searchResults.connectors.slice(0, 5);
+    if (connectors.length > 0) {
+      sections.push(`## 🔌 MCP Connectors to Integrate\n`);
+      sections.push(`Your skill could use these as \`required_mcps\` dependencies:\n`);
+      for (const c of connectors) {
+        const tb = (c.trust_score || 0) >= 70 ? "🟢" : (c.trust_score || 0) >= 40 ? "🟡" : "⚪";
+        sections.push(`- **${c.name}** [${c.category}] ${tb} Trust: ${c.trust_score || "N/A"}`);
+        sections.push(`  ${c.description}`);
+        if (c.install_command) sections.push(`  Install: \`${c.install_command}\``);
+        if (c.credentials_needed?.length > 0) sections.push(`  Credentials: ${c.credentials_needed.join(", ")}`);
+        sections.push("");
+      }
+    }
+
+    // Existing skills that are similar (avoid duplication)
+    const similar = searchResults.skills.slice(0, 5);
+    if (similar.length > 0) {
+      sections.push(`## 🧠 Similar Existing Skills\n`);
+      sections.push(`Check these to avoid duplication or find inspiration:\n`);
+      for (const s of similar) {
+        sections.push(`- **${s.display_name}** [${s.category}] — ${s.tagline}`);
+        sections.push(`  ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs`);
+        sections.push(`  \`${s.install_command}\`\n`);
+      }
+    }
+
+    // Plugins that could complement
+    const plugins = searchResults.plugins.slice(0, 3);
+    if (plugins.length > 0) {
+      sections.push(`## 🧩 Complementary Plugins\n`);
+      for (const p of plugins) {
+        sections.push(`- **${p.name}** [${p.category}] — ${p.description}`);
+      }
+      sections.push("");
+    }
+
+    // Suggestion for SKILL.md dependencies section
+    if (connectors.length > 0) {
+      sections.push(`## 📝 Suggested Dependencies Block for SKILL.md\n`);
+      sections.push("```yaml");
+      sections.push("required_mcps:");
+      for (const c of connectors.slice(0, 3)) {
+        sections.push(`  - name: "${c.name}"`);
+        sections.push(`    slug: "${c.slug}"`);
+        if (c.install_command) sections.push(`    install_command: "${c.install_command}"`);
+      }
+      sections.push("```\n");
+    }
+
+    sections.push(`💡 *Use \`generate_custom_skill\` to auto-generate a SKILL.md that orchestrates these tools.*`);
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
@@ -1870,11 +2016,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.0.0",
+  version: "8.1.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 4: Platform — community templates marketplace, A2A multi-agent compatibility, analytics dashboard, enterprise catalogs.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: personalized recommendations (user history), tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration"],
   },
   a2a: {
     protocol: "A2A-compatible",
@@ -1889,7 +2035,7 @@ mcpApp.get("/", (c) => c.json({
     "search_plugins", "get_plugin_details", "list_popular_plugins",
     "explore_directory",
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
-    "generate_custom_skill", "trending_solutions",
+    "generate_custom_skill", "suggest_for_skill_creation", "trending_solutions",
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
   ],
 }));
