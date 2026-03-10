@@ -5,6 +5,95 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+// ─── ML INTENT CLASSIFIER ───
+// Uses Gemini Flash Lite to extract structured intent from natural language goals
+async function classifyIntent(goal: string, role?: string): Promise<{
+  keywords: string[];
+  category: string | null;
+  capabilities: string[];
+  domain: string;
+  confidence: number;
+}> {
+  if (!LOVABLE_API_KEY) {
+    // Fallback: basic keyword extraction
+    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+  }
+
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: `You are an intent classifier for an AI agent tools marketplace. Given a user's business goal, extract:
+- keywords: 3-6 English search terms that would match tool names/descriptions in a catalog of AI agent skills, MCP connectors, and plugins
+- category: best matching category from [ia, desarrollo, diseño, marketing, automatización, datos, creatividad, productividad, legal, negocios] or null
+- capabilities: list of technical capabilities needed (e.g., "email sending", "code review", "data scraping", "CRM integration")
+- domain: business domain from [engineering, marketing, sales, design, legal, finance, operations, general]
+- confidence: 0.0-1.0 how confident you are in the classification
+
+Be precise with keywords - they should match actual tool names and descriptions. The user's role is: ${role || "unknown"}.`,
+          },
+          { role: "user", content: goal },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "classify_intent",
+            description: "Extract structured intent from user goal",
+            parameters: {
+              type: "object",
+              properties: {
+                keywords: { type: "array", items: { type: "string" }, description: "3-6 search terms" },
+                category: { type: "string", nullable: true },
+                capabilities: { type: "array", items: { type: "string" } },
+                domain: { type: "string" },
+                confidence: { type: "number" },
+              },
+              required: ["keywords", "category", "capabilities", "domain", "confidence"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "classify_intent" } },
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`AI status ${resp.status}`);
+    const data = await resp.json();
+    const call = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) throw new Error("No tool call");
+    return JSON.parse(call.function.arguments);
+  } catch (e) {
+    console.error("Intent classifier fallback:", e);
+    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+  }
+}
+
+// ─── A/B TESTING: Deterministic hash-based variant assignment ───
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+type ABVariant = "control" | "reranked";
+
+function assignVariant(goal: string, userId?: string): ABVariant {
+  const seed = `${goal.toLowerCase().trim()}:${userId || "anon"}`;
+  return hashString(seed) % 2 === 0 ? "control" : "reranked";
+}
 
 const mcp = new McpServer({
   name: "pymaia-agent",
