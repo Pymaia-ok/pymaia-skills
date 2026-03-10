@@ -2323,28 +2323,29 @@ mcp.tool("get_setup_guide", {
   },
 });
 
-// ─── RATE LIMITER ───
+// ─── RATE LIMITER (tiered: 120/min authenticated, 30/min anonymous) ───
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 30; // max requests per window per IP
+const RATE_LIMIT_ANON = 30;
+const RATE_LIMIT_AUTH = 120;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(ip: string): boolean {
+function checkRateLimit(key: string, max: number): boolean {
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
   entry.count++;
-  return entry.count <= RATE_LIMIT_MAX;
+  return entry.count <= max;
 }
 
 // Cleanup stale entries every 5 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
-    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(key);
   }
 }, 300_000);
 
@@ -2357,16 +2358,20 @@ const mcpApp = new Hono();
 
 // Rate limit middleware + API key auth for MCP endpoint
 mcpApp.use("/mcp", async (c, next) => {
+  // Resolve API key user first to determine rate limit tier
+  currentApiKeyUserId = await resolveApiKeyUser(c.req.header("authorization"));
+
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") || "unknown";
-  if (!checkRateLimit(ip)) {
+  const rateLimitKey = currentApiKeyUserId ? `user:${currentApiKeyUserId}` : `ip:${ip}`;
+  const rateLimitMax = currentApiKeyUserId ? RATE_LIMIT_AUTH : RATE_LIMIT_ANON;
+
+  if (!checkRateLimit(rateLimitKey, rateLimitMax)) {
     return c.json(
-      { error: "Rate limit exceeded. Max 30 requests per minute." },
+      { error: `Rate limit exceeded. Max ${rateLimitMax} requests per minute.` },
       429
     );
   }
-  // Resolve API key user and store in global context
-  currentApiKeyUserId = await resolveApiKeyUser(c.req.header("authorization"));
   await next();
 });
 
