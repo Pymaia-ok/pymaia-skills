@@ -122,6 +122,9 @@ export default function MisSkills() {
           </div>
         </div>
 
+        {/* API Keys section */}
+        <ApiKeysSection />
+
         {/* Drafts section */}
         {!isLoading && drafts.length > 0 && (
           <div className="mb-8">

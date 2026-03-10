@@ -249,8 +249,14 @@ mcp.tool("get_skill_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
-    const { data: skill, error } = await supabase
-      .from("skills").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
+    const apiUserId = currentApiKeyUserId;
+    let q = supabase.from("skills").select("*").eq("slug", args.slug);
+    if (apiUserId) {
+      q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
+    } else {
+      q = q.eq("status", "approved");
+    }
+    const { data: skill, error } = await q.maybeSingle();
 
     if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" no encontrada.` }] };
 
