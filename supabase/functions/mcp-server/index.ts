@@ -749,7 +749,7 @@ async function getCompatibilityWarnings(items: any[]): Promise<string[]> {
 // ─── AGENT TOOLS (Pymaia Agent v5 — AI Solutions Architect) ───
 
 mcp.tool("solve_goal", {
-  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. The core AI Solutions Architect tool.",
+  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. Pass user_id to personalize based on install history. The core AI Solutions Architect tool.",
   inputSchema: {
     type: "object",
     properties: {
@@ -757,10 +757,11 @@ mcp.tool("solve_goal", {
       role: { type: "string", description: "Optional: user's professional role" },
       technical_level: { type: "string", description: "Optional: non-technical, semi-technical, technical, developer" },
       budget: { type: "string", description: "Optional: free-only, paid-ok, enterprise" },
+      user_id: { type: "string", description: "Optional: user UUID for personalized recommendations based on install history" },
     },
     required: ["goal"],
   },
-  handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string }) => {
+  handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     const goalLower = args.goal.toLowerCase();
 
     // 1. Match goal templates
