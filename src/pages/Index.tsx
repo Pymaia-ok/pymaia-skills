@@ -77,8 +77,7 @@ const Index = () => {
       <div className="pt-14">
         {/* 1. Hero — emotional hook + terminal demo */}
         <HeroSection />
-        {/* 2. Social proof — quick trust signals */}
-        <SocialProofBar />
+        {/* 2. Marquee — visual energy, shows breadth */}
         {/* 3. Marquee — visual energy, shows breadth */}
         <MarqueeSection />
         {/* 4. Stats — hard numbers */}
