@@ -838,7 +838,7 @@ async function getCompatibilityWarnings(items: any[]): Promise<string[]> {
 // ─── AGENT TOOLS (Pymaia Agent v5 — AI Solutions Architect) ───
 
 mcp.tool("solve_goal", {
-  description: "Given a business goal, Pymaia Agent searches 35K+ skills/MCPs/plugins and returns TWO options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step installation. Pass user_id to personalize based on install history. The core AI Solutions Architect tool.",
+  description: "⭐ PRIMARY TOOL — Use this FIRST for any goal or task. Given a business goal in natural language, the AI Solutions Architect searches 38K+ skills, MCP connectors, AND plugins simultaneously, then returns TWO curated options (A: simple, B: flexible) with trust scores, compatibility analysis, security warnings, and step-by-step install commands. Examples: 'run Meta Ads campaigns', 'automate code reviews', 'set up outbound email'. Pass user_id to personalize based on install history.",
   inputSchema: {
     type: "object",
     properties: {
