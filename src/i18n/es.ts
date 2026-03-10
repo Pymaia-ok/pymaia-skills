@@ -31,7 +31,7 @@ export default {
 
   // Landing sections
   landing: {
-    heroBadge: "38,000+ skills profesionales",
+    heroBadge: "35,000+ skills profesionales",
     heroTitle: "Trabajá como un\nexperto en minutos.",
     heroSubtitle: "Elegí una skill, instalala en Claude y listo. Tu IA ahora sabe hacer lo que antes te llevaba horas.",
     heroCtaExplore: "Explorar skills",
