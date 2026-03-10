@@ -35,7 +35,17 @@ const Auth = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      if (mode === "signup") {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({
+          title: t("auth.checkEmail"),
+          description: t("auth.resetSent"),
+        });
+        setMode("login");
+      } else if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
