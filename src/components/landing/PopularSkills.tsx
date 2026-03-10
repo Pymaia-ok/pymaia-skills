@@ -8,21 +8,21 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 
-// Curated list of high-quality, genuinely useful skills across categories
+// Curated: high-utility, cross-industry skills any professional understands
 const FEATURED_SLUGS = [
-  "browser-use",         // Automatización web
-  "pptx-presentations",  // Presentaciones
-  "pdf-toolkit",         // PDFs
-  "xlsx-spreadsheets",   // Hojas de cálculo
-  "docx-creator",        // Documentos Word
-  "webapp-testing",      // Testing
+  "pptx-presentations",       // Presentaciones — todo profesional
+  "pdf-toolkit",              // PDFs — universal
+  "xlsx-spreadsheets",        // Excel — finanzas, datos
+  "browser-use",              // Automatización web
+  "cold-email",               // Ventas / outreach
+  "market-research-reports",  // Investigación de mercado
 ];
 
 const PopularSkills = () => {
   const { t } = useTranslation();
 
   const { data } = useQuery({
-    queryKey: ["skills-popular-landing-curated"],
+    queryKey: ["skills-popular-landing-curated-v2"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("skills")
@@ -30,7 +30,6 @@ const PopularSkills = () => {
         .in("slug", FEATURED_SLUGS)
         .eq("status", "approved");
       if (error) throw error;
-      // Maintain curated order
       const map = new Map((data || []).map((s) => [s.slug, s]));
       return FEATURED_SLUGS.map((slug) => map.get(slug)).filter(Boolean) as SkillFromDB[];
     },

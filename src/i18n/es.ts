@@ -125,10 +125,10 @@ export default {
 
   tasks: {
     marketer: {
-      contenido: "Crear contenido más rápido",
-      analizar: "Analizar resultados y métricas",
-      clientes: "Gestionar clientes",
-      reportes: "Preparar reportes",
+      contenido: "Crear contenido y copies",
+      seo: "Optimizar SEO y posicionamiento",
+      email: "Automatizar email marketing",
+      social: "Gestionar redes sociales",
     },
     abogado: {
       contratos: "Revisar contratos",
@@ -150,8 +150,8 @@ export default {
     },
     disenador: {
       briefs: "Generar briefs creativos",
-      copy: "Escribir copy para diseños",
-      feedback: "Estructurar feedback",
+      designsystem: "Crear design system",
+      prototipos: "Prototipar y wireframear",
       specs: "Documentar specs de diseño",
     },
     ingeniero: {
