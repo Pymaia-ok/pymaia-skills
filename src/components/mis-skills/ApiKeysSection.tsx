@@ -101,6 +101,7 @@ export default function ApiKeysSection() {
       return;
     }
     setKeys((prev) => prev.filter((k) => k.id !== id));
+    setConfirmRevokeId(null);
     toast.success(t("apiKeys.revoked"));
   }
 
