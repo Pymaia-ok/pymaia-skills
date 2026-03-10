@@ -2016,11 +2016,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.0.0",
+  version: "8.1.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 4: Platform — community templates marketplace, A2A multi-agent compatibility, analytics dashboard, enterprise catalogs.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: personalized recommendations (user history), tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration"],
   },
   a2a: {
     protocol: "A2A-compatible",
@@ -2035,7 +2035,7 @@ mcpApp.get("/", (c) => c.json({
     "search_plugins", "get_plugin_details", "list_popular_plugins",
     "explore_directory",
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
-    "generate_custom_skill", "trending_solutions",
+    "generate_custom_skill", "suggest_for_skill_creation", "trending_solutions",
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
   ],
 }));
