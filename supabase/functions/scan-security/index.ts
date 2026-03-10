@@ -942,15 +942,15 @@ async function runFullScan(
     similarityResult = await checkContentSimilarity(content, slug, itemType, supabase);
   }
 
-  // Layer 10: Publisher verification (PRD 5.1)
+  // Layer 10: Publisher verification (PRD 5.1) — skip in fast mode (no API key = fast mode)
   let publisherResult = null;
-  if (githubUrl) {
+  if (githubUrl && lovableApiKey) {
     publisherResult = await verifyPublisher(githubUrl);
   }
 
-  // Layer 11: Dependency audit (PRD 5.1 item 4)
+  // Layer 11: Dependency audit (PRD 5.1 item 4) — skip in fast mode
   let dependencyResult = null;
-  if (githubUrl) {
+  if (githubUrl && lovableApiKey) {
     dependencyResult = await auditDependencies(githubUrl);
   }
 
