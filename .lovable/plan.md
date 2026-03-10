@@ -55,10 +55,12 @@
 | Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
 ### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, no disponible en edge functions
-- **ML intent classifier** — requiere infra ML externa
-- **A/B testing framework** — requiere traffic routing
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
 - **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
 ### Tools del MCP v8.1.0 (28 tools)
 1. search_skills, get_skill_details, list_popular_skills, list_new_skills
