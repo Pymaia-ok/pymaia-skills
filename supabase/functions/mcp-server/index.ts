@@ -142,7 +142,7 @@ async function wordSplitSearch(
 // ─── DISCOVERY TOOLS ───
 
 mcp.tool("search_skills", {
-  description: "Search the SkillHub directory for Agent Skills by name, tagline, or description. Returns install command, rating, and install count.",
+  description: "Search the SkillHub directory for Agent Skills by name, tagline, or description. Returns install command, rating, and install count. NOTE: For goal-oriented queries (e.g. 'I want to automate X'), use solve_goal instead — it searches skills, connectors, AND plugins simultaneously and returns curated solutions.",
   inputSchema: {
     type: "object",
     properties: {
