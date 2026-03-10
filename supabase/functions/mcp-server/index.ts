@@ -97,7 +97,7 @@ function assignVariant(goal: string, userId?: string): ABVariant {
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "8.2.0",
+  version: "8.3.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
