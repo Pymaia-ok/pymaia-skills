@@ -817,19 +817,26 @@ mcp.tool("explore_directory", {
 
 // ─── HELPERS: Cross-catalog search & compatibility ───
 
-async function crossCatalogSearch(keywords: string[], limit = 5) {
+async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: string | null) {
   const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
   
   for (const kw of keywords.slice(0, 6)) {
     const q = sanitizeForPostgrest(kw);
     if (!q || q.length < 2) continue;
+
+    // Skills query: include private skills for authenticated API key users
+    let skillQuery = supabase.from("skills")
+      .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars, is_public, creator_id")
+      .or(
+        apiUserId
+          ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
+          : `and(status.eq.approved,is_public.eq.true)`
+      )
+      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
+      .order("install_count", { ascending: false }).limit(limit);
     
     const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
-      supabase.from("skills")
-        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars")
-        .eq("status", "approved")
-        .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
-        .order("install_count", { ascending: false }).limit(limit),
+      skillQuery,
       supabase.from("mcp_servers")
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status")
         .eq("status", "approved")
