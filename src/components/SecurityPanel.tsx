@@ -84,6 +84,36 @@ export const SecurityPanel = ({
     scanResult.layers?.dependencies?.vulnerabilities?.length > 0,
   ].filter(Boolean).length : 0;
 
+  // Derive a display score: use trustScore if available, else derive from scan
+  const hasBeenScanned = !!securityScannedAt;
+  const hasTrustScore = trustScore > 0;
+  
+  // If scanned but no trust score yet, derive a basic one from scan result
+  const derivedScore = (() => {
+    if (hasTrustScore) return trustScore;
+    if (!hasBeenScanned || !scanResult) return 0;
+    // Simple derivation: start at 70, subtract per warning
+    let score = 70;
+    score -= warningCount * 15;
+    if (isOfficial) score += 15;
+    if (isActive) score += 10;
+    if (!creatorId && !isOfficial) score -= 10;
+    return Math.max(0, Math.min(100, score));
+  })();
+
+  const displayScore = derivedScore;
+  const scoreIsEstimated = !hasTrustScore && hasBeenScanned && displayScore > 0;
+
+  // Derive effective status from scan when status is still "unverified" but scanned
+  const effectiveStatus = (() => {
+    if (securityStatus !== "unverified") return securityStatus;
+    if (!hasBeenScanned) return "unverified";
+    if (warningCount > 0) return "flagged";
+    return "verified";
+  })();
+
+  const StatusIcon = getStatusIcon(effectiveStatus);
+
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
       <div className="flex items-center gap-2 mb-5">
@@ -95,17 +125,19 @@ export const SecurityPanel = ({
 
       <div className="grid grid-cols-2 gap-4 mb-5">
         {/* Trust Score */}
-        <div className={`rounded-xl border p-4 ${getScoreBg(trustScore)}`}>
-          <p className="text-xs font-medium text-muted-foreground mb-1">Trust Score</p>
-          <p className={`text-2xl font-bold ${getScoreColor(trustScore)}`}>
-            {trustScore > 0 ? `${trustScore}/100` : "—"}
+        <div className={`rounded-xl border p-4 ${getScoreBg(displayScore)}`}>
+          <p className="text-xs font-medium text-muted-foreground mb-1">
+            Trust Score{scoreIsEstimated ? (isEs ? " (estimado)" : " (estimated)") : ""}
+          </p>
+          <p className={`text-2xl font-bold ${getScoreColor(displayScore)}`}>
+            {displayScore > 0 ? `${displayScore}/100` : "—"}
           </p>
         </div>
 
         {/* Security Status */}
         <div className={`rounded-xl border p-4 ${
-          securityStatus === "verified" ? "bg-emerald-500/10 border-emerald-500/20" :
-          securityStatus === "flagged" || securityStatus === "suspicious" ? "bg-destructive/10 border-destructive/20" :
+          effectiveStatus === "verified" ? "bg-emerald-500/10 border-emerald-500/20" :
+          effectiveStatus === "flagged" || effectiveStatus === "suspicious" ? "bg-destructive/10 border-destructive/20" :
           "bg-muted/50 border-border"
         }`}>
           <p className="text-xs font-medium text-muted-foreground mb-1">
@@ -113,20 +145,50 @@ export const SecurityPanel = ({
           </p>
           <div className="flex items-center gap-1.5">
             <StatusIcon className={`w-5 h-5 ${
-              securityStatus === "verified" ? "text-emerald-500" :
-              securityStatus === "flagged" || securityStatus === "suspicious" ? "text-destructive" :
+              effectiveStatus === "verified" ? "text-emerald-500" :
+              effectiveStatus === "flagged" || effectiveStatus === "suspicious" ? "text-destructive" :
               "text-muted-foreground"
             }`} />
             <span className={`text-sm font-semibold ${
-              securityStatus === "verified" ? "text-emerald-600 dark:text-emerald-400" :
-              securityStatus === "flagged" || securityStatus === "suspicious" ? "text-destructive" :
+              effectiveStatus === "verified" ? "text-emerald-600 dark:text-emerald-400" :
+              effectiveStatus === "flagged" || effectiveStatus === "suspicious" ? "text-destructive" :
               "text-muted-foreground"
             }`}>
-              {isEs ? statusLabel.es : statusLabel.en}
+              {isEs ? (statusLabels[effectiveStatus] || statusLabels.unverified).es : (statusLabels[effectiveStatus] || statusLabels.unverified).en}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Scan details when available */}
+      {hasBeenScanned && scanResult?.layers && (
+        <div className="mb-5 rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+            {isEs ? "Resultado del análisis" : "Scan Results"}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { key: "secrets", label: isEs ? "Secretos expuestos" : "Exposed secrets", ok: !scanResult.layers?.secrets?.count },
+              { key: "injection", label: isEs ? "Inyección de código" : "Code injection", ok: !scanResult.layers?.injection?.critical },
+              { key: "hidden_content", label: isEs ? "Contenido oculto" : "Hidden content", ok: !scanResult.layers?.hidden_content?.findings?.length },
+              { key: "typosquatting", label: "Typosquatting", ok: !scanResult.layers?.typosquatting?.flags?.length },
+              { key: "scope", label: isEs ? "Permisos" : "Permissions", ok: scanResult.layers?.scope?.scope_assessment !== "excessive" },
+              { key: "license", label: isEs ? "Licencia" : "License", ok: !!scanResult.layers?.license?.license },
+            ].map((check) => (
+              <div key={check.key} className="flex items-center gap-1.5 text-xs">
+                {check.ok ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                ) : (
+                  <ShieldAlert className="w-3.5 h-3.5 text-destructive shrink-0" />
+                )}
+                <span className={check.ok ? "text-muted-foreground" : "text-destructive font-medium"}>
+                  {check.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Scan info */}
       <div className="space-y-3 mb-5">
