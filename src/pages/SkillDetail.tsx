@@ -463,6 +463,15 @@ const SkillDetail = () => {
                   </div>
                 </div>
               </motion.div>
+
+              {/* FAQ */}
+              <DetailFAQ
+                itemType="skill"
+                itemName={displayName}
+                description={descriptionHuman}
+                category={skill.category}
+                securityStatus={(skill as any).security_status}
+              />
             </div>
 
             {/* ─── Sidebar ─── */}
@@ -525,7 +534,7 @@ const SkillDetail = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="border-t border-border pt-3 flex items-center gap-2">
+                <div className="border-t border-border pt-3 flex flex-wrap items-center gap-2">
                   <SecurityReportButton itemType="skill" itemId={skill.id} itemSlug={skill.slug} />
                   <ShareButton
                     url={(() => {
@@ -570,14 +579,6 @@ const SkillDetail = () => {
                 )}
               </div>
 
-              {/* FAQ */}
-              <DetailFAQ
-                itemType="skill"
-                itemName={displayName}
-                description={descriptionHuman}
-                category={skill.category}
-                securityStatus={(skill as any).security_status}
-              />
             </div>
           </div>
         </div>
