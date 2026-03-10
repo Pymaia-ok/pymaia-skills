@@ -2,7 +2,83 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+
+const terminalLines = [
+  { text: "$ claude", delay: 0 },
+  { text: '> Instalá la skill "Contract Reviewer"', delay: 800 },
+  { text: "✓ Skill instalada correctamente", delay: 2200 },
+  { text: '> Revisá este contrato de servicios', delay: 3400 },
+  { text: "⚡ Analizando cláusulas… 12 riesgos detectados", delay: 4800 },
+];
+
+const TerminalDemo = () => {
+  const [visibleLines, setVisibleLines] = useState(0);
+
+  useEffect(() => {
+    const timers = terminalLines.map((line, i) =>
+      setTimeout(() => setVisibleLines(i + 1), line.delay)
+    );
+    // Loop
+    const loopTimer = setTimeout(() => setVisibleLines(0), 7500);
+    const restartTimer = setTimeout(() => {
+      setVisibleLines(0);
+      // Restart the cycle
+      timers.forEach(clearTimeout);
+    }, 8000);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      clearTimeout(loopTimer);
+      clearTimeout(restartTimer);
+    };
+  }, [visibleLines === 0 ? Date.now() : 0]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5, duration: 0.6 }}
+      className="max-w-lg mx-auto mt-12"
+    >
+      <div className="rounded-2xl border border-border bg-foreground text-background overflow-hidden shadow-2xl">
+        {/* Window chrome */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/20">
+          <div className="w-3 h-3 rounded-full bg-background/20" />
+          <div className="w-3 h-3 rounded-full bg-background/20" />
+          <div className="w-3 h-3 rounded-full bg-background/20" />
+          <span className="ml-2 text-xs text-background/40 font-mono">Terminal</span>
+        </div>
+        {/* Terminal body */}
+        <div className="p-5 font-mono text-sm space-y-2 min-h-[160px]">
+          {terminalLines.slice(0, visibleLines).map((line, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className={
+                line.text.startsWith("✓")
+                  ? "text-green-400"
+                  : line.text.startsWith("⚡")
+                    ? "text-yellow-300"
+                    : line.text.startsWith("$")
+                      ? "text-background/60"
+                      : "text-background/90"
+              }
+            >
+              {line.text}
+            </motion.div>
+          ))}
+          {visibleLines < terminalLines.length && (
+            <span className="inline-block w-2 h-4 bg-background/60 animate-pulse" />
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const HeroSection = () => {
   const { t } = useTranslation();
@@ -13,14 +89,14 @@ const HeroSection = () => {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
-      <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-12 text-center">
+      <div className="relative max-w-5xl mx-auto px-6 pt-24 pb-16 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-sm text-muted-foreground mb-8 border border-border">
-            <Sparkles className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             {t("landing.heroBadge")}
           </div>
 
@@ -28,7 +104,7 @@ const HeroSection = () => {
             {t("landing.heroTitle")}
           </h1>
 
-          <p className="hero-subtitle max-w-2xl mx-auto mb-8">
+          <p className="hero-subtitle max-w-2xl mx-auto mb-10">
             {t("landing.heroSubtitle")}
           </p>
 
@@ -46,6 +122,8 @@ const HeroSection = () => {
             </Button>
           </div>
         </motion.div>
+
+        <TerminalDemo />
       </div>
     </section>
   );

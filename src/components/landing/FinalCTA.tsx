@@ -8,8 +8,12 @@ const FinalCTA = () => {
   const { t } = useTranslation();
 
   return (
-    <section className="py-24 bg-foreground text-background">
-      <div className="max-w-3xl mx-auto px-6 text-center">
+    <section className="relative py-28 overflow-hidden bg-foreground text-background">
+      {/* Subtle gradient orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-3xl mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -18,7 +22,7 @@ const FinalCTA = () => {
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
             {t("landing.ctaTitle")}
           </h2>
-          <p className="text-background/60 text-lg mb-10 max-w-xl mx-auto">
+          <p className="text-background/50 text-lg mb-10 max-w-xl mx-auto">
             {t("landing.ctaSubtitle")}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
