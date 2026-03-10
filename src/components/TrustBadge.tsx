@@ -273,21 +273,38 @@ export const ScannedByPymaiaBadge = ({ size = "sm" }: { size?: "sm" | "md" }) =>
 
 // Compact version for cards/lists
 export const TrustBadgeCompact = ({ trustScore, securityStatus }: { trustScore: number; securityStatus?: string }) => {
-  const badgeKey = getBadgeFromScore(trustScore);
+  const { i18n } = useTranslation();
+  const isEs = i18n.language === "es";
+  
+  // Always show something — even for unscanned items
+  const badgeKey = trustScore > 0 ? getBadgeFromScore(trustScore) : "new";
   const config = BADGE_CONFIG[badgeKey];
-  const Icon = config.icon;
+  const Icon = securityStatus === "verified" ? ShieldCheck : securityStatus === "flagged" ? ShieldAlert : config.icon;
+  const color = securityStatus === "verified" ? "text-emerald-500" : securityStatus === "flagged" ? "text-destructive" : config.color;
+  const bg = securityStatus === "verified" ? "bg-emerald-500/10 border-emerald-500/30" : securityStatus === "flagged" ? "bg-destructive/10 border-destructive/30" : config.bg;
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${config.bg} ${config.color}`}>
+          <div className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${bg} ${color}`}>
             <Icon size={10} />
-            {trustScore > 0 && <span>{trustScore}</span>}
+            {trustScore > 0 ? (
+              <span>{trustScore}</span>
+            ) : (
+              <span>{securityStatus === "verified" ? "✓" : securityStatus === "flagged" ? "!" : "?"}</span>
+            )}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          Trust Score: {trustScore}/100
+        <TooltipContent side="top" className="text-xs max-w-[180px]">
+          {trustScore > 0 ? (
+            `Trust Score: ${trustScore}/100`
+          ) : (
+            isEs ? "Sin puntaje de confianza aún" : "No trust score yet"
+          )}
+          {securityStatus && securityStatus !== "unverified" && (
+            <span className="block">{isEs ? "Estado" : "Status"}: {securityStatus}</span>
+          )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -148,6 +148,7 @@ const Plugins = () => {
           {isEs && plugin.description_es ? plugin.description_es : plugin.description}
         </p>
         <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50 flex-wrap">
+          <TrustBadgeCompact trustScore={plugin.trust_score ?? 0} securityStatus={plugin.security_status} />
           {getBadge(plugin)}
           {plugin.avg_rating > 0 && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
