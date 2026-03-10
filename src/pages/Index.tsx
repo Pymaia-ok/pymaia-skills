@@ -26,8 +26,8 @@ const Index = () => {
   const allSkills = skillsResult?.data ?? [];
 
   useSEO({
-    title: "Pymaia Skills — Supercharge your work with AI",
-    description: "The #1 skill directory for Claude Code. 38,000+ professional skills ready to install in 2 minutes. Give your Claude superpowers.",
+    title: "Pymaia Agent — Your AI Solutions Architect inside Claude",
+    description: "Tell Claude what you want to achieve. Pymaia Agent searches 35K+ skills, MCPs, and plugins to build the perfect solution. Free, instant, intelligent.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",
