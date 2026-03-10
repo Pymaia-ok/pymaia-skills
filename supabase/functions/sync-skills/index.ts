@@ -1171,6 +1171,24 @@ Deno.serve(async (req) => {
       case "awesome-lists": discovered = await fetchAwesomeLists(); break;
       case "skillssh-categories": discovered = await fetchSkillsShCategories(); break;
       case "agentskill": discovered = await fetchAgentSkillSh(); break;
+      case "github-popular": {
+        const defaultQueries = [
+          '"ai agent" stars:>500',
+          '"agent skills" stars:>500',
+          '"claude agent" stars:>500',
+          '"cursor rules" stars:>500',
+          '"AI workflow" stars:>500',
+          '"prompt engineering" stars:>500',
+          '"ai automation" stars:>500',
+          '"llm tools" stars:>500',
+        ];
+        const queries = topic ? [topic] : defaultQueries;
+        for (const q of queries) {
+          const results = await fetchGitHubPopularSearch(q);
+          discovered.push(...results);
+        }
+        break;
+      }
       case "all": {
         const [a, b, c] = await Promise.all([
           fetchSkillsMP("a").catch(() => [] as ParsedSkill[]),
