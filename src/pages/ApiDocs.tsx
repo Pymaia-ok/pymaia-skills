@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, ExternalLink, Shield, Search, Image, BookOpen, Zap, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import { Copy, ExternalLink, Shield, Search, Image, BookOpen, Zap, CheckCircle, AlertTriangle, Info, Github } from "lucide-react";
 import { toast } from "sonner";
 import { useSEO } from "@/hooks/useSEO";
 
@@ -32,7 +32,7 @@ export default function ApiDocs() {
   const { t } = useTranslation();
   useSEO({
     title: "Security Benchmark API — Pymaia Skills",
-    description: "Public API to query trust scores, security scan results, and embeddable badges for AI skills, connectors, and plugins.",
+    description: "Public API to query trust scores, security scan results, and embeddable badges for AI skills, connectors, and plugins. Scan any GitHub repo on-demand.",
   });
 
   const [trySlug, setTrySlug] = useState("claude-prd-generator");
@@ -44,6 +44,10 @@ export default function ApiDocs() {
   const [searchType, setSearchType] = useState("skill");
   const [searchResult, setSearchResult] = useState<any>(null);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  const [githubUrl, setGithubUrl] = useState("https://github.com/anthropics/anthropic-cookbook");
+  const [githubResult, setGithubResult] = useState<any>(null);
+  const [githubLoading, setGithubLoading] = useState(false);
 
   const handleTry = async () => {
     setTryLoading(true);
@@ -71,6 +75,18 @@ export default function ApiDocs() {
     setSearchLoading(false);
   };
 
+  const handleGithubLookup = async () => {
+    setGithubLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}?github_url=${encodeURIComponent(githubUrl)}`);
+      const data = await res.json();
+      setGithubResult(data);
+    } catch (e) {
+      setGithubResult({ error: (e as Error).message });
+    }
+    setGithubLoading(false);
+  };
+
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
@@ -87,18 +103,19 @@ export default function ApiDocs() {
             <div className="p-2 rounded-lg bg-primary/10">
               <Shield className="h-6 w-6 text-primary" />
             </div>
-            <Badge variant="outline" className="text-xs">v2.0</Badge>
+            <Badge variant="outline" className="text-xs">v3.0</Badge>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
             Security Benchmark API
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl">
-            {t("apiDocs.heroDescription", "Public REST API to query trust scores, security scan details, and embeddable badges for any skill, connector, or plugin in the Pymaia registry.")}
+            {t("apiDocs.heroDescription", "Public REST API to query trust scores, security scan details, and embeddable badges for any skill, connector, or plugin. Scan any GitHub repo on-demand — if it passes, it gets auto-indexed.")}
           </p>
-          <div className="flex gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-4">
             <Badge variant="secondary" className="gap-1"><Zap className="h-3 w-3" /> Free</Badge>
             <Badge variant="secondary" className="gap-1">60 req/min</Badge>
             <Badge variant="secondary" className="gap-1">No auth required</Badge>
+            <Badge variant="secondary" className="gap-1"><Github className="h-3 w-3" /> On-demand scan</Badge>
           </div>
         </div>
 
@@ -118,12 +135,100 @@ export default function ApiDocs() {
         </Card>
 
         {/* Endpoints */}
-        <Tabs defaultValue="lookup" className="mb-12">
+        <Tabs defaultValue="github" className="mb-12">
           <TabsList className="w-full justify-start mb-4 flex-wrap h-auto gap-1">
+            <TabsTrigger value="github" className="gap-1.5"><Github className="h-3.5 w-3.5" /> GitHub Scan</TabsTrigger>
             <TabsTrigger value="lookup" className="gap-1.5"><Search className="h-3.5 w-3.5" /> Lookup</TabsTrigger>
             <TabsTrigger value="search" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Search</TabsTrigger>
             <TabsTrigger value="badge" className="gap-1.5"><Image className="h-3.5 w-3.5" /> Badge</TabsTrigger>
           </TabsList>
+
+          {/* GITHUB SCAN */}
+          <TabsContent value="github">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Badge className="bg-emerald-600 text-white font-mono text-xs">GET</Badge>
+                  GitHub Repository Scan
+                </CardTitle>
+                <CardDescription>
+                  Look up any GitHub repository. If it's already indexed, returns its trust score.
+                  If not, runs a full 12-layer security scan on-demand and auto-indexes it if safe.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Parameters</Label>
+                  <div className="bg-muted rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b border-border">
+                        <th className="text-left p-3 font-medium text-muted-foreground">Param</th>
+                        <th className="text-left p-3 font-medium text-muted-foreground">Type</th>
+                        <th className="text-left p-3 font-medium text-muted-foreground">Description</th>
+                      </tr></thead>
+                      <tbody>
+                        <tr><td className="p-3 font-mono text-xs">github_url</td><td className="p-3 text-xs">string</td><td className="p-3 text-xs">Full GitHub repo URL (required)</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">How it works</Label>
+                  <div className="bg-muted p-4 rounded-lg space-y-2 text-sm text-muted-foreground">
+                    <p>1. Searches all indexed skills, connectors, and plugins by GitHub URL</p>
+                    <p>2. If found → returns trust score and scan details instantly</p>
+                    <p>3. If not found → fetches the repo README from GitHub</p>
+                    <p>4. Runs full 12-layer security scan (secrets, injection, typosquatting, etc.)</p>
+                    <p>5. If verdict is <strong className="text-foreground">SAFE</strong> → auto-indexes the repo in Pymaia Skills</p>
+                    <p>6. Returns scan results with verdict and details</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Example</Label>
+                  <div className="bg-muted p-3 rounded-lg">
+                    <code className="text-xs font-mono break-all text-foreground">
+                      GET {API_BASE}?github_url=https://github.com/anthropics/anthropic-cookbook
+                    </code>
+                  </div>
+                </div>
+
+                {/* Try it */}
+                <div className="border-t border-border pt-6">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-3 block flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5" /> Try it live
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      value={githubUrl}
+                      onChange={(e) => setGithubUrl(e.target.value)}
+                      placeholder="https://github.com/org/repo"
+                      className="flex-1"
+                    />
+                    <Button onClick={handleGithubLookup} disabled={githubLoading}>
+                      {githubLoading ? "Scanning..." : "Scan"}
+                    </Button>
+                  </div>
+                  {githubLoading && (
+                    <p className="mt-3 text-sm text-muted-foreground animate-pulse">
+                      ⏳ On-demand scans may take 5-15 seconds for unindexed repos...
+                    </p>
+                  )}
+                  {githubResult && (
+                    <div className="mt-4 relative">
+                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => copyText(JSON.stringify(githubResult, null, 2))}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <pre className="bg-muted p-4 rounded-lg text-xs font-mono overflow-x-auto max-h-96 text-foreground">
+                        {JSON.stringify(githubResult, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* LOOKUP */}
           <TabsContent value="lookup">
@@ -133,7 +238,7 @@ export default function ApiDocs() {
                   <Badge className="bg-green-600 text-white font-mono text-xs">GET</Badge>
                   Lookup Trust Score
                 </CardTitle>
-                <CardDescription>Get detailed trust score and security scan results for a single item.</CardDescription>
+                <CardDescription>Get detailed trust score and security scan results for a single item by slug.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -150,15 +255,6 @@ export default function ApiDocs() {
                         <tr><td className="p-3 font-mono text-xs">type</td><td className="p-3 text-xs">string</td><td className="p-3 text-xs">skill | connector | plugin (default: skill)</td></tr>
                       </tbody>
                     </table>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Example</Label>
-                  <div className="bg-muted p-3 rounded-lg">
-                    <code className="text-xs font-mono break-all text-foreground">
-                      GET {API_BASE}?slug=claude-prd-generator&type=skill
-                    </code>
                   </div>
                 </div>
 
@@ -373,6 +469,7 @@ export default function ApiDocs() {
               <p>• <strong className="text-foreground">Authentication:</strong> None required. The API is fully public.</p>
               <p>• <strong className="text-foreground">Caching:</strong> Responses are cached for 5 minutes (lookup/search) or 1 hour (badges).</p>
               <p>• <strong className="text-foreground">CORS:</strong> All origins allowed. Use directly from browser or server.</p>
+              <p>• <strong className="text-foreground">On-demand scans:</strong> Unindexed GitHub repos are scanned in real-time (5-15s). SAFE repos are auto-indexed.</p>
               <p>• <strong className="text-foreground">Scan layers:</strong> 12 security analysis layers including secret scanning, prompt injection detection, typosquatting, hidden content analysis, dependency auditing, and LLM-powered analysis.</p>
             </CardContent>
           </Card>
