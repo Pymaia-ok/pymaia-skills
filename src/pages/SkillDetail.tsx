@@ -525,7 +525,7 @@ const SkillDetail = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="border-t border-border pt-3 flex items-center gap-2">
+                <div className="border-t border-border pt-3 flex flex-wrap items-center gap-2">
                   <SecurityReportButton itemType="skill" itemId={skill.id} itemSlug={skill.slug} />
                   <ShareButton
                     url={(() => {
