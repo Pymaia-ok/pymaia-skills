@@ -24,6 +24,7 @@ import RoleLanding from "./pages/RoleLanding";
 import Enterprise from "./pages/Enterprise";
 import NotFound from "./pages/NotFound";
 import SecurityAdvisories from "./pages/SecurityAdvisories";
+import ApiDocs from "./pages/ApiDocs";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/enterprise" element={<Enterprise />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/seguridad" element={<SecurityAdvisories />} />
+            <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/security" element={<Navigate to="/seguridad" replace />} />
             <Route path="/terminos" element={<Terms />} />
             <Route path="/privacidad" element={<Privacy />} />
