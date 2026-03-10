@@ -1,61 +1,100 @@
 
 
-## Research Results: Real MCP Servers/Skills/Plugins for Missing Tools
 
-I researched each of the 14 tools with no/weak coverage. Here's what actually exists and is verifiable:
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-### Verified Real MCP Servers/Tools Found
+### Estado: ~99% completado
 
-| Tool | What Exists | Source | Reliability |
-|------|------------|--------|-------------|
-| **Cline** | MCP Marketplace (cline/mcp-marketplace) -- Cline IS an MCP client, not a server. But has its own marketplace with 705+ stars | Official (cline org) | High |
-| **Luma Dream Machine** | `lumalabs/luma-api-mcp` -- Official MCP by Luma Labs (20 stars). Also `bobtista/luma-ai-mcp-server` community | Official | High |
-| **Leonardo AI** | `ish-joshi/leonardo-mcp-server` -- Community MCP (2 stars), HTTP+stdio | Community | Low |
-| **Ideogram** | `Sunwood-ai-labs/ideagram-mcp-server` -- Community MCP (5 stars), npm package | Community | Medium |
-| **Napkin AI** | `LouisChanCLY/napkin-ai-mcp` -- Community MCP, npm 0.1.2, MIT license | Community | Medium |
-| **Replit** | `NOVA-3951/Replit-MCP` -- Community MCP (1 star). Also Replit itself is an MCP client with native MCP support | Community | Low |
-| **Lovable** | `hiromima/lovable-mcp-server` -- Unofficial community MCP for analyzing Lovable projects | Community | Low |
-| **Kiro** | Kiro is AWS's AI IDE -- it's an MCP client, not a server. Uses `awslabs/mcp` servers | N/A (is a client) | N/A |
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-### Nothing Reliable Found
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-| Tool | Finding |
-|------|---------|
-| **Pomelli** | Google Labs marketing tool (Oct 2025). No MCP server, no GitHub integration, no API. It's a closed Google experiment |
-| **v0** | Vercel's UI generator. No MCP server exists for v0 itself. Vercel has `mcp.vercel.com` for Vercel platform, but not v0 specifically |
-| **Bolt.new** | StackBlitz product. No official or community MCP server found. It's an MCP client (supports connecting TO MCP servers) |
-| **Windsurf** | Codeium's AI IDE. It's an MCP client, not a server. No MCP server exists to connect TO Windsurf |
-| **Writesonic** | No MCP server found. No GitHub repos. Only internal repos (langchain fork, etc.) |
-| **Jasper** | No MCP server found. Closed platform, no public API for MCP |
-| **udio** | No MCP server found. Only unofficial Python wrappers for the music API, not MCP |
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-### Recommended Action Plan
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-**Add as curated connectors (real, verifiable MCP servers):**
-1. **Luma Dream Machine** -- `lumalabs/luma-api-mcp` (official, 20 stars)
-2. **Ideogram** -- `Sunwood-ai-labs/ideagram-mcp-server` (community, npm package, 5 stars)
-3. **Napkin AI** -- `LouisChanCLY/napkin-ai-mcp` (community, npm 0.1.2)
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-**Add as curated connectors with caveat (low reliability but real):**
-4. **Leonardo AI** -- `ish-joshi/leonardo-mcp-server` (2 stars, but functional)
-5. **Replit** -- `NOVA-3951/Replit-MCP` (1 star, but has Smithery integration)
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-**Clarify as MCP clients (not servers) -- already covered by existing skills/connectors:**
-- Cline, Kiro, Windsurf, Bolt.new -- These are MCP clients (AI IDEs). They USE skills/connectors, they don't need to be listed AS connectors
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-**Do NOT add (nothing real exists):**
-- Pomelli (closed Google experiment, no API)
-- v0 (no MCP server)
-- Lovable (only unofficial analyzer, not useful)
-- Writesonic, Jasper, udio (no MCP/API integrations)
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
-### Implementation
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-One SQL migration inserting 5 new curated connectors into `mcp_servers` with:
-- Real GitHub URLs and install commands
-- `source = 'curated'`, `status = 'approved'`
-- Accurate star counts and descriptions
-- `ON CONFLICT (slug) DO NOTHING` for safety
-
-Also fix the 8 rejected Ideogram skills -- re-approve the best one if the content is valid, since we now have a real MCP server backing it.
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)

@@ -31,7 +31,7 @@ export default {
 
   // Landing sections
   landing: {
-    heroBadge: "38,000+ skills profesionales",
+    heroBadge: "35,000+ skills profesionales",
     heroTitle: "Trabajá como un\nexperto en minutos.",
     heroSubtitle: "Elegí una skill, instalala en Claude y listo. Tu IA ahora sabe hacer lo que antes te llevaba horas.",
     heroCtaExplore: "Explorar skills",
@@ -109,7 +109,7 @@ export default {
     mcpCta: "Instalar Pymaia Agent",
 
     ctaTitle: "Empezá a trabajar\ncomo un experto.",
-    ctaSubtitle: "38,000+ skills profesionales. Instalá la tuya en 2 minutos y transformá tu forma de trabajar.",
+    ctaSubtitle: "35,000+ skills profesionales. Instalá la tuya en 2 minutos y transformá tu forma de trabajar.",
     ctaExplore: "Explorar skills",
     ctaLearn: "Primeros pasos",
   },

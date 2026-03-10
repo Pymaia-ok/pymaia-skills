@@ -28,7 +28,7 @@ const Index = () => {
 
   useSEO({
     title: "Pymaia Skills — Trabajá como un experto en minutos",
-    description: "Elegí una skill, instalala en Claude y convertite en experto. 38,000+ skills profesionales para marketing, legal, finanzas y más.",
+    description: "Elegí una skill, instalala en Claude y convertite en experto. 35,000+ skills profesionales para marketing, legal, finanzas y más.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",
@@ -37,7 +37,7 @@ const Index = () => {
           "@type": "WebSite",
           name: "Pymaia Skills",
           url: "https://pymaiaskills.lovable.app",
-          description: "The #1 skill directory for Claude Code. 38,000+ professional skills.",
+          description: "The #1 skill directory for Claude Code. 35,000+ professional skills.",
           potentialAction: {
             "@type": "SearchAction",
             target: "https://pymaiaskills.lovable.app/explorar?q={search_term_string}",

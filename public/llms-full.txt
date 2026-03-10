@@ -1,6 +1,6 @@
 # Pymaia Skills — Full Documentation
 
-> The #1 skill directory for Claude Code. 38,000+ professional skills. AI Solutions Architect with 28 tools. Install any skill in 2 minutes.
+> The #1 skill directory for Claude Code. 35,000+ professional skills. AI Solutions Architect with 28 tools. Install any skill in 2 minutes.
 
 ## Overview
 
@@ -12,7 +12,7 @@ The MCP server includes an **AI Solutions Architect** (`solve_goal`) that analyz
 
 ## Key Numbers
 
-- 38,000+ skills available
+- 35,000+ skills available
 - 19 categories
 - 100+ MCP connectors
 - 28 MCP tools (AI Solutions Architect)

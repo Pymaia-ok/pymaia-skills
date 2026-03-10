@@ -28,7 +28,7 @@ export default {
   },
 
   landing: {
-    heroBadge: "38,000+ professional skills",
+    heroBadge: "35,000+ professional skills",
     heroTitle: "Work like an expert\nin minutes.",
     heroSubtitle: "Pick a skill, install it in Claude, and you're done. Your AI now knows how to do what used to take you hours.",
     heroCtaExplore: "Explore skills",
@@ -106,7 +106,7 @@ export default {
     mcpCta: "Install Pymaia Agent",
 
     ctaTitle: "Start working\nlike an expert.",
-    ctaSubtitle: "38,000+ professional skills. Install yours in 2 minutes and transform how you work.",
+    ctaSubtitle: "35,000+ professional skills. Install yours in 2 minutes and transform how you work.",
     ctaExplore: "Explore skills",
     ctaLearn: "Getting started",
   },
