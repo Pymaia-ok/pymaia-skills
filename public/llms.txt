@@ -1,6 +1,6 @@
 # Pymaia Skills
 
-> The #1 skill directory for Claude Code. 38,000+ professional skills ready to install. AI Solutions Architect with 31 tools.
+> The #1 skill directory for Claude Code. 35,000+ professional skills ready to install. AI Solutions Architect with 31 tools.
 
 Pymaia Skills is a curated marketplace of "skills" — knowledge files that teach Claude Code how to perform specific professional tasks. Browse, install, and review skills without coding or terminal knowledge.
 
