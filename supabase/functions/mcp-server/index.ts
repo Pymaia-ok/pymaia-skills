@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "5.0.0",
+  version: "6.0.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
@@ -1149,6 +1149,192 @@ mcp.tool("explain_combination", {
   },
 });
 
+// ─── PHASE 2: CUSTOM GENERATION ───
+
+mcp.tool("generate_custom_skill", {
+  description: "Generates a SKILL.md or plugin.json that orchestrates multiple recommended tools into a single automated workflow. Use after solve_goal to create a unified skill from the recommended combination.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      goal: { type: "string", description: "The business goal this skill solves (e.g., 'automate outbound sales')" },
+      tools: { type: "array", items: { type: "string" }, description: "Slugs of tools to orchestrate (from solve_goal recommendations)" },
+      output_format: { type: "string", description: "Output format: 'skill' (SKILL.md) or 'plugin' (plugin.json + README). Default: skill" },
+      custom_name: { type: "string", description: "Optional custom name for the generated skill/plugin" },
+    },
+    required: ["goal", "tools"],
+  },
+  handler: async (args: { goal: string; tools: string[]; output_format?: string; custom_name?: string }) => {
+    const format = args.output_format || "skill";
+
+    // 1. Fetch details for all referenced tools
+    const [{ data: skills }, { data: connectors }, { data: plugins }] = await Promise.all([
+      supabase.from("skills").select("display_name, slug, tagline, description_human, category, install_command, trust_score, required_mcps").in("slug", args.tools).eq("status", "approved"),
+      supabase.from("mcp_servers").select("name, slug, description, category, install_command, trust_score, credentials_needed, is_official").in("slug", args.tools).eq("status", "approved"),
+      supabase.from("plugins").select("name, slug, description, category, platform, trust_score, is_official").in("slug", args.tools).eq("status", "approved"),
+    ]);
+
+    const allItems = [
+      ...(skills || []).map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline || s.description_human })),
+      ...(connectors || []).map((c: any) => ({ ...c, type: "connector", desc: c.description })),
+      ...(plugins || []).map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
+    ];
+
+    if (allItems.length === 0) {
+      return { content: [{ type: "text" as const, text: `❌ No tools found matching slugs: ${args.tools.join(", ")}. Use \`solve_goal\` first to find tools, then pass their slugs here.` }] };
+    }
+
+    // 2. Build names
+    const kebabName = (args.custom_name || args.goal)
+      .toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/(^-|-$)/g, "").slice(0, 64) || "custom-workflow";
+    const displayName = args.custom_name || args.goal.split(/\s+/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+    // 3. Collect dependencies
+    const mcpDeps: any[] = [];
+    for (const item of allItems) {
+      if (item.type === "connector") {
+        mcpDeps.push({ name: item.name, slug: item.slug, install: item.install_command, creds: item.credentials_needed || [] });
+      }
+      if (item.required_mcps && Array.isArray(item.required_mcps)) {
+        for (const dep of item.required_mcps) {
+          mcpDeps.push({ name: dep.name || dep.slug, slug: dep.slug || "", install: dep.install_command || "", creds: dep.credentials_needed || [] });
+        }
+      }
+    }
+
+    // 4. Compatibility check
+    const warnings = await getCompatibilityWarnings(allItems);
+    const hasConflicts = warnings.some(w => w.includes("Conflict"));
+
+    // 5. Trust evaluation
+    const trustScores = allItems.map((i: any) => i.trust_score || 0).filter((t: number) => t > 0);
+    const avgTrust = trustScores.length > 0 ? Math.round(trustScores.reduce((a: number, b: number) => a + b, 0) / trustScores.length) : 0;
+    const securityBadge = avgTrust >= 70 ? "✅ Verified" : avgTrust >= 40 ? "🟡 Reviewed" : "⚠️ Unverified";
+
+    const sections: string[] = [];
+
+    if (format === "plugin") {
+      // Generate plugin.json + README
+      const pluginJson = {
+        name: kebabName,
+        version: "1.0.0",
+        description: `Orchestrates ${allItems.length} tools to ${args.goal.toLowerCase()}`,
+        skills: allItems.filter((i: any) => i.type === "skill").map((s: any) => `skills/${s.slug}`),
+        permissions: mcpDeps.map((d: any) => d.slug).filter(Boolean),
+        author: "pymaia-agent",
+        license: "MIT",
+        generated_by: "pymaia-agent-v5",
+      };
+
+      sections.push(`# 🧩 Generated Plugin: ${displayName}\n`);
+      sections.push(`## plugin.json\n\n\`\`\`json\n${JSON.stringify(pluginJson, null, 2)}\n\`\`\`\n`);
+
+      // README
+      sections.push(`## README.md\n`);
+      sections.push(`\`\`\`markdown`);
+      sections.push(`# ${displayName}\n`);
+      sections.push(`> Generated by Pymaia Agent — AI Solutions Architect\n`);
+      sections.push(`${pluginJson.description}\n`);
+      sections.push(`## Installation\n`);
+      sections.push(`\`\`\`bash\nclaude plugin install pymaia/${kebabName}\n\`\`\`\n`);
+      sections.push(`## What's included\n`);
+      for (const item of allItems) {
+        const tn = item.type === "connector" ? "🔌 MCP" : item.type === "plugin" ? "🧩 Plugin" : "🧠 Skill";
+        sections.push(`- ${tn} **${item.name}** — ${item.desc}`);
+      }
+      if (mcpDeps.length > 0) {
+        sections.push(`\n## Required Connectors\n`);
+        for (const dep of mcpDeps) {
+          sections.push(`- **${dep.name}**${dep.install ? `: \`${dep.install}\`` : ""}`);
+          if (dep.creds.length > 0) sections.push(`  Credentials: ${dep.creds.join(", ")}`);
+        }
+      }
+      sections.push(`\n## License\nMIT\n\`\`\``);
+    } else {
+      // Generate SKILL.md
+      sections.push(`# 🧠 Generated SKILL.md: ${displayName}\n`);
+      sections.push(`\`\`\`markdown`);
+      sections.push(`---`);
+      sections.push(`name: ${kebabName}`);
+      sections.push(`description: "Orchestrates ${allItems.length} tools to ${args.goal.toLowerCase()}. Use when the user asks to ${args.goal.toLowerCase()}."`);
+      sections.push(`compatibility: claude-code`);
+      sections.push(`metadata:`);
+      sections.push(`  author: pymaia-agent`);
+      sections.push(`  version: "1.0"`);
+      sections.push(`  generated_by: pymaia-agent-v5`);
+      sections.push(`---\n`);
+      sections.push(`# ${displayName}\n`);
+      sections.push(`This skill orchestrates ${allItems.length} tools to accomplish: **${args.goal}**.\n`);
+      sections.push(`Security: ${securityBadge} (avg trust: ${avgTrust}/100)\n`);
+
+      // Decision tree
+      sections.push(`## Decision Tree\n`);
+      sections.push(`\`\`\``);
+      sections.push(`¿The user asks to ${args.goal.toLowerCase()}?`);
+      sections.push(`├── YES → Activate this skill`);
+      sections.push(`│   ├── All tools available? → Execute full workflow`);
+      sections.push(`│   └── Missing tools? → Guide installation first`);
+      sections.push(`└── NO → Don't activate`);
+      sections.push(`\`\`\`\n`);
+
+      // Workflow
+      sections.push(`## Workflow\n`);
+      const orderedItems = [
+        ...allItems.filter((i: any) => i.type === "connector"),
+        ...allItems.filter((i: any) => i.type === "skill"),
+        ...allItems.filter((i: any) => i.type === "plugin"),
+      ];
+      for (let i = 0; i < orderedItems.length; i++) {
+        const item = orderedItems[i];
+        const tn = item.type === "connector" ? "MCP" : item.type === "plugin" ? "Plugin" : "Skill";
+        sections.push(`${i + 1}. **Use ${item.name}** (${tn}): ${item.desc || "Execute this tool's capabilities"}`);
+      }
+      sections.push("");
+
+      // Dependencies
+      if (mcpDeps.length > 0) {
+        sections.push(`## Dependencies\n`);
+        sections.push(`This skill requires the following MCP servers:\n`);
+        for (const dep of mcpDeps) {
+          sections.push(`### ${dep.name}${dep.install ? " (required)" : ""}`);
+          if (dep.install) sections.push(`- **Install**: \`${dep.install}\``);
+          if (dep.creds.length > 0) sections.push(`- **Credentials**: ${dep.creds.join(", ")}`);
+          sections.push("");
+        }
+      }
+
+      // What NOT to do
+      sections.push(`## What NOT to Do\n`);
+      sections.push(`- NEVER skip tool availability checks before starting the workflow`);
+      sections.push(`- NEVER proceed if required credentials are missing`);
+      if (hasConflicts) sections.push(`- NEVER use conflicting tools simultaneously`);
+      sections.push(`- NEVER expose API keys or credentials in output`);
+      sections.push("");
+
+      sections.push(`\`\`\``);
+    }
+
+    // Installation commands
+    sections.push(`\n## 🚀 Install All Tools\n`);
+    for (const item of allItems) {
+      if (item.install_command) {
+        sections.push(`**${item.name}** (${item.type}):\n\`\`\`\n${item.install_command}\n\`\`\`\n`);
+      }
+    }
+
+    // Warnings
+    if (warnings.length > 0) {
+      sections.push(`## ⚠️ Compatibility Notes\n`);
+      for (const w of warnings) sections.push(`- ${w}`);
+    }
+
+    if (hasConflicts) {
+      sections.push(`\n> ⛔ **Warning:** This combination contains conflicting tools. Review the conflicts above and consider removing one of the conflicting tools.`);
+    }
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
 // ─── STATS TOOLS ───
 
 mcp.tool("get_directory_stats", {
@@ -1263,11 +1449,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect",
-  version: "5.0.0",
+  version: "6.0.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 1: Smart Composition with A/B options, compatibility matrix, and feedback.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Feedback loop"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 2: Custom Generation — generates SKILL.md and plugin.json that orchestrate recommended tools.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Custom skill generation", "Plugin wrapper generation", "Feedback loop"],
   },
   tools: [
     "search_skills", "get_skill_details", "list_popular_skills", "list_new_skills",
@@ -1277,6 +1463,7 @@ mcpApp.get("/", (c) => c.json({
     "search_plugins", "get_plugin_details", "list_popular_plugins",
     "explore_directory",
     "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
+    "generate_custom_skill",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
