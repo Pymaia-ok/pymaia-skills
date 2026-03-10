@@ -899,6 +899,7 @@ mcp.tool("solve_goal", {
   },
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     const goalLower = args.goal.toLowerCase();
+    const apiUserId = currentApiKeyUserId;
 
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
