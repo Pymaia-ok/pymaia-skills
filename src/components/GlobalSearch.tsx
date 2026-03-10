@@ -277,8 +277,8 @@ const GlobalSearch = () => {
             </div>
           )}
 
-          {/* Empty state: recent searches + popular */}
-          {showEmptyState && (
+          {/* Empty state: recent searches + popular (only when not actively searching) */}
+          {showEmptyState && !isSearching && (
             <>
               {recentSearches.length > 0 && (
                 <CommandGroup heading={t("search.recent")}>
