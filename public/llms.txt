@@ -10,7 +10,7 @@ A skill is a Markdown file (SKILL.md) that teaches Claude how to do a specific t
 
 ## Key Numbers
 
-- 38,000+ skills available
+- 35,000+ skills available
 - 19 categories
 - 100+ MCP connectors
 - 31 MCP tools (AI Solutions Architect)
