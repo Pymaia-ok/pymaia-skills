@@ -139,19 +139,21 @@ const Auth = () => {
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <div>
-              <label htmlFor="auth-password" className="sr-only">{t("auth.passwordPlaceholder")}</label>
-              <input
-                id="auth-password"
-                type="password"
-                required
-                minLength={6}
-                placeholder={t("auth.passwordPlaceholder")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div>
+                <label htmlFor="auth-password" className="sr-only">{t("auth.passwordPlaceholder")}</label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder={t("auth.passwordPlaceholder")}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            )}
             <button
               type="submit"
               disabled={submitting}
