@@ -590,6 +590,22 @@ export default {
     draftNoName: "Unnamed skill",
   },
 
+  apiKeys: {
+    title: "API Keys",
+    description: "Generate a personal API key to access your private skills from Claude Code via MCP.",
+    generate: "Generate key",
+    noKeys: "No API keys yet. Generate one to connect Claude Code with your private skills.",
+    active: "Active",
+    lastUsed: "Last used",
+    revoke: "Revoke",
+    revoked: "API key revoked",
+    errorGenerating: "Error generating API key",
+    newKeyTitle: "Your new API key",
+    newKeyDesc: "Copy this key now. It won't be shown again.",
+    mcpConfig: "MCP config for Claude Code",
+    mcpConfigHint: "Paste this in your MCP configuration file (~/.claude/mcp.json).",
+  },
+
   crearSkill: {
     errorGenerate: "Error generating skill. Try again.",
     skillUpdated: "Skill updated",
