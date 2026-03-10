@@ -1423,6 +1423,339 @@ mcp.tool("trending_solutions", {
   },
 });
 
+// ─── PHASE 4: PLATFORM TOOLS ───
+
+mcp.tool("submit_goal_template", {
+  description: "Submit a community goal template to the Pymaia marketplace. Templates help other users solve similar business goals. Requires authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slug: { type: "string", description: "Unique kebab-case slug (e.g., 'automate-invoice-processing')" },
+      display_name: { type: "string", description: "Human-readable title" },
+      domain: { type: "string", description: "Domain: sales, marketing, development, support, data, design, legal, operations, security, general" },
+      description: { type: "string", description: "2-3 sentence description of the goal" },
+      triggers: { type: "array", items: { type: "string" }, description: "Keywords that trigger this template (3-8 keywords)" },
+      capabilities: { type: "array", items: { type: "object" }, description: "Required capabilities: [{name, type, required, keywords}]" },
+    },
+    required: ["slug", "display_name", "domain", "description", "triggers"],
+  },
+  handler: async (args: { slug: string; display_name: string; domain: string; description: string; triggers: string[]; capabilities?: any[] }) => {
+    const slug = args.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 64);
+    if (!slug || slug.length < 3) return { content: [{ type: "text" as const, text: "❌ Slug must be at least 3 characters (kebab-case)." }] };
+    if (args.triggers.length < 2) return { content: [{ type: "text" as const, text: "❌ At least 2 trigger keywords required." }] };
+
+    // Check for duplicate slug
+    const { data: existing } = await supabase.from("community_goal_templates").select("id").eq("slug", slug).maybeSingle();
+    if (existing) return { content: [{ type: "text" as const, text: `❌ Template with slug "${slug}" already exists.` }] };
+
+    const { data: existingOfficial } = await supabase.from("goal_templates").select("id").eq("slug", slug).maybeSingle();
+    if (existingOfficial) return { content: [{ type: "text" as const, text: `❌ An official template with slug "${slug}" already exists.` }] };
+
+    const { error } = await supabase.from("community_goal_templates").insert({
+      user_id: "00000000-0000-0000-0000-000000000000", // Anonymous via MCP
+      slug,
+      display_name: args.display_name,
+      domain: args.domain,
+      description: args.description,
+      triggers: args.triggers,
+      capabilities: args.capabilities || [],
+    });
+
+    if (error) return { content: [{ type: "text" as const, text: `❌ Error: ${error.message}` }] };
+
+    // Log analytics
+    await supabase.from("agent_analytics").insert({ event_type: "template_submitted", tool_name: "submit_goal_template", goal: args.display_name, event_data: { slug, domain: args.domain } });
+
+    return { content: [{ type: "text" as const, text: `✅ Template "${args.display_name}" submitted for review!\n\n📋 Slug: \`${slug}\`\n🏷️ Domain: ${args.domain}\n🔑 Triggers: ${args.triggers.join(", ")}\n\nOur team will review it within 48 hours. Once approved, it will be available in \`solve_goal\` for all users.` }] };
+  },
+});
+
+mcp.tool("browse_community_templates", {
+  description: "Browse community-submitted goal templates. See what solutions other users have created for the marketplace.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      domain: { type: "string", description: "Filter by domain: sales, marketing, development, support, data, design, legal, operations, security, general" },
+      status: { type: "string", description: "Filter: 'approved' (default), 'pending', 'all'" },
+      limit: { type: "number", description: "Max results (default: 10)" },
+    },
+  },
+  handler: async (args: { domain?: string; status?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 10, 20);
+    let q = supabase.from("community_goal_templates")
+      .select("slug, display_name, domain, description, triggers, upvotes, status, created_at")
+      .order("upvotes", { ascending: false }).limit(lim);
+
+    if (args.status === "pending") q = q.eq("status", "pending");
+    else if (args.status === "all") { /* no filter */ }
+    else q = q.eq("status", "approved");
+
+    if (args.domain) q = q.eq("domain", args.domain);
+
+    const { data, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    if (!data?.length) return { content: [{ type: "text" as const, text: "No community templates found." }] };
+
+    const sections: string[] = [`# 🌍 Community Goal Templates\n`];
+    for (const t of data) {
+      const statusIcon = t.status === "approved" ? "✅" : t.status === "pending" ? "⏳" : "❌";
+      sections.push(`${statusIcon} **${t.display_name}** [${t.domain}] — 👍 ${t.upvotes} votes`);
+      sections.push(`  ${t.description}`);
+      sections.push(`  Triggers: ${t.triggers.join(", ")}\n`);
+    }
+    sections.push(`\n💡 *Submit your own with \`submit_goal_template\`*`);
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+mcp.tool("agent_analytics", {
+  description: "Get analytics about the Pymaia Agent ecosystem: most searched goals, most recommended tools, template usage, and user engagement metrics.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      period: { type: "string", description: "Time period: 'day', 'week', 'month' (default: week)" },
+      metric: { type: "string", description: "Specific metric: 'goals', 'tools', 'templates', 'overview' (default: overview)" },
+    },
+  },
+  handler: async (args: { period?: string; metric?: string }) => {
+    const days = args.period === "day" ? 1 : args.period === "month" ? 30 : 7;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const metric = args.metric || "overview";
+    const sections: string[] = [];
+    const periodLabel = args.period === "day" ? "24h" : args.period === "month" ? "30 days" : "7 days";
+
+    sections.push(`# 📊 Pymaia Agent Analytics (${periodLabel})\n`);
+
+    // Feedback analytics
+    const { data: feedback } = await supabase.from("recommendation_feedback")
+      .select("goal, rating, chosen_option, matched_template_slug, created_at")
+      .gte("created_at", since).order("created_at", { ascending: false }).limit(500);
+
+    if (metric === "overview" || metric === "goals") {
+      const goalCounts: Record<string, { count: number; ratings: number[] }> = {};
+      for (const f of feedback || []) {
+        const g = f.goal.toLowerCase().trim();
+        if (!goalCounts[g]) goalCounts[g] = { count: 0, ratings: [] };
+        goalCounts[g].count++;
+        if (f.rating) goalCounts[g].ratings.push(f.rating);
+      }
+
+      const topGoals = Object.entries(goalCounts).sort(([, a], [, b]) => b.count - a.count).slice(0, 10);
+      if (topGoals.length > 0) {
+        sections.push(`## 🎯 Top Goals\n`);
+        for (const [goal, data] of topGoals) {
+          const avg = data.ratings.length > 0 ? (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : "—";
+          sections.push(`- **"${goal}"** — ${data.count}x requested, avg rating: ${avg}/5`);
+        }
+        sections.push("");
+      }
+
+      // Satisfaction stats
+      const allRatings = (feedback || []).filter(f => f.rating).map(f => f.rating!);
+      if (allRatings.length > 0) {
+        const avgRating = (allRatings.reduce((a, b) => a + b, 0) / allRatings.length).toFixed(1);
+        const satisfied = allRatings.filter(r => r >= 4).length;
+        sections.push(`## 📈 Satisfaction\n`);
+        sections.push(`- Total recommendations: **${(feedback || []).length}**`);
+        sections.push(`- Avg rating: **${avgRating}/5** (${allRatings.length} rated)`);
+        sections.push(`- Satisfaction (4+): **${Math.round(satisfied / allRatings.length * 100)}%**\n`);
+      }
+    }
+
+    if (metric === "overview" || metric === "tools") {
+      // Most recommended tools (from analytics events)
+      const { data: events } = await supabase.from("agent_analytics")
+        .select("event_type, items_recommended, tool_name")
+        .gte("created_at", since).limit(500);
+
+      const toolCounts: Record<string, number> = {};
+      for (const e of events || []) {
+        if (e.items_recommended) {
+          for (const slug of e.items_recommended) {
+            toolCounts[slug] = (toolCounts[slug] || 0) + 1;
+          }
+        }
+      }
+
+      const topTools = Object.entries(toolCounts).sort(([, a], [, b]) => b - a).slice(0, 10);
+      if (topTools.length > 0) {
+        sections.push(`## 🔧 Most Recommended Tools\n`);
+        for (const [slug, count] of topTools) {
+          sections.push(`- \`${slug}\` — recommended ${count}x`);
+        }
+        sections.push("");
+      }
+
+      // Tool usage breakdown
+      const toolUsage: Record<string, number> = {};
+      for (const e of events || []) {
+        if (e.tool_name) toolUsage[e.tool_name] = (toolUsage[e.tool_name] || 0) + 1;
+      }
+      const topToolUsage = Object.entries(toolUsage).sort(([, a], [, b]) => b - a).slice(0, 8);
+      if (topToolUsage.length > 0) {
+        sections.push(`## 🛠️ MCP Tool Usage\n`);
+        for (const [tool, count] of topToolUsage) {
+          sections.push(`- \`${tool}\` — ${count} calls`);
+        }
+        sections.push("");
+      }
+    }
+
+    if (metric === "overview" || metric === "templates") {
+      const { data: templates } = await supabase.from("goal_templates")
+        .select("slug, display_name, domain, usage_count").eq("is_active", true)
+        .order("usage_count", { ascending: false }).limit(10);
+
+      const { count: communityCount } = await supabase.from("community_goal_templates")
+        .select("id", { count: "exact", head: true });
+
+      const { count: approvedCommunity } = await supabase.from("community_goal_templates")
+        .select("id", { count: "exact", head: true }).eq("status", "approved");
+
+      sections.push(`## 📋 Template Ecosystem\n`);
+      sections.push(`- Official templates: **${(templates || []).length}** active`);
+      sections.push(`- Community templates: **${communityCount || 0}** total (${approvedCommunity || 0} approved)`);
+      if (templates && templates.length > 0) {
+        sections.push(`\nTop templates by usage:`);
+        for (const t of templates.filter(t => t.usage_count > 0).slice(0, 5)) {
+          sections.push(`- **${t.display_name}** [${t.domain}] — ${t.usage_count} uses`);
+        }
+      }
+      sections.push("");
+    }
+
+    // Catalog size
+    const [{ count: skillCount }, { count: mcpCount }, { count: pluginCount }] = await Promise.all([
+      supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+    ]);
+
+    sections.push(`## 📦 Catalog Size\n`);
+    sections.push(`- Skills: **${(skillCount || 0).toLocaleString()}**`);
+    sections.push(`- MCP Connectors: **${(mcpCount || 0).toLocaleString()}**`);
+    sections.push(`- Plugins: **${(pluginCount || 0).toLocaleString()}**`);
+    sections.push(`- **Total: ${((skillCount || 0) + (mcpCount || 0) + (pluginCount || 0)).toLocaleString()}** tools\n`);
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+mcp.tool("a2a_query", {
+  description: "Agent-to-Agent (A2A) compatible endpoint. Allows other AI agents to query Pymaia's catalog programmatically. Returns structured JSON for machine consumption.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      action: { type: "string", description: "Action: 'capabilities' (list what Pymaia can do), 'search' (find tools), 'recommend' (get solution for goal), 'catalog_stats' (get catalog size)" },
+      query: { type: "string", description: "Search query or goal (for search/recommend actions)" },
+      filters: { type: "object", description: "Optional filters: {type: 'skill'|'connector'|'plugin', category: string, min_trust: number}" },
+      format: { type: "string", description: "Response format: 'structured' (JSON) or 'natural' (markdown). Default: structured" },
+    },
+    required: ["action"],
+  },
+  handler: async (args: { action: string; query?: string; filters?: any; format?: string }) => {
+    const structured = args.format !== "natural";
+
+    // Log A2A interaction
+    await supabase.from("agent_analytics").insert({ event_type: "a2a_query", tool_name: "a2a_query", goal: args.query || args.action, event_data: { action: args.action, filters: args.filters } });
+
+    if (args.action === "capabilities") {
+      const caps = {
+        agent: "pymaia-agent",
+        version: "8.0.0",
+        protocol: "A2A-compatible",
+        capabilities: [
+          { name: "tool_search", description: "Search 35K+ skills, MCPs, and plugins", input: "query string", output: "array of tools" },
+          { name: "goal_solving", description: "Decompose business goals into tool combinations", input: "goal description", output: "solution with options A/B" },
+          { name: "compatibility_check", description: "Check if tools work well together", input: "array of slugs", output: "compatibility report" },
+          { name: "custom_generation", description: "Generate SKILL.md or plugin.json from tool combination", input: "goal + tool slugs", output: "generated artifact" },
+          { name: "role_kits", description: "Get curated tool kits by professional role", input: "role name", output: "kit with essential/recommended tools" },
+          { name: "trending", description: "Get trending goals and popular solutions", input: "time period", output: "trending data" },
+        ],
+        catalog: { skills: "35K+", connectors: "2K+", plugins: "800+", goal_templates: "50+" },
+        endpoints: { mcp: "/mcp-server/mcp", protocol: "MCP Streamable HTTP" },
+      };
+      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(caps, null, 2) }] };
+      return { content: [{ type: "text" as const, text: `# Pymaia Agent Capabilities\n\n${caps.capabilities.map(c => `- **${c.name}**: ${c.description}`).join("\n")}` }] };
+    }
+
+    if (args.action === "catalog_stats") {
+      const [{ count: s }, { count: m }, { count: p }, { count: gt }] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("goal_templates").select("id", { count: "exact", head: true }).eq("is_active", true),
+      ]);
+      const stats = { skills: s, connectors: m, plugins: p, goal_templates: gt, total: (s || 0) + (m || 0) + (p || 0) };
+      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(stats) }] };
+      return { content: [{ type: "text" as const, text: `Catalog: ${stats.total} tools (${stats.skills} skills, ${stats.connectors} MCPs, ${stats.plugins} plugins), ${stats.goal_templates} goal templates` }] };
+    }
+
+    if (args.action === "search" && args.query) {
+      const q = sanitizeForPostgrest(args.query);
+      const minTrust = args.filters?.min_trust || 0;
+      const type = args.filters?.type;
+
+      const results: any[] = [];
+
+      if (!type || type === "skill") {
+        const { data } = await supabase.from("skills")
+          .select("display_name, slug, tagline, category, install_count, trust_score, install_command")
+          .eq("status", "approved").or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
+          .gte("trust_score", minTrust).order("install_count", { ascending: false }).limit(5);
+        for (const s of data || []) results.push({ type: "skill", name: s.display_name, slug: s.slug, description: s.tagline, trust_score: s.trust_score, installs: s.install_count, install: s.install_command });
+      }
+      if (!type || type === "connector") {
+        const { data } = await supabase.from("mcp_servers")
+          .select("name, slug, description, category, github_stars, trust_score, is_official, install_command")
+          .eq("status", "approved").or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+          .gte("trust_score", minTrust).order("github_stars", { ascending: false }).limit(5);
+        for (const c of data || []) results.push({ type: "connector", name: c.name, slug: c.slug, description: c.description, trust_score: c.trust_score, stars: c.github_stars, official: c.is_official, install: c.install_command });
+      }
+      if (!type || type === "plugin") {
+        const { data } = await supabase.from("plugins")
+          .select("name, slug, description, category, install_count, trust_score, is_official")
+          .eq("status", "approved").or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
+          .gte("trust_score", minTrust).order("install_count", { ascending: false }).limit(5);
+        for (const p of data || []) results.push({ type: "plugin", name: p.name, slug: p.slug, description: p.description, trust_score: p.trust_score, installs: p.install_count, official: p.is_official });
+      }
+
+      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify({ query: args.query, results_count: results.length, results }) }] };
+      const text = results.map(r => `- [${r.type}] **${r.name}** (trust: ${r.trust_score || "N/A"}) — ${r.description}`).join("\n");
+      return { content: [{ type: "text" as const, text: text || "No results." }] };
+    }
+
+    if (args.action === "recommend" && args.query) {
+      // Delegate to solve_goal logic but return structured
+      const goalLower = args.query.toLowerCase();
+      const { data: templates } = await supabase.from("goal_templates").select("*").eq("is_active", true);
+      let matched: any = null, bestScore = 0;
+      for (const t of templates || []) {
+        let score = 0;
+        for (const trigger of (t.triggers || [])) { if (goalLower.includes(trigger.toLowerCase())) score += trigger.length; }
+        if (score > bestScore) { bestScore = score; matched = t; }
+      }
+
+      const allKw: string[] = [];
+      if (matched?.capabilities) for (const cap of matched.capabilities) { if (cap.keywords) allKw.push(...cap.keywords); }
+      allKw.push(...goalLower.split(/\s+/).filter((w: string) => w.length >= 3));
+
+      const search = await crossCatalogSearch([...new Set(allKw)], 5);
+      const items = [
+        ...search.skills.slice(0, 3).map((s: any) => ({ type: "skill", name: s.display_name, slug: s.slug, trust: s.trust_score, install: s.install_command })),
+        ...search.connectors.slice(0, 2).map((c: any) => ({ type: "connector", name: c.name, slug: c.slug, trust: c.trust_score, install: c.install_command })),
+        ...search.plugins.slice(0, 2).map((p: any) => ({ type: "plugin", name: p.name, slug: p.slug, trust: p.trust_score })),
+      ];
+
+      const result = { goal: args.query, matched_template: matched?.slug || null, domain: matched?.domain || "general", recommended_items: items, capabilities: matched?.capabilities || [] };
+      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      return { content: [{ type: "text" as const, text: `Recommendation for "${args.query}":\n${items.map(i => `- [${i.type}] ${i.name} (trust: ${i.trust || "N/A"})`).join("\n")}` }] };
+    }
+
+    return { content: [{ type: "text" as const, text: `Unknown action "${args.action}". Use: capabilities, search, recommend, catalog_stats` }] };
+  },
+});
+
 // ─── STATS TOOLS ───
 
 mcp.tool("get_directory_stats", {
