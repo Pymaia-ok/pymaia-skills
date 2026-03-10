@@ -1,97 +1,60 @@
 
 
+## Audit: 9,104 Pending Skills — What to Approve, Reject, and Clean
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+### Findings
 
-### Estado: ~99% completado
+**Total pending: 9,104 skills**
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+| Category | Count | Action |
+|----------|-------|--------|
+| Pipe `\|` taglines (parsing residue) | 3,482 | **Reject** — unusable metadata |
+| Monorepo duplicates (inflated stars) | ~200+ | **Reject** — fake star counts from `awesome-llm-apps` (100k), `everything-claude-code` (63k), `antigravity-awesome-skills` (22k) |
+| Anthropic official skills (pending) | ~15 | **Approve** — legitimate tools from `anthropics/` and `anthropics/knowledge-work-plugins` |
+| Good unique skills | ~5,500 | Need enrichment pipeline (future) |
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+### Priority 1: Approve Anthropic Official Skills
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+These are real, high-quality skills stuck in pending because they have 0 GitHub stars (Anthropic hosts them as subdirectories):
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+- `call-prep` — Sales call prep with Common Room (8.8k stars)
+- `content-creation` — Marketing content drafting
+- `campaign-planning` — Campaign strategy and KPIs
+- `check-model` — Financial model debugging
+- `analyzing-financial-statements` — Financial ratio analysis
+- `performance-analytics` — Marketing metrics analysis
+- `canned-responses` — Legal templated responses
+- `legal-risk-assessment` — Legal risk scoring
+- `weekly-prep-brief` — Weekly call briefing
+- `skill-development` — Skill creation guidance
+- `configured-agent` — Plugin configuration patterns
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+### Priority 2: Mass-Reject Bad Data
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+SQL migration to reject 3,482 skills with pipe `|` taglines and ~200 monorepo duplicates with inflated stars:
 
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
+- Skills from `awesome-llm-apps` with generic "Collection of awesome" taglines
+- Skills from `everything-claude-code` sharing identical taglines
+- Skills from `antigravity-awesome-skills` with "Ultimate Collection" taglines
 
-### Tools del MCP v8.1.0 (28 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
+### Priority 3: Approve Select High-Quality Unique Skills
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+- `cpp-testing` (61k stars, unique tagline about GoogleTest)
+- `zlibrary-to-notebooklm` (1.4k stars, unique tool)
+- `anthropic-usage-skill` (Anthropic API usage checker)
+- `gh-aw` / Prowler cloud security (13k stars, real tool)
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
+### Implementation
+
+1. **DB migration** — Single SQL with 3 UPDATE statements:
+   - Approve ~15 Anthropic official skills
+   - Approve ~4 high-quality unique skills  
+   - Reject ~3,500 pipe-tagline skills
+   - Reject ~200 monorepo-inflated skills
+2. **Log all actions** to `automation_logs` for audit trail
+
+### Impact
+- Approves ~20 high-quality skills covering sales, marketing, legal, finance
+- Removes ~3,700 junk records from pending queue
+- Reduces pending from 9,104 to ~5,400 (all needing AI enrichment)
+
