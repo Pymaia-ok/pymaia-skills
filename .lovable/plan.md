@@ -1,100 +1,71 @@
 
 
+## Revisión completa de Pymaia Skills — Áreas de mejora
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+Después de revisar las 22 páginas, 36+ edge functions, el MCP server, las tablas de DB, la infraestructura de seguridad, i18n y SEO, aquí está el diagnóstico organizado por prioridad.
 
-### Estado: ~99% completado
+---
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+### Prioridad Alta (Bugs / Inconsistencias)
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+| # | Problema | Detalle |
+|---|----------|---------|
+| 1 | **Publicar.tsx renderiza doble Navbar** | Importa y renderiza `<Navbar />` manualmente (línea 96), pero `App.tsx` ya lo incluye globalmente. Resultado: dos navbars superpuestas. |
+| 2 | **SecurityAdvisories.tsx renderiza doble Navbar** | Mismo problema: importa `<Navbar />` pero ya está en App.tsx. |
+| 3 | **UserProfile.tsx tiene strings hardcodeadas en español** | "Usuario no encontrado" y "← Volver" sin i18n (línea 44-45). |
+| 4 | **Privacy.tsx no usa i18n** | Todo el contenido legal está hardcodeado en español sin traducciones. |
+| 5 | **Terms.tsx importa `useTranslation` pero no lo usa** | El contenido está hardcodeado en español igual que Privacy. |
+| 6 | **Publicar.tsx redirige a `/crear-skill`** en App.tsx, pero el componente Publicar.tsx sigue existiendo como código muerto (nunca se renderiza directamente). |
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+### Prioridad Media (UX / Completitud)
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+| # | Área | Mejora |
+|---|------|--------|
+| 7 | **Password reset** | No hay flujo de "Olvidé mi contraseña" en Auth.tsx. |
+| 8 | **Perfil editable** | No hay UI para que el usuario edite su bio, username o avatar desde su propia vista. Solo existe `/u/:username` como vista pública. |
+| 9 | **Confirmación al revocar API key** | `revokeKey()` en ApiKeysSection.tsx no pide confirmación antes de eliminar. |
+| 10 | **Empty states en Admin** | El panel admin (806 líneas) no tiene estados vacíos para cuando no hay skills pendientes o incidentes. |
+| 11 | **Error boundaries** | No hay React error boundaries. Un crash en cualquier componente rompe toda la app. |
+| 12 | **Loading state en Index.tsx** | La landing no muestra skeleton/loader mientras carga `skills-all`. |
+| 13 | **NotFound no usa el mismo layout** | Usa `bg-muted` en vez de `bg-background`, se ve inconsistente con el resto. |
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+### Prioridad Media (SEO / Discoverability)
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+| # | Área | Mejora |
+|---|------|--------|
+| 14 | **Meta tags dinámicos** | `useSEO` solo setea `document.title`. No hay `<meta name="description">` ni Open Graph tags dinámicos (necesitaría react-helmet o similar, o SSR). |
+| 15 | **sitemap.xml estático** | El sitemap es estático. No incluye las 38,000+ skills dinámicamente. |
+| 16 | **llms.txt no menciona API keys** | El archivo `llms.txt` y `llms-full.txt` no documentan la autenticación opcional para skills privadas. |
 
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
+### Prioridad Baja (Calidad de código / DX)
 
-### Tools del MCP v8.3.0 (31 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
-17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
-18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
-19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
+| # | Área | Mejora |
+|---|------|--------|
+| 17 | **SkillDetail.tsx es muy largo** | 599 líneas en un solo archivo. Podría descomponerse en sub-componentes (reviews section, install section, security panel, etc.). |
+| 18 | **Admin.tsx es muy largo** | 806 líneas. Debería dividirse en componentes por tab. |
+| 19 | **Tipos duplicados** | `SkillFromDB` se define en `api.ts` pero los tipos de Supabase ya existen en `types.ts`. Hay mapeo manual redundante. |
+| 20 | **HeroSection timer leak potencial** | El `useEffect` en `TerminalDemo` usa `visibleLines === 0 ? Date.now() : 0` como dependencia, lo cual es un antipatrón que puede causar re-renders infinitos. |
+| 21 | **Explore.tsx usa debounce manual** | Podría usar un hook `useDebounce` reutilizable en vez de `setTimeout` con ref. |
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+### Funcionalidad faltante (nice-to-have)
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
+| # | Feature |
+|---|---------|
+| 22 | **Dark mode toggle** — `next-themes` está instalado pero no hay toggle en la UI. |
+| 23 | **Notificaciones in-app** — No hay sistema de notificaciones para cuando una skill es aprobada/rechazada. |
+| 24 | **Paginación en Conectores/Plugins** — Las listas no tienen paginación, cargan todo de golpe. |
+| 25 | **Rate limiting visual feedback** — Cuando el MCP rate limit se alcanza, el usuario no recibe feedback en la UI. |
+| 26 | **Accesibilidad (a11y)** — Falta `aria-label` en varios botones icon-only (ej: scroll arrows en Explore, language toggle). |
+
+---
+
+### Resumen ejecutivo
+
+- **6 bugs/inconsistencias** a corregir (doble navbar, strings sin i18n, código muerto)
+- **7 mejoras de UX** (password reset, perfil editable, confirmación de acciones destructivas, error boundaries)
+- **3 mejoras de SEO** (meta tags, sitemap dinámico, llms.txt actualizado)  
+- **5 mejoras de código** (refactoring de archivos largos, tipos, antipatrones)
+- **5 features nice-to-have** (dark mode toggle, notificaciones, paginación, a11y)
+
+¿Qué grupo querés que ataque primero?
+
