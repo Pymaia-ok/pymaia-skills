@@ -2322,7 +2322,7 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.2.0",
+  version: "8.3.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
     description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
