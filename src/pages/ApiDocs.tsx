@@ -135,13 +135,146 @@ export default function ApiDocs() {
         </Card>
 
         {/* Endpoints */}
-        <Tabs defaultValue="github" className="mb-12">
+        <Tabs defaultValue="apikey" className="mb-12">
           <TabsList className="w-full justify-start mb-4 flex-wrap h-auto gap-1">
+            <TabsTrigger value="apikey" className="gap-1.5"><Key className="h-3.5 w-3.5" /> API Key Auth</TabsTrigger>
             <TabsTrigger value="github" className="gap-1.5"><Github className="h-3.5 w-3.5" /> GitHub Scan</TabsTrigger>
             <TabsTrigger value="lookup" className="gap-1.5"><Search className="h-3.5 w-3.5" /> Lookup</TabsTrigger>
             <TabsTrigger value="search" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Search</TabsTrigger>
             <TabsTrigger value="badge" className="gap-1.5"><Image className="h-3.5 w-3.5" /> Badge</TabsTrigger>
           </TabsList>
+
+          {/* API KEY AUTH */}
+          <TabsContent value="apikey">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Badge className="bg-violet-600 text-white font-mono text-xs">AUTH</Badge>
+                  Personal API Keys for MCP Server
+                </CardTitle>
+                <CardDescription>
+                  Generate a personal API key to access your private skills through the Pymaia MCP server.
+                  Authenticated users get higher rate limits (120 req/min vs 30 for anonymous).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">How it works</Label>
+                  <div className="bg-muted p-4 rounded-lg space-y-2 text-sm text-muted-foreground">
+                    <p>1. Go to <strong className="text-foreground"><a href="/mis-skills" className="underline hover:text-primary">My Skills</a></strong> and generate a personal API key</p>
+                    <p>2. The key starts with <code className="bg-background px-1.5 py-0.5 rounded text-xs font-mono">pymsk_</code> and is shown only once — copy it immediately</p>
+                    <p>3. Add the key to your Claude Code MCP configuration as a Bearer token</p>
+                    <p>4. The MCP server will identify you and include your <strong className="text-foreground">private skills</strong> in search results</p>
+                    <p>5. Without a key, the MCP server works normally (public skills only, 30 req/min)</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Claude Code Configuration</Label>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Add this to your <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">~/.claude/mcp.json</code> file:
+                  </p>
+                  <div className="relative">
+                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 z-10" onClick={() => copyText(`{
+  "mcpServers": {
+    "pymaia-skills": {
+      "url": "https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mcp-server/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer pymsk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}`)}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <pre className="bg-muted p-4 rounded-lg text-xs font-mono overflow-x-auto text-foreground">{`{
+  "mcpServers": {
+    "pymaia-skills": {
+      "url": "https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mcp-server/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer pymsk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}`}</pre>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Without Authentication (public only)</Label>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    If you don't need private skills, you can use the MCP server without a key:
+                  </p>
+                  <div className="relative">
+                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7 z-10" onClick={() => copyText(`{
+  "mcpServers": {
+    "pymaia-skills": {
+      "url": "https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mcp-server/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}`)}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <pre className="bg-muted p-4 rounded-lg text-xs font-mono overflow-x-auto text-foreground">{`{
+  "mcpServers": {
+    "pymaia-skills": {
+      "url": "https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/mcp-server/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}`}</pre>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Features Unlocked with API Key</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-start gap-2 text-sm p-3 bg-muted rounded-lg">
+                      <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
+                      <div>
+                        <strong className="text-foreground">Private Skills in Search</strong>
+                        <p className="text-muted-foreground text-xs mt-0.5">Your private skills appear in <code className="text-[10px]">search_skills</code>, <code className="text-[10px]">get_skill_details</code>, and <code className="text-[10px]">solve_goal</code> results</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm p-3 bg-muted rounded-lg">
+                      <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
+                      <div>
+                        <strong className="text-foreground">Higher Rate Limit</strong>
+                        <p className="text-muted-foreground text-xs mt-0.5">120 requests/min vs 30/min for anonymous users</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm p-3 bg-muted rounded-lg">
+                      <CheckCircle className="h-4 w-4 mt-0.5 shrink-0 text-green-500" />
+                      <div>
+                        <strong className="text-foreground">Personalized Recommendations</strong>
+                        <p className="text-muted-foreground text-xs mt-0.5"><code className="text-[10px]">solve_goal</code> considers your private catalog for better suggestions</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm p-3 bg-muted rounded-lg">
+                      <Shield className="h-4 w-4 mt-0.5 shrink-0 text-blue-500" />
+                      <div>
+                        <strong className="text-foreground">Secure by Design</strong>
+                        <p className="text-muted-foreground text-xs mt-0.5">Keys are SHA-256 hashed. Revoke anytime from My Skills page</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Key Management</Label>
+                  <div className="bg-muted p-4 rounded-lg space-y-2 text-sm text-muted-foreground">
+                    <p>• <strong className="text-foreground">Generate:</strong> Go to <a href="/mis-skills" className="underline hover:text-primary">My Skills</a> → API Keys → Generate key</p>
+                    <p>• <strong className="text-foreground">Revoke:</strong> Click the trash icon next to any key to revoke it instantly</p>
+                    <p>• <strong className="text-foreground">Multiple keys:</strong> You can create multiple keys with different labels</p>
+                    <p>• <strong className="text-foreground">Last used:</strong> Each key shows when it was last used for auditing</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* GITHUB SCAN */}
           <TabsContent value="github">
