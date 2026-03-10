@@ -92,7 +92,9 @@ const Index = () => {
         <WizardSection allSkills={allSkills} />
         {/* 9. Two paths — meet user where they are */}
         <TwoPathsSection />
-        {/* 10. Bundles by profession */}
+        {/* 10. Skill Creator */}
+        <SkillCreatorSection />
+        {/* 11. Bundles by profession */}
         <BundlesSection />
         {/* 11. Connectors */}
         <ConnectorsSection />

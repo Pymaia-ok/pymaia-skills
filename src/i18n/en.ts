@@ -66,6 +66,16 @@ export default {
     pathNewDesc: "No worries. Claude Code is free and installs in 5 minutes. We'll guide you step by step.",
     pathNewCta: "Start from scratch",
 
+    creatorTitle: "Build your own skills",
+    creatorSubtitle: "Package your expertise into a skill. Publish it for everyone or share it privately with your team.",
+    creatorFeature1Title: "Conversational interview",
+    creatorFeature1Desc: "AI guides you step by step to turn what you know into a professional skill.",
+    creatorFeature2Title: "Public or private",
+    creatorFeature2Desc: "Publish for the community or share via secret link with whoever you want.",
+    creatorFeature3Title: "Built-in playground",
+    creatorFeature3Desc: "Test your skill in real time before publishing with automated tests.",
+    creatorCta: "Create my first skill",
+
     wizardTitle: "Find the ideal skill",
     wizardSubtitle: "Tell us what you do and we'll recommend the best skills for your work.",
 
