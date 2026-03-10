@@ -62,7 +62,7 @@
 - **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
 - **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-### Tools del MCP v8.1.0 (28 tools)
+### Tools del MCP v8.3.0 (31 tools)
 1. search_skills, get_skill_details, list_popular_skills, list_new_skills
 2. list_categories, search_by_role, recommend_for_task, compare_skills
 3. search_connectors, get_connector_details, list_popular_connectors
@@ -79,6 +79,9 @@
 14. **browse_community_templates** (Template browser)
 15. **agent_analytics** (Performance dashboard)
 16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
 ## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
