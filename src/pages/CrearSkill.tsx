@@ -9,8 +9,6 @@ import { toast } from "sonner";
 import SkillChat from "@/components/crear-skill/SkillChat";
 import SkillPreview from "@/components/crear-skill/SkillPreview";
 import SkillPublishConfig from "@/components/crear-skill/SkillPublishConfig";
-import PluginTemplateSelector, { type PluginTemplate } from "@/components/crear-skill/PluginTemplateSelector";
-import McpApiWizard from "@/components/crear-skill/McpApiWizard";
 import type { Msg } from "@/lib/streaming";
 
 interface StepProps {
@@ -18,7 +16,7 @@ interface StepProps {
   setStep: (step: "chat" | "preview" | "playground" | "publish") => void;
 }
 
-type Step = "template" | "mcp-wizard" | "chat" | "preview" | "playground" | "publish";
+type Step = "chat" | "preview" | "playground" | "publish";
 
 interface RequiredMcp {
   name: string;
@@ -70,22 +68,12 @@ interface TestResults {
   critical_gaps: string[];
 }
 
-// Template context injected as system message
-const templateContextMap: Record<PluginTemplate, string> = {
-  "skill": "El usuario quiere crear un plugin simple basado en un SKILL.md. Solo genera un workflow de texto sin conexiones externas.",
-  "api-connector": "El usuario quiere crear un plugin que se conecta a una API externa vía MCP server. Preguntale qué API quiere conectar y qué quiere hacer con ella.",
-  "workflow": "El usuario quiere crear un workflow completo con múltiples skills, commands y posiblemente MCPs. Preguntale qué proceso quiere automatizar end-to-end.",
-  "slash-command": "El usuario quiere crear un slash command rápido para Claude. Preguntale qué acción debería ejecutar el comando y con qué nombre (ej: /deploy, /review).",
-  "subagent": "El usuario quiere crear un subagente especializado que Claude pueda invocar. Preguntale en qué dominio se especializa el agente y qué tareas debería resolver autónomamente.",
-};
-
 const CrearSkill = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
-  const [step, setStep] = useState<Step>("template");
-  const [selectedTemplate, setSelectedTemplate] = useState<PluginTemplate | null>(null);
+  const [step, setStep] = useState<Step>("chat");
   const [mcpContext, setMcpContext] = useState<any>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [skill, setSkill] = useState<GeneratedSkill | null>(null);
@@ -99,7 +87,7 @@ const CrearSkill = () => {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftLoading, setDraftLoading] = useState(() => !!searchParams.get("draft"));
 
-  // Load draft from URL param — skip template selector if resuming
+  // Load draft from URL param
   useEffect(() => {
     const draftParam = searchParams.get("draft");
     if (!draftParam || !user) return;
@@ -218,27 +206,6 @@ const CrearSkill = () => {
   if (loading || draftLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Handle template selection
-  const handleTemplateSelect = (template: PluginTemplate) => {
-    setSelectedTemplate(template);
-    if (template === "api-connector") {
-      setStep("mcp-wizard");
-    } else {
-      // Inject template context as initial system-like message
-      const context = templateContextMap[template];
-      setMessages([{ role: "assistant", content: `🎯 **Template: ${template === "skill" ? "Skill simple" : template === "workflow" ? "Workflow completo" : template === "slash-command" ? "Slash command" : "Subagente"}**\n\n${context}\n\n¿Qué querés crear?` }]);
-      setStep("chat");
-    }
-  };
-
-  // Handle MCP wizard completion
-  const handleMcpWizardComplete = (result: any) => {
-    setMcpContext(result);
-    const contextMsg = `🔌 **API Connector configurado**\n\nAPI: \`${result.api_url}\`\nAuth: ${result.auth_type}\nEndpoints: ${result.endpoints.length} seleccionados\n\nYa generé el servidor MCP. Ahora describime qué querés que haga el plugin con esta API. ¿Qué workflow o automatización necesitás?`;
-    setMessages([{ role: "assistant", content: contextMsg }]);
-    setStep("chat");
-  };
-
   const saveDraft = async (
     skillData: GeneratedSkill,
     qualityData: Quality | null,
@@ -273,7 +240,6 @@ const CrearSkill = () => {
     setIsGenerating(true);
     try {
       const body: any = { conversation: messages, action: "generate" };
-      // Inject MCP context if available from wizard
       if (mcpContext) {
         body.mcp_context = {
           api_url: mcpContext.api_url,
@@ -281,10 +247,6 @@ const CrearSkill = () => {
           skill_context: mcpContext.skill_context,
           endpoints: mcpContext.endpoints,
         };
-      }
-      // Inject template type
-      if (selectedTemplate) {
-        body.template_type = selectedTemplate;
       }
 
       const { data, error } = await supabase.functions.invoke("generate-skill", { body });
@@ -338,7 +300,6 @@ const CrearSkill = () => {
     setIsTesting(false);
   };
 
-
   const handlePublish = async (config: { 
     category: string; 
     industry: string[]; 
@@ -353,7 +314,6 @@ const CrearSkill = () => {
     setIsPublishing(true);
     setScanResult(null);
 
-    // ── Security Gate: scan before publishing (3-state: PASS/WARNING/BLOCKED) ──
     try {
       const contentToScan = [skill.name, skill.tagline, skill.description, skill.instructions, skill.install_command].join("\n\n");
       const slug = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -372,16 +332,13 @@ const CrearSkill = () => {
         setScanResult(scanData);
         
         if (scanData.verdict === "MALICIOUS") {
-          // BLOCKED — cannot publish
           setIsPublishing(false);
           toast.error(t("crearSkill.securityBlocked", "Tu skill no pasó la validación de seguridad — revisá los detalles"));
           return;
         }
         
         if (scanData.verdict === "SUSPICIOUS") {
-          // WARNING — show warnings but allow publish
           toast.warning(t("crearSkill.securityWarning", "Se encontraron algunos items para revisar. Tu skill será publicado con review pendiente."));
-          // Continue to publish but mark for review
         }
         
         if (scanData.verdict === "SAFE") {
@@ -390,10 +347,8 @@ const CrearSkill = () => {
       }
     } catch (err) {
       console.error("Security gate error:", err);
-      // Allow publish if scan infra fails
     }
 
-    // ── Publish ──
     try {
       const slug = skill.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       const useCases = skill.examples.map((ex) => ({
@@ -454,27 +409,6 @@ const CrearSkill = () => {
   return (
     <div className="min-h-screen h-screen bg-background flex flex-col overflow-hidden">
       <div className="pt-14 flex-1 flex flex-col min-h-0">
-        {step === "template" && (
-          <div className="flex-1 overflow-y-auto">
-            <PluginTemplateSelector
-              onSelect={handleTemplateSelect}
-              onSkip={() => {
-                setSelectedTemplate("skill");
-                setStep("chat");
-              }}
-            />
-          </div>
-        )}
-
-        {step === "mcp-wizard" && (
-          <div className="flex-1 overflow-y-auto">
-            <McpApiWizard
-              onComplete={handleMcpWizardComplete}
-              onBack={() => setStep("template")}
-            />
-          </div>
-        )}
-
         {step === "chat" && (
           <div className="flex-1 flex flex-col min-h-0">
             <SkillChat
@@ -519,7 +453,6 @@ const CrearSkill = () => {
         {step === "publish" && skill && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-12">
-              {/* Security scan result panel */}
               {scanResult && (
                 <div className={`mb-6 p-4 rounded-xl border ${
                   scanResult.verdict === "MALICIOUS" 
