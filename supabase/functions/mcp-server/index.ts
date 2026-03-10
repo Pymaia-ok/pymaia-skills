@@ -2351,11 +2351,8 @@ mcpApp.use("/mcp", async (c, next) => {
       429
     );
   }
-  // Resolve API key user and store in header for downstream access
-  const userId = await resolveApiKeyUser(c.req.header("authorization"));
-  if (userId) {
-    c.req.raw.headers.set("x-pymaia-user-id", userId);
-  }
+  // Resolve API key user and store in global context
+  currentApiKeyUserId = await resolveApiKeyUser(c.req.header("authorization"));
   await next();
 });
 
