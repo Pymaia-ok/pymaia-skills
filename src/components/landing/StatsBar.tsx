@@ -1,25 +1,32 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { fetchSkills, SKILL_CATEGORIES } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 const StatsBar = () => {
   const { t } = useTranslation();
 
   const { data } = useQuery({
-    queryKey: ["skills-stats"],
-    queryFn: () => fetchSkills({ sortBy: "installs", page: 0 }),
+    queryKey: ["landing-stats-counts"],
+    queryFn: async () => {
+      const [skills, connectors, plugins] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      ]);
+      return {
+        skills: skills.count ?? 0,
+        connectors: connectors.count ?? 0,
+        plugins: plugins.count ?? 0,
+      };
+    },
+    staleTime: 1000 * 60 * 10,
   });
 
-  const totalSkills = data?.count ?? 0;
-  // Estimate total installs from first page
-  const totalFavs = data?.data?.reduce((sum, s) => sum + s.github_stars, 0) ?? 0;
-  const totalCategories = SKILL_CATEGORIES.length;
-
   const stats = [
-    { value: totalSkills.toLocaleString(), label: t("landing.statsSkills") },
-    { value: totalFavs > 0 ? totalFavs.toLocaleString()+"+" : "0", label: t("landing.statsFavs") },
-    { value: totalCategories.toString(), label: t("landing.statsCategories") },
+    { value: (data?.skills ?? 0).toLocaleString(), label: t("landing.statsSkills") },
+    { value: (data?.connectors ?? 0).toLocaleString(), label: t("landing.statsConnectors") },
+    { value: (data?.plugins ?? 0).toLocaleString(), label: t("landing.statsPlugins") },
   ];
 
   return (
