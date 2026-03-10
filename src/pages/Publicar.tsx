@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import Navbar from "@/components/Navbar";
+
 import { useAuth } from "@/hooks/useAuth";
 import { submitSkill } from "@/lib/api";
 import { toast } from "sonner";
@@ -93,7 +93,7 @@ const Publicar = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      
       <div className="pt-14 max-w-2xl mx-auto px-6 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="section-title mb-2">{t("publish.title")}</h1>

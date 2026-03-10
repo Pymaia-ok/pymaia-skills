@@ -109,6 +109,29 @@ claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supab
 }
 ```
 
+### Authenticated Access (Private Skills)
+
+To include your private skills in MCP search results, generate an API key at /mis-skills and add an `Authorization` header to your config:
+
+```json
+{
+  "mcpServers": {
+    "pymaia-skills": {
+      "type": "streamable-http",
+      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp",
+      "headers": {
+        "Authorization": "Bearer pymsk_YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+Benefits of authenticated access:
+- Your private (non-public) skills appear in search results and `solve_goal` recommendations
+- Higher rate limit: 120 requests/min (vs 60 for anonymous)
+- API key prefix: `pymsk_`
+
 ### Available Tools (28)
 
 > **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.

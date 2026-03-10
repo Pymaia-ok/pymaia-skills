@@ -82,6 +82,8 @@ export default function ApiKeysSection() {
     }
   }
 
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+
   async function revokeKey(id: string) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -99,6 +101,7 @@ export default function ApiKeysSection() {
       return;
     }
     setKeys((prev) => prev.filter((k) => k.id !== id));
+    setConfirmRevokeId(null);
     toast.success(t("apiKeys.revoked"));
   }
 
@@ -198,9 +201,10 @@ export default function ApiKeysSection() {
                 </div>
               </div>
               <button
-                onClick={() => revokeKey(k.id)}
+                onClick={() => setConfirmRevokeId(k.id)}
                 className="p-2 rounded-xl hover:bg-destructive/10 transition-colors"
                 title={t("apiKeys.revoke")}
+                aria-label={t("apiKeys.revoke")}
               >
                 <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
               </button>
@@ -208,6 +212,24 @@ export default function ApiKeysSection() {
           ))}
         </div>
       )}
+
+      {/* Confirm revoke dialog */}
+      <Dialog open={!!confirmRevokeId} onOpenChange={(open) => !open && setConfirmRevokeId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("apiKeys.confirmRevokeTitle")}</DialogTitle>
+            <DialogDescription>{t("apiKeys.confirmRevokeDesc")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end mt-2">
+            <Button variant="outline" size="sm" onClick={() => setConfirmRevokeId(null)}>
+              {t("apiKeys.cancel")}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => confirmRevokeId && revokeKey(confirmRevokeId)}>
+              {t("apiKeys.confirmRevoke")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* New key dialog */}
       <Dialog open={!!newKey} onOpenChange={(open) => !open && setNewKey(null)}>
