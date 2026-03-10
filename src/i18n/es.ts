@@ -48,9 +48,9 @@ export default {
     howstep3Title: "Claude lo sabe hacer",
     howstep3Desc: "Tu Claude ahora tiene conocimiento experto. Solo pedile la tarea y la ejecuta solo.",
 
-    statsSkills: "skills disponibles",
-    statsFavs: "favoritos",
-    statsCategories: "categorías",
+    statsSkills: "skills",
+    statsConnectors: "conectores",
+    statsPlugins: "plugins",
 
     pathsTitle: "¿Dónde estás hoy?",
     pathsSubtitle: "Tenemos un camino para vos, sin importar tu nivel.",
