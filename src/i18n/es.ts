@@ -150,8 +150,8 @@ export default {
     },
     disenador: {
       briefs: "Generar briefs creativos",
-      copy: "Escribir copy para diseños",
-      feedback: "Estructurar feedback",
+      designsystem: "Crear design system",
+      prototipos: "Prototipar y wireframear",
       specs: "Documentar specs de diseño",
     },
     ingeniero: {

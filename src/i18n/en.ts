@@ -147,8 +147,8 @@ export default {
     },
     disenador: {
       briefs: "Generate creative briefs",
-      copy: "Write copy for designs",
-      feedback: "Structure feedback",
+      designsystem: "Create design system",
+      prototipos: "Prototype & wireframe",
       specs: "Document design specs",
     },
     ingeniero: {
