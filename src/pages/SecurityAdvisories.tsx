@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
-import Navbar from "@/components/Navbar";
 import { ShieldAlert, ShieldCheck, AlertTriangle, Calendar, ExternalLink } from "lucide-react";
 
 const severityConfig: Record<string, { color: string; icon: any; label: string }> = {
