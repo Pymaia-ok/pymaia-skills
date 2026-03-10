@@ -41,7 +41,7 @@
 | Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
 | Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
 | `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ⚠️ NO implementable (requiere traffic routing) |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
 | API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
 ### Fase 4 — Platform ✅ COMPLETA
