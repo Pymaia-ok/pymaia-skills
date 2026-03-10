@@ -93,3 +93,6 @@ verify_jwt = false
 
 [functions.sync-composio]
 verify_jwt = false
+
+[functions.manage-api-keys]
+verify_jwt = false

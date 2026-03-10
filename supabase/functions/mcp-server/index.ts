@@ -175,14 +175,21 @@ mcp.tool("search_skills", {
     },
     required: ["query"],
   },
-  handler: async (args: { query: string; category?: string; limit?: number }) => {
+  handler: async (args: { query: string; category?: string; limit?: number }, extra?: any) => {
     const lim = Math.min(args.limit || 5, 10);
     const q = sanitizeForPostgrest(args.query);
 
+    // Check for authenticated API key user
+    const apiUserId = (extra as any)?._requestHeaders?.get?.("x-pymaia-user-id") || null;
+
     let dbQuery = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
-      .eq("status", "approved")
+      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles, is_public, creator_id")
+      .or(
+        apiUserId
+          ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
+          : `and(status.eq.approved,is_public.eq.true)`
+      )
       .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
       .order("install_count", { ascending: false })
       .limit(lim);
