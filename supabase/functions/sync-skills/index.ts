@@ -648,6 +648,114 @@ async function fetchPulseMCPCrawl(): Promise<ParsedSkill[]> {
   return skills;
 }
 
+// ─── SOURCE 12: skills.sh by categories ───
+
+async function fetchSkillsShCategories(): Promise<ParsedSkill[]> {
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) return [];
+
+  const categories = [
+    "development", "design", "marketing", "data", "productivity",
+    "automation", "ai", "devops", "security", "testing",
+    "documentation", "communication", "finance", "legal", "education",
+    "health", "sales", "hr", "operations", "analytics",
+  ];
+
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  for (const cat of categories) {
+    try {
+      console.log(`[skillssh-categories] Mapping category: ${cat}`);
+      const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: `https://skills.sh/categories/${cat}`,
+          limit: 10000,
+          includeSubdomains: false,
+        }),
+      });
+
+      if (!mapRes.ok) { console.error(`[skillssh-categories] Map error for ${cat}: ${mapRes.status}`); continue; }
+      const mapJson = await mapRes.json();
+
+      for (const link of (mapJson?.links || [])) {
+        const match = link.match(/skills\.sh\/([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
+        if (!match) continue;
+        const [, owner, repo, name] = match;
+        if (["_next", "agents", "trending", "hot", "new", "categories", "api"].includes(owner)) continue;
+        const key = `${owner}/${repo}/${name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "skills.sh" });
+        }
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) {
+      console.error(`[skillssh-categories] Error for ${cat}:`, (e as Error).message);
+    }
+  }
+
+  console.log(`[skillssh-categories] Total: ${skills.length}`);
+  return skills;
+}
+
+// ─── SOURCE 13: agentskill.sh ───
+
+async function fetchAgentSkillSh(): Promise<ParsedSkill[]> {
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) return [];
+
+  const skills: ParsedSkill[] = [];
+  const seen = new Set<string>();
+
+  const categories = [
+    "development", "operations", "data", "product", "marketing",
+    "design", "security", "testing", "documentation", "ai",
+  ];
+
+  for (const cat of categories) {
+    try {
+      console.log(`[agentskill] Mapping category: ${cat}`);
+      const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: `https://agentskill.sh/skills`,
+          search: cat,
+          limit: 10000,
+          includeSubdomains: false,
+        }),
+      });
+
+      if (!mapRes.ok) { console.error(`[agentskill] Map error: ${mapRes.status}`); continue; }
+      const mapJson = await mapRes.json();
+
+      for (const link of (mapJson?.links || [])) {
+        // Pattern: agentskill.sh/skills/{owner}/{repo}/{skill-name}
+        const match = link.match(/agentskill\.sh\/skills\/([^\/]+)\/([^\/]+)\/([^\/\s?#]+)/);
+        if (!match) continue;
+        const [, owner, repo, name] = match;
+        if (["_next", "api", "categories"].includes(owner)) continue;
+        const key = `${owner}/${repo}/${name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          skills.push({ name, owner, repo, installCount: 0, stars: 0, description: "", source: "agentskill.sh" });
+        }
+      }
+
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) {
+      console.error(`[agentskill] Error for ${cat}:`, (e as Error).message);
+    }
+  }
+
+  console.log(`[agentskill] Total: ${skills.length}`);
+  return skills;
+}
+
 // ─── SOURCE 11: GitHub Code Search — find repos with SKILL.md ───
 
 async function fetchGitHubCodeSearch(query: string): Promise<ParsedSkill[]> {
