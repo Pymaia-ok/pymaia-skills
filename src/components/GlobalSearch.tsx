@@ -239,6 +239,7 @@ const GlobalSearch = () => {
 
   const showEmptyState = !loading && query.length < 2;
   const showNoResults = !loading && !aiLoading && query.length >= 2 && !hasResults && aiResults.length === 0;
+  const isSearching = query.length >= 2;
 
   return (
     <>
