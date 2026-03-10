@@ -787,7 +787,8 @@ Deno.serve(async (req) => {
       install_command: directInstallCmd,
       batch_mode = false,
       batch_size = 20,
-      gate_mode = false, // New: used during publish to return pass/fail
+      gate_mode = false,
+      skip_llm = false, // Fast mode: skip LLM for bulk initial scanning
     } = body;
 
     // ── GATE MODE: scan content directly and return pass/fail ──
@@ -829,7 +830,7 @@ Deno.serve(async (req) => {
         ].join("\n\n");
 
         const installCmd = (item as any).install_command || "";
-        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, lovableApiKey, supabase, (item as any).github_url || null);
+        const result = await runFullScan(scanContent, (item as any).slug || "", item_type, installCmd, skip_llm ? undefined : lovableApiKey, supabase, (item as any).github_url || null);
 
         await supabase.from(tableName).update({
           security_scan_result: result,
@@ -874,7 +875,7 @@ Deno.serve(async (req) => {
       ].join("\n\n");
     }
 
-    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, lovableApiKey, supabase, body.github_url || null);
+    const result = await runFullScan(scanContent, itemSlug, item_type, installCmd, skip_llm ? undefined : lovableApiKey, supabase, body.github_url || null);
 
     if (item_id) {
       const tableName = item_type === "connector" ? "mcp_servers" : item_type === "plugin" ? "plugins" : "skills";
@@ -941,15 +942,15 @@ async function runFullScan(
     similarityResult = await checkContentSimilarity(content, slug, itemType, supabase);
   }
 
-  // Layer 10: Publisher verification (PRD 5.1)
+  // Layer 10: Publisher verification (PRD 5.1) — skip in fast mode (no API key = fast mode)
   let publisherResult = null;
-  if (githubUrl) {
+  if (githubUrl && lovableApiKey) {
     publisherResult = await verifyPublisher(githubUrl);
   }
 
-  // Layer 11: Dependency audit (PRD 5.1 item 4)
+  // Layer 11: Dependency audit (PRD 5.1 item 4) — skip in fast mode
   let dependencyResult = null;
-  if (githubUrl) {
+  if (githubUrl && lovableApiKey) {
     dependencyResult = await auditDependencies(githubUrl);
   }
 
