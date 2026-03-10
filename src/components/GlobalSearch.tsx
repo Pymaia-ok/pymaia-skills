@@ -239,6 +239,7 @@ const GlobalSearch = () => {
 
   const showEmptyState = !loading && query.length < 2;
   const showNoResults = !loading && !aiLoading && query.length >= 2 && !hasResults && aiResults.length === 0;
+  const isSearching = query.length >= 2;
 
   return (
     <>
@@ -276,8 +277,8 @@ const GlobalSearch = () => {
             </div>
           )}
 
-          {/* Empty state: recent searches + popular */}
-          {showEmptyState && (
+          {/* Empty state: recent searches + popular (only when not actively searching) */}
+          {showEmptyState && !isSearching && (
             <>
               {recentSearches.length > 0 && (
                 <CommandGroup heading={t("search.recent")}>
