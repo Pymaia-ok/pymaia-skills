@@ -39,7 +39,7 @@ claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
   "mcpServers": {
     "pymaia-skills": {
       "type": "streamable-http",
-      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"
+      "url": "https://mcp.pymaia.com"
     }
   }
 }
