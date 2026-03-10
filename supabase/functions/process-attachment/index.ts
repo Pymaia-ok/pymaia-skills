@@ -120,8 +120,55 @@ serve(async (req) => {
         const data = await response.json();
         extractedText = `[Contenido extraído de imagen: ${fileName}]\n\n${data.choices[0].message.content}`;
       } else if (videoExts.includes(ext)) {
-        // For videos, we can't process directly but can guide the user
-        extractedText = `[Video subido: ${fileName}]\n\nSe subió un archivo de video. Por ahora, pedile al usuario que describa el contenido del video paso a paso para poder extraer la información y crear la skill.`;
+        // Process video with Gemini vision (supports video natively)
+        const base64 = await arrayBufferToBase64(await fileData.arrayBuffer());
+        const mimeMap: Record<string, string> = {
+          mp4: "video/mp4",
+          mov: "video/quicktime",
+          avi: "video/x-msvideo",
+          webm: "video/webm",
+          mkv: "video/x-matroska",
+        };
+        const mimeType = mimeMap[ext] || `video/${ext}`;
+
+        // Check file size — Gemini inline limit is ~20MB base64
+        const fileSizeMB = base64.length * 0.75 / (1024 * 1024);
+        if (fileSizeMB > 18) {
+          extractedText = `[Video subido: ${fileName} (${fileSizeMB.toFixed(1)}MB)]\n\nEl video es demasiado grande para procesar automáticamente. Pedile al usuario que describa el contenido paso a paso o que suba un video más corto.`;
+        } else {
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "system",
+                  content: "Analizá este video que el usuario subió para crear una skill. Extraé TODA la información relevante: procesos mostrados paso a paso, textos visibles en pantalla, flujos de trabajo, herramientas usadas, resultados o outputs mostrados, diagramas, presentaciones, datos en tablas, etc. Sé muy detallado y estructurado. Respondé en español.",
+                },
+                {
+                  role: "user",
+                  content: [
+                    { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+                    { type: "text", text: `Extraé todo el contenido y los pasos mostrados en este video "${fileName}" para crear una skill de Claude. Describí cada pantalla, cada paso del proceso y cualquier texto o dato visible.` },
+                  ],
+                },
+              ],
+            }),
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            console.error("Video Vision API error:", response.status, errText);
+            extractedText = `[Video subido: ${fileName}]\n\nNo se pudo procesar el video automáticamente (error ${response.status}). Pedile al usuario que describa el contenido del video paso a paso.`;
+          } else {
+            const data = await response.json();
+            extractedText = `[Contenido extraído de video: ${fileName}]\n\n${data.choices[0].message.content}`;
+          }
+        }
       } else if (docExts.includes(ext)) {
         // Process text-based documents
         if (ext === "pdf") {
