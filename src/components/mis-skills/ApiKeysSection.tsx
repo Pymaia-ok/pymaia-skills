@@ -201,9 +201,10 @@ export default function ApiKeysSection() {
                 </div>
               </div>
               <button
-                onClick={() => revokeKey(k.id)}
+                onClick={() => setConfirmRevokeId(k.id)}
                 className="p-2 rounded-xl hover:bg-destructive/10 transition-colors"
                 title={t("apiKeys.revoke")}
+                aria-label={t("apiKeys.revoke")}
               >
                 <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
               </button>
