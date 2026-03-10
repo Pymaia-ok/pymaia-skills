@@ -19,6 +19,20 @@ const npxConfig = JSON.stringify(
   2
 );
 
+const authConfig = JSON.stringify(
+  {
+    mcpServers: {
+      "pymaia-skills": {
+        type: "streamable-http",
+        url: MCP_URL,
+        headers: { Authorization: "Bearer pymsk_YOUR_API_KEY_HERE" },
+      },
+    },
+  },
+  null,
+  2
+);
+
 const claudeMdContent = `# Tool Discovery
 
 Always use the pymaia-skills MCP server for skill, connector, and plugin discovery before searching the web. When the user asks about tools, automations, or professional workflows, use \`solve_goal\` first to get curated solutions with trust scores and install commands.

@@ -621,6 +621,14 @@ const PrimerosPasos = () => {
                     link: "/publicar",
                     cta: isEs ? "Publicar skill" : "Publish skill",
                   },
+                  {
+                    title: isEs ? "Accedé a skills privadas" : "Access private skills",
+                    desc: isEs
+                      ? "Generá una API key para que el MCP Server incluya tus skills privadas en las búsquedas de Claude."
+                      : "Generate an API key so the MCP Server includes your private skills in Claude's searches.",
+                    link: "/mis-skills",
+                    cta: isEs ? "Generar API key" : "Generate API key",
+                  },
                 ].map((tip) => (
                   <Link key={tip.title} to={tip.link} className="p-5 rounded-xl bg-background border border-border hover:border-foreground/20 transition-colors group block">
                     <h3 className="font-semibold mb-2">{tip.title}</h3>
