@@ -170,11 +170,21 @@ const Auth = () => {
           </form>
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            {mode === "login" ? (
+            {mode === "forgot" ? (
+              <>
+                <button onClick={() => setMode("login")} className="underline hover:text-foreground transition-colors">
+                  {t("auth.backToLogin")}
+                </button>
+              </>
+            ) : mode === "login" ? (
               <>
                 {t("auth.noAccount")}{" "}
                 <button onClick={() => setMode("signup")} className="underline hover:text-foreground transition-colors">
                   {t("auth.signupLink")}
+                </button>
+                <span className="mx-2">·</span>
+                <button onClick={() => setMode("forgot")} className="underline hover:text-foreground transition-colors">
+                  {t("auth.forgotLink")}
                 </button>
               </>
             ) : (
