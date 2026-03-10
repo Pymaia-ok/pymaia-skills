@@ -168,7 +168,7 @@ const PluginDetail = () => {
           {/* 2-column grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
-            <div className="min-w-0">
+            <div className="min-w-0 order-2 lg:order-none">
               {/* Install options */}
               <div className="mb-8 space-y-3">
                 <p className="text-sm font-semibold text-muted-foreground mb-2">{isEs ? "Instalar en" : "Install in"}</p>
@@ -290,7 +290,7 @@ const PluginDetail = () => {
             </div>
 
             {/* ─── Sidebar ─── */}
-            <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+            <div className="space-y-6 order-1 lg:order-none lg:sticky lg:top-20 lg:self-start">
               {/* Badges & stats */}
               <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
