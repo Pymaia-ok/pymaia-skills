@@ -332,7 +332,18 @@ const Plugins = () => {
             </>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((plugin, i) => renderPluginCard(plugin, i))}
+              {filtered.slice(0, visibleCount).map((plugin, i) => renderPluginCard(plugin, i))}
+            </div>
+          )}
+
+          {!isLoading && visibleCount < filtered.length && (
+            <div className="text-center mt-8">
+              <button
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="px-6 py-2.5 rounded-full bg-secondary text-foreground font-medium text-sm hover:bg-secondary/80 transition-colors"
+              >
+                {isEs ? `Mostrar más (${filtered.length - visibleCount} restantes)` : `Show more (${filtered.length - visibleCount} remaining)`}
+              </button>
             </div>
           )}
 
