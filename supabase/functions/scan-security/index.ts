@@ -787,7 +787,8 @@ Deno.serve(async (req) => {
       install_command: directInstallCmd,
       batch_mode = false,
       batch_size = 20,
-      gate_mode = false, // New: used during publish to return pass/fail
+      gate_mode = false,
+      skip_llm = false, // Fast mode: skip LLM for bulk initial scanning
     } = body;
 
     // ── GATE MODE: scan content directly and return pass/fail ──
