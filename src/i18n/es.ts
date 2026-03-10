@@ -31,10 +31,10 @@ export default {
 
   // Landing sections
   landing: {
-    heroBadge: "Conocimiento experto para tu IA",
-    heroTitle: "Trabajá como un\nexperto en minutos.",
-    heroSubtitle: "Miles de conocimientos profesionales listos para instalar. Elegí uno, instalalo y convertite en experto.",
-    heroCtaExplore: "Quiero ser experto",
+    heroBadge: "Tu arquitecto de soluciones AI",
+    heroTitle: "Decile a Claude qué querés\nlograr. Nosotros armamos todo.",
+    heroSubtitle: "Pymaia Agent entiende tu objetivo, busca en 35K+ herramientas y te arma la solución perfecta: skills, conectores y plugins combinados, listos para instalar.",
+    heroCtaExplore: "Probar Pymaia Agent",
     heroCtaLearn: "Cómo funciona",
 
     howTitle: "Cómo funciona",
