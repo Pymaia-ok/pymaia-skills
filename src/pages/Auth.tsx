@@ -161,6 +161,8 @@ const Auth = () => {
             >
               {submitting
                 ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                : mode === "forgot"
+                ? t("auth.forgotBtn")
                 : mode === "login"
                 ? t("auth.loginBtn")
                 : t("auth.signupBtn")}
