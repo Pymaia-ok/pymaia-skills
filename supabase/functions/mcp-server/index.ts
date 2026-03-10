@@ -472,7 +472,7 @@ function deduplicateConnectors(connectors: any[]): any[] {
 // ─── CONNECTOR TOOLS ───
 
 mcp.tool("search_connectors", {
-  description: "Search MCP connectors (integrations) by name, category, or description. Connectors give Claude access to external tools and services like Slack, GitHub, databases, etc.",
+  description: "Search MCP connectors (integrations) by name, category, or description. Connectors give Claude access to external tools and services like Slack, GitHub, databases, etc. NOTE: For goal-oriented queries (e.g. 'I want to run Meta Ads'), use solve_goal instead — it searches skills, connectors, AND plugins simultaneously and returns curated solutions.",
   inputSchema: {
     type: "object",
     properties: {
