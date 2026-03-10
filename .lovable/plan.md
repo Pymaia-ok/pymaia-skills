@@ -1,34 +1,48 @@
 
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+## Plan: Optimizar y racionalizar todos los cron jobs
 
-### Implementado en esta sesión
+### Problemas a resolver
 
-| Gap | Estado | Implementación |
+1. **3 duplicados de scan-security para skills** (`bulk-scan-skills-a/b/c`) — eliminar 2
+2. **2 duplicados de calculate-trust-score** — eliminar el de */10
+3. **7 jobs a */1 min** — excesivo; reducir a */3-5 min una vez que el backlog esté procesado
+4. **Nuevas fuentes semanales inconsistentes** — skills.sh categories y agentskill deberían ser diarias (como las demás fuentes de sync), Composio semanal está bien
+
+### Cambios propuestos (solo SQL contra `cron.job`)
+
+| Acción | Job | De → A |
 |---|---|---|
-| **Dependency Audit (CVE checks)** | ✅ Implementado | Layer 12 en `scan-security` v6.0 — lee `package.json`/`requirements.txt` del repo GitHub, consulta GitHub Advisory Database API. CVSS>7 bloquea, CVSS>9 recomienda delist. |
-| **Network Security Check (MCPs)** | ✅ Implementado | `check-mcp-health` v2.0 — valida HTTPS, puertos seguros, no IPs internas, no credenciales en URL, SSL errors. |
-| **Publisher notification on report** | ✅ Implementado | `security-incident` v2.0 — notifica al publisher vía `send-email` cuando recibe 1 reporte. Notifica también en delist. |
-| **Review Queue en Admin** | ✅ Implementado | Nuevo tab "Review Queue" en `/admin` con items flagged/suspicious, botones Approve/Reject/Rescan. |
-| **Full catalog re-scan rotation** | ✅ Implementado | `rescan-security` v2.0 — ordena por `security_scanned_at ASC` (nulls first), rota el catálogo completo semanalmente. |
-| **Publisher account status check** | ✅ Implementado | `version-monitor` v2.0 — verifica que las cuentas GitHub de publishers sigan activas, crea incidente P2 si eliminada/suspendida. |
-| **Uninstall spike detection** | ✅ Implementado | `security-incident` acción `check_uninstall_spikes` — detecta tasa de uninstall >30% como trigger de review. |
+| **Eliminar** | `bulk-scan-skills-b` (jobid 51) | Duplicado |
+| **Eliminar** | `bulk-scan-skills-c` (jobid 52) | Duplicado |
+| **Eliminar** | `calculate-trust-scores` (jobid 36) | Solapado con fast |
+| **Cambiar freq** | `sync-skills-categories-weekly` | Semanal → **Diario 8AM** |
+| **Cambiar freq** | `sync-skills-agentskill-weekly` | Semanal → **Diario 9AM** |
+| **Cambiar freq** | `bulk-scan-skills-a` | */1 → ***/3 min** |
+| **Cambiar freq** | `bulk-scan-connectors-a` | */1 → ***/3 min** |
+| **Cambiar freq** | `bulk-scan-plugins-a` | */1 → ***/3 min** |
+| **Cambiar freq** | `translate-skills-fast` | */1 → ***/2 min** |
+| **Cambiar freq** | `sync-skill-stars-auto` | */1 → ***/3 min** |
+| **Cambiar freq** | `bulk-mark-no-mcp-auto` | */1 → ***/5 min** |
 
-### Items no implementables en esta plataforma
-- ML model (Fase 4) — requiere infra ML externa
-- Snyk Agent Scan — requiere API key de pago
-- Docker image scan (Trivy/Grype) — no ejecutable en edge functions
+### Resultado
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API) ← NUEVO
-12. LLM analysis (Gemini 2.5 Flash)
+- De **36 jobs** a **33 jobs** (3 eliminados)
+- De **7 jobs a */1 min** a **1 job a */2 min** — reducción de ~70% en invocaciones por minuto
+- Todas las fuentes de sync de skills son diarias (consistente)
+- Composio sigue semanal (catálogo estático, bajo cambio)
+- Sin cambios en edge functions, solo en schedules de cron
+
+### Resumen de frecuencias final
+
+```text
+SYNC (descubrimiento):     Diario 6-10AM
+ENRIQUECIMIENTO:           */2-4 min
+TRADUCCIÓN:                */2-3 min  
+SEGURIDAD (scan inicial):  */3 min
+SEGURIDAD (rescan):        Semanal
+TRUST SCORES:              */5 min
+MANTENIMIENTO:             */10 min
+MONITOREO:                 */6h - */15 min
+```
+
