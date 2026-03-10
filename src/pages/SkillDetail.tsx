@@ -340,7 +340,25 @@ const SkillDetail = () => {
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-16">
+          {/* Security Panel */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-12">
+            <SecurityPanel
+              trustScore={(skill as any).trust_score || 0}
+              securityStatus={(skill as any).security_status}
+              securityScannedAt={(skill as any).security_scanned_at}
+              scanResult={(skill as any).security_scan_result}
+              createdAt={skill.created_at}
+              isOfficial={false}
+              creatorId={skill.creator_id}
+              creatorName={creatorProfile?.display_name}
+              creatorUsername={creatorProfile?.username}
+              creatorAvatarUrl={creatorProfile?.avatar_url}
+              lastCommitAt={(skill as any).last_commit_at}
+              itemType="skill"
+            />
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-16">
             <h2 className="text-2xl font-semibold mb-6">{t("detail.whatItDoes")}</h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-2xl">{descriptionHuman}</p>
 
