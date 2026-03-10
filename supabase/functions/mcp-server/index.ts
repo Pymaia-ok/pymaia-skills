@@ -808,6 +808,39 @@ mcp.tool("solve_goal", {
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
 
+    // 4b. Personalization: adjust scores based on user install history
+    let installedSlugs = new Set<string>();
+    let userCategories: Record<string, number> = {};
+    if (args.user_id) {
+      const { data: installs } = await supabase
+        .from("installations")
+        .select("skill_id")
+        .eq("user_id", args.user_id)
+        .limit(200);
+      if (installs && installs.length > 0) {
+        const skillIds = installs.map((i: any) => i.skill_id);
+        const { data: installedSkills } = await supabase
+          .from("skills")
+          .select("slug, category")
+          .in("id", skillIds);
+        for (const s of installedSkills || []) {
+          installedSlugs.add(s.slug);
+          userCategories[s.category] = (userCategories[s.category] || 0) + 1;
+        }
+        // Re-score: deprioritize already-installed, boost same-category
+        for (const item of scored) {
+          if (installedSlugs.has(item.slug)) {
+            item.relevance -= 10; // Deprioritize already installed
+            item._installed = true;
+          }
+          if (userCategories[item.category]) {
+            item.relevance += Math.min(userCategories[item.category], 3); // Boost preferred categories
+          }
+        }
+        scored.sort((a: any, b: any) => b.relevance - a.relevance);
+      }
+    }
+
     // 5. Compose Option A (simple — fewer tools, prefer plugins/bundles)
     const optionA: any[] = [];
     const usedA = new Set<string>();
