@@ -5,10 +5,99 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+// ─── ML INTENT CLASSIFIER ───
+// Uses Gemini Flash Lite to extract structured intent from natural language goals
+async function classifyIntent(goal: string, role?: string): Promise<{
+  keywords: string[];
+  category: string | null;
+  capabilities: string[];
+  domain: string;
+  confidence: number;
+}> {
+  if (!LOVABLE_API_KEY) {
+    // Fallback: basic keyword extraction
+    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+  }
+
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: `You are an intent classifier for an AI agent tools marketplace. Given a user's business goal, extract:
+- keywords: 3-6 English search terms that would match tool names/descriptions in a catalog of AI agent skills, MCP connectors, and plugins
+- category: best matching category from [ia, desarrollo, diseño, marketing, automatización, datos, creatividad, productividad, legal, negocios] or null
+- capabilities: list of technical capabilities needed (e.g., "email sending", "code review", "data scraping", "CRM integration")
+- domain: business domain from [engineering, marketing, sales, design, legal, finance, operations, general]
+- confidence: 0.0-1.0 how confident you are in the classification
+
+Be precise with keywords - they should match actual tool names and descriptions. The user's role is: ${role || "unknown"}.`,
+          },
+          { role: "user", content: goal },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "classify_intent",
+            description: "Extract structured intent from user goal",
+            parameters: {
+              type: "object",
+              properties: {
+                keywords: { type: "array", items: { type: "string" }, description: "3-6 search terms" },
+                category: { type: "string", nullable: true },
+                capabilities: { type: "array", items: { type: "string" } },
+                domain: { type: "string" },
+                confidence: { type: "number" },
+              },
+              required: ["keywords", "category", "capabilities", "domain", "confidence"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "classify_intent" } },
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`AI status ${resp.status}`);
+    const data = await resp.json();
+    const call = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) throw new Error("No tool call");
+    return JSON.parse(call.function.arguments);
+  } catch (e) {
+    console.error("Intent classifier fallback:", e);
+    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+  }
+}
+
+// ─── A/B TESTING: Deterministic hash-based variant assignment ───
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+type ABVariant = "control" | "reranked";
+
+function assignVariant(goal: string, userId?: string): ABVariant {
+  const seed = `${goal.toLowerCase().trim()}:${userId || "anon"}`;
+  return hashString(seed) % 2 === 0 ? "control" : "reranked";
+}
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "8.1.0",
+  version: "8.2.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
@@ -764,7 +853,13 @@ mcp.tool("solve_goal", {
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     const goalLower = args.goal.toLowerCase();
 
-    // 1. Match goal templates
+    // 0. ML Intent Classification (replaces pure keyword matching)
+    const intent = await classifyIntent(args.goal, args.role);
+
+    // 0b. A/B variant assignment
+    const variant: ABVariant = assignVariant(args.goal, args.user_id);
+
+    // 1. Match goal templates (enhanced with AI-extracted keywords)
     const { data: templates } = await supabase.from("goal_templates").select("*").eq("is_active", true);
     let matchedTemplate: any = null;
     let bestScore = 0;
@@ -773,20 +868,23 @@ mcp.tool("solve_goal", {
       for (const trigger of (t.triggers || [])) {
         if (goalLower.includes(trigger.toLowerCase())) score += trigger.length;
       }
+      // Boost template match with AI-classified domain
+      if (intent.domain !== "general" && t.domain === intent.domain) score += 5;
+      if (intent.category && t.domain === intent.category) score += 3;
       if (score > bestScore) { bestScore = score; matchedTemplate = t; }
     }
 
     const capabilities = matchedTemplate?.capabilities || [];
-    const templateDomain = matchedTemplate?.domain || "general";
+    const templateDomain = matchedTemplate?.domain || intent.domain || "general";
 
-    // 2. Collect all search keywords
-    const allKeywords: string[] = [];
+    // 2. Collect search keywords (ML-enhanced + template + goal words)
+    const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
     const goalWords = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
     allKeywords.push(...goalWords);
     const uniqueKeywords = [...new Set(allKeywords)];
 
-    // 3. Cross-catalog search
+    // 3. Cross-catalog search (with category hint from classifier)
     const searchResults = await crossCatalogSearch(uniqueKeywords, 8);
     const allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
@@ -794,12 +892,18 @@ mcp.tool("solve_goal", {
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
 
-    // 4. Score by relevance
+    // 4. Score by relevance (ML-enhanced with AI-extracted capabilities)
     const scored = allItems.map((item: any) => {
       let score = 0;
       const searchable = `${item.name} ${item.desc || ""} ${item.category || ""}`.toLowerCase();
       for (const kw of goalWords) { if (searchable.includes(kw)) score += 3; }
       for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
+      // ML classifier boost: AI-extracted keywords get extra weight
+      for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
+      // ML classifier boost: match AI-detected capabilities
+      for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
+      // Category match from classifier
+      if (intent.category && item.category === intent.category) score += 4;
       const stars = item.github_stars || item.install_count || 0;
       if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
       if (item.is_official) score += 3;
@@ -807,6 +911,19 @@ mcp.tool("solve_goal", {
       score += (item.trust_score || 0) / 20;
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
+
+    // A/B variant "reranked": for the reranked variant, apply confidence-weighted randomization
+    if (variant === "reranked" && intent.confidence > 0.5) {
+      // Shuffle items within similar relevance tiers to test if strict ordering matters
+      for (let i = 0; i < scored.length - 1; i++) {
+        if (Math.abs(scored[i].relevance - scored[i + 1].relevance) <= 2) {
+          // Swap with 50% probability within same tier
+          if (hashString(`${args.goal}:${i}`) % 2 === 0) {
+            [scored[i], scored[i + 1]] = [scored[i + 1], scored[i]];
+          }
+        }
+      }
+    }
 
     // 4b. Personalization: adjust scores based on user install history
     let installedSlugs = new Set<string>();
@@ -925,7 +1042,11 @@ mcp.tool("solve_goal", {
       }
     }
 
-    if (!matchedTemplate) sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
+    if (!matchedTemplate && intent.confidence > 0) {
+      sections.push(`\n*🧠 AI Intent: ${intent.capabilities.join(", ")} (${intent.domain}, confidence: ${Math.round(intent.confidence * 100)}%)*`);
+    } else if (!matchedTemplate) {
+      sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
+    }
     if (installedSlugs.size > 0) {
       const alreadyInstalled = [...optionA, ...optionB].filter((i: any) => i._installed);
       if (alreadyInstalled.length > 0) {
@@ -934,9 +1055,31 @@ mcp.tool("solve_goal", {
       sections.push(`*Recommendations personalized based on your ${installedSlugs.size} installed tools.*`);
     }
 
+    // A/B experiment tag
+    sections.push(`\n<sub>experiment: ${variant} · classifier: ${intent.confidence > 0 ? "ml" : "keyword"}</sub>`);
+
     if (matchedTemplate) {
       await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
     }
+
+    // Track A/B experiment in analytics
+    const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
+    await supabase.from("agent_analytics").insert({
+      event_type: "solve_goal",
+      tool_name: "solve_goal",
+      goal: args.goal,
+      items_recommended: allSlugs,
+      event_data: {
+        variant,
+        classifier_confidence: intent.confidence,
+        classifier_category: intent.category,
+        classifier_domain: intent.domain,
+        matched_template: matchedTemplate?.slug || null,
+        recommended_option: rec,
+        option_a_count: optionA.length,
+        option_b_count: optionB.length,
+      },
+    });
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
@@ -1808,7 +1951,7 @@ mcp.tool("a2a_query", {
     if (args.action === "capabilities") {
       const caps = {
         agent: "pymaia-agent",
-        version: "8.0.0",
+        version: "8.2.0",
         protocol: "A2A-compatible",
         capabilities: [
           { name: "tool_search", description: "Search 35K+ skills, MCPs, and plugins", input: "query string", output: "array of tools" },
@@ -2016,11 +2159,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.1.0",
+  version: "8.2.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: personalized recommendations (user history), tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
+    capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration"],
   },
   a2a: {
     protocol: "A2A-compatible",
