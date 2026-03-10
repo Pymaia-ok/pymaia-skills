@@ -525,7 +525,7 @@ mcp.tool("search_connectors", {
       results = deduplicateConnectors(topData || []);
     }
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No connectors found." }] };
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching connectors found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
     const text = results
       .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}`)
