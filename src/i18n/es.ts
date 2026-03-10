@@ -108,9 +108,9 @@ export default {
     mcpSubtitle: "Instalá Pymaia Agent en Claude y decile qué querés lograr. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
     mcpCta: "Instalar Pymaia Agent",
 
-    ctaTitle: "Decile qué querés lograr.\nPymaia arma la solución.",
-    ctaSubtitle: "35K+ herramientas, un solo comando. Pymaia Agent es tu arquitecto de soluciones AI dentro de Claude.",
-    ctaExplore: "Probar Pymaia Agent",
+    ctaTitle: "Empezá a trabajar\ncomo un experto.",
+    ctaSubtitle: "38,000+ skills profesionales. Instalá la tuya en 2 minutos y transformá tu forma de trabajar.",
+    ctaExplore: "Explorar skills",
     ctaLearn: "Primeros pasos",
   },
 
