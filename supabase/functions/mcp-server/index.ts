@@ -933,7 +933,7 @@ mcp.tool("solve_goal", {
     const uniqueKeywords = [...new Set(allKeywords)];
 
     // 3. Cross-catalog search (with category hint from classifier)
-    const searchResults = await crossCatalogSearch(uniqueKeywords, 8);
+    const searchResults = await crossCatalogSearch(uniqueKeywords, 8, apiUserId);
     const allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
