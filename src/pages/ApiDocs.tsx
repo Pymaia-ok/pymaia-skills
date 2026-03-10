@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, ExternalLink, Shield, Search, Image, BookOpen, Zap, CheckCircle, AlertTriangle, Info, Github } from "lucide-react";
+import { Copy, ExternalLink, Shield, Search, Image, BookOpen, Zap, CheckCircle, AlertTriangle, Info, Github, Key } from "lucide-react";
 import { toast } from "sonner";
 import { useSEO } from "@/hooks/useSEO";
 
