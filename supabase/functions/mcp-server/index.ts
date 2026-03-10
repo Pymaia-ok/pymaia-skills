@@ -892,12 +892,18 @@ mcp.tool("solve_goal", {
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
 
-    // 4. Score by relevance
+    // 4. Score by relevance (ML-enhanced with AI-extracted capabilities)
     const scored = allItems.map((item: any) => {
       let score = 0;
       const searchable = `${item.name} ${item.desc || ""} ${item.category || ""}`.toLowerCase();
       for (const kw of goalWords) { if (searchable.includes(kw)) score += 3; }
       for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
+      // ML classifier boost: AI-extracted keywords get extra weight
+      for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
+      // ML classifier boost: match AI-detected capabilities
+      for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
+      // Category match from classifier
+      if (intent.category && item.category === intent.category) score += 4;
       const stars = item.github_stars || item.install_count || 0;
       if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
       if (item.is_official) score += 3;
@@ -905,6 +911,19 @@ mcp.tool("solve_goal", {
       score += (item.trust_score || 0) / 20;
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
+
+    // A/B variant "reranked": for the reranked variant, apply confidence-weighted randomization
+    if (variant === "reranked" && intent.confidence > 0.5) {
+      // Shuffle items within similar relevance tiers to test if strict ordering matters
+      for (let i = 0; i < scored.length - 1; i++) {
+        if (Math.abs(scored[i].relevance - scored[i + 1].relevance) <= 2) {
+          // Swap with 50% probability within same tier
+          if (hashString(`${args.goal}:${i}`) % 2 === 0) {
+            [scored[i], scored[i + 1]] = [scored[i + 1], scored[i]];
+          }
+        }
+      }
+    }
 
     // 4b. Personalization: adjust scores based on user install history
     let installedSlugs = new Set<string>();
