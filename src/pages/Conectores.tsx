@@ -43,12 +43,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: "bg-gray-500",
 };
 
+const PAGE_SIZE = 30;
+
 const Conectores = () => {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(searchParams.get("cat") || null);
   const [officialFilter, setOfficialFilter] = useState<"all" | "official" | "community" | "verified">((searchParams.get("filter") as any) || "all");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sync state to URL params
