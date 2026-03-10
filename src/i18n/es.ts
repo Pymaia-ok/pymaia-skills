@@ -317,6 +317,18 @@ export default {
     confirmSent: "Te enviamos un link de confirmación.",
     terms: "Al continuar, aceptás nuestros",
     and: "y",
+    forgotTitle: "Recuperá tu contraseña",
+    forgotSubtitle: "Te enviaremos un link para restablecer tu contraseña.",
+    forgotBtn: "Enviar link de recuperación",
+    forgotLink: "¿Olvidaste tu contraseña?",
+    resetSent: "Te enviamos un link de recuperación. Revisá tu bandeja de entrada.",
+    backToLogin: "← Volver a iniciar sesión",
+    newPasswordTitle: "Nueva contraseña",
+    newPasswordSubtitle: "Elegí una nueva contraseña para tu cuenta.",
+    newPasswordPlaceholder: "Nueva contraseña (mín. 6 caracteres)",
+    resetBtn: "Guardar nueva contraseña",
+    passwordUpdated: "Contraseña actualizada",
+    passwordUpdatedDesc: "Tu contraseña fue actualizada correctamente.",
   },
 
   // MCP
