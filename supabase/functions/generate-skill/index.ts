@@ -322,13 +322,13 @@ serve(async (req) => {
       // Validate and sanitize per Anthropic spec
       skill = validateSkillFields(skill);
 
-      // Step 2: Judge the skill quality
+      // Step 2: Judge the skill quality (use lite model for speed)
       const judgeRaw = await callAI(
         [
           { role: "system", content: JUDGE_PROMPT },
           { role: "user", content: JSON.stringify(skill) },
         ],
-        "google/gemini-2.5-flash"
+        "google/gemini-2.5-flash-lite"
       );
 
       let judge;
