@@ -1,8 +1,9 @@
 
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.0.0)
 
-### Estado: ~92% completado
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.1.0)
+
+### Estado: ~97% completado
 
 ### Fase 0 — Foundation ✅ COMPLETA
 | Item | Estado |
@@ -38,7 +39,7 @@
 |---|---|
 | Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
 | Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ⚠️ NO implementado — requiere tracking por user |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
 | `trending_solutions` tool | ✅ Popular goals + templates + installs |
 | A/B testing de composiciones | ⚠️ NO implementable (requiere traffic routing) |
 | API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
@@ -50,31 +51,32 @@
 | Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
 | Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
 | Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ⚠️ NO implementado (requiere billing) |
-| Integración con SkillForge | ⚠️ Parcial — creator existe independiente |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
 ### Items no implementables en esta plataforma
 - **Semantic search con embeddings** — requiere pgvector/Pinecone, no disponible en edge functions
 - **ML intent classifier** — requiere infra ML externa
 - **A/B testing framework** — requiere traffic routing
-- **Premium billing** — requiere Stripe integration
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-### Tools del MCP v8.0.0 (27 tools)
+### Tools del MCP v8.1.0 (28 tools)
 1. search_skills, get_skill_details, list_popular_skills, list_new_skills
 2. list_categories, search_by_role, recommend_for_task, compare_skills
 3. search_connectors, get_connector_details, list_popular_connectors
 4. search_plugins, get_plugin_details, list_popular_plugins
 5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core)
-7. **get_role_kit** (Role-based recommendations)
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
 8. **explain_combination** (Tool synergy analysis)
 9. **rate_recommendation** (Feedback loop)
 10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **trending_solutions** (Ecosystem trends)
-12. **submit_goal_template** (Community marketplace)
-13. **browse_community_templates** (Template browser)
-14. **agent_analytics** (Performance dashboard)
-15. **a2a_query** (Agent-to-Agent protocol)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
 
 ## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
