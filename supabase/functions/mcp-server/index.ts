@@ -1263,29 +1263,21 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect",
-  version: "4.0.0",
+  version: "5.0.0",
   rateLimit: "30 requests/minute per IP",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools.",
-    capabilities: ["Goal decomposition", "Cross-catalog search", "Solution composition", "Trust evaluation", "Role-based kits"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Phase 1: Smart Composition with A/B options, compatibility matrix, and feedback.",
+    capabilities: ["Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based kits", "Feedback loop"],
   },
   tools: [
-    // Discovery
     "search_skills", "get_skill_details", "list_popular_skills", "list_new_skills",
     "list_categories", "search_by_role", "recommend_for_task", "compare_skills",
     "get_directory_stats", "get_install_command",
-    // Connectors
     "search_connectors", "get_connector_details", "list_popular_connectors",
-    // Plugins
     "search_plugins", "get_plugin_details", "list_popular_plugins",
-    // Unified
     "explore_directory",
-    // Agent (NEW)
-    "solve_goal", "get_role_kit", "explain_combination",
+    "solve_goal", "get_role_kit", "explain_combination", "rate_recommendation",
   ],
-  categories: ["desarrollo", "diseño", "marketing", "automatización", "productividad", "legal", "negocios", "creatividad", "datos", "ia"],
-  connectorCategories: ["dev-tools", "data", "communication", "productivity", "ai", "cloud", "design", "business", "finance", "marketing", "security", "analytics"],
-  pluginCategories: ["development", "productivity", "design", "data", "marketing", "business", "communication", "security", "ai", "education"],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
 
