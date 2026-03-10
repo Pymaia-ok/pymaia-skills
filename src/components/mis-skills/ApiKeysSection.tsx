@@ -213,6 +213,24 @@ export default function ApiKeysSection() {
         </div>
       )}
 
+      {/* Confirm revoke dialog */}
+      <Dialog open={!!confirmRevokeId} onOpenChange={(open) => !open && setConfirmRevokeId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("apiKeys.confirmRevokeTitle")}</DialogTitle>
+            <DialogDescription>{t("apiKeys.confirmRevokeDesc")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end mt-2">
+            <Button variant="outline" size="sm" onClick={() => setConfirmRevokeId(null)}>
+              {t("apiKeys.cancel")}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => confirmRevokeId && revokeKey(confirmRevokeId)}>
+              {t("apiKeys.confirmRevoke")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* New key dialog */}
       <Dialog open={!!newKey} onOpenChange={(open) => !open && setNewKey(null)}>
         <DialogContent className="sm:max-w-lg">

@@ -1,12 +1,14 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import SkillCard from "@/components/SkillCard";
 import { fetchProfileByUsername, fetchUserSkills, fetchUserReviews } from "@/lib/api";
 import { Star } from "lucide-react";
 
 const UserProfile = () => {
   const { username } = useParams();
+  const { t } = useTranslation();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", username],
@@ -41,8 +43,8 @@ const UserProfile = () => {
     return (
       <div className="min-h-screen bg-background">
         <div className="pt-14 max-w-4xl mx-auto px-6 py-24 text-center">
-          <h1 className="section-title mb-4">Usuario no encontrado</h1>
-          <Link to="/explorar" className="text-muted-foreground hover:text-foreground">← Volver</Link>
+          <h1 className="section-title mb-4">{t("userProfile.notFound")}</h1>
+          <Link to="/explorar" className="text-muted-foreground hover:text-foreground">← {t("userProfile.back")}</Link>
         </div>
       </div>
     );
@@ -61,7 +63,7 @@ const UserProfile = () => {
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold">{profile.display_name || profile.username || "Usuario"}</h1>
+              <h1 className="text-2xl font-bold">{profile.display_name || profile.username || t("userProfile.defaultName")}</h1>
               {profile.username && <p className="text-muted-foreground">@{profile.username}</p>}
               {profile.role && <p className="text-sm text-muted-foreground mt-1 capitalize">{profile.role}</p>}
             </div>
@@ -71,18 +73,18 @@ const UserProfile = () => {
           <div className="flex gap-6 mt-6 text-sm">
             <div>
               <span className="font-semibold text-foreground">{skills.filter(s => s.status === "approved").length}</span>{" "}
-              <span className="text-muted-foreground">skills publicadas</span>
+              <span className="text-muted-foreground">{t("userProfile.publishedSkills")}</span>
             </div>
             <div>
               <span className="font-semibold text-foreground">{reviews.length}</span>{" "}
-              <span className="text-muted-foreground">reviews</span>
+              <span className="text-muted-foreground">{t("userProfile.reviews")}</span>
             </div>
           </div>
         </motion.div>
 
         {skills.filter(s => s.status === "approved").length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-12">
-            <h2 className="text-xl font-semibold mb-6">Skills publicadas</h2>
+            <h2 className="text-xl font-semibold mb-6">{t("userProfile.publishedSkillsTitle")}</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {skills.filter(s => s.status === "approved").map((skill, i) => (
                 <SkillCard key={skill.id} skill={skill} index={i} />
@@ -93,7 +95,7 @@ const UserProfile = () => {
 
         {reviews.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <h2 className="text-xl font-semibold mb-6">Reviews escritas</h2>
+            <h2 className="text-xl font-semibold mb-6">{t("userProfile.writtenReviews")}</h2>
             <div className="grid gap-4">
               {reviews.map(review => (
                 <div key={review.id} className="p-5 rounded-2xl bg-secondary">
@@ -105,7 +107,7 @@ const UserProfile = () => {
                   {review.comment && <p className="text-sm mb-2">"{review.comment}"</p>}
                   {review.time_saved && (
                     <span className="text-xs font-medium px-3 py-1 rounded-full bg-background text-muted-foreground">
-                      Ahorra {review.time_saved}
+                      {t("userProfile.saves")} {review.time_saved}
                     </span>
                   )}
                 </div>
