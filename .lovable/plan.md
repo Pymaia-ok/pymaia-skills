@@ -1,88 +1,100 @@
 
 
-## Plan: API Keys personales para acceso privado vía MCP
 
-### Resumen
-Crear una tabla `api_keys` donde los usuarios generan keys personales. El MCP server valida el header `Authorization: Bearer <key>` para identificar al usuario e incluir sus skills privadas en las búsquedas.
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-### 1. Migración: tabla `api_keys`
+### Estado: ~99% completado
 
-```sql
-CREATE TABLE public.api_keys (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  key_hash text NOT NULL,
-  key_prefix text NOT NULL,       -- primeros 8 chars para mostrar en UI
-  label text NOT NULL DEFAULT 'default',
-  last_used_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  revoked_at timestamptz,
-  UNIQUE (key_hash)
-);
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-CREATE POLICY "Users can manage own keys"
-  ON public.api_keys FOR ALL TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-CREATE POLICY "Service role api_keys"
-  ON public.api_keys FOR ALL TO service_role
-  USING (true) WITH CHECK (true);
-```
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-Se almacena el **hash SHA-256** de la key, nunca en texto plano. La key completa solo se muestra una vez al crearla.
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-Función helper para validar keys desde el MCP server:
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-```sql
-CREATE OR REPLACE FUNCTION public.validate_api_key(_key_hash text)
-RETURNS uuid
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = 'public'
-AS $$
-  SELECT user_id FROM public.api_keys
-  WHERE key_hash = _key_hash AND revoked_at IS NULL
-  LIMIT 1;
-$$;
-```
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-### 2. Edge function: generar/listar/revocar keys
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
-Crear `supabase/functions/manage-api-keys/index.ts`:
-- `POST /` — genera nueva key (SHA-256 hash en DB, devuelve key plana una sola vez)
-- `GET /` — lista keys del usuario (prefix, label, created_at, last_used_at)
-- `DELETE /:id` — revoca una key (soft delete con `revoked_at`)
-- Autenticado via JWT del usuario logueado
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-### 3. MCP Server: validar API key
-
-En `supabase/functions/mcp-server/index.ts`:
-- Al inicio de cada request, leer `Authorization: Bearer <key>`
-- Si existe, hashear la key con SHA-256 y buscar en `api_keys` via `validate_api_key` RPC
-- Si válida, obtener el `user_id` y pasar como contexto a los handlers
-- Actualizar `last_used_at` en background
-
-En los tools `search_skills`, `get_skill_details`, `solve_goal`:
-- Si hay `user_id` autenticado, modificar la query para incluir `OR creator_id = user_id` (skills privadas del usuario)
-- Sin API key, el comportamiento no cambia (solo skills públicas)
-
-### 4. UI: sección API Keys en MisSkills
-
-En `src/pages/MisSkills.tsx`, agregar una sección "API Key" después de las stats:
-- Botón "Generar API Key" que llama al edge function
-- Modal que muestra la key generada una sola vez con botón copiar
-- Lista de keys existentes (prefix `pymsk_abc1...`, label, fecha, último uso)
-- Botón revocar por key
-- Snippet de configuración MCP con la key
-
-### 5. i18n
-
-Agregar traducciones en `src/i18n/es.ts` y `src/i18n/en.ts` para las nuevas strings de la sección API Keys.
-
-### Flujo completo
-1. Usuario va a `/mis-skills` → sección "API Key" → genera key
-2. Recibe `pymsk_xxxxxxxxxxxx` (se muestra una vez)
-3. Configura Claude Code con header `Authorization: Bearer pymsk_xxx...`
-4. MCP server valida, identifica usuario, incluye sus skills privadas en resultados
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, Eye, Clock, Star, Download, BarChart3, Loader2, Globe, Lock, Trash2, ArrowRight } from "lucide-react";
+import ApiKeysSection from "@/components/mis-skills/ApiKeysSection";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { fetchUserSkills, type SkillFromDB } from "@/lib/api";
@@ -120,6 +121,9 @@ export default function MisSkills() {
             <p className="text-2xl font-bold text-foreground">{avgRating}</p>
           </div>
         </div>
+
+        {/* API Keys section */}
+        <ApiKeysSection />
 
         {/* Drafts section */}
         {!isLoading && drafts.length > 0 && (

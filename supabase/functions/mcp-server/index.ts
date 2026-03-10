@@ -7,6 +7,33 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+// ─── API KEY AUTH: resolve user_id from Bearer token ───
+async function sha256Hex(message: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Global per-request context for API key auth
+// Edge functions in Deno are single-threaded per isolate, so this is safe per-request
+let currentApiKeyUserId: string | null = null;
+
+async function resolveApiKeyUser(authHeader: string | null): Promise<string | null> {
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token || !token.startsWith("pymsk_")) return null;
+  try {
+    const keyHash = await sha256Hex(token);
+    const { data } = await supabase.rpc("validate_api_key", { _key_hash: keyHash });
+    if (data) {
+      // Update last_used_at in background
+      supabase.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("key_hash", keyHash).then(() => {});
+    }
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── ML INTENT CLASSIFIER ───
 // Uses Gemini Flash Lite to extract structured intent from natural language goals
 async function classifyIntent(goal: string, role?: string): Promise<{
@@ -156,10 +183,17 @@ mcp.tool("search_skills", {
     const lim = Math.min(args.limit || 5, 10);
     const q = sanitizeForPostgrest(args.query);
 
+    // Use global API key user context for private skill access
+    const apiUserId = currentApiKeyUserId;
+
     let dbQuery = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
-      .eq("status", "approved")
+      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles, is_public, creator_id")
+      .or(
+        apiUserId
+          ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
+          : `and(status.eq.approved,is_public.eq.true)`
+      )
       .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
       .order("install_count", { ascending: false })
       .limit(lim);
@@ -215,8 +249,14 @@ mcp.tool("get_skill_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
-    const { data: skill, error } = await supabase
-      .from("skills").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
+    const apiUserId = currentApiKeyUserId;
+    let q = supabase.from("skills").select("*").eq("slug", args.slug);
+    if (apiUserId) {
+      q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
+    } else {
+      q = q.eq("status", "approved");
+    }
+    const { data: skill, error } = await q.maybeSingle();
 
     if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" no encontrada.` }] };
 
@@ -2307,7 +2347,7 @@ const httpHandler = transport.bind(mcp);
 const app = new Hono();
 const mcpApp = new Hono();
 
-// Rate limit middleware for MCP endpoint
+// Rate limit middleware + API key auth for MCP endpoint
 mcpApp.use("/mcp", async (c, next) => {
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
     c.req.header("x-real-ip") || "unknown";
@@ -2317,6 +2357,8 @@ mcpApp.use("/mcp", async (c, next) => {
       429
     );
   }
+  // Resolve API key user and store in global context
+  currentApiKeyUserId = await resolveApiKeyUser(c.req.header("authorization"));
   await next();
 });
 
