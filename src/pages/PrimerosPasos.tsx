@@ -591,34 +591,34 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
-        {/* ─── Section 7: MCP de Pymaia Skills ─── */}
+        {/* ─── Section 7: Conector de Pymaia Skills ─── */}
         <section id="pymaia-mcp" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
           <motion.div {...fadeUp}>
-            <SectionBadge icon={Bot} label="MCP Server" />
+            <SectionBadge icon={Bot} label={isEs ? "Conector" : "Connector"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "Instalá el MCP de Pymaia Skills" : "Install the Pymaia Skills MCP"}
+              {isEs ? "Instalá el Conector de Pymaia Skills" : "Install the Pymaia Skills Connector"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "En vez de buscar skills manualmente, instalá nuestro MCP Server y Claude te recomienda la skill perfecta automáticamente mientras trabajás."
-                : "Instead of searching for skills manually, install our MCP Server and Claude automatically recommends the perfect skill while you work."}
+                ? "En vez de buscar skills manualmente, instalá nuestro conector y Claude analiza tu objetivo para recomendarte la solución completa: skills, conectores y plugins combinados."
+                : "Instead of searching for skills manually, install our connector and Claude analyzes your goal to recommend the complete solution: skills, connectors and plugins combined."}
             </p>
 
             <div className="grid sm:grid-cols-3 gap-4 mb-8">
               {[
                 {
-                  emoji: "🔍",
-                  title: isEs ? "Búsqueda inteligente" : "Smart search",
+                  emoji: "🧠",
+                  title: isEs ? "Arquitecto de soluciones" : "Solutions architect",
                   desc: isEs
-                    ? "Claude busca en +35,000 skills, conectores y plugins por vos."
-                    : "Claude searches through 35,000+ skills, connectors and plugins for you.",
+                    ? "Describí tu objetivo y Claude te arma la solución completa con opciones A y B, scores de confianza y pasos de instalación."
+                    : "Describe your goal and Claude builds the complete solution with options A and B, trust scores and install steps.",
                 },
                 {
                   emoji: "🎯",
-                  title: isEs ? "Recomendaciones por rol" : "Role-based recommendations",
+                  title: isEs ? "Kits por rol" : "Role-based kits",
                   desc: isEs
-                    ? "Decile tu rol y te arma un kit personalizado de skills."
-                    : "Tell it your role and it builds a personalized skill kit.",
+                    ? "Decile tu rol y te arma un kit personalizado de skills listo para instalar."
+                    : "Tell it your role and it builds a personalized skill kit ready to install.",
                 },
                 {
                   emoji: "⚡",
@@ -654,7 +654,7 @@ const PrimerosPasos = () => {
             <div className="mt-6 text-center">
               <Link to="/mcp">
                 <Button variant="outline" size="lg" className="rounded-full text-base px-8 h-12 gap-2">
-                  {isEs ? "Más sobre el MCP Server" : "More about the MCP Server"}
+                  {isEs ? "Más sobre el conector" : "More about the connector"}
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
