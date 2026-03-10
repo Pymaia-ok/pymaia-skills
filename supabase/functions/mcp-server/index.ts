@@ -195,7 +195,7 @@ mcp.tool("search_skills", {
       results = topData || [];
     }
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes." }] };
+    if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching skills found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
     const text = results
       .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count.toLocaleString()} installs)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
