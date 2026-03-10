@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageSquare, Globe, Lock, Play } from "lucide-react";
+import { ArrowRight, MessageSquare, Globe, Lock, Video, ShieldCheck } from "lucide-react";
 
 const chatLines = [
   { role: "ai", text: "¿Qué expertise querés empaquetar?" },
