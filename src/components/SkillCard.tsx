@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Heart, ShieldCheck, Download } from "lucide-react";
+import { Star, Heart, Download } from "lucide-react";
 import type { SkillFromDB } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { TrustBadgeCompact } from "@/components/TrustBadge";
