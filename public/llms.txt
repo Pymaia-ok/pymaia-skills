@@ -1,6 +1,6 @@
 # Pymaia Skills
 
-> The #1 skill directory for Claude Code. 38,000+ professional skills ready to install.
+> The #1 skill directory for Claude Code. 38,000+ professional skills ready to install. AI Solutions Architect with 28 tools.
 
 Pymaia Skills is a curated marketplace of "skills" — knowledge files that teach Claude Code how to perform specific professional tasks. Browse, install, and review skills without coding or terminal knowledge.
 
@@ -13,6 +13,7 @@ A skill is a Markdown file (SKILL.md) that teaches Claude how to do a specific t
 - 38,000+ skills available
 - 19 categories
 - 100+ MCP connectors
+- 28 MCP tools (AI Solutions Architect)
 - 2 min average install time
 
 ## Categories
@@ -21,7 +22,7 @@ IA, Desarrollo, Automatización, Diseño, Productividad, Datos, Marketing, Legal
 
 ## MCP Server
 
-Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing.
+Install the Pymaia Skills MCP Server so Claude automatically suggests relevant skills based on what you're doing. The server includes an **AI Solutions Architect** — for complex goals, use `solve_goal` to get two curated solution options with trust scores and install commands.
 
 ### Quick Install (Claude Code)
 
@@ -56,7 +57,9 @@ claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supab
 }
 ```
 
-### Available Tools (17)
+### Available Tools (28)
+
+> **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
 **Skills (10):**
 - `search_skills` — Search skills by keyword or natural language query
@@ -82,6 +85,21 @@ claude mcp add pymaia-skills --transport http https://zugqvdqactbhzlilwyds.supab
 
 **Unified (1):**
 - `explore_directory` — Search across skills, connectors, and plugins in one query
+
+**AI Solutions Architect (7):**
+- `solve_goal` — Describe any professional goal in natural language and get two curated solution options (A/B) with trust scores, compatibility analysis, and install commands. Supports user history personalization.
+- `get_role_kit` — Get a complete toolkit for a professional role (e.g., marketer, lawyer, developer). Supports tiered kits (essentials/advanced).
+- `explain_combination` — Analyze synergies, conflicts, and data flow between multiple tools
+- `rate_recommendation` — Submit feedback on a recommendation to improve future suggestions
+- `generate_custom_skill` — Generate a complete SKILL.md or plugin.json from a goal description
+- `suggest_for_skill_creation` — Get dependency suggestions (MCPs, similar skills) when building a new skill
+- `trending_solutions` — View trending goals, popular templates, and ecosystem insights
+
+**Platform & Community (4):**
+- `submit_goal_template` — Submit a reusable goal template to the community marketplace
+- `browse_community_templates` — Browse community-submitted goal templates
+- `agent_analytics` — View MCP server performance metrics and usage patterns
+- `a2a_query` — Agent-to-Agent protocol for inter-agent communication and catalog queries
 
 ## MCP Connectors Directory
 
