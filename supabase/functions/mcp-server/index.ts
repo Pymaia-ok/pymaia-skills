@@ -1951,7 +1951,7 @@ mcp.tool("a2a_query", {
     if (args.action === "capabilities") {
       const caps = {
         agent: "pymaia-agent",
-        version: "8.0.0",
+        version: "8.2.0",
         protocol: "A2A-compatible",
         capabilities: [
           { name: "tool_search", description: "Search 35K+ skills, MCPs, and plugins", input: "query string", output: "array of tools" },
