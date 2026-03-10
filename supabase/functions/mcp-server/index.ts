@@ -1042,7 +1042,11 @@ mcp.tool("solve_goal", {
       }
     }
 
-    if (!matchedTemplate) sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
+    if (!matchedTemplate && intent.confidence > 0) {
+      sections.push(`\n*🧠 AI Intent: ${intent.capabilities.join(", ")} (${intent.domain}, confidence: ${Math.round(intent.confidence * 100)}%)*`);
+    } else if (!matchedTemplate) {
+      sections.push(`\n*No exact goal template matched. Results based on keyword analysis.*`);
+    }
     if (installedSlugs.size > 0) {
       const alreadyInstalled = [...optionA, ...optionB].filter((i: any) => i._installed);
       if (alreadyInstalled.length > 0) {
@@ -1051,9 +1055,31 @@ mcp.tool("solve_goal", {
       sections.push(`*Recommendations personalized based on your ${installedSlugs.size} installed tools.*`);
     }
 
+    // A/B experiment tag
+    sections.push(`\n<sub>experiment: ${variant} · classifier: ${intent.confidence > 0 ? "ml" : "keyword"}</sub>`);
+
     if (matchedTemplate) {
       await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
     }
+
+    // Track A/B experiment in analytics
+    const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
+    await supabase.from("agent_analytics").insert({
+      event_type: "solve_goal",
+      tool_name: "solve_goal",
+      goal: args.goal,
+      items_recommended: allSlugs,
+      event_data: {
+        variant,
+        classifier_confidence: intent.confidence,
+        classifier_category: intent.category,
+        classifier_domain: intent.domain,
+        matched_template: matchedTemplate?.slug || null,
+        recommended_option: rec,
+        option_a_count: optionA.length,
+        option_b_count: optionB.length,
+      },
+    });
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
