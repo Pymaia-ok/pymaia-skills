@@ -290,7 +290,7 @@ const PluginDetail = () => {
             </div>
 
             {/* ─── Sidebar ─── */}
-            <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+            <div className="space-y-6 order-1 lg:order-none lg:sticky lg:top-20 lg:self-start">
               {/* Badges & stats */}
               <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
