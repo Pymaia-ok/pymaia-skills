@@ -28,10 +28,10 @@ export default {
   },
 
   landing: {
-    heroBadge: "Expert knowledge for your AI",
-    heroTitle: "Work like an\nexpert in minutes.",
-    heroSubtitle: "Thousands of professional skills ready to install. Pick one, install it, and become an expert.",
-    heroCtaExplore: "Find expertise for your work",
+    heroBadge: "Your AI Solutions Architect",
+    heroTitle: "Tell Claude what you\nwant to achieve. We build it.",
+    heroSubtitle: "Pymaia Agent understands your goal, searches 35K+ tools, and assembles the perfect solution: skills, connectors, and plugins combined, ready to install.",
+    heroCtaExplore: "Try Pymaia Agent",
     heroCtaLearn: "How it works",
 
     howTitle: "How it works",
