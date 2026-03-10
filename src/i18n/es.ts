@@ -625,6 +625,10 @@ export default {
     newKeyDesc: "Copiá esta key ahora. No se mostrará de nuevo.",
     mcpConfig: "Configuración MCP para Claude Code",
     mcpConfigHint: "Pegá esto en tu archivo de configuración MCP (~/.claude/mcp.json).",
+    confirmRevokeTitle: "¿Revocar esta API key?",
+    confirmRevokeDesc: "Esta acción es irreversible. Las solicitudes que usen esta key dejarán de funcionar inmediatamente.",
+    cancel: "Cancelar",
+    confirmRevoke: "Revocar",
   },
 
   crearSkill: {
