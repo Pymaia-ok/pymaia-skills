@@ -289,15 +289,30 @@ serve(async (req) => {
     };
 
     if (action === "generate") {
-      // Step 1: Generate the skill from conversation using tool calling
+      // Detect artifact type from conversation [TIPO:xxx] tag
       const conversationText = conversation
         .map((m: any) => `${m.role === "user" ? "Usuario" : "Entrevistador"}: ${m.content}`)
         .join("\n\n");
 
+      const tipoMatch = conversationText.match(/\[TIPO:(skill|api-connector|workflow|slash-command|subagent)\]/i);
+      const artifactType = tipoMatch ? tipoMatch[1].toLowerCase() : "skill";
+
+      // Augment generate prompt with type-specific instructions
+      let typeContext = "";
+      if (artifactType === "api-connector") {
+        typeContext = "\n\nIMPORTANTE: Este es un API connector. El campo required_mcps DEBE incluir al menos un MCP server con los detalles de la API (URL, tools, credenciales). El SKILL.md debe incluir una sección ## Dependencies con instrucciones de instalación del MCP.";
+      } else if (artifactType === "workflow") {
+        typeContext = "\n\nIMPORTANTE: Este es un workflow completo. El SKILL.md debe describir múltiples pasos encadenados y puede referenciar otros skills/commands. Incluí secciones claras para cada fase del workflow.";
+      } else if (artifactType === "slash-command") {
+        typeContext = "\n\nIMPORTANTE: Este es un slash command. El nombre debe empezar con / y ser corto. El SKILL.md debe ser conciso y enfocado en una sola acción rápida.";
+      } else if (artifactType === "subagent") {
+        typeContext = "\n\nIMPORTANTE: Este es un subagente. El SKILL.md debe definir claramente el dominio de expertise, las condiciones de invocación, y el protocolo de respuesta. Debe poder operar autónomamente dentro de su dominio.";
+      }
+
       let skill = await callAI(
         [
-          { role: "system", content: GENERATE_PROMPT },
-          { role: "user", content: `Conversación de entrevista:\n\n${conversationText}` },
+          { role: "system", content: GENERATE_PROMPT + typeContext },
+          { role: "user", content: `Tipo de artefacto detectado: ${artifactType}\n\nConversación de entrevista:\n\n${conversationText}` },
         ],
         "google/gemini-2.5-flash",
         [skillTool],
