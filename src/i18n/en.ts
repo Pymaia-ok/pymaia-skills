@@ -28,11 +28,18 @@ export default {
   },
 
   landing: {
-    heroBadge: "Your AI Solutions Architect",
-    heroTitle: "Tell Claude what you\nwant to achieve. We build it.",
-    heroSubtitle: "Pymaia Agent understands your goal, searches 35K+ tools, and assembles the perfect solution: skills, connectors, and plugins combined, ready to install.",
-    heroCtaExplore: "Try Pymaia Agent",
+    heroBadge: "38,000+ professional skills",
+    heroTitle: "Work like an expert\nin minutes.",
+    heroSubtitle: "Pick a skill, install it in Claude, and you're done. Your AI now knows how to do what used to take you hours.",
+    heroCtaExplore: "Explore skills",
     heroCtaLearn: "How it works",
+
+    marqueeTitle: "Skills for every profession",
+    marqueeSubtitle: "No matter what you do. There's a skill that transforms your work.",
+
+    proofUsers: "Used by thousands of professionals",
+    proofTime: "Install in 2 minutes",
+    proofRating: "4.8 ★ average rating",
 
     howTitle: "How it works",
     howSubtitle: "From zero to productive in 3 simple steps.",
