@@ -2378,7 +2378,7 @@ mcpApp.use("/mcp", async (c, next) => {
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
   version: "8.3.0",
-  rateLimit: "30 requests/minute per IP",
+  rateLimit: "30 req/min anonymous, 120 req/min with API key",
   agent: {
     description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard.",
     capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration"],
