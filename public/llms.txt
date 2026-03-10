@@ -51,7 +51,7 @@ claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
   "mcpServers": {
     "pymaia-skills": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-remote", "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/mcp-server/mcp"]
+      "args": ["-y", "@anthropic-ai/mcp-remote", "https://mcp.pymaia.com"]
     }
   }
 }
