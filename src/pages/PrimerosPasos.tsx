@@ -70,6 +70,7 @@ const PrimerosPasos = () => {
                 { icon: Plug, label: isEs ? "Skills, Conectores y Plugins" : "Skills, Connectors & Plugins", href: "#mcps" },
                 { icon: Download, label: isEs ? "Instalá Claude Code" : "Install Claude Code", href: "#install" },
                 { icon: Zap, label: isEs ? "Tu primera skill en 2 minutos" : "Your first skill in 2 minutes", href: "#first-skill" },
+                { icon: Bot, label: isEs ? "MCP de Pymaia Skills" : "Pymaia Skills MCP", href: "#pymaia-mcp" },
               ].map((item) => (
                 <a key={item.href} href={item.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent transition-colors group">
                   <item.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
