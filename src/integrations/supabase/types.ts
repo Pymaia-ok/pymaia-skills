@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_analytics: {
+        Row: {
+          created_at: string
+          event_data: Json
+          event_type: string
+          goal: string | null
+          id: string
+          items_recommended: string[] | null
+          tool_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          goal?: string | null
+          id?: string
+          items_recommended?: string[] | null
+          tool_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          goal?: string | null
+          id?: string
+          items_recommended?: string[] | null
+          tool_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       automation_logs: {
         Row: {
           action_type: string
@@ -51,6 +84,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      community_goal_templates: {
+        Row: {
+          capabilities: Json
+          created_at: string
+          description: string
+          display_name: string
+          domain: string
+          example_solutions: Json
+          id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          slug: string
+          status: string
+          triggers: string[]
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          capabilities?: Json
+          created_at?: string
+          description?: string
+          display_name: string
+          domain?: string
+          example_solutions?: Json
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          slug: string
+          status?: string
+          triggers?: string[]
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          capabilities?: Json
+          created_at?: string
+          description?: string
+          display_name?: string
+          domain?: string
+          example_solutions?: Json
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          slug?: string
+          status?: string
+          triggers?: string[]
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       compatibility_matrix: {
         Row: {
@@ -264,6 +354,51 @@ export type Database = {
           tier?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      enterprise_catalogs: {
+        Row: {
+          allowed_domains: string[]
+          company_name: string
+          company_slug: string
+          created_at: string
+          custom_goal_templates: Json
+          description: string | null
+          id: string
+          is_active: boolean
+          owner_user_id: string
+          private_tool_slugs: string[]
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          allowed_domains?: string[]
+          company_name: string
+          company_slug: string
+          created_at?: string
+          custom_goal_templates?: Json
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owner_user_id: string
+          private_tool_slugs?: string[]
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          allowed_domains?: string[]
+          company_name?: string
+          company_slug?: string
+          created_at?: string
+          custom_goal_templates?: Json
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owner_user_id?: string
+          private_tool_slugs?: string[]
+          settings?: Json
+          updated_at?: string
         }
         Relationships: []
       }
