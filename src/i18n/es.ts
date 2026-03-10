@@ -611,4 +611,11 @@ export default {
     aiSuggestions: "Sugerencias con IA",
     aiSearching: "Buscando con IA…",
   },
+
+  apiDocs: {
+    heroDescription: "API REST pública para consultar trust scores, resultados de escaneo de seguridad y badges embebibles para cualquier skill, conector o plugin del registro de Pymaia.",
+    scoringTitle: "Desglose del Trust Score",
+    badgeTiers: "Niveles de Badge",
+    rateLimitTitle: "Límites de uso y notas",
+  },
 } as const;
