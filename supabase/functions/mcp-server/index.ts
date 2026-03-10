@@ -7,8 +7,8 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const mcp = new McpServer({
-  name: "skillhub",
-  version: "1.0.0",
+  name: "pymaia-agent",
+  version: "5.0.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
