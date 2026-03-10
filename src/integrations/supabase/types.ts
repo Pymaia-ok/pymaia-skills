@@ -228,6 +228,57 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_templates: {
+        Row: {
+          capabilities: Json
+          created_at: string
+          description: string
+          description_es: string | null
+          display_name: string
+          display_name_es: string | null
+          domain: string
+          example_solutions: Json
+          id: string
+          is_active: boolean
+          slug: string
+          triggers: string[]
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          capabilities?: Json
+          created_at?: string
+          description?: string
+          description_es?: string | null
+          display_name: string
+          display_name_es?: string | null
+          domain?: string
+          example_solutions?: Json
+          id?: string
+          is_active?: boolean
+          slug: string
+          triggers?: string[]
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          capabilities?: Json
+          created_at?: string
+          description?: string
+          description_es?: string | null
+          display_name?: string
+          display_name_es?: string | null
+          domain?: string
+          example_solutions?: Json
+          id?: string
+          is_active?: boolean
+          slug?: string
+          triggers?: string[]
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       installations: {
         Row: {
           created_at: string
