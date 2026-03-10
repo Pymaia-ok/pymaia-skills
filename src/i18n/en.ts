@@ -94,13 +94,13 @@ export default {
     bafounderAfter: "Structured competitive analysis with pricing, features and gaps in 10 min.",
     bafounderTime: "Saves ~3hrs per analysis",
 
-    mcpTitle: "Not sure which skill to use?",
-    mcpSubtitle: "Install our MCP connector and let your AI recommend and install the right skills for you.",
-    mcpCta: "View connector",
+    mcpTitle: "Your AI Solutions Architect",
+    mcpSubtitle: "Install Pymaia Agent in Claude and tell it what you want to achieve. It analyzes your goal, searches the entire catalog, and builds the perfect tool combination.",
+    mcpCta: "Install Pymaia Agent",
 
-    ctaTitle: "Get started in 2 minutes.",
-    ctaSubtitle: "Thousands of professionals already use skills to work faster with Claude. It's free.",
-    ctaExplore: "Explore skills",
+    ctaTitle: "Tell it what you want.\nPymaia builds the solution.",
+    ctaSubtitle: "35K+ tools, one command. Pymaia Agent is your AI solutions architect inside Claude.",
+    ctaExplore: "Try Pymaia Agent",
     ctaLearn: "Getting started",
   },
 

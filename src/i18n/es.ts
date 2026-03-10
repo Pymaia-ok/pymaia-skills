@@ -97,13 +97,13 @@ export default {
     bafounderAfter: "Análisis competitivo estructurado con pricing, features y gaps en 10 min.",
     bafounderTime: "Ahorra ~3hs por análisis",
 
-    mcpTitle: "¿No sabés qué skill usar?",
-    mcpSubtitle: "Instalá nuestro conector MCP y preguntale a tu IA qué skills necesitás. Ella te recomienda y te instala todo.",
-    mcpCta: "Ver conector",
+    mcpTitle: "Tu arquitecto de soluciones AI",
+    mcpSubtitle: "Instalá Pymaia Agent en Claude y decile qué querés lograr. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
+    mcpCta: "Instalar Pymaia Agent",
 
-    ctaTitle: "Empezá en 2 minutos.",
-    ctaSubtitle: "Miles de profesionales ya usan skills para trabajar más rápido con Claude. Es gratis.",
-    ctaExplore: "Explorar skills",
+    ctaTitle: "Decile qué querés lograr.\nPymaia arma la solución.",
+    ctaSubtitle: "35K+ herramientas, un solo comando. Pymaia Agent es tu arquitecto de soluciones AI dentro de Claude.",
+    ctaExplore: "Probar Pymaia Agent",
     ctaLearn: "Primeros pasos",
   },
 
