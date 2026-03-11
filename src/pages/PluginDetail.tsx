@@ -233,7 +233,7 @@ const PluginDetail = () => {
               {/* Reviews */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Star className="w-4 h-4" />Reviews {reviews.length > 0 && `(${reviews.length})`}</h2>
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Star className="w-4 h-4" />Reviews {reviews.length > 0 && `(${reviews.length})`}</h2>
                   {user && !showReviewForm && <button onClick={() => setShowReviewForm(true)} className="text-sm text-primary hover:underline font-medium">{isEs ? "Dejar review" : "Write review"}</button>}
                 </div>
                 {showReviewForm && user && (
