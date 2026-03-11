@@ -260,7 +260,7 @@ const Navbar = () => {
             className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground w-full"
           >
             {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            {isDark ? t("nav.lightMode", "Modo claro") : t("nav.darkMode", "Modo oscuro")}
+            {isDark ? t("nav.lightMode") : t("nav.darkMode")}
           </button>
 
           <button
