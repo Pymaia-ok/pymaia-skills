@@ -184,6 +184,21 @@ const Admin = () => {
     refetchInterval: 15000,
   });
 
+  const { data: qualityInsights } = useQuery({
+    queryKey: ["quality-insights"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("quality_insights")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return data || [];
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
   const { data: cronStatus } = useQuery({
     queryKey: ["cron-live-status"],
     queryFn: async () => {
