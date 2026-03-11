@@ -962,6 +962,51 @@ async function runFullScan(
     llmResult = await analyzeWithLLM(content, itemType, lovableApiKey, scopeAnalysis || undefined);
   }
 
+  // Layer 13: VirusTotal scan (non-blocking — skip if VT API key not set)
+  let vtResult = null;
+  const vtApiKey = Deno.env.get("VIRUSTOTAL_API_KEY");
+  if (vtApiKey) {
+    try {
+      const vtHash = await (async () => {
+        const data = new TextEncoder().encode(content);
+        const buf = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+      })();
+
+      const vtRes = await fetch(`https://www.virustotal.com/api/v3/files/${vtHash}`, {
+        headers: { "x-apikey": vtApiKey },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (vtRes.ok) {
+        const vtData = await vtRes.json();
+        const stats = vtData?.data?.attributes?.last_analysis_stats || {};
+        const malicious = (stats.malicious || 0) + (stats.suspicious || 0);
+        const total = Object.values(stats).reduce((a: number, b: any) => a + (Number(b) || 0), 0) as number;
+        const codeInsight = vtData?.data?.attributes?.crowdsourced_ai_results?.[0]?.category || null;
+
+        vtResult = {
+          hash: vtHash,
+          detection_ratio: `${malicious}/${total}`,
+          malicious_count: malicious,
+          total_engines: total,
+          code_insight_verdict: codeInsight,
+          vt_permalink: `https://www.virustotal.com/gui/file/${vtHash}`,
+          verdict: malicious >= 4 ? "malicious" : malicious >= 1 ? "suspicious" : "clean",
+          scanned_at: new Date().toISOString(),
+        };
+      } else {
+        await vtRes.text(); // consume
+        // If 404, file not in VT — that's OK, not an error
+        if (vtRes.status !== 404) {
+          vtResult = { hash: vtHash, verdict: "unknown", error: `VT API ${vtRes.status}`, scanned_at: new Date().toISOString() };
+        }
+      }
+    } catch (e) {
+      console.error("VirusTotal scan error (non-blocking):", (e as Error).message);
+    }
+  }
+
   // Determine overall verdict
   let verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS" = "SAFE";
   const formatErrors = formatIssues.filter(i => i.severity === "error");
