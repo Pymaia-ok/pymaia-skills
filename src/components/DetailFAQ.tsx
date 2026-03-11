@@ -52,6 +52,12 @@ export default function DetailFAQ({ itemType, itemName, description, category, h
         : (isEs ? `No, no necesitás API key. Solo copiá y usá.` : `No, you don't need an API key. Just copy and use.`),
     }] : []),
     {
+      q: isEs ? `¿Con qué agentes AI es compatible?` : `Which AI agents is it compatible with?`,
+      a: isEs
+        ? `${itemName} es compatible con Claude Code, Claude.ai, Manus, Cursor, Google Antigravity, OpenClaw y cualquier agente que soporte el estándar AgentSkills (SKILL.md).`
+        : `${itemName} is compatible with Claude Code, Claude.ai, Manus, Cursor, Google Antigravity, OpenClaw, and any agent that supports the AgentSkills (SKILL.md) standard.`,
+    },
+    {
       q: isEs ? `¿Es gratis?` : `Is it free?`,
       a: isEs ? `Sí, ${itemName} es completamente gratis para usar.` : `Yes, ${itemName} is completely free to use.`,
     },

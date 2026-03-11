@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import MultiAgentInstall from "@/components/MultiAgentInstall";
 
 const PluginDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -169,27 +170,17 @@ const PluginDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
             <div className="min-w-0 order-2 lg:order-none">
-              {/* Install options */}
-              <div className="mb-8 space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground mb-2">{isEs ? "Instalar en" : "Install in"}</p>
-                {showCowork && (
-                  <a href={coworkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-5 py-3.5 rounded-xl bg-foreground text-background font-semibold hover:opacity-90 transition-opacity group">
-                    <div className="flex items-center gap-3"><Users2 className="w-5 h-5" /><span>Claude Cowork</span></div>
-                    <ExternalLink className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </a>
-                )}
-                {showCode && (
-                  <button onClick={handleCopy} className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-secondary border border-border text-foreground font-semibold hover:bg-secondary/80 transition-colors group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Monitor className="w-5 h-5 flex-shrink-0" />
-                      <div className="text-left min-w-0">
-                        <span className="block">Claude Code</span>
-                        <code className="text-xs text-muted-foreground font-mono truncate block max-w-[300px] sm:max-w-[400px]">{codeCommand}</code>
-                      </div>
-                    </div>
-                    {copied ? <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" /> : <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
-                  </button>
-                )}
+              {/* Install options — multi-agent */}
+              <div className="mb-8">
+                <MultiAgentInstall
+                  itemType="plugin"
+                  itemName={isEs && plugin.name_es ? plugin.name_es : plugin.name}
+                  itemSlug={plugin.slug}
+                  installContent={codeCommand}
+                  githubUrl={plugin.github_url}
+                  coworkUrl={coworkUrl}
+                  showCowork={showCowork}
+                />
               </div>
 
               {/* Security warning */}

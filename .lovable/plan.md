@@ -1,86 +1,100 @@
 
 
-# Plan: Pymaia Multi-Agent — Directorio Universal de Skills
 
-## Objetivo
-Transformar Pymaia de "directorio para Claude" a "directorio universal para todos los agentes AI compatibles con SKILL.md", mostrando instrucciones de instalación multi-agente y actualizando todo el copy/branding.
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
----
+### Estado: ~99% completado
 
-## Agentes soportados
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-| Agente | Instalación de Skills | Instalación MCP |
-|--------|----------------------|-----------------|
-| **Claude Code** | `claude skill add` / ZIP | `claude mcp add` |
-| **Manus** | Upload ZIP / GitHub URL | N/A (usa MCP nativo) |
-| **Cursor** | Copiar a `.cursor/skills/` | Settings → MCP |
-| **Antigravity** | Copiar a `.antigravity/skills/` | Config JSON |
-| **OpenClaw** | Copiar a `skills/` directorio | Config JSON |
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
----
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-## Cambios
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-### 1. Crear componente `MultiAgentInstall`
-Nuevo componente reutilizable con tabs por agente (Claude Code, Claude.ai, Manus, Cursor, Antigravity, OpenClaw). Cada tab muestra las instrucciones de instalación específicas para ese agente. Se usa en las 3 páginas de detalle.
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-- **Skills**: Tab Claude Code (comando CLI), Tab Claude.ai (ZIP download), Tab Manus (ZIP + instrucciones GitHub), Tab Cursor/Antigravity/OpenClaw (copiar SKILL.md a carpeta)
-- **Conectores (MCP)**: Tab Claude Code (CLI), Tab Cursor (JSON config), Tab Antigravity (JSON config), Tab OpenClaw (JSON config)
-- **Plugins**: Tab Claude Code (comando plugin install), Tab otros (instrucciones genéricas)
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-### 2. Actualizar páginas de detalle
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-**`SkillDetail.tsx`**: Reemplazar los 2 botones actuales (instalar + ZIP) por el componente `MultiAgentInstall` con tabs.
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
-**`ConectorDetail.tsx`**: Reemplazar sección de instalación (CLI + JSON) por `MultiAgentInstall` con tabs por cliente MCP.
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-**`PluginDetail.tsx`**: Agregar tabs multi-agente donde corresponda.
-
-### 3. Actualizar copy y branding (i18n)
-
-**`es.ts` y `en.ts`** — Cambios clave:
-- Hero title: "Trabajá como un experto en minutos" → mantener (es agnóstico)
-- Hero subtitle: "instalala en Claude" → "instalala en tu agente AI favorito"
-- How it works step 2: "Claude Code" → "tu agente AI"
-- How it works step 3: "Tu Claude" → "Tu agente AI"
-- Landing badge: mantener "35,000+ skills profesionales"
-- Agregar nuevo key `landing.multiAgentBadge`: "Compatible con Claude, Manus, Cursor y más"
-
-### 4. Actualizar HeroSection
-- Agregar badge/pill debajo del hero que diga "Compatible con Claude, Manus, Cursor, Antigravity y más"
-- Terminal demo: cambiar `$ claude` por algo más genérico o agregar variación entre agentes
-
-### 5. Actualizar archivos públicos
-
-**`public/llms.txt`**: Cambiar "for Claude Code" → "for AI coding agents (Claude, Manus, Cursor, Antigravity, OpenClaw)"
-
-**`public/.well-known/ai-plugin.json`**: Actualizar `description_for_human` para mencionar compatibilidad multi-agente
-
-### 6. Actualizar SEO metadata
-- `Index.tsx`, `Explore.tsx`: Cambiar descripciones de "for Claude Code" → "for AI agents"
-- `PrimerosPasos.tsx`: Actualizar título y contenido para mencionar múltiples agentes
-
-### 7. Actualizar DetailFAQ
-Agregar FAQ: "¿Con qué agentes es compatible?" con respuesta listando todos los agentes soportados.
-
----
-
-## Archivos a crear/modificar
-
-| Archivo | Acción |
-|---------|--------|
-| `src/components/MultiAgentInstall.tsx` | **Crear** — componente de tabs multi-agente |
-| `src/pages/SkillDetail.tsx` | Modificar — usar MultiAgentInstall |
-| `src/pages/ConectorDetail.tsx` | Modificar — usar MultiAgentInstall |
-| `src/pages/PluginDetail.tsx` | Modificar — usar MultiAgentInstall |
-| `src/i18n/es.ts` | Modificar — actualizar copy multi-agente |
-| `src/i18n/en.ts` | Modificar — actualizar copy multi-agente |
-| `src/components/landing/HeroSection.tsx` | Modificar — badge multi-agente |
-| `src/components/DetailFAQ.tsx` | Modificar — agregar FAQ de compatibilidad |
-| `public/llms.txt` | Modificar — branding universal |
-| `public/.well-known/ai-plugin.json` | Modificar — descripción multi-agente |
-| `src/pages/Index.tsx` | Modificar — SEO meta |
-| `src/pages/Explore.tsx` | Modificar — SEO meta |
-
-No se requieren cambios en la base de datos.
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)

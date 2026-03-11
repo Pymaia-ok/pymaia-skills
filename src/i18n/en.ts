@@ -30,7 +30,8 @@ export default {
   landing: {
     heroBadge: "35,000+ professional skills",
     heroTitle: "Work like an expert\nin minutes.",
-    heroSubtitle: "Pick a skill, install it in Claude, and you're done. Your AI now knows how to do what used to take you hours.",
+    heroSubtitle: "Pick a skill, install it in your favorite AI agent, and you're done. Your AI now knows how to do what used to take you hours.",
+    multiAgentBadge: "Compatible with Claude, Manus, Cursor, Antigravity & more",
     heroCtaExplore: "Explore skills",
     heroCtaLearn: "How it works",
 
@@ -49,9 +50,9 @@ export default {
     howstep1Title: "Pick a skill",
     howstep1Desc: "Browse the directory and find the perfect skill for what you need to do.",
     howstep2Title: "Copy a command",
-    howstep2Desc: "One single command. Copy it, paste it in Claude Code, and you're done.",
-    howstep3Title: "Claude knows how",
-    howstep3Desc: "Your Claude now has expert knowledge. Just ask it to do the task and it executes automatically.",
+    howstep2Desc: "One single command. Copy it, paste it in your AI agent, and you're done.",
+    howstep3Title: "Your agent knows how",
+    howstep3Desc: "Your AI agent now has expert knowledge. Just ask it to do the task and it executes automatically.",
 
     statsSkills: "skills",
     statsConnectors: "connectors",
@@ -261,7 +262,7 @@ export default {
     backToDirectory: "Directory",
     installSkill: "Install skill",
     commandCopied: "Command copied!",
-    copyHint: "Copy the command and paste it in Claude Code",
+    copyHint: "Copy the command and paste it in your favorite AI agent",
     reviews: "reviews",
     installs: "installs",
     minToInstall: "min to install",

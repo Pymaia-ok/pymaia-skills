@@ -20,6 +20,7 @@ import { useSEO } from "@/hooks/useSEO";
 import ShareButton from "@/components/ShareButton";
 import JSZip from "jszip";
 import { parseSkillMd } from "@/lib/parseSkillMd";
+import MultiAgentInstall from "@/components/MultiAgentInstall";
 
 const SkillDetail = () => {
   const { slug } = useParams();
@@ -194,25 +195,26 @@ const SkillDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
             <div className="min-w-0 order-2 lg:order-none">
-              {/* Install buttons */}
+              {/* Multi-agent install */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                <div className="flex flex-wrap items-center gap-4 mb-4">
-                  <button onClick={() => { setPendingAction("copy"); handleCopy(); }} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-foreground text-background font-semibold hover:opacity-90 transition-opacity text-base">
-                    {copied ? <Check className="w-5 h-5" /> : <Download className="w-5 h-5" />}
-                    {copied ? t("detail.commandCopied") : t("detail.installSkill")}
+                <MultiAgentInstall
+                  itemType="skill"
+                  itemName={skill.display_name}
+                  itemSlug={skill.slug}
+                  installContent={skill.install_command}
+                  githubUrl={skill.github_url}
+                  onInstallAction={(agent, method) => {
+                    if (user) {
+                      trackInstallation(skill.id, user.id).catch(() => {});
+                    }
+                  }}
+                />
+                {user && skill.creator_id === user.id && (
+                  <button onClick={handleConvertToPlugin} disabled={convertingToPlugin} className="mt-3 inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm disabled:opacity-50">
+                    {convertingToPlugin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+                    Publicar como plugin
                   </button>
-                  <button onClick={handleDownloadZip} className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm">
-                    <FileArchive className="w-4 h-4" />
-                    {t("detail.downloadZip", "ZIP para Claude.ai")}
-                  </button>
-                  {user && skill.creator_id === user.id && (
-                    <button onClick={handleConvertToPlugin} disabled={convertingToPlugin} className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm disabled:opacity-50">
-                      {convertingToPlugin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-                      Publicar como plugin
-                    </button>
-                  )}
-                </div>
-                <span className="text-sm text-muted-foreground">{t("detail.copyHint")}</span>
+                )}
               </motion.div>
 
               {/* Description */}
