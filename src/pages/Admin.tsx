@@ -363,6 +363,7 @@ const Admin = () => {
                 securityStats={securityStats}
                 connectorStats={connectorStats}
                 recentLogs={recentLogs}
+                qualityInsights={qualityInsights as any}
               />
             </TabsContent>
 
