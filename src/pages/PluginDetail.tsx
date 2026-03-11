@@ -217,7 +217,7 @@ const PluginDetail = () => {
               {/* README */}
               {readme && (
                 <div className="mb-8">
-                  <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><BookOpen className="w-4 h-4" />{isEs ? "Documentación" : "Documentation"}</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><BookOpen className="w-4 h-4" />{isEs ? "Documentación" : "Documentation"}</h2>
                   <div className="p-6 rounded-2xl bg-secondary/50 border border-border">
                     <div className={`prose prose-sm dark:prose-invert max-w-none ${!showFullReadme ? "max-h-[300px] overflow-hidden relative" : ""}`}>
                       <ReactMarkdown>{readme}</ReactMarkdown>
