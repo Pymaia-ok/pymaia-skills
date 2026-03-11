@@ -63,10 +63,10 @@ export default {
     howStep2Label: "Paso 2",
     howStep3Label: "Paso 3",
     howstep1Title: "Elegí una solución",
-    howstep1Desc: "Explorá el catálogo y encontrá la solución perfecta para el desafío de tu equipo.",
+    howstep1Desc: "Explorá el catálogo y encontrá la solución perfecta para tu desafío.",
     howstep2Title: "Activala en tu asistente",
     howstep2Desc: "Un solo paso. Copiá, pegá y tu asistente de IA ya tiene el conocimiento.",
-    howstep3Title: "Tu equipo es más productivo",
+    howstep3Title: "Sos más productivo",
     howstep3Desc: "Tu asistente de IA ahora tiene conocimiento experto. Solo pedile la tarea y la ejecuta automáticamente.",
 
     statsSkills: "soluciones",
