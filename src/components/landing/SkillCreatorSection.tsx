@@ -4,11 +4,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MessageSquare, Globe, Lock, Video, ShieldCheck } from "lucide-react";
 
-const chatLines = [
-  { role: "ai", text: "¿Qué expertise querés empaquetar?" },
-  { role: "user", text: "Soy abogado, reviso contratos todos los días" },
-  { role: "ai", text: "Perfecto. Tu skill analizará cláusulas de riesgo…" },
-];
+const useChatLines = () => {
+  const { t } = useTranslation();
+  return [
+    { role: "ai", text: t("landing.creatorChatAi1") },
+    { role: "user", text: t("landing.creatorChatUser1") },
+    { role: "ai", text: t("landing.creatorChatAi2") },
+  ];
+};
 
 const features = [
   {
