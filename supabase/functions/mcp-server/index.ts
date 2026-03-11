@@ -853,7 +853,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
           ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
           : `and(status.eq.approved,is_public.eq.true)`
       )
-      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
+      .or(`display_name.ilike.%${q}%,display_name_es.ilike.%${q}%,tagline.ilike.%${q}%,tagline_es.ilike.%${q}%,description_human.ilike.%${q}%,description_human_es.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
       .order("install_count", { ascending: false }).limit(limit);
     
     const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
