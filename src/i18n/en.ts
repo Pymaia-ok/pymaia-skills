@@ -60,10 +60,10 @@ export default {
     howStep2Label: "Step 2",
     howStep3Label: "Step 3",
     howstep1Title: "Pick a solution",
-    howstep1Desc: "Browse the catalog and find the perfect solution for your team's challenge.",
+    howstep1Desc: "Browse the catalog and find the perfect solution for your challenge.",
     howstep2Title: "Activate it in your assistant",
     howstep2Desc: "One single step. Copy, paste, and your AI assistant already has the knowledge.",
-    howstep3Title: "Your team is more productive",
+    howstep3Title: "You're more productive",
     howstep3Desc: "Your AI assistant now has expert knowledge. Just ask it to do the task and it executes automatically.",
 
     statsSkills: "solutions",
