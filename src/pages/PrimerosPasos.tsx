@@ -477,17 +477,17 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
-        {/* ─── Section 5: Instalá Claude Code ─── */}
+        {/* ─── Section 5: Instalá tu agente ─── */}
         <section id="install" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
           <motion.div {...fadeUp}>
             <SectionBadge icon={Download} label={isEs ? "Instalación" : "Installation"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "Instalá Claude Code" : "Install Claude Code"}
+              {isEs ? "Empezá con tu agente favorito" : "Get started with your favorite agent"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Para usar skills necesitás Claude Code. La instalación es simple y tarda menos de 5 minutos."
-                : "To use skills you need Claude Code. Installation is simple and takes less than 5 minutes."}
+                ? "Podés usar skills con cualquier agente compatible. El más popular es Claude Code, pero también funcionan con Manus, Cursor, Antigravity y OpenClaw."
+                : "You can use skills with any compatible agent. The most popular is Claude Code, but they also work with Manus, Cursor, Antigravity and OpenClaw."}
             </p>
 
             <div className="space-y-6">
