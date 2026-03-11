@@ -547,8 +547,8 @@ const PrimerosPasos = () => {
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Ahora que tenés Claude Code, instalemos una skill en 2 minutos."
-                : "Now that you have Claude Code, let's install a skill in 2 minutes."}
+                ? "Ahora que tenés tu agente listo, instalemos una skill en 2 minutos. Este ejemplo usa Claude Code, pero el proceso es similar en otros agentes."
+                : "Now that you have your agent ready, let's install a skill in 2 minutes. This example uses Claude Code, but the process is similar on other agents."}
             </p>
 
             <div className="space-y-4">
