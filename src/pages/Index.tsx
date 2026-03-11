@@ -29,7 +29,7 @@ const Index = () => {
 
   useSEO({
     title: "Pymaia Skills — Trabajá como un experto en minutos",
-    description: "Elegí una skill, instalala en Claude y convertite en experto. 35,000+ skills profesionales para marketing, legal, finanzas y más.",
+    description: "Elegí una skill, instalala en tu agente AI favorito y convertite en experto. 35,000+ skills para Claude, Manus, Cursor, Antigravity y más.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",
