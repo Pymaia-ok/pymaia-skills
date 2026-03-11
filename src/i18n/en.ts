@@ -135,7 +135,7 @@ export default {
     mcpSubtitle: "Install Pymaia Agent and tell it what you need. It analyzes your goal, searches the entire catalog, and builds the perfect tool combination.",
     mcpCta: "Install Pymaia Agent",
 
-    ctaTitle: "Transform your team's\nproductivity.",
+    ctaTitle: "Transform your\nproductivity.",
     ctaSubtitle: "35,000+ professional solutions. Activate what you need in minutes and start seeing results from day one.",
     ctaExplore: "Explore solutions",
     ctaLearn: "Getting started",

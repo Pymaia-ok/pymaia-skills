@@ -138,7 +138,7 @@ export default {
     mcpSubtitle: "Instalá Pymaia Agent y decile qué necesitás. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
     mcpCta: "Instalar Pymaia Agent",
 
-    ctaTitle: "Transformá la productividad\nde tu equipo.",
+    ctaTitle: "Transformá tu\nproductividad.",
     ctaSubtitle: "35,000+ soluciones profesionales. Activá las que necesitás en minutos y empezá a ver resultados desde el día uno.",
     ctaExplore: "Explorar soluciones",
     ctaLearn: "Primeros pasos",
