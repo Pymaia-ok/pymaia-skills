@@ -47,7 +47,7 @@ const ChatDemo = () => {
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
-          <span className="ml-2 text-xs text-muted-foreground font-medium">Asistente AI</span>
+          <span className="ml-2 text-xs text-muted-foreground font-medium">{t("landing.heroChatTitle")}</span>
         </div>
         <div className="p-5 space-y-3 min-h-[180px]">
           {chatMessages.slice(0, visibleMessages).map((msg, i) => (
