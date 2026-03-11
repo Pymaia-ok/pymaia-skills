@@ -81,7 +81,10 @@ export const SecurityPanel = ({
     scanResult.layers?.typosquatting?.flags?.length > 0,
     scanResult.layers?.scope?.scope_assessment === "excessive",
     scanResult.layers?.dependencies?.vulnerabilities?.length > 0,
+    scanResult.layers?.virustotal?.verdict === "malicious",
   ].filter(Boolean).length : 0;
+
+  const vtData = scanResult?.layers?.virustotal;
 
   // Derive a display score: use trustScore if available, else derive from scan
   const hasBeenScanned = !!securityScannedAt;
