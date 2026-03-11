@@ -182,43 +182,44 @@ mcp.tool("search_skills", {
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const q = sanitizeForPostgrest(args.query);
-
-    // Use global API key user context for private skill access
     const apiUserId = currentApiKeyUserId;
+    const selectCols = "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles, is_public, creator_id";
+    const words = q.split(/\s+/).filter(w => w.length >= 2);
+    const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
-    let dbQuery = supabase
+    // Run exact-phrase AND word-split in parallel
+    let exactQ = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles, is_public, creator_id")
+      .select(selectCols)
       .or(
         apiUserId
           ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
           : `and(status.eq.approved,is_public.eq.true)`
       )
-      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%`)
+      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,description_human.ilike.%${q}%`)
       .order("install_count", { ascending: false })
       .limit(lim);
+    if (args.category) exactQ = exactQ.eq("category", args.category);
 
-    if (args.category) dbQuery = dbQuery.eq("category", args.category);
+    const [exactRes, wordSplitRes] = await Promise.all([
+      exactQ.then(r => r.data || []),
+      words.length > 1
+        ? wordSplitSearch("skills", selectCols, words, "install_count", lim * 2, catFilter)
+        : Promise.resolve([]),
+    ]);
 
-    const { data: matched, error } = await dbQuery;
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-
-    let results = matched || [];
-    let fallbackUsed = "none";
-
-    // Word-split fallback for multi-word queries
-    const words = q.split(/\s+/).filter(w => w.length >= 2);
-    if (results.length === 0 && words.length > 1) {
-      fallbackUsed = "word-split";
-      results = await wordSplitSearch(
-        "skills",
-        "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles",
-        words, "install_count", lim,
-        args.category ? (qb: any) => qb.eq("category", args.category) : undefined,
-      );
+    // Merge deduplicated
+    const seenSlugs = new Set<string>();
+    const merged: any[] = [];
+    for (const item of [...exactRes, ...wordSplitRes]) {
+      if (!seenSlugs.has(item.slug)) {
+        seenSlugs.add(item.slug);
+        merged.push(item);
+      }
     }
+    let results = merged.slice(0, lim);
+    let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
-    // Fallback to top skills if still no match
     if (results.length === 0) {
       fallbackUsed = "top-skills";
       let fallback = supabase
