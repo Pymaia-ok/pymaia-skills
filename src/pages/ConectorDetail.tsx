@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ExternalLink, Copy, Check, Terminal, ShieldCheck, ShieldAlert, ShieldQuestion, Activity, Star, Download, BadgeCheck, Users, Github, Plug, AlertTriangle, HardDrive, Wifi } from "lucide-react";
+import ShareButton from "@/components/ShareButton";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";
 import SecurityPanel from "@/components/SecurityPanel";
 import SecurityReportButton from "@/components/SecurityReportButton";
@@ -102,12 +103,11 @@ const ConectorDetail = () => {
             {/* Hero */}
             <div className="flex items-center gap-4 mb-6">
               {connector.icon_url ? (
-                <img src={connector.icon_url} alt={connector.name} className="w-14 h-14 rounded-xl" />
-              ) : (
-                <div className={`w-14 h-14 rounded-xl ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center`}>
-                  <span className="text-2xl font-bold text-white">{connector.name[0]?.toUpperCase()}</span>
-                </div>
-              )}
+                <img src={connector.icon_url} alt={connector.name} className="w-14 h-14 rounded-xl object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden"); }} />
+              ) : null}
+              <div className={`w-14 h-14 rounded-xl ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center ${connector.icon_url ? "hidden" : ""}`}>
+                <span className="text-2xl font-bold text-white">{connector.name[0]?.toUpperCase()}</span>
+              </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-foreground">{connector.name}</h1>
@@ -248,8 +248,9 @@ const ConectorDetail = () => {
                   {connector.homepage && <a href={connector.homepage} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"><ExternalLink className="w-3.5 h-3.5" />{isEs ? "Sitio web" : "Website"}</a>}
                 </div>
 
-                <div className="border-t border-border pt-3">
+                <div className="border-t border-border pt-3 flex items-center justify-between">
                   <SecurityReportButton itemType="connector" itemId={connector.id} itemSlug={connector.slug} />
+                  <ShareButton url={`https://pymaiaskills.lovable.app/conector/${connector.slug}`} title={connector.name} description={connector.description} />
                 </div>
               </div>
 

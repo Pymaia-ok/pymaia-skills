@@ -219,7 +219,7 @@ const SkillDetail = () => {
 
               {/* Description */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-10">
-                <h2 className="text-2xl font-semibold mb-4">{t("detail.whatItDoes")}</h2>
+                <h2 className="text-2xl font-semibold mb-4">{isEs ? "Descripción" : "Description"}</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-2xl">{descriptionHuman}</p>
 
                 {/* AI summary — cleaned up, no duplicate "What it does" */}
@@ -452,41 +452,11 @@ const SkillDetail = () => {
                 </motion.div>
               )}
 
-              {/* Install guide */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <div className="border-t border-border pt-12">
-                  <h2 className="text-2xl font-semibold mb-2">{t("detail.installGuide")}</h2>
-                  <p className="text-muted-foreground mb-8">{(t("detail.installGuideSub") as string).replace("{{min}}", String(skill.time_to_install_minutes))}</p>
-                  <div className="space-y-6">
-                    {[
-                      { title: t("detail.step1Title"), description: t("detail.step1Desc") },
-                      { title: t("detail.step2Title"), description: t("detail.step2Desc") },
-                      { title: t("detail.step3Title"), description: t("detail.step3Desc"), command: skill.install_command },
-                      { title: t("detail.step4Title"), description: (t("detail.step4Desc") as string).replace("{{tagline}}", tagline.toLowerCase()) },
-                    ].map((step, i) => (
-                      <div key={i} className="flex gap-6">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-semibold">{i + 1}</div>
-                        <div className="flex-1 pb-6">
-                          <h3 className="font-semibold mb-2">{step.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-3">{step.description}</p>
-                          {step.command && (
-                            <div className="flex items-center gap-2 p-4 rounded-xl bg-foreground text-background font-mono text-sm">
-                              <code className="flex-1 break-all">{step.command}</code>
-                              <button onClick={handleCopy} className="p-2 rounded-lg hover:bg-background/10 transition-colors">
-                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-10 p-6 rounded-2xl bg-secondary text-center">
-                    <p className="text-sm text-muted-foreground mb-2">{t("detail.stuckTitle")}</p>
-                    <Link to="/primeros-pasos" className="text-sm font-medium text-foreground hover:underline">{t("detail.stuckLink")}</Link>
-                  </div>
-                </div>
-              </motion.div>
+              {/* Help link */}
+              <div className="mt-10 p-6 rounded-2xl bg-secondary text-center">
+                <p className="text-sm text-muted-foreground mb-2">{t("detail.stuckTitle")}</p>
+                <Link to="/primeros-pasos" className="text-sm font-medium text-foreground hover:underline">{t("detail.stuckLink")}</Link>
+              </div>
 
               {/* FAQ */}
               <DetailFAQ

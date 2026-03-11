@@ -51,10 +51,7 @@ export default function MultiAgentInstall({
     const agent = AGENT_LOGOS[agentKey];
     if (!agent) return <span>{agentKey}</span>;
     return (
-      <span className="flex items-center gap-1.5">
-        <img src={agent.logo} alt={agent.label} className="w-4 h-4 rounded-sm object-contain" />
-        <span className="sr-only">{agent.label}</span>
-      </span>
+      <span className="text-xs font-medium">{agent.label}</span>
     );
   };
 

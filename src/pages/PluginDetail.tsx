@@ -199,7 +199,7 @@ const PluginDetail = () => {
               {/* Related Connectors */}
               {relatedConnectors.length > 0 && (
                 <div className="mb-8">
-                  <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Plug className="w-4 h-4" />{isEs ? "Conectores relacionados" : "Related connectors"}</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><Plug className="w-4 h-4" />{isEs ? "Conectores relacionados" : "Related connectors"}</h2>
                   <div className="space-y-2">
                     {relatedConnectors.map((conn: any) => (
                       <Link key={conn.slug} to={`/conector/${conn.slug}`} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border hover:border-foreground/20 transition-colors">
@@ -217,7 +217,7 @@ const PluginDetail = () => {
               {/* README */}
               {readme && (
                 <div className="mb-8">
-                  <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><BookOpen className="w-4 h-4" />{isEs ? "Documentación" : "Documentation"}</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><BookOpen className="w-4 h-4" />{isEs ? "Documentación" : "Documentation"}</h2>
                   <div className="p-6 rounded-2xl bg-secondary/50 border border-border">
                     <div className={`prose prose-sm dark:prose-invert max-w-none ${!showFullReadme ? "max-h-[300px] overflow-hidden relative" : ""}`}>
                       <ReactMarkdown>{readme}</ReactMarkdown>
@@ -233,7 +233,7 @@ const PluginDetail = () => {
               {/* Reviews */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Star className="w-4 h-4" />Reviews {reviews.length > 0 && `(${reviews.length})`}</h2>
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2"><Star className="w-4 h-4" />Reviews {reviews.length > 0 && `(${reviews.length})`}</h2>
                   {user && !showReviewForm && <button onClick={() => setShowReviewForm(true)} className="text-sm text-primary hover:underline font-medium">{isEs ? "Dejar review" : "Write review"}</button>}
                 </div>
                 {showReviewForm && user && (
@@ -263,7 +263,7 @@ const PluginDetail = () => {
               {/* Related Skills */}
               {relatedSkills.length > 0 && (
                 <div className="mb-8">
-                  <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Package className="w-4 h-4" />{isEs ? "Skills relacionadas" : "Related skills"}</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><Package className="w-4 h-4" />{isEs ? "Skills relacionadas" : "Related skills"}</h2>
                   <div className="grid md:grid-cols-2 gap-3">
                     {relatedSkills.map((skill: any, i: number) => <SkillCard key={skill.id} skill={skill} index={i} />)}
                   </div>
