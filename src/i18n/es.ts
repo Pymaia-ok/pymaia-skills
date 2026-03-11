@@ -75,12 +75,12 @@ export default {
     statsIndustries: "áreas de negocio",
 
     pathsTitle: "¿Qué necesitás hoy?",
-    pathsSubtitle: "Tenemos un camino para cada necesidad de tu empresa.",
-    pathExpertTitle: "Quiero potenciar mi equipo",
-    pathExpertDesc: "Explorá soluciones probadas por miles de empresas. Activá las que necesitás y tu equipo es más productivo desde hoy.",
+    pathsSubtitle: "Tenemos un camino para cada necesidad.",
+    pathExpertTitle: "Quiero ser más productivo",
+    pathExpertDesc: "Explorá soluciones probadas por miles de profesionales. Activá las que necesitás y sé más productivo desde hoy.",
     pathExpertCta: "Explorar soluciones",
     pathNewTitle: "Quiero crear soluciones propias",
-    pathNewDesc: "Empaquetá el conocimiento de tu empresa en soluciones privadas. Compartí con tu equipo o publicá para la comunidad.",
+    pathNewDesc: "Empaquetá tu conocimiento experto en soluciones reutilizables. Compartilas con quienes quieras o publicá para la comunidad.",
     pathNewCta: "Crear una solución",
 
     creatorTitle: "Creá soluciones para tu empresa",
