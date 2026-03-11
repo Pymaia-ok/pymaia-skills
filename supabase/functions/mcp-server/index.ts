@@ -556,7 +556,7 @@ mcp.tool("search_connectors", {
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré conectores para "${args.query}". Intenta con otros términos o usa \`solve_goal\` para una búsqueda más amplia.` }] };
 
     const text = results
-      .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}`)
+      .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}${c.install_command ? `\nInstall: \`${c.install_command}\`` : ""}`)
       .join("\n\n---\n\n");
 
     return { content: [{ type: "text" as const, text }] };
