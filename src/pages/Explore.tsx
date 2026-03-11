@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
 import SkillCard from "@/components/SkillCard";
-import { fetchSkills, smartSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
+import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
@@ -97,11 +97,11 @@ const Explore = () => {
     enabled: !isSmartMode,
   });
 
-  // Smart AI-powered search
+  // Smart AI-powered semantic search
   const { data: smartResult, isLoading: smartLoading } = useQuery({
-    queryKey: ["smart-search", selectedCategory, sortBy, page, debouncedSearch],
+    queryKey: ["semantic-search", selectedCategory, sortBy, page, debouncedSearch],
     queryFn: () =>
-      smartSearch({
+      semanticSearch({
         query: debouncedSearch,
         category: selectedCategory || undefined,
         sortBy,
@@ -117,7 +117,7 @@ const Explore = () => {
   const skills = result?.data ?? [];
   const totalCount = result?.count ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const smartKeywords = isSmartMode && smartResult?.keywords ? smartResult.keywords : null;
+  const smartKeywords = isSmartMode && (smartResult as any)?.keywords ? (smartResult as any).keywords : null;
 
   return (
     <div className="min-h-screen bg-background">

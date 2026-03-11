@@ -180,12 +180,19 @@ const GlobalSearch = () => {
   const triggerAiSearch = async (q: string, signal: AbortSignal) => {
     setAiLoading(true);
     try {
-      const resp = await supabase.functions.invoke("smart-search", {
+      // Use semantic search (vector embeddings) for AI-powered results
+      const resp = await supabase.functions.invoke("semantic-search", {
         body: { query: q, page: 0 },
       });
       if (signal.aborted) return;
-      if (resp.data?.data) {
-        const aiSkills: SearchResult[] = (resp.data.data as any[]).slice(0, 5).map((s) => ({
+      
+      // If semantic search fails, fallback to smart-search
+      const searchData = resp.data?.fallback || resp.error
+        ? (await supabase.functions.invoke("smart-search", { body: { query: q, page: 0 } })).data
+        : resp.data;
+      
+      if (searchData?.data) {
+        const aiSkills: SearchResult[] = (searchData.data as any[]).slice(0, 5).map((s) => ({
           slug: s.slug,
           name: isEs ? s.display_name_es || s.display_name : s.display_name,
           tagline: isEs ? s.tagline_es || s.tagline : s.tagline,
