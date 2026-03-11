@@ -91,6 +91,10 @@ export default {
     creatorFeature4Title: "Security validation",
     creatorFeature4Desc: "Every solution goes through an automatic security scan before activation.",
     creatorCta: "Create my first solution",
+    creatorChatTitle: "Create skill",
+    creatorChatAi1: "What expertise do you want to package?",
+    creatorChatUser1: "I'm a lawyer, I review contracts every day",
+    creatorChatAi2: "Perfect. Your skill will analyze risk clauses…",
 
     wizardTitle: "Find the ideal solution",
     wizardSubtitle: "Tell us what your team needs and we'll recommend the best solutions.",

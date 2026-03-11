@@ -94,6 +94,10 @@ export default {
     creatorFeature4Title: "Validación de seguridad",
     creatorFeature4Desc: "Cada solución pasa por un escaneo automático de seguridad antes de activarse.",
     creatorCta: "Crear mi primera solución",
+    creatorChatTitle: "Crear skill",
+    creatorChatAi1: "¿Qué expertise querés empaquetar?",
+    creatorChatUser1: "Soy abogado, reviso contratos todos los días",
+    creatorChatAi2: "Perfecto. Tu skill analizará cláusulas de riesgo…",
 
     wizardTitle: "Encontrá la solución ideal",
     wizardSubtitle: "Contanos qué necesita tu equipo y te recomendamos las mejores soluciones.",
