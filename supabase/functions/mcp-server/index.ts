@@ -2123,17 +2123,18 @@ mcp.tool("get_directory_stats", {
 });
 
 mcp.tool("get_install_command", {
-  description: "Quickly get just the install command for a skill by name or slug. Perfect for fast installation.",
+  description: "Quickly get the install command for a skill, MCP connector, or plugin by name or slug. Searches all three catalogs.",
   inputSchema: {
     type: "object",
     properties: {
-      name: { type: "string", description: "Skill name or slug" },
+      name: { type: "string", description: "Skill, connector, or plugin name or slug" },
     },
     required: ["name"],
   },
   handler: async (args: { name: string }) => {
     const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
 
+    // 1. Search skills by slug
     const { data: skill } = await supabase
       .from("skills")
       .select("display_name, install_command, slug")
@@ -2142,23 +2143,52 @@ mcp.tool("get_install_command", {
       .maybeSingle();
 
     if (skill) {
-      return { content: [{ type: "text" as const, text: `**${skill.display_name}**\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
+      return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
     }
 
-    // Fuzzy search
-    const { data: skills } = await supabase
-      .from("skills")
-      .select("display_name, install_command, slug")
+    // 2. Search MCP connectors by slug
+    const { data: connector } = await supabase
+      .from("mcp_servers")
+      .select("name, install_command, slug")
       .eq("status", "approved")
-      .ilike("display_name", `%${args.name}%`)
-      .limit(3);
+      .eq("slug", nameLower)
+      .maybeSingle();
 
-    if (skills?.length) {
-      const text = skills.map((s: any) => `**${s.display_name}**\n\`\`\`\n${s.install_command}\n\`\`\``).join("\n\n");
-      return { content: [{ type: "text" as const, text }] };
+    if (connector) {
+      return { content: [{ type: "text" as const, text: `**${connector.name}** (connector)\n\n\`\`\`\n${connector.install_command}\n\`\`\`` }] };
     }
 
-    return { content: [{ type: "text" as const, text: `No encontré "${args.name}". Usa search_skills para buscar.` }] };
+    // 3. Search plugins by slug
+    const { data: plugin } = await supabase
+      .from("plugins")
+      .select("name, slug, homepage, github_url")
+      .eq("status", "approved")
+      .eq("slug", nameLower)
+      .maybeSingle();
+
+    if (plugin) {
+      const installInfo = plugin.homepage || plugin.github_url || "No install command available";
+      return { content: [{ type: "text" as const, text: `**${plugin.name}** (plugin)\n\n${installInfo}` }] };
+    }
+
+    // 4. Fuzzy search across all three tables
+    const [skillsFuzzy, connectorsFuzzy, pluginsFuzzy] = await Promise.all([
+      supabase.from("skills").select("display_name, install_command, slug")
+        .eq("status", "approved").or(`display_name.ilike.%${args.name}%,slug.ilike.%${args.name}%`).limit(2).then(r => r.data || []),
+      supabase.from("mcp_servers").select("name, install_command, slug")
+        .eq("status", "approved").or(`name.ilike.%${args.name}%,slug.ilike.%${args.name}%`).limit(2).then(r => r.data || []),
+      supabase.from("plugins").select("name, slug, homepage, github_url")
+        .eq("status", "approved").or(`name.ilike.%${args.name}%,slug.ilike.%${args.name}%`).limit(2).then(r => r.data || []),
+    ]);
+
+    const parts: string[] = [];
+    for (const s of skillsFuzzy) parts.push(`**${s.display_name}** (skill)\n\`\`\`\n${s.install_command}\n\`\`\``);
+    for (const c of connectorsFuzzy) parts.push(`**${c.name}** (connector)\n\`\`\`\n${c.install_command}\n\`\`\``);
+    for (const p of pluginsFuzzy) parts.push(`**${p.name}** (plugin)\n${p.homepage || p.github_url || "No install info"}`);
+
+    if (parts.length > 0) return { content: [{ type: "text" as const, text: parts.join("\n\n") }] };
+
+    return { content: [{ type: "text" as const, text: `No encontré "${args.name}" en skills, conectores ni plugins. Usa explore_directory para buscar.` }] };
   },
 });
 
