@@ -135,7 +135,7 @@ export default {
     bafounderTime: "Ahorra ~3hs por análisis",
 
     mcpTitle: "Tu arquitecto de soluciones AI",
-    mcpSubtitle: "Instalá Pymaia Agent y decile qué necesita tu empresa. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
+    mcpSubtitle: "Instalá Pymaia Agent y decile qué necesitás. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
     mcpCta: "Instalar Pymaia Agent",
 
     ctaTitle: "Transformá la productividad\nde tu equipo.",
