@@ -49,8 +49,8 @@ const PrimerosPasos = () => {
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 {isEs
-                  ? "Todo lo que necesitás saber sobre Claude, skills, conectores, plugins y más. Sin tecnicismos."
-                  : "Everything you need to know about Claude, skills, connectors, plugins and more. No jargon."}
+                  ? "Todo lo que necesitás saber sobre skills para agentes AI como Claude, Manus, Cursor y más. Sin tecnicismos."
+                  : "Everything you need to know about skills for AI agents like Claude, Manus, Cursor and more. No jargon."}
               </p>
             </motion.div>
           </div>
