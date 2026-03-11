@@ -2,28 +2,27 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, Zap, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AgentLogoStrip } from "@/components/AgentLogos";
 
-const terminalLines = [
-  { text: "$ claude", delay: 0 },
-  { text: '> Instalá la skill "Contract Reviewer"', delay: 800 },
-  { text: "✓ Skill instalada correctamente", delay: 2200 },
-  { text: '> Revisá este contrato de servicios', delay: 3400 },
-  { text: "⚡ Analizando cláusulas… 12 riesgos detectados", delay: 4800 },
+const chatMessages = [
+  { role: "user" as const, text: "Necesito un análisis competitivo para el board de mañana", delay: 0 },
+  { role: "assistant" as const, text: "Analizando 12 competidores… pricing, features y gaps detectados. Reporte listo en formato ejecutivo.", delay: 1800 },
+  { role: "user" as const, text: "Revisá este contrato antes de firmar", delay: 4200 },
+  { role: "assistant" as const, text: "14 cláusulas revisadas. 3 riesgos altos identificados con sugerencias de modificación.", delay: 5800 },
 ];
 
-const TerminalDemo = () => {
-  const [visibleLines, setVisibleLines] = useState(0);
+const ChatDemo = () => {
+  const [visibleMessages, setVisibleMessages] = useState(0);
   const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
-    setVisibleLines(0);
-    const timers = terminalLines.map((line, i) =>
-      setTimeout(() => setVisibleLines(i + 1), line.delay)
+    setVisibleMessages(0);
+    const timers = chatMessages.map((msg, i) =>
+      setTimeout(() => setVisibleMessages(i + 1), msg.delay)
     );
-    const loopTimer = setTimeout(() => setCycle((c) => c + 1), 8000);
+    const loopTimer = setTimeout(() => setCycle((c) => c + 1), 9000);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -38,36 +37,48 @@ const TerminalDemo = () => {
       transition={{ delay: 0.5, duration: 0.6 }}
       className="max-w-lg mx-auto mt-12"
     >
-      <div className="rounded-2xl border border-border bg-foreground text-background overflow-hidden shadow-2xl">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/20">
-          <div className="w-3 h-3 rounded-full bg-background/20" />
-          <div className="w-3 h-3 rounded-full bg-background/20" />
-          <div className="w-3 h-3 rounded-full bg-background/20" />
-          <span className="ml-2 text-xs text-background/40 font-mono">Terminal</span>
+      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/50">
+          <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
+          <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
+          <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
+          <span className="ml-2 text-xs text-muted-foreground font-medium">Asistente AI</span>
         </div>
-        <div className="p-5 font-mono text-sm space-y-2 min-h-[160px]">
-          {terminalLines.slice(0, visibleLines).map((line, i) => (
+        <div className="p-5 space-y-3 min-h-[180px]">
+          {chatMessages.slice(0, visibleMessages).map((msg, i) => (
             <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
+              key={`${cycle}-${i}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className={
-                line.text.startsWith("✓")
-                  ? "text-green-400"
-                  : line.text.startsWith("⚡")
-                    ? "text-yellow-300"
-                    : line.text.startsWith("$")
-                      ? "text-background/60"
-                      : "text-background/90"
-              }
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {line.text}
+              <div
+                className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    : "bg-secondary text-foreground rounded-bl-md"
+                }`}
+              >
+                {msg.text}
+              </div>
             </motion.div>
           ))}
-          {visibleLines < terminalLines.length && (
-            <span className="inline-block w-2 h-4 bg-background/60 animate-pulse" />
+          {visibleMessages < chatMessages.length && (
+            <div className="flex justify-start">
+              <div className="flex gap-1 px-4 py-3">
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
+              </div>
+            </div>
           )}
+        </div>
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary/50 border border-border">
+            <span className="text-sm text-muted-foreground flex-1">Pedí lo que necesites...</span>
+            <Send className="w-4 h-4 text-muted-foreground" />
+          </div>
         </div>
       </div>
     </motion.div>
@@ -122,7 +133,7 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        <TerminalDemo />
+        <ChatDemo />
       </div>
     </section>
   );

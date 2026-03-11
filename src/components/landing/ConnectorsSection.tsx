@@ -8,9 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Curated list of well-known connectors to show on landing
 const FEATURED_SLUGS = [
-  "gmail", "slack", "smithery-ai-github", "notion",
-  "googlesheets", "stripe", "instagram", "discord",
-  "googledrive", "googlecalendar", "canva", "ai-zerolab-mcp-figma",
+  "slack", "gmail", "notion", "googlesheets",
+  "googledrive", "googlecalendar", "stripe", "smithery-ai-github",
+  "discord", "canva", "ai-zerolab-mcp-figma", "instagram",
 ];
 
 const CATEGORY_EMOJIS: Record<string, string> = {

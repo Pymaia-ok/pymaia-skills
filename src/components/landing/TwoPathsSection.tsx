@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Lightbulb, Rocket } from "lucide-react";
+import { ArrowRight, Users, PenTool } from "lucide-react";
 
 const TwoPathsSection = () => {
   const { t } = useTranslation();
@@ -21,14 +21,14 @@ const TwoPathsSection = () => {
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Already uses Claude Code */}
+          {/* Boost my team */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="p-8 rounded-3xl border-2 border-foreground bg-foreground text-background"
           >
-            <Rocket className="w-10 h-10 mb-6" />
+            <Users className="w-10 h-10 mb-6" />
             <h3 className="text-2xl font-bold mb-3">{t("landing.pathExpertTitle")}</h3>
             <p className="text-background/70 mb-8 leading-relaxed">{t("landing.pathExpertDesc")}</p>
             <Button asChild variant="secondary" size="lg" className="rounded-full">
@@ -38,18 +38,18 @@ const TwoPathsSection = () => {
             </Button>
           </motion.div>
 
-          {/* New to Claude Code */}
+          {/* Create custom solutions */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="p-8 rounded-3xl border-2 border-border bg-secondary"
           >
-            <Lightbulb className="w-10 h-10 mb-6 text-foreground" />
+            <PenTool className="w-10 h-10 mb-6 text-foreground" />
             <h3 className="text-2xl font-bold mb-3">{t("landing.pathNewTitle")}</h3>
             <p className="text-muted-foreground mb-8 leading-relaxed">{t("landing.pathNewDesc")}</p>
             <Button asChild size="lg" className="rounded-full">
-              <Link to="/primeros-pasos">
+              <Link to="/crear-skill">
                 {t("landing.pathNewCta")} <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
