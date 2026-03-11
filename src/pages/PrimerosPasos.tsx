@@ -226,8 +226,8 @@ const PrimerosPasos = () => {
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Una skill es un archivo de conocimiento experto (SKILL.md) que le enseña a Claude cómo hacer una tarea específica. No es un plugin, no es una app — es conocimiento puro que Claude usa automáticamente."
-                : "A skill is an expert knowledge file (SKILL.md) that teaches Claude how to do a specific task. It's not a plugin, not an app — it's pure knowledge that Claude uses automatically."}
+                ? "Una skill es un archivo de conocimiento experto (SKILL.md) que le enseña a un agente AI cómo hacer una tarea específica. No es un plugin, no es una app — es conocimiento puro que el agente usa automáticamente. Funciona con Claude, Manus, Cursor, Antigravity, OpenClaw y cualquier agente compatible con el estándar SKILL.md."
+                : "A skill is an expert knowledge file (SKILL.md) that teaches an AI agent how to do a specific task. It's not a plugin, not an app — it's pure knowledge that the agent uses automatically. Works with Claude, Manus, Cursor, Antigravity, OpenClaw and any agent supporting the SKILL.md standard."}
             </p>
 
             {/* Visual analogy */}
