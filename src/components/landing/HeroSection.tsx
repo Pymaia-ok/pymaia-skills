@@ -81,7 +81,7 @@ const ChatDemo = () => {
         </div>
         <div className="px-4 pb-4">
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary/50 border border-border">
-            <span className="text-sm text-muted-foreground flex-1">Pedí lo que necesites...</span>
+            <span className="text-sm text-muted-foreground flex-1">{t("landing.heroChatPlaceholder")}</span>
             <Send className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
