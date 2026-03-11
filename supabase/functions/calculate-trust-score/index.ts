@@ -48,6 +48,17 @@ async function calculateTrustScore(item: any, abuseCount: number): Promise<{
     if (scanResult.layers?.injection?.count === 0) {
       security += 5;
     }
+
+    // VirusTotal layer bonus/penalty
+    const vt = scanResult.layers?.virustotal;
+    if (vt && vt.verdict) {
+      if (vt.verdict === "clean" && vt.malicious_count === 0) {
+        security += 5; // VT clean bonus
+      } else if (vt.verdict === "malicious" || (vt.malicious_count && vt.malicious_count >= 4)) {
+        security -= 15; // VT malicious penalty
+      }
+      // suspicious (1-3 detections) = 0 change
+    }
   } else {
     if (item.security_status === "verified") security += 5;
   }

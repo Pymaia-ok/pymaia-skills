@@ -1062,8 +1062,9 @@ async function runFullScan(
       publisher: publisherResult,
       dependencies: dependencyResult,
       llm: llmResult,
+      virustotal: vtResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "6.0.0",
+    version: "7.0.0",
   };
 }

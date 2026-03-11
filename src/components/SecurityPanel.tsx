@@ -199,9 +199,24 @@ export const SecurityPanel = ({
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Fingerprint className="w-3.5 h-3.5 text-primary" />
             <span>
-              {isEs ? "Escaneado por Pymaia" : "Scanned by Pymaia"}{" "}
+              {isEs ? "Escaneado por Pymaia" : "Scanned by Pymaia"}
+              {vtData ? " + VirusTotal" : ""}{" "}
               {new Date(securityScannedAt).toLocaleDateString(isEs ? "es" : "en", { year: "numeric", month: "short", day: "numeric" })}
             </span>
+          </div>
+        )}
+
+        {vtData?.vt_permalink && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            <a
+              href={vtData.vt_permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors underline underline-offset-2"
+            >
+              {isEs ? "Ver reporte VirusTotal" : "View VirusTotal report"}
+            </a>
           </div>
         )}
 
