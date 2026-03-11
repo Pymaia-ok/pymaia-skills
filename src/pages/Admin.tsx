@@ -280,6 +280,7 @@ const Admin = () => {
     { name: "Version monitor", func: "version-monitor", freq: "Cada 6 horas" },
     { name: "Incident escalation", func: "security-incident", freq: "Cada 15 min" },
     { name: "Re-scan rotación", func: "rescan-security", freq: "Lunes 3:00 UTC" },
+    { name: "VT polling pendientes", func: "poll-vt-pending", freq: "Cada 10 min" },
     { name: "MCP health check", func: "check-mcp-health", freq: "Cada 12 horas" },
     { name: "Sync skills diario", func: "sync-skills", freq: "Diario 6:00 UTC" },
     { name: "Sync plugins", func: "sync-plugins", freq: "Diario 6:00 UTC" },
