@@ -117,7 +117,7 @@ const Explore = () => {
   const skills = result?.data ?? [];
   const totalCount = result?.count ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const smartKeywords = isSmartMode && smartResult?.keywords ? smartResult.keywords : null;
+  const smartKeywords = isSmartMode && (smartResult as any)?.keywords ? (smartResult as any).keywords : null;
 
   return (
     <div className="min-h-screen bg-background">
