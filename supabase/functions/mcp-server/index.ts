@@ -204,10 +204,12 @@ mcp.tool("search_skills", {
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     let results = matched || [];
+    let fallbackUsed = "none";
 
     // Word-split fallback for multi-word queries
     const words = q.split(/\s+/).filter(w => w.length >= 2);
     if (results.length === 0 && words.length > 1) {
+      fallbackUsed = "word-split";
       results = await wordSplitSearch(
         "skills",
         "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles",
@@ -218,6 +220,7 @@ mcp.tool("search_skills", {
 
     // Fallback to top skills if still no match
     if (results.length === 0) {
+      fallbackUsed = "top-skills";
       let fallback = supabase
         .from("skills")
         .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
@@ -228,6 +231,8 @@ mcp.tool("search_skills", {
       const { data: topData } = await fallback;
       results = topData || [];
     }
+
+    console.log(JSON.stringify({ tool: "search_skills", query: args.query, sanitized: q, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching skills found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
@@ -540,10 +545,12 @@ mcp.tool("search_connectors", {
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     let results = deduplicateConnectors(matched || []);
+    let fallbackUsed = "none";
 
     // Word-split fallback for multi-word queries
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     if (results.length === 0 && words.length > 1) {
+      fallbackUsed = "word-split";
       const fallbackData = await wordSplitSearch(
         "mcp_servers",
         "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url",
@@ -554,6 +561,7 @@ mcp.tool("search_connectors", {
     }
 
     if (results.length === 0) {
+      fallbackUsed = "top-connectors";
       let fallback = supabase
         .from("mcp_servers")
         .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
@@ -564,6 +572,8 @@ mcp.tool("search_connectors", {
       const { data: topData } = await fallback;
       results = deduplicateConnectors(topData || []);
     }
+
+    console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching connectors found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
@@ -820,7 +830,18 @@ mcp.tool("explore_directory", {
 async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: string | null) {
   const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
   
-  for (const kw of keywords.slice(0, 6)) {
+  // Expand multi-word keywords into individual words for broader ILIKE matching
+  const expandedKeywords = new Set<string>();
+  for (const kw of keywords) {
+    expandedKeywords.add(kw);
+    const parts = kw.split(/\s+/).filter(w => w.length >= 2);
+    if (parts.length > 1) {
+      for (const part of parts) expandedKeywords.add(part);
+    }
+  }
+  const uniqueExpanded = [...expandedKeywords].slice(0, 10);
+
+  for (const kw of uniqueExpanded) {
     const q = sanitizeForPostgrest(kw);
     if (!q || q.length < 2) continue;
 
@@ -849,6 +870,8 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
         .order("install_count", { ascending: false }).limit(limit),
     ]);
     
+    console.log(JSON.stringify({ fn: "crossCatalogSearch", keyword: kw, sanitized: q, skills: sk?.length || 0, connectors: mc?.length || 0, plugins: pl?.length || 0 }));
+
     if (sk) results.skills.push(...sk);
     if (mc) results.connectors.push(...mc);
     if (pl) results.plugins.push(...pl);
@@ -858,6 +881,8 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
   results.skills = results.skills.filter(s => { if (seenSlugs.has(s.slug)) return false; seenSlugs.add(s.slug); return true; });
   results.connectors = deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; }));
   results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
+
+  console.log(JSON.stringify({ fn: "crossCatalogSearch", totalKeywords: uniqueExpanded.length, originalKeywords: keywords.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
   
   return results;
 }
@@ -904,6 +929,8 @@ mcp.tool("solve_goal", {
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
 
+    console.log(JSON.stringify({ tool: "solve_goal", goal: args.goal, role: args.role || null, intent: { keywords: intent.keywords, category: intent.category, capabilities: intent.capabilities, domain: intent.domain, confidence: intent.confidence } }));
+
     // 0b. A/B variant assignment
     const variant: ABVariant = assignVariant(args.goal, args.user_id);
 
@@ -939,6 +966,8 @@ mcp.tool("solve_goal", {
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
+
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { skills: searchResults.skills.length, connectors: searchResults.connectors.length, plugins: searchResults.plugins.length, total: allItems.length } }));
 
     // 4. Score by relevance (ML-enhanced with AI-extracted capabilities)
     const scored = allItems.map((item: any) => {
