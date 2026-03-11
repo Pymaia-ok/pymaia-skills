@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(200);
 
-    console.log(JSON.stringify({ debug: true, since, eventsFound: recentEvents?.length || 0, fetchErr: fetchErr?.message || null }));
+    
 
     if (!recentEvents || recentEvents.length === 0) {
       console.log(JSON.stringify({ monitor: "no_events", since }));
