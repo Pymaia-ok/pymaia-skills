@@ -1,5 +1,16 @@
-import { Languages, ShieldCheck, ShieldAlert, Shield, RefreshCw, CheckCircle2, XCircle, Clock, Activity, AlertTriangle, FileWarning } from "lucide-react";
+import { Languages, ShieldCheck, ShieldAlert, Shield, RefreshCw, CheckCircle2, XCircle, Clock, Activity, AlertTriangle, FileWarning, Lightbulb, TrendingDown, Search, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+
+interface QualityInsight {
+  id: string;
+  created_at: string;
+  insight_type: string;
+  goal: string;
+  details: any;
+  action_taken: string | null;
+  status: string;
+}
 
 interface AdminOverviewTabProps {
   translatedCount: number;
@@ -10,12 +21,36 @@ interface AdminOverviewTabProps {
   securityStats: { verified: number; flagged: number; unverified: number } | undefined;
   connectorStats: { total: number; untranslated: number } | undefined;
   recentLogs: any[] | undefined;
+  qualityInsights?: QualityInsight[];
 }
+
+const insightIcon: Record<string, typeof Lightbulb> = {
+  empty_results: Search,
+  low_rating: TrendingDown,
+  keyword_gap: AlertTriangle,
+  missing_template: Sparkles,
+};
+
+const insightColor: Record<string, string> = {
+  empty_results: "text-amber-500",
+  low_rating: "text-destructive",
+  keyword_gap: "text-orange-500",
+  missing_template: "text-primary",
+};
+
+const insightLabel: Record<string, string> = {
+  empty_results: "Sin resultados",
+  low_rating: "Baja calificación",
+  keyword_gap: "Keyword gap",
+  missing_template: "Template sugerido",
+};
 
 export default function AdminOverviewTab({
   translatedCount, translationTotal, translationPercent, translationStats,
-  securityPercent, securityStats, connectorStats, recentLogs,
+  securityPercent, securityStats, connectorStats, recentLogs, qualityInsights,
 }: AdminOverviewTabProps) {
+  const pendingInsights = qualityInsights?.filter(i => i.status === "pending") || [];
+
   return (
     <>
       <div className="grid md:grid-cols-3 gap-4 mb-8">
@@ -57,6 +92,50 @@ export default function AdminOverviewTab({
           <p className="text-2xl font-bold">{connectorStats?.total.toLocaleString() ?? "..."}</p>
           <p className="text-xs text-muted-foreground">Smithery 6AM · Official 6:30AM · GitHub 7AM UTC</p>
         </div>
+      </div>
+
+      {/* Quality Insights */}
+      <div className="p-5 rounded-2xl bg-secondary mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Lightbulb className="w-5 h-5 text-amber-500" />
+          <h2 className="font-semibold">Calidad del MCP Agent</h2>
+          {pendingInsights.length > 0 && (
+            <Badge variant="secondary" className="ml-auto text-xs">
+              {pendingInsights.length} pendientes
+            </Badge>
+          )}
+        </div>
+        {pendingInsights.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Sin insights de calidad pendientes. El monitor corre diariamente.
+          </p>
+        ) : (
+          <div className="space-y-1 max-h-64 overflow-y-auto">
+            {pendingInsights.slice(0, 15).map(insight => {
+              const Icon = insightIcon[insight.insight_type] || Lightbulb;
+              const color = insightColor[insight.insight_type] || "text-muted-foreground";
+              return (
+                <div key={insight.id} className="flex items-start gap-3 text-sm py-2 px-3 rounded-lg bg-background/50">
+                  <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${color}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{insight.goal}</span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {insightLabel[insight.insight_type] || insight.insight_type}
+                      </Badge>
+                    </div>
+                    {insight.action_taken && (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{insight.action_taken}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(insight.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="p-5 rounded-2xl bg-secondary">
