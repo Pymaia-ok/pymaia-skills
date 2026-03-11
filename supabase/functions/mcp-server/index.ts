@@ -220,22 +220,9 @@ mcp.tool("search_skills", {
     let results = merged.slice(0, lim);
     let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
-    if (results.length === 0) {
-      fallbackUsed = "top-skills";
-      let fallback = supabase
-        .from("skills")
-        .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
-        .eq("status", "approved")
-        .order("install_count", { ascending: false })
-        .limit(3);
-      if (args.category) fallback = fallback.eq("category", args.category);
-      const { data: topData } = await fallback;
-      results = topData || [];
-    }
-
     console.log(JSON.stringify({ tool: "search_skills", query: args.query, sanitized: q, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching skills found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
+    if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré "${args.query}". Usa search_skills para buscar.` }] };
 
     const text = results
       .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count.toLocaleString()} installs)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
