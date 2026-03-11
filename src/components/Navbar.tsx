@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Menu, X, Globe, Plus, Package, Bell, Moon, Sun } from "lucide-react";
+import { LogOut, Menu, X, Globe, Plus, Package, Bell, Moon, Sun, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
@@ -56,14 +56,12 @@ const Navbar = () => {
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/enterprise", label: "Enterprise" },
   ];
 
   const mobileLinks = [
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/enterprise", label: "Enterprise" },
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
     { to: "/mcp", label: "MCP Server" },
   ];
@@ -139,17 +137,22 @@ const Navbar = () => {
 
                 <DropdownMenuItem onClick={() => navigate("/mis-skills")}>
                   <Package className="w-4 h-4 mr-2" />
-                  {t("nav.mySkills", "Mis soluciones")}
+                  {t("nav.mySkills")}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate("/enterprise")}>
+                  <Building2 className="w-4 h-4 mr-2" />
+                  {t("nav.enterprise")}
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
-                  onClick={() => { navigate("/mis-skills"); /* notifications tab future */ }}
+                  onClick={() => { navigate("/mis-skills"); }}
                   className="relative"
                 >
                   <Bell className="w-4 h-4 mr-2" />
-                  {t("notifications.title", "Notificaciones")}
+                  {t("nav.notifications")}
                   {unreadCount > 0 && (
                     <span className="ml-auto w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
                       {unreadCount}
@@ -163,7 +166,7 @@ const Navbar = () => {
                   className="cursor-pointer"
                 >
                   {isDark ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
-                  <span className="flex-1">{t("nav.darkMode", "Modo oscuro")}</span>
+                  <span className="flex-1">{isDark ? t("nav.darkMode") : t("nav.lightMode")}</span>
                   <Switch
                     checked={isDark}
                     onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
@@ -257,7 +260,7 @@ const Navbar = () => {
             className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground w-full"
           >
             {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            {isDark ? t("nav.lightMode", "Modo claro") : t("nav.darkMode", "Modo oscuro")}
+            {isDark ? t("nav.lightMode") : t("nav.darkMode")}
           </button>
 
           <button
