@@ -204,10 +204,12 @@ mcp.tool("search_skills", {
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     let results = matched || [];
+    let fallbackUsed = "none";
 
     // Word-split fallback for multi-word queries
     const words = q.split(/\s+/).filter(w => w.length >= 2);
     if (results.length === 0 && words.length > 1) {
+      fallbackUsed = "word-split";
       results = await wordSplitSearch(
         "skills",
         "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles",
@@ -218,6 +220,7 @@ mcp.tool("search_skills", {
 
     // Fallback to top skills if still no match
     if (results.length === 0) {
+      fallbackUsed = "top-skills";
       let fallback = supabase
         .from("skills")
         .select("display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles")
@@ -228,6 +231,8 @@ mcp.tool("search_skills", {
       const { data: topData } = await fallback;
       results = topData || [];
     }
+
+    console.log(JSON.stringify({ tool: "search_skills", query: args.query, sanitized: q, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching skills found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
