@@ -233,7 +233,7 @@ const SkillDetail = () => {
                   summary = summary.replace(/^\*\*(What it does|Qué hace|Que hace)\*\*\s*\n[\s\S]*?(?=\n\*\*[A-Z]|$)/im, "").trim();
                   if (!summary) return null;
                   return (
-                    <div className="mb-6 prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground">
+                    <div className="mb-6 prose prose-base max-w-none dark:prose-invert prose-headings:text-foreground prose-headings:mt-6 prose-headings:mb-3 prose-p:text-muted-foreground prose-p:mb-3 prose-p:leading-relaxed prose-li:text-muted-foreground prose-li:mb-1 prose-ul:mb-4 prose-ol:mb-4 prose-strong:text-foreground">
                       <ReactMarkdown>{summary}</ReactMarkdown>
                     </div>
                   );
