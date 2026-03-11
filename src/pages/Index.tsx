@@ -28,8 +28,8 @@ const Index = () => {
   const allSkills = skillsResult?.data ?? [];
 
   useSEO({
-    title: "Pymaia Skills — Trabajá como un experto en minutos",
-    description: "Elegí una skill, instalala en tu agente AI favorito y convertite en experto. 35,000+ skills para Claude, Manus, Cursor, Antigravity y más.",
+    title: "Pymaia Skills — Potenciá tu equipo con inteligencia artificial",
+    description: "35,000+ soluciones profesionales para tu asistente de IA. Activá soluciones para marketing, legal, finanzas, RRHH y más. Compatible con Claude, Manus, Cursor y más.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",
@@ -38,7 +38,7 @@ const Index = () => {
           "@type": "WebSite",
           name: "Pymaia Skills",
           url: "https://pymaiaskills.lovable.app",
-          description: "The #1 skill directory for AI coding agents. 35,000+ professional skills for Claude, Manus, Cursor, Antigravity, OpenClaw and more.",
+          description: "The #1 AI solutions directory for businesses. 35,000+ professional solutions for Claude, Manus, Cursor, Antigravity, OpenClaw and more.",
           potentialAction: {
             "@type": "SearchAction",
             target: "https://pymaiaskills.lovable.app/explorar?q={search_term_string}",
@@ -60,14 +60,14 @@ const Index = () => {
           "@type": "WebApplication",
           name: "Pymaia Skills",
           url: "https://pymaiaskills.lovable.app",
-          applicationCategory: "DeveloperApplication",
+          applicationCategory: "BusinessApplication",
           operatingSystem: "Web",
           offers: {
             "@type": "Offer",
             price: "0",
             priceCurrency: "USD",
           },
-          featureList: "Skill directory, MCP Server, AI-powered search, Connector catalog, Skill builder",
+          featureList: "AI solutions directory, MCP Server, AI-powered search, Enterprise integrations, Solution builder",
         },
       ],
     },
@@ -76,31 +76,30 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="pt-14">
-        {/* 1. Hero — emotional hook + terminal demo */}
+        {/* 1. Hero — business hook + chat demo */}
         <HeroSection />
-        {/* 2. Marquee — visual energy, shows breadth */}
-        {/* 3. Marquee — visual energy, shows breadth */}
-        <MarqueeSection />
-        {/* 4. Stats — hard numbers */}
+        {/* 2. Stats — credibility */}
         <StatsBar />
-        {/* 5. How it works — clarity */}
+        {/* 3. Marquee — breadth */}
+        <MarqueeSection />
+        {/* 4. How it works — clarity */}
         <HowItWorks />
-        {/* 6. Before/After — create desire */}
+        {/* 5. Before/After — desire */}
         <BeforeAfterSection />
-        {/* 7. Popular skills — show the product */}
-        <PopularSkills />
-        {/* 8. Wizard — interactive discovery */}
-        <WizardSection allSkills={allSkills} />
-        {/* 9. Two paths — meet user where they are */}
-        <TwoPathsSection />
-        {/* 10. Skill Creator */}
-        <SkillCreatorSection />
-        {/* 11. Bundles by profession */}
-        <BundlesSection />
-        {/* 11. Connectors */}
+        {/* 6. Connectors — integrations */}
         <ConnectorsSection />
-        {/* 12. Plugins */}
+        {/* 7. Plugins — tools */}
         <PluginsSection />
+        {/* 8. Popular solutions */}
+        <PopularSkills />
+        {/* 9. Wizard — discovery */}
+        <WizardSection allSkills={allSkills} />
+        {/* 10. Bundles by profession */}
+        <BundlesSection />
+        {/* 11. Two paths — meet user where they are */}
+        <TwoPathsSection />
+        {/* 12. Skill Creator */}
+        <SkillCreatorSection />
         {/* 13. MCP banner */}
         <McpBannerSection />
         {/* 14. Final CTA */}
