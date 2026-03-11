@@ -929,6 +929,8 @@ mcp.tool("solve_goal", {
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
 
+    console.log(JSON.stringify({ tool: "solve_goal", goal: args.goal, role: args.role || null, intent: { keywords: intent.keywords, category: intent.category, capabilities: intent.capabilities, domain: intent.domain, confidence: intent.confidence } }));
+
     // 0b. A/B variant assignment
     const variant: ABVariant = assignVariant(args.goal, args.user_id);
 
@@ -964,6 +966,8 @@ mcp.tool("solve_goal", {
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
+
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { skills: searchResults.skills.length, connectors: searchResults.connectors.length, plugins: searchResults.plugins.length, total: allItems.length } }));
 
     // 4. Score by relevance (ML-enhanced with AI-extracted capabilities)
     const scored = allItems.map((item: any) => {
