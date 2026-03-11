@@ -837,6 +837,39 @@ export type Database = {
         }
         Relationships: []
       }
+      quality_insights: {
+        Row: {
+          action_taken: string | null
+          created_at: string
+          details: Json
+          goal: string
+          id: string
+          insight_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string
+          details?: Json
+          goal: string
+          id?: string
+          insight_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string
+          details?: Json
+          goal?: string
+          id?: string
+          insight_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recommendation_feedback: {
         Row: {
           chosen_option: string | null
