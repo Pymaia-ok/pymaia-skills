@@ -1255,6 +1255,7 @@ export type Database = {
           quality_score: number | null
           readme_raw: string | null
           readme_summary: string | null
+          readme_summary_es: string | null
           required_mcps: Json | null
           review_count: number
           search_vector: unknown
@@ -1299,6 +1300,7 @@ export type Database = {
           quality_score?: number | null
           readme_raw?: string | null
           readme_summary?: string | null
+          readme_summary_es?: string | null
           required_mcps?: Json | null
           review_count?: number
           search_vector?: unknown
@@ -1343,6 +1345,7 @@ export type Database = {
           quality_score?: number | null
           readme_raw?: string | null
           readme_summary?: string | null
+          readme_summary_es?: string | null
           required_mcps?: Json | null
           review_count?: number
           search_vector?: unknown
@@ -1450,6 +1453,7 @@ export type Database = {
           quality_score: number | null
           readme_raw: string | null
           readme_summary: string | null
+          readme_summary_es: string | null
           required_mcps: Json | null
           review_count: number
           search_vector: unknown
