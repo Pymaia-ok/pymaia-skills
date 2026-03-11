@@ -112,7 +112,7 @@ export default {
     connectorsCtaAll: "Ver todas las integraciones",
 
     pluginsTag: "Plugins",
-    pluginsTitle: "Herramientas para cada área de tu empresa",
+    pluginsTitle: "Herramientas para cada área de tu trabajo",
     pluginsSubtitle: "Marketing, ventas, diseño, finanzas, RRHH y más. Plugins verificados listos para usar.",
     pluginsCtaAll: "Ver todos los plugins",
 
