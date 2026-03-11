@@ -116,8 +116,8 @@ export default {
     pluginsSubtitle: "Marketing, ventas, diseño, finanzas, RRHH y más. Plugins verificados listos para usar.",
     pluginsCtaAll: "Ver todos los plugins",
 
-    beforeAfterTitle: "El impacto en tu empresa",
-    beforeAfterSubtitle: "Casos reales de cómo las soluciones transforman la productividad de los equipos.",
+    beforeAfterTitle: "El impacto en tu productividad",
+    beforeAfterSubtitle: "Casos reales de cómo las soluciones transforman la productividad profesional.",
     bamarketerRole: "Marketer",
     bamarketerTask: "Crear briefs de campaña",
     bamarketerBefore: "2 horas investigando, redactando y formateando cada brief manualmente.",
