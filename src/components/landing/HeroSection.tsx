@@ -116,6 +116,11 @@ const HeroSection = () => {
               </Link>
             </Button>
           </div>
+
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/80 border border-border text-xs text-muted-foreground">
+            <span className="flex gap-1">⌨️ 🤖 📝 🚀 🐾</span>
+            {t("landing.multiAgentBadge")}
+          </div>
         </motion.div>
 
         <TerminalDemo />

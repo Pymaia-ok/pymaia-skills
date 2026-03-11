@@ -262,7 +262,7 @@ export default {
     backToDirectory: "Directory",
     installSkill: "Install skill",
     commandCopied: "Command copied!",
-    copyHint: "Copy the command and paste it in Claude Code",
+    copyHint: "Copy the command and paste it in your favorite AI agent",
     reviews: "reviews",
     installs: "installs",
     minToInstall: "min to install",

@@ -126,55 +126,16 @@ const ConectorDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
             <div className="min-w-0 order-2 lg:order-none">
-              {/* Install command */}
+              {/* Install command — multi-agent */}
               {connector.install_command ? (
-                <div className="mb-8 space-y-4">
-                  {(() => {
-                    try {
-                      const parsed = JSON.parse(connector.install_command);
-                      const serverName = Object.keys(parsed.mcpServers || {})[0];
-                      const serverConfig = parsed.mcpServers?.[serverName];
-                      const url = serverConfig?.url;
-                      if (url && serverName) {
-                        const cliCmd = `claude mcp add ${serverName} --transport http ${url}`;
-                        return (
-                          <div>
-                            <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                              <Terminal className="w-4 h-4" />
-                              {isEs ? "Instalación rápida (1 comando)" : "Quick install (1 command)"}
-                            </h2>
-                            <div
-                              onClick={() => {
-                                const scanResult = (connector as any).security_scan_result;
-                                const hasPermWarnings = scanResult?.layers?.scope?.permissions?.length > 0;
-                                if (hasPermWarnings) { setPendingCopyCmd(cliCmd); setShowInstallConfirm(true); }
-                                else { navigator.clipboard.writeText(cliCmd); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-                              }}
-                              className="flex items-center justify-between p-4 rounded-xl bg-foreground text-background cursor-pointer hover:opacity-90 transition-opacity group"
-                            >
-                              <code className="text-sm font-mono break-all">{cliCmd}</code>
-                              {copied ? <Check className="w-4 h-4 flex-shrink-0 ml-3" /> : <Copy className="w-4 h-4 flex-shrink-0 ml-3 opacity-60 group-hover:opacity-100" />}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {isEs ? "Pegá esto en Claude Code y listo. Para otros clientes, usá la configuración JSON." : "Paste this in Claude Code and you're done. For other clients, use the JSON config."}
-                            </p>
-                          </div>
-                        );
-                      }
-                    } catch {}
-                    return null;
-                  })()}
-
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                      <Terminal className="w-4 h-4" />
-                      {isEs ? "Configuración JSON" : "JSON configuration"}
-                    </h2>
-                    <div onClick={handleCopy} className="flex items-center justify-between p-4 rounded-xl bg-secondary cursor-pointer hover:bg-accent transition-colors group">
-                      <code className="text-sm text-foreground font-mono break-all">{connector.install_command}</code>
-                      {copied ? <Check className="w-4 h-4 text-primary flex-shrink-0 ml-3" /> : <Copy className="w-4 h-4 text-muted-foreground group-hover:text-foreground flex-shrink-0 ml-3" />}
-                    </div>
-                  </div>
+                <div className="mb-8">
+                  <MultiAgentInstall
+                    itemType="connector"
+                    itemName={connector.name}
+                    itemSlug={connector.slug}
+                    installContent={connector.install_command}
+                    githubUrl={connector.github_url}
+                  />
                 </div>
               ) : (
                 <div className="mb-8 p-5 rounded-2xl border border-dashed border-border bg-secondary/30">
