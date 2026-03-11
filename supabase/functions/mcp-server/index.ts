@@ -530,41 +530,44 @@ mcp.tool("search_connectors", {
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
+    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url";
+    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
+    const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
-    let q = supabase
+    // Run exact-phrase search AND word-split search in parallel for better recall
+    let exactQ = supabase
       .from("mcp_servers")
-      .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
+      .select(selectCols)
       .eq("status", "approved")
       .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%,description_es.ilike.%${queryLower}%`)
       .order("github_stars", { ascending: false })
       .limit(lim);
+    if (args.category) exactQ = exactQ.eq("category", args.category);
 
-    if (args.category) q = q.eq("category", args.category);
+    const [exactRes, wordSplitRes] = await Promise.all([
+      exactQ.then(r => r.data || []),
+      words.length > 1
+        ? wordSplitSearch("mcp_servers", selectCols, words, "github_stars", lim * 2, catFilter)
+        : Promise.resolve([]),
+    ]);
 
-    const { data: matched, error } = await q;
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-
-    let results = deduplicateConnectors(matched || []);
-    let fallbackUsed = "none";
-
-    // Word-split fallback for multi-word queries
-    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
-    if (results.length === 0 && words.length > 1) {
-      fallbackUsed = "word-split";
-      const fallbackData = await wordSplitSearch(
-        "mcp_servers",
-        "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url",
-        words, "github_stars", lim,
-        args.category ? (qb: any) => qb.eq("category", args.category) : undefined,
-      );
-      results = deduplicateConnectors(fallbackData);
+    // Merge: exact matches first, then word-split results (deduplicated)
+    const seenSlugs = new Set<string>();
+    const merged: any[] = [];
+    for (const item of [...exactRes, ...wordSplitRes]) {
+      if (!seenSlugs.has(item.slug)) {
+        seenSlugs.add(item.slug);
+        merged.push(item);
+      }
     }
+    let results = deduplicateConnectors(merged).slice(0, lim);
+    let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
     if (results.length === 0) {
       fallbackUsed = "top-connectors";
       let fallback = supabase
         .from("mcp_servers")
-        .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
+        .select(selectCols)
         .eq("status", "approved")
         .order("github_stars", { ascending: false })
         .limit(3);
