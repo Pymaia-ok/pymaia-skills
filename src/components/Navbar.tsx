@@ -137,17 +137,22 @@ const Navbar = () => {
 
                 <DropdownMenuItem onClick={() => navigate("/mis-skills")}>
                   <Package className="w-4 h-4 mr-2" />
-                  {t("nav.mySkills", "Mis soluciones")}
+                  {t("nav.mySkills")}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onClick={() => navigate("/enterprise")}>
+                  <Building2 className="w-4 h-4 mr-2" />
+                  {t("nav.enterprise")}
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
-                  onClick={() => { navigate("/mis-skills"); /* notifications tab future */ }}
+                  onClick={() => { navigate("/mis-skills"); }}
                   className="relative"
                 >
                   <Bell className="w-4 h-4 mr-2" />
-                  {t("notifications.title", "Notificaciones")}
+                  {t("nav.notifications")}
                   {unreadCount > 0 && (
                     <span className="ml-auto w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
                       {unreadCount}
