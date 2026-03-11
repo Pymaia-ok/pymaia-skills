@@ -109,7 +109,7 @@ export default {
     connectorsCtaAll: "View all integrations",
 
     pluginsTag: "Plugins",
-    pluginsTitle: "Tools for every area of your business",
+    pluginsTitle: "Tools for every area of your work",
     pluginsSubtitle: "Marketing, sales, design, finance, HR and more. Verified plugins ready to use.",
     pluginsCtaAll: "View all plugins",
 
