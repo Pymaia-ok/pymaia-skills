@@ -29,15 +29,15 @@ export default function DetailFAQ({ itemType, itemName, description, category, h
       q: isEs ? `¿Cómo instalo ${itemName}?` : `How do I install ${itemName}?`,
       a: itemType === "skill"
         ? (isEs
-          ? `Copiá el comando de instalación y pegalo en Claude Code. En 2 minutos está funcionando. También podés descargar el ZIP y subirlo a Claude.ai.`
-          : `Copy the install command and paste it in Claude Code. It'll be working in 2 minutes. You can also download the ZIP and upload it to Claude.ai.`)
+          ? `Elegí tu agente AI favorito (Claude, Manus, Cursor, Antigravity u OpenClaw) en las pestañas de instalación y seguí las instrucciones. En 2 minutos está funcionando.`
+          : `Choose your favorite AI agent (Claude, Manus, Cursor, Antigravity or OpenClaw) from the install tabs and follow the instructions. It'll be working in 2 minutes.`)
         : itemType === "connector"
         ? (isEs
           ? `Copiá el comando CLI o la configuración JSON y agregalo a tu configuración de MCP en Claude Code, Cursor o tu cliente preferido.`
           : `Copy the CLI command or JSON config and add it to your MCP configuration in Claude Code, Cursor, or your preferred client.`)
         : (isEs
-          ? `Hacé click en el botón de instalación para Claude Cowork, o copiá el comando para Claude Code.`
-          : `Click the install button for Claude Cowork, or copy the command for Claude Code.`),
+          ? `Elegí tu agente en las pestañas de instalación: Claude Cowork, Claude Code, Manus o Cursor.`
+          : `Choose your agent from the install tabs: Claude Cowork, Claude Code, Manus or Cursor.`),
     },
     {
       q: isEs ? `¿Es seguro usar ${itemName}?` : `Is ${itemName} safe to use?`,
