@@ -102,12 +102,11 @@ const ConectorDetail = () => {
             {/* Hero */}
             <div className="flex items-center gap-4 mb-6">
               {connector.icon_url ? (
-                <img src={connector.icon_url} alt={connector.name} className="w-14 h-14 rounded-xl" />
-              ) : (
-                <div className={`w-14 h-14 rounded-xl ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center`}>
-                  <span className="text-2xl font-bold text-white">{connector.name[0]?.toUpperCase()}</span>
-                </div>
-              )}
+                <img src={connector.icon_url} alt={connector.name} className="w-14 h-14 rounded-xl object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden"); }} />
+              ) : null}
+              <div className={`w-14 h-14 rounded-xl ${CATEGORY_COLORS[connector.category] || "bg-gray-500"} flex items-center justify-center ${connector.icon_url ? "hidden" : ""}`}>
+                <span className="text-2xl font-bold text-white">{connector.name[0]?.toUpperCase()}</span>
+              </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-foreground">{connector.name}</h1>
