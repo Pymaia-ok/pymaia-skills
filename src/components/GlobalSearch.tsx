@@ -246,11 +246,11 @@ const GlobalSearch = () => {
       {/* Desktop trigger */}
       <button
         onClick={() => setOpen(true)}
-        className="hidden md:flex items-center gap-2 text-xs font-medium px-2.5 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+        className="hidden md:flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors min-w-[220px]"
       >
-        <Search className="w-3.5 h-3.5" />
-        <span>{t("search.hint")}</span>
-        <kbd className="pointer-events-none ml-1 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+        <Search className="w-4 h-4 shrink-0" />
+        <span className="flex-1 text-left">{t("search.hint")}</span>
+        <kbd className="pointer-events-none ml-2 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
           ⌘K
         </kbd>
       </button>
