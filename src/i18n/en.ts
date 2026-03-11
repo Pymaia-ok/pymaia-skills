@@ -104,8 +104,8 @@ export default {
     popularCta: "View all solutions",
 
     connectorsTag: "Integrations",
-    connectorsTitle: "Connect the tools your team already uses",
-    connectorsSubtitle: "Slack, Gmail, Notion, Salesforce, Google Sheets and 100+ enterprise tools ready to connect.",
+    connectorsTitle: "Connect the tools you already use",
+    connectorsSubtitle: "Slack, Gmail, Notion, Salesforce, Google Sheets and 100+ professional tools ready to connect.",
     connectorsCtaAll: "View all integrations",
 
     pluginsTag: "Plugins",
