@@ -1,100 +1,82 @@
 
 
+## Plan: Fix Agent Tabs, Add Clay/Instantly MCPs, and UX Audit
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+### 1. Agent tabs: Replace logos with text names
 
-### Estado: ~99% completado
+**Problem**: The agent logos at 16x16px are unreadable tiny blobs (see screenshots). Users cannot tell which tab is which.
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+**Fix**: In `MultiAgentInstall.tsx`, change the `AgentTab` component to render the agent **name as text** instead of the logo image. Use `AGENT_LOGOS[agentKey].label` as plain text.
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+```
+// Before: tiny unreadable logo
+<img src={agent.logo} className="w-4 h-4" />
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+// After: clear text label
+<span className="text-xs font-medium">{agent.label}</span>
+```
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+### 2. Add Clay MCP and Instantly MCP to the catalog
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+Insert two new rows into `mcp_servers` via a database migration:
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+- **Clay** (`@clayhq/clay-mcp`): category `automation`, install command `npx -y @anthropic-ai/claude-code mcp add clay-mcp -- npx -y @clayhq/clay-mcp`, source `curated`, homepage `https://clay.com`
+- **Instantly** (official MCP): category `communication`, install command based on their documented MCP endpoint, source `curated`, homepage `https://instantly.ai`
 
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
+### 3. UX Audit -- Issues Found and Fixes
 
-### Tools del MCP v8.3.0 (31 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
-17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
-18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
-19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
+After reviewing all three detail pages as a UX expert, here are the issues:
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+#### A. Skill Detail (`SkillDetail.tsx`)
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
+1. **"What this skill does" still in English when in ES mode** (line 222). The heading uses `t("detail.whatItDoes")` which seems correct, but the readme_summary headers ("Key features", "Requirements", "How to use") still render in English for some skills. The regex translation only fires for exact matches. Need to also translate "What this skill does" -> "Que hace esta skill" if it appears in the summary.
+
+2. **Content hierarchy is confusing**: The page shows Install -> "What it does" description -> readme_summary (with duplicate info) -> SKILL.md parsed sections -> Required MCPs -> Use Cases -> Full README -> Reviews -> Install Guide -> FAQ. This is too many sections. The "Installation guide" at the bottom repeats the install command already shown at the top.
+
+3. **Section header "What this skill does" is too generic**. Better: just use the skill name or "Description" / "Descripcion".
+
+4. **Mobile order**: sidebar appears first (order-1) which pushes install and description way down. On mobile, the install action should come first.
+
+**Proposed fixes for Skills**:
+- Change "What this skill does" to "Description" / "Descripcion" 
+- Remove the redundant "Installation guide" section at the bottom (the MultiAgentInstall at top already covers this)
+- Ensure mobile order puts install first, then description, then sidebar
+
+#### B. Connector Detail (`ConectorDetail.tsx`)
+
+5. **Polynod icon is broken** (screenshot shows broken image). The `icon_url` loads but the image element overflows. The icon has no error fallback in the hero area (only the card grid has fallback).
+
+6. **No ShareButton** on connectors (Skills and Plugins have it, connectors don't).
+
+7. **"How to set up" section is generic** -- steps 1/2/3 are hardcoded translations that say the same thing for every connector. Not very helpful.
+
+**Proposed fixes for Connectors**:
+- Add `onError` fallback to the hero icon (show initial letter if image fails)
+- Add `ShareButton` to sidebar
+
+#### C. Plugin Detail (`PluginDetail.tsx`)
+
+8. **Section headers are inconsistent** -- uses `text-sm font-semibold` while Skills use `text-2xl font-semibold`. Plugins feel cramped compared to Skills.
+
+9. **No install count displayed** even though the data exists.
+
+**Proposed fixes for Plugins**:
+- Increase section header sizes for consistency with Skills
+- Show install count in sidebar stats
+
+#### D. Cross-cutting UX improvements
+
+10. **Consistent section spacing**: Skills use `mb-10` between sections, Connectors use `mb-8`, Plugins use `mb-8`. Standardize to `mb-10`.
+
+11. **"Install in" label is disconnected** from the tabs -- it floats above without visual connection. Wrap it in a card/container with the tabs.
+
+### Summary of files to modify
+
+| File | Changes |
+|------|---------|
+| `MultiAgentInstall.tsx` | Replace logo images with text labels in tabs |
+| `SkillDetail.tsx` | Rename "What this skill does" heading, remove redundant install guide section at bottom |
+| `ConectorDetail.tsx` | Add icon fallback in hero, add ShareButton |
+| `PluginDetail.tsx` | Increase section header sizes, show install count |
+| DB migration | Insert Clay and Instantly MCP connectors |
+
