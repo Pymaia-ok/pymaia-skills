@@ -219,7 +219,7 @@ const SkillDetail = () => {
 
               {/* Description */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-10">
-                <h2 className="text-2xl font-semibold mb-4">{t("detail.whatItDoes")}</h2>
+                <h2 className="text-2xl font-semibold mb-4">{isEs ? "Descripción" : "Description"}</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-2xl">{descriptionHuman}</p>
 
                 {/* AI summary — cleaned up, no duplicate "What it does" */}
