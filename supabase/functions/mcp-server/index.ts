@@ -632,7 +632,7 @@ mcp.tool("search_plugins", {
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
-    const selectCols = "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count";
+    const selectCols = "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count, homepage";
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     const extraFilter = (qb: any) => {
       if (args.category) qb = qb.eq("category", args.category);
