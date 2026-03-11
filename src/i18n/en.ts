@@ -100,7 +100,7 @@ export default {
     wizardSubtitle: "Tell us what you need and we'll recommend the best solutions.",
 
     popularTitle: "Most popular solutions",
-    popularSubtitle: "The ones companies like yours use the most.",
+    popularSubtitle: "The most activated by professionals like you.",
     popularCta: "View all solutions",
 
     connectorsTag: "Integrations",
