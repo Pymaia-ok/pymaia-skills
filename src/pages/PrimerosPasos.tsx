@@ -401,9 +401,9 @@ const PrimerosPasos = () => {
                   name: "Skill",
                   what: isEs ? "Archivo de conocimiento (SKILL.md)" : "Knowledge file (SKILL.md)",
                   does: isEs
-                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento. Las skills son archivos Markdown que Claude lee automáticamente cuando detecta que son relevantes."
-                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge. Skills are Markdown files that Claude reads automatically when it detects they're relevant.",
-                  example: isEs ? "Skill de briefs → Claude sabe hacer briefs profesionales" : "Brief skill → Claude knows how to write professional briefs",
+                    ? "Le enseña a tu agente AI CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento. Las skills son archivos Markdown que el agente lee automáticamente cuando detecta que son relevantes."
+                    : "Teaches your AI agent HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge. Skills are Markdown files the agent reads automatically when it detects they're relevant.",
+                  example: isEs ? "Skill de briefs → Tu agente sabe hacer briefs profesionales" : "Brief skill → Your agent knows how to write professional briefs",
                   category: isEs ? "Conocimiento" : "Knowledge",
                 },
                 {
