@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, Check, Download, FileArchive, Terminal, ExternalLink } from "lucide-react";
+import { Copy, Check, FileArchive, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import JSZip from "jszip";
+import { AGENT_LOGOS } from "@/components/AgentLogos";
 
 type ItemType = "skill" | "connector" | "plugin";
 
@@ -11,26 +12,12 @@ interface MultiAgentInstallProps {
   itemType: ItemType;
   itemName: string;
   itemSlug: string;
-  /** For skills: the SKILL.md content (install_command field). For connectors: JSON config. For plugins: plugin command */
   installContent: string;
-  /** Optional GitHub URL for the item */
   githubUrl?: string | null;
-  /** Callback after copy/download for tracking */
   onInstallAction?: (agent: string, method: string) => void;
-  /** For plugins: cowork URL */
   coworkUrl?: string;
-  /** For plugins: show cowork tab */
   showCowork?: boolean;
 }
-
-const AGENTS = {
-  claudeCode: { label: "Claude Code", icon: "⌨️" },
-  claudeAi: { label: "Claude.ai", icon: "🌐" },
-  manus: { label: "Manus", icon: "🤖" },
-  cursor: { label: "Cursor", icon: "📝" },
-  antigravity: { label: "Antigravity", icon: "🚀" },
-  openclaw: { label: "OpenClaw", icon: "🐾" },
-} as const;
 
 export default function MultiAgentInstall({
   itemType, itemName, itemSlug, installContent, githubUrl, onInstallAction, coworkUrl, showCowork,
@@ -60,6 +47,17 @@ export default function MultiAgentInstall({
     onInstallAction?.(agent, "zip");
   };
 
+  const AgentTab = ({ agentKey }: { agentKey: string }) => {
+    const agent = AGENT_LOGOS[agentKey];
+    if (!agent) return <span>{agentKey}</span>;
+    return (
+      <span className="flex items-center gap-1.5">
+        <img src={agent.logo} alt={agent.label} className="w-4 h-4 rounded-sm object-contain" />
+        <span className="hidden sm:inline">{agent.label}</span>
+      </span>
+    );
+  };
+
   const CopyBlock = ({ text, agent }: { text: string; agent: string }) => (
     <div
       onClick={() => copyText(text, agent)}
@@ -83,6 +81,8 @@ export default function MultiAgentInstall({
     </div>
   );
 
+  const tabTriggerClass = "text-xs px-3 py-1.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background";
+
   // ── Skills ──
   if (itemType === "skill") {
     const cliCmd = `claude skill add ${githubUrl || itemSlug}`;
@@ -95,9 +95,9 @@ export default function MultiAgentInstall({
         </p>
         <Tabs defaultValue="claudeCode" className="w-full">
           <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-secondary/50 p-1.5 rounded-xl">
-            {Object.entries(AGENTS).map(([key, { label }]) => (
-              <TabsTrigger key={key} value={key} className="text-xs px-3 py-1.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background">
-                {label}
+            {["claudeCode", "claudeAi", "manus", "cursor", "antigravity", "openclaw"].map((key) => (
+              <TabsTrigger key={key} value={key} className={tabTriggerClass}>
+                <AgentTab agentKey={key} />
               </TabsTrigger>
             ))}
           </TabsList>
@@ -175,12 +175,7 @@ export default function MultiAgentInstall({
       }
     } catch {}
 
-    const mcpAgents = [
-      { key: "claudeCode", label: "Claude Code" },
-      { key: "cursor", label: "Cursor" },
-      { key: "antigravity", label: "Antigravity" },
-      { key: "openclaw", label: "OpenClaw" },
-    ];
+    const mcpAgents = ["claudeCode", "cursor", "antigravity", "openclaw"];
 
     return (
       <div>
@@ -189,9 +184,9 @@ export default function MultiAgentInstall({
         </p>
         <Tabs defaultValue="claudeCode" className="w-full">
           <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-secondary/50 p-1.5 rounded-xl">
-            {mcpAgents.map(({ key, label }) => (
-              <TabsTrigger key={key} value={key} className="text-xs px-3 py-1.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background">
-                {label}
+            {mcpAgents.map((key) => (
+              <TabsTrigger key={key} value={key} className={tabTriggerClass}>
+                <AgentTab agentKey={key} />
               </TabsTrigger>
             ))}
           </TabsList>
@@ -233,10 +228,10 @@ export default function MultiAgentInstall({
 
   // ── Plugins ──
   const pluginAgents = [
-    ...(showCowork ? [{ key: "cowork", label: "Claude Cowork" }] : []),
-    { key: "claudeCode", label: "Claude Code" },
-    { key: "manus", label: "Manus" },
-    { key: "cursor", label: "Cursor" },
+    ...(showCowork ? ["cowork"] : []),
+    "claudeCode",
+    "manus",
+    "cursor",
   ];
 
   return (
@@ -246,9 +241,9 @@ export default function MultiAgentInstall({
       </p>
       <Tabs defaultValue={showCowork ? "cowork" : "claudeCode"} className="w-full">
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-secondary/50 p-1.5 rounded-xl">
-          {pluginAgents.map(({ key, label }) => (
-            <TabsTrigger key={key} value={key} className="text-xs px-3 py-1.5 rounded-lg data-[state=active]:bg-foreground data-[state=active]:text-background">
-              {label}
+          {pluginAgents.map((key) => (
+            <TabsTrigger key={key} value={key} className={tabTriggerClass}>
+              {key === "cowork" ? "Claude Cowork" : <AgentTab agentKey={key} />}
             </TabsTrigger>
           ))}
         </TabsList>

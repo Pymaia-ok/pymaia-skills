@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AgentLogoStrip } from "@/components/AgentLogos";
 
 const terminalLines = [
   { text: "$ claude", delay: 0 },
@@ -38,14 +39,12 @@ const TerminalDemo = () => {
       className="max-w-lg mx-auto mt-12"
     >
       <div className="rounded-2xl border border-border bg-foreground text-background overflow-hidden shadow-2xl">
-        {/* Window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border/20">
           <div className="w-3 h-3 rounded-full bg-background/20" />
           <div className="w-3 h-3 rounded-full bg-background/20" />
           <div className="w-3 h-3 rounded-full bg-background/20" />
           <span className="ml-2 text-xs text-background/40 font-mono">Terminal</span>
         </div>
-        {/* Terminal body */}
         <div className="p-5 font-mono text-sm space-y-2 min-h-[160px]">
           {terminalLines.slice(0, visibleLines).map((line, i) => (
             <motion.div
@@ -80,7 +79,6 @@ const HeroSection = () => {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Subtle grid background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
@@ -117,9 +115,10 @@ const HeroSection = () => {
             </Button>
           </div>
 
-          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/80 border border-border text-xs text-muted-foreground">
-            <span className="flex gap-1">⌨️ 🤖 📝 🚀 🐾</span>
-            {t("landing.multiAgentBadge")}
+          {/* Agent logo strip */}
+          <div className="mt-10">
+            <p className="text-xs text-muted-foreground mb-3">{t("landing.multiAgentBadge")}</p>
+            <AgentLogoStrip />
           </div>
         </motion.div>
 
