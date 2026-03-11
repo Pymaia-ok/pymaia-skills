@@ -63,6 +63,11 @@ const Navbar = () => {
           ))}
         </div>
 
+        {/* GlobalSearch — renders desktop trigger (hidden md:flex) + mobile trigger (md:hidden) + dialog */}
+        <div className="contents">
+          <GlobalSearch />
+        </div>
+
         {/* Zone 3: Actions (desktop) */}
         <div className="hidden md:flex items-center gap-2">
 
