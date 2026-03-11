@@ -545,10 +545,12 @@ mcp.tool("search_connectors", {
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
     let results = deduplicateConnectors(matched || []);
+    let fallbackUsed = "none";
 
     // Word-split fallback for multi-word queries
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     if (results.length === 0 && words.length > 1) {
+      fallbackUsed = "word-split";
       const fallbackData = await wordSplitSearch(
         "mcp_servers",
         "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url",
@@ -559,6 +561,7 @@ mcp.tool("search_connectors", {
     }
 
     if (results.length === 0) {
+      fallbackUsed = "top-connectors";
       let fallback = supabase
         .from("mcp_servers")
         .select("name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url")
@@ -569,6 +572,8 @@ mcp.tool("search_connectors", {
       const { data: topData } = await fallback;
       results = deduplicateConnectors(topData || []);
     }
+
+    console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching connectors found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
 
