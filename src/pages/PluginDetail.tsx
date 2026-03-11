@@ -199,7 +199,7 @@ const PluginDetail = () => {
               {/* Related Connectors */}
               {relatedConnectors.length > 0 && (
                 <div className="mb-8">
-                  <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Plug className="w-4 h-4" />{isEs ? "Conectores relacionados" : "Related connectors"}</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><Plug className="w-4 h-4" />{isEs ? "Conectores relacionados" : "Related connectors"}</h2>
                   <div className="space-y-2">
                     {relatedConnectors.map((conn: any) => (
                       <Link key={conn.slug} to={`/conector/${conn.slug}`} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border hover:border-foreground/20 transition-colors">
