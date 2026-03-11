@@ -260,7 +260,7 @@ const PrimerosPasos = () => {
             <div className="p-6 rounded-2xl bg-secondary border border-border mb-8">
               <div className="flex items-center gap-3 mb-4">
                 <Globe className="w-5 h-5 text-muted-foreground" />
-                <h3 className="font-semibold">{isEs ? "Dónde funcionan las skills" : "Where skills work"}</h3>
+                <h3 className="font-semibold">{isEs ? "Agentes compatibles" : "Compatible agents"}</h3>
               </div>
               <div className="grid sm:grid-cols-3 gap-4 mb-4">
                 {[
