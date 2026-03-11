@@ -38,6 +38,7 @@ const features = [
 
 const SkillCreatorSection = () => {
   const { t } = useTranslation();
+  const chatLines = useChatLines();
 
   return (
     <section className="py-24 bg-secondary/30">
