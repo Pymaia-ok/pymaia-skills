@@ -556,7 +556,7 @@ mcp.tool("search_connectors", {
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré conectores para "${args.query}". Intenta con otros términos o usa \`solve_goal\` para una búsqueda más amplia.` }] };
 
     const text = results
-      .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}`)
+      .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}${c.install_command ? `\nInstall: \`${c.install_command}\`` : ""}`)
       .join("\n\n---\n\n");
 
     return { content: [{ type: "text" as const, text }] };
@@ -632,7 +632,7 @@ mcp.tool("search_plugins", {
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
-    const selectCols = "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count";
+    const selectCols = "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count, homepage";
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     const extraFilter = (qb: any) => {
       if (args.category) qb = qb.eq("category", args.category);
@@ -672,7 +672,7 @@ mcp.tool("search_plugins", {
     const text = results
       .map((p: any) => {
         const badges = [p.is_anthropic_verified ? "🏅 Anthropic Verified" : "", p.is_official ? "✅ Official" : ""].filter(Boolean).join(" ");
-        return `**${p.name}** [${p.category}] ${badges}\n${p.description}\n📦 ${p.platform} · ${p.install_count.toLocaleString()} installs`;
+        return `**${p.name}** [${p.category}] ${badges}\n${p.description}\n📦 ${p.platform} · ${p.install_count.toLocaleString()} installs${p.homepage ? `\n🔗 ${p.homepage}` : ""}${p.github_url ? `\nGitHub: ${p.github_url}` : ""}`;
       })
       .join("\n\n---\n\n");
 
@@ -2123,17 +2123,18 @@ mcp.tool("get_directory_stats", {
 });
 
 mcp.tool("get_install_command", {
-  description: "Quickly get just the install command for a skill by name or slug. Perfect for fast installation.",
+  description: "Quickly get the install command for a skill, MCP connector, or plugin by name or slug. Searches all three catalogs.",
   inputSchema: {
     type: "object",
     properties: {
-      name: { type: "string", description: "Skill name or slug" },
+      name: { type: "string", description: "Skill, connector, or plugin name or slug" },
     },
     required: ["name"],
   },
   handler: async (args: { name: string }) => {
     const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
 
+    // 1. Search skills by slug
     const { data: skill } = await supabase
       .from("skills")
       .select("display_name, install_command, slug")
@@ -2142,23 +2143,52 @@ mcp.tool("get_install_command", {
       .maybeSingle();
 
     if (skill) {
-      return { content: [{ type: "text" as const, text: `**${skill.display_name}**\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
+      return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
     }
 
-    // Fuzzy search
-    const { data: skills } = await supabase
-      .from("skills")
-      .select("display_name, install_command, slug")
+    // 2. Search MCP connectors by slug
+    const { data: connector } = await supabase
+      .from("mcp_servers")
+      .select("name, install_command, slug")
       .eq("status", "approved")
-      .ilike("display_name", `%${args.name}%`)
-      .limit(3);
+      .eq("slug", nameLower)
+      .maybeSingle();
 
-    if (skills?.length) {
-      const text = skills.map((s: any) => `**${s.display_name}**\n\`\`\`\n${s.install_command}\n\`\`\``).join("\n\n");
-      return { content: [{ type: "text" as const, text }] };
+    if (connector) {
+      return { content: [{ type: "text" as const, text: `**${connector.name}** (connector)\n\n\`\`\`\n${connector.install_command}\n\`\`\`` }] };
     }
 
-    return { content: [{ type: "text" as const, text: `No encontré "${args.name}". Usa search_skills para buscar.` }] };
+    // 3. Search plugins by slug
+    const { data: plugin } = await supabase
+      .from("plugins")
+      .select("name, slug, homepage, github_url")
+      .eq("status", "approved")
+      .eq("slug", nameLower)
+      .maybeSingle();
+
+    if (plugin) {
+      const installInfo = plugin.homepage || plugin.github_url || "No install command available";
+      return { content: [{ type: "text" as const, text: `**${plugin.name}** (plugin)\n\n${installInfo}` }] };
+    }
+
+    // 4. Fuzzy search across all three tables
+    const [skillsFuzzy, connectorsFuzzy, pluginsFuzzy] = await Promise.all([
+      supabase.from("skills").select("display_name, install_command, slug")
+        .eq("status", "approved").or(`display_name.ilike.%${args.name}%,slug.ilike.%${args.name}%`).limit(2).then(r => r.data || []),
+      supabase.from("mcp_servers").select("name, install_command, slug")
+        .eq("status", "approved").or(`name.ilike.%${args.name}%,slug.ilike.%${args.name}%`).limit(2).then(r => r.data || []),
+      supabase.from("plugins").select("name, slug, homepage, github_url")
+        .eq("status", "approved").or(`name.ilike.%${args.name}%,slug.ilike.%${args.name}%`).limit(2).then(r => r.data || []),
+    ]);
+
+    const parts: string[] = [];
+    for (const s of skillsFuzzy) parts.push(`**${s.display_name}** (skill)\n\`\`\`\n${s.install_command}\n\`\`\``);
+    for (const c of connectorsFuzzy) parts.push(`**${c.name}** (connector)\n\`\`\`\n${c.install_command}\n\`\`\``);
+    for (const p of pluginsFuzzy) parts.push(`**${p.name}** (plugin)\n${p.homepage || p.github_url || "No install info"}`);
+
+    if (parts.length > 0) return { content: [{ type: "text" as const, text: parts.join("\n\n") }] };
+
+    return { content: [{ type: "text" as const, text: `No encontré "${args.name}" en skills, conectores ni plugins. Usa explore_directory para buscar.` }] };
   },
 });
 

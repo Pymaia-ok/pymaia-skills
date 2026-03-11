@@ -1,39 +1,100 @@
 
 
-## Diagnóstico: Por qué Claude no pudo instalar Polynod
 
-### Lo que funciona bien
-- El conector "Polynod" existe en la base de datos con slug `polynod` y nombre `Polynod`
-- La búsqueda ILIKE `%polynod%` debería encontrarlo sin problemas
-- `get_connector_details("polynod")` devuelve el install command correctamente
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-### Los problemas reales
+### Estado: ~99% completado
 
-**1. Error Cloudflare 1105 (transitorio)**
-Claude reportó que el servidor MCP no respondía. Esto impidió que cualquier herramienta funcionara durante esa sesión. Es un problema del proxy, no de la búsqueda.
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-**2. `search_connectors` no muestra el install command en los resultados**
-La respuesta incluye nombre, categoría, estrellas, descripción y GitHub URL, pero **omite el `install_command`**. Esto obliga a Claude a hacer una segunda llamada a `get_connector_details` para obtener el comando de instalación.
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-**3. `get_install_command` solo busca en skills, no en conectores ni plugins**
-Si Claude usa esta herramienta con "polynod", no lo encuentra porque solo busca en la tabla `skills`. Debería buscar también en `mcp_servers` y `plugins`.
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-### Plan de cambios
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-| Cambio | Archivo |
-|--------|---------|
-| Agregar `install_command` al output de `search_connectors` | `mcp-server/index.ts` línea ~559 |
-| Agregar `install_command` al output de `search_plugins` | `mcp-server/index.ts` (handler equivalente) |
-| Expandir `get_install_command` para buscar en `mcp_servers` y `plugins` además de `skills` | `mcp-server/index.ts` líneas 2125-2163 |
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-### Detalle de cambios
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-**search_connectors output** — agregar el install command al formato de respuesta:
-```
-**Polynod** [ai] ✅ Official (⭐ 45 GitHub stars)
-AI-powered product photography...
-Install: `npx @anthropic-ai/mcp-remote https://...`
-```
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-**get_install_command** — después de buscar en skills sin resultado, buscar en `mcp_servers` por slug y luego por nombre, y después en `plugins`. Esto permite que `get_install_command("polynod")` devuelva directamente el comando de instalación del conector.
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)
