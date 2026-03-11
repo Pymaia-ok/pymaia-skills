@@ -67,7 +67,7 @@ const SkillCreatorSection = () => {
               <div className="w-3 h-3 rounded-full bg-background/20" />
               <div className="w-3 h-3 rounded-full bg-background/20" />
               <div className="w-3 h-3 rounded-full bg-background/20" />
-              <span className="ml-2 text-xs text-background/40 font-mono">Crear skill</span>
+              <span className="ml-2 text-xs text-background/40 font-mono">{t("landing.creatorChatTitle")}</span>
             </div>
             <div className="p-5 space-y-3 min-h-[140px]">
               {chatLines.map((line, i) => (
