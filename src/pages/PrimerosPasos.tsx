@@ -241,8 +241,8 @@ const PrimerosPasos = () => {
                   <span className="text-4xl mb-3 block">👨‍🍳</span>
                   <p className="text-sm text-muted-foreground">
                     {isEs
-                      ? "Claude sin skills es como un chef con talento pero sin recetas."
-                      : "Claude without skills is like a talented chef without recipes."}
+                      ? "Un agente AI sin skills es como un chef con talento pero sin recetas."
+                      : "An AI agent without skills is like a talented chef without recipes."}
                   </p>
                 </div>
                 <div className="text-center p-5 rounded-xl bg-background border border-border">
