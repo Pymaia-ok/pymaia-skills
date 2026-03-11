@@ -385,12 +385,12 @@ const PrimerosPasos = () => {
           <motion.div {...fadeUp}>
             <SectionBadge icon={Plug} label="Plugins" />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Plugins" : "Claude's ecosystem:\nSkills, Connectors & Plugins"}
+              {isEs ? "El ecosistema de agentes AI:\nSkills, Conectores y Plugins" : "The AI agent ecosystem:\nSkills, Connectors & Plugins"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Hay 3 formas de extender lo que Claude puede hacer. Cada una tiene un propósito distinto:"
-                : "There are 3 ways to extend what Claude can do. Each serves a different purpose:"}
+                ? "Hay 3 formas de extender lo que tu agente AI puede hacer. Cada una tiene un propósito distinto:"
+                : "There are 3 ways to extend what your AI agent can do. Each serves a different purpose:"}
             </p>
 
             <div className="space-y-4 mb-8">
