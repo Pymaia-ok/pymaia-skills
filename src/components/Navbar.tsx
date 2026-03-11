@@ -41,15 +41,12 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-        {/* Search trigger + dialog (renders inline buttons + portal dialog) */}
-        <GlobalSearch />
-
         {/* Zone 1: Logo */}
         <Link to="/" className="flex items-center shrink-0">
-          <img src={logoImg} alt="Pymaia Skills" className="h-9 md:h-10 w-auto" />
+          <img src={logoImg} alt="Pymaia Skills" className="h-9 md:h-10 w-auto dark:brightness-0 dark:invert" />
         </Link>
 
-        {/* Zone 2: Main nav (desktop) */}
+        {/* Zone 2: Main nav + search (desktop) */}
         <div className="hidden md:flex items-center gap-1">
           {links.map((link) => (
             <Link
@@ -64,6 +61,11 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
+        </div>
+
+        {/* GlobalSearch — renders desktop trigger (hidden md:flex) + mobile trigger (md:hidden) + dialog */}
+        <div className="contents">
+          <GlobalSearch />
         </div>
 
         {/* Zone 3: Actions (desktop) */}
