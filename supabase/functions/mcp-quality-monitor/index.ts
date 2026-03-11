@@ -23,8 +23,7 @@ Deno.serve(async (req) => {
     const { data: recentEvents } = await supabase
       .from("agent_analytics")
       .select("goal, event_data, created_at")
-      .eq("event_type", "tool_call")
-      .eq("tool_name", "solve_goal")
+      .eq("event_type", "solve_goal")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(200);

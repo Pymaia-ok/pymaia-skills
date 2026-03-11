@@ -1155,6 +1155,11 @@ mcp.tool("solve_goal", {
         recommended_option: rec,
         option_a_count: optionA.length,
         option_b_count: optionB.length,
+        skills_count: [...optionA, ...optionB].filter((i: any) => i.type === "skill").length,
+        connectors_count: [...optionA, ...optionB].filter((i: any) => i.type === "connector").length,
+        plugins_count: [...optionA, ...optionB].filter((i: any) => i.type === "plugin").length,
+        keywords: intent.keywords || [],
+        template_slug: matchedTemplate?.slug || null,
       },
     });
 
