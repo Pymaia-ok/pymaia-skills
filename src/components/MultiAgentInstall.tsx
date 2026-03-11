@@ -95,7 +95,7 @@ export default function MultiAgentInstall({
         </p>
         <Tabs defaultValue="claudeCode" className="w-full">
           <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-secondary/50 p-1.5 rounded-xl">
-            {["claudeCode", "claudeAi", "manus", "cursor", "antigravity", "openclaw"].map((key) => (
+            {["claudeCode", "claudeAi", "openclaw", "manus", "antigravity", "cursor"].map((key) => (
               <TabsTrigger key={key} value={key} className={tabTriggerClass}>
                 <AgentTab agentKey={key} />
               </TabsTrigger>
