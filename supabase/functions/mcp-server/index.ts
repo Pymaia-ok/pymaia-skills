@@ -658,42 +658,45 @@ mcp.tool("search_plugins", {
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
+    const selectCols = "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count";
+    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
+    const extraFilter = (qb: any) => {
+      if (args.category) qb = qb.eq("category", args.category);
+      if (args.platform) qb = qb.eq("platform", args.platform);
+      return qb;
+    };
 
-    let q = supabase
+    let exactQ = supabase
       .from("plugins")
-      .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
+      .select(selectCols)
       .eq("status", "approved")
-      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%`)
+      .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%,description_es.ilike.%${queryLower}%`)
       .order("install_count", { ascending: false })
       .limit(lim);
+    if (args.category) exactQ = exactQ.eq("category", args.category);
+    if (args.platform) exactQ = exactQ.eq("platform", args.platform);
 
-    if (args.category) q = q.eq("category", args.category);
-    if (args.platform) q = q.eq("platform", args.platform);
+    const [exactRes, wordSplitRes] = await Promise.all([
+      exactQ.then(r => r.data || []),
+      words.length > 1
+        ? wordSplitSearch("plugins", selectCols, words, "install_count", lim * 2, extraFilter)
+        : Promise.resolve([]),
+    ]);
 
-    const { data: matched, error } = await q;
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-
-    let results = matched || [];
-
-    // Word-split fallback for multi-word queries
-    const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
-    if (results.length === 0 && words.length > 1) {
-      results = await wordSplitSearch(
-        "plugins",
-        "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count",
-        words, "install_count", lim,
-        (qb: any) => {
-          if (args.category) qb = qb.eq("category", args.category);
-          if (args.platform) qb = qb.eq("platform", args.platform);
-          return qb;
-        },
-      );
+    const seenSlugs = new Set<string>();
+    const merged: any[] = [];
+    for (const item of [...exactRes, ...wordSplitRes]) {
+      if (!seenSlugs.has(item.slug)) {
+        seenSlugs.add(item.slug);
+        merged.push(item);
+      }
     }
+    let results = merged.slice(0, lim);
 
     if (results.length === 0) {
       let fallback = supabase
         .from("plugins")
-        .select("name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count")
+        .select(selectCols)
         .eq("status", "approved")
         .order("install_count", { ascending: false })
         .limit(3);
