@@ -13,6 +13,12 @@ export default {
     signOut: "Cerrar sesión",
     publishSkill: "Publicar skill",
     mcp: "MCP Server",
+    switchLang: "Cambiar a {{lang}}",
+    darkMode: "Modo oscuro",
+    lightMode: "Modo claro",
+    mySkills: "Mis soluciones",
+    notifications: "Notificaciones",
+    enterprise: "Enterprise",
   },
 
   // Index / Home

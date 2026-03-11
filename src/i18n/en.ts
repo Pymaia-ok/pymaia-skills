@@ -12,6 +12,12 @@ export default {
     signOut: "Sign Out",
     publishSkill: "Publish skill",
     mcp: "MCP Server",
+    switchLang: "Switch to {{lang}}",
+    darkMode: "Dark mode",
+    lightMode: "Light mode",
+    mySkills: "My solutions",
+    notifications: "Notifications",
+    enterprise: "Enterprise",
   },
 
   home: {

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, Menu, X, Globe, Plus, Package, Bell, Moon, Sun } from "lucide-react";
+import { LogOut, Menu, X, Globe, Plus, Package, Bell, Moon, Sun, Building2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "next-themes";
