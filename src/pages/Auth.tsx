@@ -81,7 +81,7 @@ const Auth = () => {
           className="w-full max-w-sm"
         >
           <div className="flex flex-col items-center text-center mb-8">
-            <img src={logoImg} alt="Pymaia Skills" className="h-10 w-auto mb-6" />
+            <img src={logoImg} alt="Pymaia Skills" className="h-10 w-auto mb-6 dark:brightness-0 dark:invert" />
             <h1 className="text-2xl font-semibold tracking-tight mb-2">
               {mode === "forgot" ? t("auth.forgotTitle") : mode === "login" ? t("auth.title") : t("auth.signupTitle")}
             </h1>
