@@ -40,6 +40,12 @@ export default {
     multiAgentBadge: "Works with the most popular AI tools",
     heroCtaExplore: "Explore solutions",
     heroCtaLearn: "See how it works",
+    heroChatUser1: "I need a competitive analysis for tomorrow's board meeting",
+    heroChatAi1: "Analyzing 12 competitors… pricing, features and gaps detected. Executive report ready.",
+    heroChatUser2: "Review this contract before signing",
+    heroChatAi2: "14 clauses reviewed. 3 high risks identified with modification suggestions.",
+    heroChatTitle: "AI Assistant",
+    heroChatPlaceholder: "Ask whatever you need...",
 
     marqueeTitle: "Solutions for every area of your business",
     marqueeSubtitle: "Marketing, legal, finance, HR, sales and more. There's a solution for every business challenge.",
@@ -85,6 +91,10 @@ export default {
     creatorFeature4Title: "Security validation",
     creatorFeature4Desc: "Every solution goes through an automatic security scan before activation.",
     creatorCta: "Create my first solution",
+    creatorChatTitle: "Create skill",
+    creatorChatAi1: "What expertise do you want to package?",
+    creatorChatUser1: "I'm a lawyer, I review contracts every day",
+    creatorChatAi2: "Perfect. Your skill will analyze risk clauses…",
 
     wizardTitle: "Find the ideal solution",
     wizardSubtitle: "Tell us what your team needs and we'll recommend the best solutions.",

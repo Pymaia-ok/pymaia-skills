@@ -6,14 +6,19 @@ import { ArrowRight, Zap, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AgentLogoStrip } from "@/components/AgentLogos";
 
-const chatMessages = [
-  { role: "user" as const, text: "Necesito un análisis competitivo para el board de mañana", delay: 0 },
-  { role: "assistant" as const, text: "Analizando 12 competidores… pricing, features y gaps detectados. Reporte listo en formato ejecutivo.", delay: 1800 },
-  { role: "user" as const, text: "Revisá este contrato antes de firmar", delay: 4200 },
-  { role: "assistant" as const, text: "14 cláusulas revisadas. 3 riesgos altos identificados con sugerencias de modificación.", delay: 5800 },
-];
+const useChatMessages = () => {
+  const { t } = useTranslation();
+  return [
+    { role: "user" as const, text: t("landing.heroChatUser1"), delay: 0 },
+    { role: "assistant" as const, text: t("landing.heroChatAi1"), delay: 1800 },
+    { role: "user" as const, text: t("landing.heroChatUser2"), delay: 4200 },
+    { role: "assistant" as const, text: t("landing.heroChatAi2"), delay: 5800 },
+  ];
+};
 
 const ChatDemo = () => {
+  const { t } = useTranslation();
+  const chatMessages = useChatMessages();
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [cycle, setCycle] = useState(0);
 
@@ -42,7 +47,7 @@ const ChatDemo = () => {
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
-          <span className="ml-2 text-xs text-muted-foreground font-medium">Asistente AI</span>
+          <span className="ml-2 text-xs text-muted-foreground font-medium">{t("landing.heroChatTitle")}</span>
         </div>
         <div className="p-5 space-y-3 min-h-[180px]">
           {chatMessages.slice(0, visibleMessages).map((msg, i) => (
@@ -76,7 +81,7 @@ const ChatDemo = () => {
         </div>
         <div className="px-4 pb-4">
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary/50 border border-border">
-            <span className="text-sm text-muted-foreground flex-1">Pedí lo que necesites...</span>
+            <span className="text-sm text-muted-foreground flex-1">{t("landing.heroChatPlaceholder")}</span>
             <Send className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>

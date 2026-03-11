@@ -4,11 +4,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MessageSquare, Globe, Lock, Video, ShieldCheck } from "lucide-react";
 
-const chatLines = [
-  { role: "ai", text: "¿Qué expertise querés empaquetar?" },
-  { role: "user", text: "Soy abogado, reviso contratos todos los días" },
-  { role: "ai", text: "Perfecto. Tu skill analizará cláusulas de riesgo…" },
-];
+const useChatLines = () => {
+  const { t } = useTranslation();
+  return [
+    { role: "ai", text: t("landing.creatorChatAi1") },
+    { role: "user", text: t("landing.creatorChatUser1") },
+    { role: "ai", text: t("landing.creatorChatAi2") },
+  ];
+};
 
 const features = [
   {
@@ -35,6 +38,7 @@ const features = [
 
 const SkillCreatorSection = () => {
   const { t } = useTranslation();
+  const chatLines = useChatLines();
 
   return (
     <section className="py-24 bg-secondary/30">
@@ -63,7 +67,7 @@ const SkillCreatorSection = () => {
               <div className="w-3 h-3 rounded-full bg-background/20" />
               <div className="w-3 h-3 rounded-full bg-background/20" />
               <div className="w-3 h-3 rounded-full bg-background/20" />
-              <span className="ml-2 text-xs text-background/40 font-mono">Crear skill</span>
+              <span className="ml-2 text-xs text-background/40 font-mono">{t("landing.creatorChatTitle")}</span>
             </div>
             <div className="p-5 space-y-3 min-h-[140px]">
               {chatLines.map((line, i) => (
