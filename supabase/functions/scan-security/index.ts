@@ -1042,6 +1042,13 @@ async function runFullScan(
     verdict = "SUSPICIOUS";
   }
 
+  // Layer 13: VT can escalate verdict
+  if (vtResult?.verdict === "malicious") {
+    verdict = "MALICIOUS";
+  } else if (vtResult?.verdict === "suspicious" && verdict === "SAFE") {
+    verdict = "SUSPICIOUS";
+  }
+
   return {
     verdict,
     layers: {
