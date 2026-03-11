@@ -47,8 +47,8 @@ export default {
     heroChatTitle: "AI Assistant",
     heroChatPlaceholder: "Ask whatever you need...",
 
-    marqueeTitle: "Solutions for every area of your business",
-    marqueeSubtitle: "Marketing, legal, finance, HR, sales and more. There's a solution for every business challenge.",
+    marqueeTitle: "Solutions for every area of your work",
+    marqueeSubtitle: "Marketing, legal, finance, HR, sales and more. There's a solution for every professional challenge.",
 
     proofUsers: "Used by thousands of professionals",
     proofTime: "Activate in 2 minutes",
