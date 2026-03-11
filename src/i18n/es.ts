@@ -33,7 +33,8 @@ export default {
   landing: {
     heroBadge: "35,000+ skills profesionales",
     heroTitle: "Trabajá como un\nexperto en minutos.",
-    heroSubtitle: "Elegí una skill, instalala en Claude y listo. Tu IA ahora sabe hacer lo que antes te llevaba horas.",
+    heroSubtitle: "Elegí una skill, instalala en tu agente AI favorito y listo. Tu IA ahora sabe hacer lo que antes te llevaba horas.",
+    multiAgentBadge: "Compatible con Claude, Manus, Cursor, Antigravity y más",
     heroCtaExplore: "Explorar skills",
     heroCtaLearn: "Cómo funciona",
 
