@@ -17,6 +17,8 @@ const useChatMessages = () => {
 };
 
 const ChatDemo = () => {
+  const { t } = useTranslation();
+  const chatMessages = useChatMessages();
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [cycle, setCycle] = useState(0);
 
