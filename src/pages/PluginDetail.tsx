@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import MultiAgentInstall from "@/components/MultiAgentInstall";
 
 const PluginDetail = () => {
   const { slug } = useParams<{ slug: string }>();
