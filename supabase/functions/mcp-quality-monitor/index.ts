@@ -20,14 +20,15 @@ Deno.serve(async (req) => {
     // ── 1. Find solve_goal events with poor results (last 24h) ──
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: recentEvents } = await supabase
+    const { data: recentEvents, error: fetchErr } = await supabase
       .from("agent_analytics")
       .select("goal, event_data, created_at")
-      .eq("event_type", "tool_call")
-      .eq("tool_name", "solve_goal")
+      .eq("event_type", "solve_goal")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(200);
+
+    
 
     if (!recentEvents || recentEvents.length === 0) {
       console.log(JSON.stringify({ monitor: "no_events", since }));
