@@ -246,8 +246,8 @@ export default {
     mcpBannerTitle: "Not sure which skill to use?",
     mcpBannerSubtitle: "Install our MCP connector and let your AI recommend and install the right skills for you.",
     mcpBannerCta: "View connector",
-    newToClaude: "New to Claude?",
-    newToClaudeDesc: "These skills are for Claude Code. Learn what it is and how to install it.",
+    newToClaude: "New to AI agents?",
+    newToClaudeDesc: "These skills work with Claude, Manus, Cursor, Antigravity and more. Learn how to get started.",
     newToClaudeCta: "Getting started guide",
   },
 

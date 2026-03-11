@@ -44,10 +44,10 @@ const Plugins = () => {
   }, [search, platformFilter, verifiedFilter, categoryFilter, sourceFilter, setSearchParams]);
 
   useSEO({
-    title: isEs ? "Plugins para Claude — Pymaia Skills" : "Claude Plugins — Pymaia Skills",
+    title: isEs ? "Plugins para agentes AI — Pymaia Skills" : "AI Agent Plugins — Pymaia Skills",
     description: isEs
-      ? "Explorá plugins oficiales y comunitarios para Claude Code y Cowork. Instalá paquetes de herramientas, skills y MCPs en un click."
-      : "Browse official and community plugins for Claude Code and Cowork. Install bundles of tools, skills and MCPs in one click.",
+      ? "Explorá plugins oficiales y comunitarios para Claude, Manus, Cursor y más. Instalá paquetes de herramientas, skills y MCPs en un click."
+      : "Browse official and community plugins for Claude, Manus, Cursor and more. Install bundles of tools, skills and MCPs in one click.",
     canonical: "https://pymaiaskills.lovable.app/plugins",
   });
 
