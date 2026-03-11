@@ -222,34 +222,15 @@ const SkillDetail = () => {
                 <h2 className="text-2xl font-semibold mb-4">{isEs ? "Descripción" : "Description"}</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-2xl">{descriptionHuman}</p>
 
-                {/* AI summary — cleaned up, no duplicate "What it does" */}
-                {(skill as any).readme_summary && (() => {
-                  let summary = (skill as any).readme_summary as string;
+                {/* AI summary */}
+                {(() => {
+                  const summaryEs = (skill as any).readme_summary_es as string | null;
+                  const summaryEn = (skill as any).readme_summary as string | null;
+                  let summary = (isEs && summaryEs) ? summaryEs : summaryEn;
+                  if (!summary) return null;
                   // Remove "What it does" section (already shown above as descriptionHuman)
-                  summary = summary.replace(/^##?\s*What it does\s*\n[\s\S]*?(?=\n##?\s|\n\*\*[A-Z]|$)/im, "").trim();
-                  summary = summary.replace(/^\*\*What it does\*\*\s*\n[\s\S]*?(?=\n\*\*[A-Z]|$)/im, "").trim();
-                  // Translate common English headers to Spanish when in ES mode
-                  if (isEs) {
-                    summary = summary
-                      .replace(/^(##?\s*)Key features/gim, "$1Funcionalidades clave")
-                      .replace(/^(##?\s*)Requirements/gim, "$1Requisitos")
-                      .replace(/^(##?\s*)How to use/gim, "$1Cómo usar")
-                      .replace(/^(##?\s*)Installation/gim, "$1Instalación")
-                      .replace(/^(##?\s*)Usage/gim, "$1Uso")
-                      .replace(/^(##?\s*)Features/gim, "$1Funcionalidades")
-                      .replace(/^(##?\s*)Overview/gim, "$1Descripción general")
-                      .replace(/^(##?\s*)Getting started/gim, "$1Primeros pasos")
-                      .replace(/^(##?\s*)Configuration/gim, "$1Configuración")
-                      .replace(/^\*\*Key features\*\*/gim, "**Funcionalidades clave**")
-                      .replace(/^\*\*Requirements\*\*/gim, "**Requisitos**")
-                      .replace(/^\*\*How to use\*\*/gim, "**Cómo usar**")
-                      .replace(/^\*\*Installation\*\*/gim, "**Instalación**")
-                      .replace(/^\*\*Usage\*\*/gim, "**Uso**")
-                      .replace(/^\*\*Features\*\*/gim, "**Funcionalidades**")
-                      .replace(/^\*\*Overview\*\*/gim, "**Descripción general**")
-                      .replace(/^\*\*Getting started\*\*/gim, "**Primeros pasos**")
-                      .replace(/^\*\*Configuration\*\*/gim, "**Configuración**");
-                  }
+                  summary = summary.replace(/^##?\s*(What it does|Qué hace|Que hace)\s*\n[\s\S]*?(?=\n##?\s|\n\*\*[A-Z]|$)/im, "").trim();
+                  summary = summary.replace(/^\*\*(What it does|Qué hace|Que hace)\*\*\s*\n[\s\S]*?(?=\n\*\*[A-Z]|$)/im, "").trim();
                   if (!summary) return null;
                   return (
                     <div className="mb-6 prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground">

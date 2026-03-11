@@ -20,12 +20,12 @@ serve(async (req) => {
 
     const { batchSize = 15 } = await req.json().catch(() => ({}));
 
-    // Fetch skills missing ANY Spanish translation
+    // Fetch skills missing ANY Spanish translation (including readme_summary_es)
     const { data: skills, error: fetchError } = await supabase
       .from("skills")
-      .select("id, display_name, tagline, description_human, display_name_es, tagline_es, description_human_es")
+      .select("id, display_name, tagline, description_human, readme_summary, display_name_es, tagline_es, description_human_es, readme_summary_es")
       .eq("status", "approved")
-      .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null")
+      .or("display_name_es.is.null,tagline_es.is.null,description_human_es.is.null,readme_summary_es.is.null")
       .limit(batchSize);
 
     if (fetchError) throw fetchError;
@@ -35,12 +35,13 @@ serve(async (req) => {
       });
     }
 
-    // Build prompt - only include fields that need translation, truncate long descriptions
-    const skillsText = skills.map((s, i) => {
+    // Build prompt - only include fields that need translation
+    const skillsText = skills.map((s: any, i: number) => {
       const parts = [`[${i}]`];
       if (!s.display_name_es) parts.push(`Name: ${s.display_name}`);
       if (!s.tagline_es) parts.push(`Tagline: ${(s.tagline || "").slice(0, 200)}`);
       if (!s.description_human_es) parts.push(`Description: ${(s.description_human || "").slice(0, 300)}`);
+      if (!s.readme_summary_es && s.readme_summary) parts.push(`Summary: ${(s.readme_summary || "").slice(0, 800)}`);
       return parts.join("\n");
     }).join("\n\n");
 
@@ -55,7 +56,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Translate software tool names, taglines and descriptions to Spanish (Latin American). Keep technical terms, product names, acronyms in English. For names: translate descriptive parts but keep proper nouns. Return via tool call. Be concise.`,
+            content: `Translate software tool names, taglines, descriptions and markdown summaries to Spanish (Latin American). Keep technical terms, product names, acronyms in English. For names: translate descriptive parts but keep proper nouns. For summaries: preserve the exact Markdown formatting (##, **, -, etc.) and only translate the text. Return via tool call. Be concise.`,
           },
           { role: "user", content: skillsText },
         ],
@@ -77,6 +78,7 @@ serve(async (req) => {
                         n: { type: "string", description: "display_name_es" },
                         tl: { type: "string", description: "tagline_es" },
                         d: { type: "string", description: "description_human_es" },
+                        s: { type: "string", description: "readme_summary_es (full markdown preserved)" },
                       },
                       required: ["i"],
                       additionalProperties: false,
@@ -106,18 +108,19 @@ serve(async (req) => {
     const parsed = JSON.parse(toolCall.function.arguments);
     const translations = parsed.t || parsed.translations || [];
 
-    // Batch update using Promise.all for speed
+    // Batch update
     let updated = 0;
     const updatePromises = translations.map((tr: any) => {
       const idx = tr.i ?? tr.index;
-      const skill = skills[idx];
+      const skill = skills[idx] as any;
       if (!skill) return Promise.resolve();
       const updates: Record<string, string> = {};
       if (!skill.display_name_es && (tr.n || tr.display_name_es)) updates.display_name_es = tr.n || tr.display_name_es;
       if (!skill.tagline_es && (tr.tl || tr.tagline_es)) updates.tagline_es = tr.tl || tr.tagline_es;
       if (!skill.description_human_es && (tr.d || tr.description_human_es)) updates.description_human_es = tr.d || tr.description_human_es;
+      if (!skill.readme_summary_es && (tr.s || tr.readme_summary_es)) updates.readme_summary_es = tr.s || tr.readme_summary_es;
       if (Object.keys(updates).length === 0) return Promise.resolve();
-      return supabase.from("skills").update(updates).eq("id", skill.id).then(({ error }) => {
+      return supabase.from("skills").update(updates).eq("id", skill.id).then(({ error }: any) => {
         if (!error) updated++;
       });
     });
