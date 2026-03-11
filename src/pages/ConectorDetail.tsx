@@ -13,6 +13,7 @@ import { useState, useCallback } from "react";
 import SkillCard from "@/components/SkillCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
+import MultiAgentInstall from "@/components/MultiAgentInstall";
 
 const CATEGORY_COLORS: Record<string, string> = {
   communication: "bg-blue-500", development: "bg-emerald-500", databases: "bg-amber-500",
