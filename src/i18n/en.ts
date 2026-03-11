@@ -50,9 +50,9 @@ export default {
     howstep1Title: "Pick a skill",
     howstep1Desc: "Browse the directory and find the perfect skill for what you need to do.",
     howstep2Title: "Copy a command",
-    howstep2Desc: "One single command. Copy it, paste it in Claude Code, and you're done.",
-    howstep3Title: "Claude knows how",
-    howstep3Desc: "Your Claude now has expert knowledge. Just ask it to do the task and it executes automatically.",
+    howstep2Desc: "One single command. Copy it, paste it in your AI agent, and you're done.",
+    howstep3Title: "Your agent knows how",
+    howstep3Desc: "Your AI agent now has expert knowledge. Just ask it to do the task and it executes automatically.",
 
     statsSkills: "skills",
     statsConnectors: "connectors",
