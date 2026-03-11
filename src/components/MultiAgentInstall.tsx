@@ -53,7 +53,7 @@ export default function MultiAgentInstall({
     return (
       <span className="flex items-center gap-1.5">
         <img src={agent.logo} alt={agent.label} className="w-4 h-4 rounded-sm object-contain" />
-        <span className="hidden sm:inline">{agent.label}</span>
+        <span className="sr-only">{agent.label}</span>
       </span>
     );
   };
