@@ -113,7 +113,7 @@ const GlobalSearch = () => {
             .eq("status", "approved")
             .eq("is_public", true)
             .or(
-              `display_name.ilike.${pattern},display_name_es.ilike.${pattern},tagline.ilike.${pattern},tagline_es.ilike.${pattern}`
+              `display_name.ilike.${pattern},display_name_es.ilike.${pattern},slug.ilike.${pattern}`
             )
             .limit(5),
           supabase
@@ -121,7 +121,7 @@ const GlobalSearch = () => {
             .select("slug, name, description, description_es, category")
             .eq("status", "approved")
             .or(
-              `name.ilike.${pattern},slug.ilike.${pattern},description.ilike.${pattern},description_es.ilike.${pattern}`
+              `name.ilike.${pattern},slug.ilike.${pattern}`
             )
             .limit(5),
           supabase
@@ -129,7 +129,7 @@ const GlobalSearch = () => {
             .select("slug, name, name_es, description, description_es, category")
             .eq("status", "approved")
             .or(
-              `name.ilike.${pattern},name_es.ilike.${pattern},slug.ilike.${pattern},description.ilike.${pattern},description_es.ilike.${pattern}`
+              `name.ilike.${pattern},name_es.ilike.${pattern},slug.ilike.${pattern}`
             )
             .limit(5),
         ]);
