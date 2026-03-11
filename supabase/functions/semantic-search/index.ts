@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Generate a 64-dim semantic vector via tool calling
@@ -101,10 +101,10 @@ serve(async (req) => {
     const queryEmbedding = await generateQueryEmbedding(query, LOVABLE_API_KEY);
     const vectorStr = `[${queryEmbedding.join(",")}]`;
 
-    // 2. Vector similarity search (single fast SQL query)
-    const pageNum = page ?? 0;
+    // 2. Vector similarity search
     const pageSize = 24;
 
+    // Try semantic search first
     const { data: results, error } = await supabase.rpc("semantic_search_skills", {
       query_embedding: vectorStr,
       filter_category: category || null,
@@ -115,7 +115,7 @@ serve(async (req) => {
 
     if (error) {
       console.error("semantic search error:", error);
-      // Fallback to traditional search
+      // Fallback: return error so client can use keyword search
       return new Response(
         JSON.stringify({ error: "semantic_search_unavailable", fallback: true }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }

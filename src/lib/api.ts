@@ -5,6 +5,50 @@ export function isIntentQuery(query: string): boolean {
   if (!query || query.trim().length < 8) return false;
   const words = query.trim().split(/\s+/);
   if (words.length < 3) return false;
+  const intentPatterns = /\b(quiero|necesito|como|cómo|ayuda|busco|hacer|crear|generar|automatizar|mejorar|optimizar|want|need|help|how|create|build|make|automate|improve|optimize|write|design|analyze|manage|review|deploy|test|send|track|monitor|connect|integrate|setup|configure)\b/i;
+  return intentPatterns.test(query);
+}
+
+// Semantic search using vector embeddings (replaces smart-search for intent queries)
+export async function semanticSearch(filters: {
+  query: string;
+  category?: string;
+  sortBy?: string;
+  page?: number;
+}): Promise<{ data: SkillFromDB[]; count: number; mode: string }> {
+  const response = await supabase.functions.invoke("semantic-search", {
+    body: {
+      query: filters.query,
+      category: filters.category || null,
+      sort_by: filters.sortBy || "rating",
+      page: filters.page || 0,
+    },
+  });
+
+  // If semantic search is unavailable, fallback to smart-search
+  if (response.error || response.data?.fallback) {
+    return smartSearch(filters);
+  }
+
+  const result = response.data;
+  if (result.error) throw new Error(result.error);
+
+  const skills: SkillFromDB[] = (result.data || []).map((r: any) => ({
+    id: r.id, slug: r.slug, display_name: r.display_name, display_name_es: r.display_name_es,
+    tagline: r.tagline, tagline_es: r.tagline_es,
+    description_human: r.description_human, description_human_es: r.description_human_es,
+    category: r.category, industry: r.industry, target_roles: r.target_roles,
+    install_command: r.install_command, github_url: r.github_url, video_url: r.video_url,
+    time_to_install_minutes: r.time_to_install_minutes, install_count: r.install_count,
+    avg_rating: r.avg_rating, review_count: r.review_count, github_stars: r.github_stars,
+    use_cases: r.use_cases, creator_id: r.creator_id, created_at: r.created_at, status: r.status,
+  }));
+
+  return { data: skills, count: result.count || 0, mode: result.mode || "semantic" };
+}
+  if (!query || query.trim().length < 8) return false;
+  const words = query.trim().split(/\s+/);
+  if (words.length < 3) return false;
   // Spanish/English intent indicators
   const intentPatterns = /\b(quiero|necesito|como|cómo|ayuda|busco|hacer|crear|generar|automatizar|mejorar|optimizar|want|need|help|how|create|build|make|automate|improve|optimize|write|design|analyze|manage|review|deploy|test|send|track|monitor|connect|integrate|setup|configure)\b/i;
   return intentPatterns.test(query);
