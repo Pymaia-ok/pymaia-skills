@@ -18,7 +18,7 @@ const Explore = () => {
 
   useSEO({
     title: "Explore Skills — Pymaia Skills",
-    description: "Browse 35,000+ skills for Claude Code. Filter by 19 categories, search by name or intent, and find the perfect skill for your work.",
+    description: "Browse 35,000+ skills for AI coding agents. Compatible with Claude, Manus, Cursor, Antigravity & OpenClaw. Filter by 19 categories and find the perfect skill.",
     canonical: "https://pymaiaskills.lovable.app/explorar",
     jsonLd: {
       "@context": "https://schema.org",
