@@ -46,13 +46,6 @@ export async function semanticSearch(filters: {
 
   return { data: skills, count: result.count || 0, mode: result.mode || "semantic" };
 }
-  if (!query || query.trim().length < 8) return false;
-  const words = query.trim().split(/\s+/);
-  if (words.length < 3) return false;
-  // Spanish/English intent indicators
-  const intentPatterns = /\b(quiero|necesito|como|cómo|ayuda|busco|hacer|crear|generar|automatizar|mejorar|optimizar|want|need|help|how|create|build|make|automate|improve|optimize|write|design|analyze|manage|review|deploy|test|send|track|monitor|connect|integrate|setup|configure)\b/i;
-  return intentPatterns.test(query);
-}
 
 // Smart search using AI to interpret intent
 export async function smartSearch(filters: {
