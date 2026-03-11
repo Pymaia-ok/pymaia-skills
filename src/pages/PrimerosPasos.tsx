@@ -265,32 +265,49 @@ const PrimerosPasos = () => {
               <div className="grid sm:grid-cols-3 gap-4 mb-4">
                 {[
                   {
-                    emoji: "💬",
-                    name: "Claude.ai",
-                    desc: isEs
-                      ? "Subí un ZIP con tu skill desde Settings → Features. Funciona en Chat y Cowork."
-                      : "Upload a ZIP with your skill from Settings → Features. Works in Chat and Cowork.",
-                    tag: isEs ? "Upload ZIP" : "Upload ZIP",
-                  },
-                  {
-                    emoji: "⌨️",
                     name: "Claude Code",
                     desc: isEs
-                      ? "Guardá el SKILL.md en la carpeta .claude/skills/ de tu proyecto. Se activa automáticamente."
-                      : "Save the SKILL.md in your project's .claude/skills/ folder. Activates automatically.",
+                      ? "Comando CLI o carpeta .claude/skills/. Funciona en terminal, VS Code, JetBrains y web."
+                      : "CLI command or .claude/skills/ folder. Works in terminal, VS Code, JetBrains and web.",
+                    tag: "CLI / folder",
+                  },
+                  {
+                    name: "Manus",
+                    desc: isEs
+                      ? "Subí un ZIP con la skill a tu workspace de Manus o importá desde GitHub."
+                      : "Upload a ZIP to your Manus workspace or import from GitHub.",
+                    tag: "ZIP / GitHub",
+                  },
+                  {
+                    name: "Cursor",
+                    desc: isEs
+                      ? "Copiá el SKILL.md a la carpeta .cursor/skills/ de tu proyecto."
+                      : "Copy the SKILL.md to the .cursor/skills/ folder in your project.",
                     tag: isEs ? "Carpeta local" : "Local folder",
                   },
                   {
-                    emoji: "🔗",
-                    name: "API",
+                    name: "Antigravity",
                     desc: isEs
-                      ? "Subí skills via /v1/skills para agentes y automatizaciones programáticas."
-                      : "Upload skills via /v1/skills for programmatic agents and automations.",
-                    tag: isEs ? "Endpoint" : "Endpoint",
+                      ? "Copiá el SKILL.md a .antigravity/skills/ en tu proyecto."
+                      : "Copy the SKILL.md to .antigravity/skills/ in your project.",
+                    tag: isEs ? "Carpeta local" : "Local folder",
+                  },
+                  {
+                    name: "OpenClaw",
+                    desc: isEs
+                      ? "Copiá el SKILL.md a la carpeta skills/ de tu proyecto."
+                      : "Copy the SKILL.md to the skills/ folder in your project.",
+                    tag: isEs ? "Carpeta local" : "Local folder",
+                  },
+                  {
+                    name: "Claude.ai",
+                    desc: isEs
+                      ? "Subí un ZIP desde Settings → Features. Funciona en Chat y Cowork."
+                      : "Upload a ZIP from Settings → Features. Works in Chat and Cowork.",
+                    tag: "ZIP upload",
                   },
                 ].map((surface) => (
                   <div key={surface.name} className="p-4 rounded-xl bg-background border border-border text-center">
-                    <span className="text-2xl mb-2 block">{surface.emoji}</span>
                     <p className="font-semibold text-sm mb-1">{surface.name}</p>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-muted-foreground">{surface.tag}</span>
                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{surface.desc}</p>
