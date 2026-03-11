@@ -166,7 +166,7 @@ const Navbar = () => {
                   className="cursor-pointer"
                 >
                   {isDark ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
-                  <span className="flex-1">{t("nav.darkMode", "Modo oscuro")}</span>
+                  <span className="flex-1">{isDark ? t("nav.darkMode") : t("nav.lightMode")}</span>
                   <Switch
                     checked={isDark}
                     onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
