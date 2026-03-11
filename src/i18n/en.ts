@@ -132,7 +132,7 @@ export default {
     bafounderTime: "Saves ~3hrs per analysis",
 
     mcpTitle: "Your AI Solutions Architect",
-    mcpSubtitle: "Install Pymaia Agent and tell it what your company needs. It analyzes your goal, searches the entire catalog, and builds the perfect tool combination.",
+    mcpSubtitle: "Install Pymaia Agent and tell it what you need. It analyzes your goal, searches the entire catalog, and builds the perfect tool combination.",
     mcpCta: "Install Pymaia Agent",
 
     ctaTitle: "Transform your team's\nproductivity.",
