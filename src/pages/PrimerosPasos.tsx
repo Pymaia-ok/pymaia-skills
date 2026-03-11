@@ -410,11 +410,11 @@ const PrimerosPasos = () => {
                   icon: Plug,
                   emoji: "🔌",
                   name: isEs ? "MCP / Conector" : "MCP / Connector",
-                  what: isEs ? "Servidor que conecta Claude con herramientas externas (MCP = Model Context Protocol)" : "Server connecting Claude to external tools (MCP = Model Context Protocol)",
+                  what: isEs ? "Servidor que conecta agentes AI con herramientas externas (MCP = Model Context Protocol)" : "Server connecting AI agents to external tools (MCP = Model Context Protocol)",
                   does: isEs
-                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. MCP es un estándar abierto creado por Anthropic. Un MCP Server y un conector son lo mismo: un puente entre Claude y herramientas como Slack, GitHub, Google Drive, bases de datos, etc."
-                    : "Gives Claude ACCESS to real-time data and services. MCP is an open standard created by Anthropic. An MCP Server and a connector are the same thing: a bridge between Claude and tools like Slack, GitHub, Google Drive, databases, etc.",
-                  example: isEs ? "Conector de Slack → Claude puede leer y enviar mensajes en Slack" : "Slack connector → Claude can read and send messages in Slack",
+                    ? "Le da a tu agente ACCESO a datos y servicios en tiempo real. MCP es un estándar abierto creado por Anthropic, compatible con Claude, Cursor, Antigravity y OpenClaw. Un MCP Server y un conector son lo mismo: un puente entre tu agente y herramientas como Slack, GitHub, Google Drive, etc."
+                    : "Gives your agent ACCESS to real-time data and services. MCP is an open standard created by Anthropic, compatible with Claude, Cursor, Antigravity and OpenClaw. An MCP Server and a connector are the same thing: a bridge between your agent and tools like Slack, GitHub, Google Drive, etc.",
+                  example: isEs ? "Conector de Slack → Tu agente puede leer y enviar mensajes en Slack" : "Slack connector → Your agent can read and send messages in Slack",
                   category: isEs ? "Acceso" : "Access",
                 },
                 {
