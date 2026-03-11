@@ -97,11 +97,11 @@ const Explore = () => {
     enabled: !isSmartMode,
   });
 
-  // Smart AI-powered search
+  // Smart AI-powered semantic search
   const { data: smartResult, isLoading: smartLoading } = useQuery({
-    queryKey: ["smart-search", selectedCategory, sortBy, page, debouncedSearch],
+    queryKey: ["semantic-search", selectedCategory, sortBy, page, debouncedSearch],
     queryFn: () =>
-      smartSearch({
+      semanticSearch({
         query: debouncedSearch,
         category: selectedCategory || undefined,
         sortBy,
