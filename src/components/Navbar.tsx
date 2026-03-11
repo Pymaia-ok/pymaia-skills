@@ -46,7 +46,7 @@ const Navbar = () => {
           <img src={logoImg} alt="Pymaia Skills" className="h-9 md:h-10 w-auto dark:brightness-0 dark:invert" />
         </Link>
 
-        {/* Zone 2: Main nav (desktop) */}
+        {/* Zone 2: Main nav + search (desktop) */}
         <div className="hidden md:flex items-center gap-1">
           {links.map((link) => (
             <Link
@@ -65,7 +65,6 @@ const Navbar = () => {
 
         {/* Zone 3: Actions (desktop) */}
         <div className="hidden md:flex items-center gap-2">
-          <GlobalSearch />
 
           <div className="w-px h-5 bg-border mx-1" />
 
