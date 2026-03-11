@@ -49,8 +49,8 @@ const PrimerosPasos = () => {
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 {isEs
-                  ? "Todo lo que necesitás saber sobre Claude, skills, conectores, plugins y más. Sin tecnicismos."
-                  : "Everything you need to know about Claude, skills, connectors, plugins and more. No jargon."}
+                  ? "Todo lo que necesitás saber sobre skills para agentes AI como Claude, Manus, Cursor y más. Sin tecnicismos."
+                  : "Everything you need to know about skills for AI agents like Claude, Manus, Cursor and more. No jargon."}
               </p>
             </motion.div>
           </div>
@@ -226,8 +226,8 @@ const PrimerosPasos = () => {
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Una skill es un archivo de conocimiento experto (SKILL.md) que le enseña a Claude cómo hacer una tarea específica. No es un plugin, no es una app — es conocimiento puro que Claude usa automáticamente."
-                : "A skill is an expert knowledge file (SKILL.md) that teaches Claude how to do a specific task. It's not a plugin, not an app — it's pure knowledge that Claude uses automatically."}
+                ? "Una skill es un archivo de conocimiento experto (SKILL.md) que le enseña a un agente AI cómo hacer una tarea específica. No es un plugin, no es una app — es conocimiento puro que el agente usa automáticamente. Funciona con Claude, Manus, Cursor, Antigravity, OpenClaw y cualquier agente compatible con el estándar SKILL.md."
+                : "A skill is an expert knowledge file (SKILL.md) that teaches an AI agent how to do a specific task. It's not a plugin, not an app — it's pure knowledge that the agent uses automatically. Works with Claude, Manus, Cursor, Antigravity, OpenClaw and any agent supporting the SKILL.md standard."}
             </p>
 
             {/* Visual analogy */}
@@ -241,8 +241,8 @@ const PrimerosPasos = () => {
                   <span className="text-4xl mb-3 block">👨‍🍳</span>
                   <p className="text-sm text-muted-foreground">
                     {isEs
-                      ? "Claude sin skills es como un chef con talento pero sin recetas."
-                      : "Claude without skills is like a talented chef without recipes."}
+                      ? "Un agente AI sin skills es como un chef con talento pero sin recetas."
+                      : "An AI agent without skills is like a talented chef without recipes."}
                   </p>
                 </div>
                 <div className="text-center p-5 rounded-xl bg-background border border-border">
@@ -260,37 +260,54 @@ const PrimerosPasos = () => {
             <div className="p-6 rounded-2xl bg-secondary border border-border mb-8">
               <div className="flex items-center gap-3 mb-4">
                 <Globe className="w-5 h-5 text-muted-foreground" />
-                <h3 className="font-semibold">{isEs ? "Dónde funcionan las skills" : "Where skills work"}</h3>
+                <h3 className="font-semibold">{isEs ? "Agentes compatibles" : "Compatible agents"}</h3>
               </div>
               <div className="grid sm:grid-cols-3 gap-4 mb-4">
                 {[
                   {
-                    emoji: "💬",
-                    name: "Claude.ai",
-                    desc: isEs
-                      ? "Subí un ZIP con tu skill desde Settings → Features. Funciona en Chat y Cowork."
-                      : "Upload a ZIP with your skill from Settings → Features. Works in Chat and Cowork.",
-                    tag: isEs ? "Upload ZIP" : "Upload ZIP",
-                  },
-                  {
-                    emoji: "⌨️",
                     name: "Claude Code",
                     desc: isEs
-                      ? "Guardá el SKILL.md en la carpeta .claude/skills/ de tu proyecto. Se activa automáticamente."
-                      : "Save the SKILL.md in your project's .claude/skills/ folder. Activates automatically.",
+                      ? "Comando CLI o carpeta .claude/skills/. Funciona en terminal, VS Code, JetBrains y web."
+                      : "CLI command or .claude/skills/ folder. Works in terminal, VS Code, JetBrains and web.",
+                    tag: "CLI / folder",
+                  },
+                  {
+                    name: "Manus",
+                    desc: isEs
+                      ? "Subí un ZIP con la skill a tu workspace de Manus o importá desde GitHub."
+                      : "Upload a ZIP to your Manus workspace or import from GitHub.",
+                    tag: "ZIP / GitHub",
+                  },
+                  {
+                    name: "Cursor",
+                    desc: isEs
+                      ? "Copiá el SKILL.md a la carpeta .cursor/skills/ de tu proyecto."
+                      : "Copy the SKILL.md to the .cursor/skills/ folder in your project.",
                     tag: isEs ? "Carpeta local" : "Local folder",
                   },
                   {
-                    emoji: "🔗",
-                    name: "API",
+                    name: "Antigravity",
                     desc: isEs
-                      ? "Subí skills via /v1/skills para agentes y automatizaciones programáticas."
-                      : "Upload skills via /v1/skills for programmatic agents and automations.",
-                    tag: isEs ? "Endpoint" : "Endpoint",
+                      ? "Copiá el SKILL.md a .antigravity/skills/ en tu proyecto."
+                      : "Copy the SKILL.md to .antigravity/skills/ in your project.",
+                    tag: isEs ? "Carpeta local" : "Local folder",
+                  },
+                  {
+                    name: "OpenClaw",
+                    desc: isEs
+                      ? "Copiá el SKILL.md a la carpeta skills/ de tu proyecto."
+                      : "Copy the SKILL.md to the skills/ folder in your project.",
+                    tag: isEs ? "Carpeta local" : "Local folder",
+                  },
+                  {
+                    name: "Claude.ai",
+                    desc: isEs
+                      ? "Subí un ZIP desde Settings → Features. Funciona en Chat y Cowork."
+                      : "Upload a ZIP from Settings → Features. Works in Chat and Cowork.",
+                    tag: "ZIP upload",
                   },
                 ].map((surface) => (
                   <div key={surface.name} className="p-4 rounded-xl bg-background border border-border text-center">
-                    <span className="text-2xl mb-2 block">{surface.emoji}</span>
                     <p className="font-semibold text-sm mb-1">{surface.name}</p>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-muted-foreground">{surface.tag}</span>
                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{surface.desc}</p>
@@ -368,12 +385,12 @@ const PrimerosPasos = () => {
           <motion.div {...fadeUp}>
             <SectionBadge icon={Plug} label="Plugins" />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "El ecosistema de Claude:\nSkills, Conectores y Plugins" : "Claude's ecosystem:\nSkills, Connectors & Plugins"}
+              {isEs ? "El ecosistema de agentes AI:\nSkills, Conectores y Plugins" : "The AI agent ecosystem:\nSkills, Connectors & Plugins"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Hay 3 formas de extender lo que Claude puede hacer. Cada una tiene un propósito distinto:"
-                : "There are 3 ways to extend what Claude can do. Each serves a different purpose:"}
+                ? "Hay 3 formas de extender lo que tu agente AI puede hacer. Cada una tiene un propósito distinto:"
+                : "There are 3 ways to extend what your AI agent can do. Each serves a different purpose:"}
             </p>
 
             <div className="space-y-4 mb-8">
@@ -384,20 +401,20 @@ const PrimerosPasos = () => {
                   name: "Skill",
                   what: isEs ? "Archivo de conocimiento (SKILL.md)" : "Knowledge file (SKILL.md)",
                   does: isEs
-                    ? "Le enseña a Claude CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento. Las skills son archivos Markdown que Claude lee automáticamente cuando detecta que son relevantes."
-                    : "Teaches Claude HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge. Skills are Markdown files that Claude reads automatically when it detects they're relevant.",
-                  example: isEs ? "Skill de briefs → Claude sabe hacer briefs profesionales" : "Brief skill → Claude knows how to write professional briefs",
+                    ? "Le enseña a tu agente AI CÓMO hacer una tarea específica. Es como darle un manual de experto. No se conecta a nada externo — solo le da conocimiento. Las skills son archivos Markdown que el agente lee automáticamente cuando detecta que son relevantes."
+                    : "Teaches your AI agent HOW to do a specific task. Like giving it an expert manual. Doesn't connect to anything external — just gives it knowledge. Skills are Markdown files the agent reads automatically when it detects they're relevant.",
+                  example: isEs ? "Skill de briefs → Tu agente sabe hacer briefs profesionales" : "Brief skill → Your agent knows how to write professional briefs",
                   category: isEs ? "Conocimiento" : "Knowledge",
                 },
                 {
                   icon: Plug,
                   emoji: "🔌",
                   name: isEs ? "MCP / Conector" : "MCP / Connector",
-                  what: isEs ? "Servidor que conecta Claude con herramientas externas (MCP = Model Context Protocol)" : "Server connecting Claude to external tools (MCP = Model Context Protocol)",
+                  what: isEs ? "Servidor que conecta agentes AI con herramientas externas (MCP = Model Context Protocol)" : "Server connecting AI agents to external tools (MCP = Model Context Protocol)",
                   does: isEs
-                    ? "Le da a Claude ACCESO a datos y servicios en tiempo real. MCP es un estándar abierto creado por Anthropic. Un MCP Server y un conector son lo mismo: un puente entre Claude y herramientas como Slack, GitHub, Google Drive, bases de datos, etc."
-                    : "Gives Claude ACCESS to real-time data and services. MCP is an open standard created by Anthropic. An MCP Server and a connector are the same thing: a bridge between Claude and tools like Slack, GitHub, Google Drive, databases, etc.",
-                  example: isEs ? "Conector de Slack → Claude puede leer y enviar mensajes en Slack" : "Slack connector → Claude can read and send messages in Slack",
+                    ? "Le da a tu agente ACCESO a datos y servicios en tiempo real. MCP es un estándar abierto creado por Anthropic, compatible con Claude, Cursor, Antigravity y OpenClaw. Un MCP Server y un conector son lo mismo: un puente entre tu agente y herramientas como Slack, GitHub, Google Drive, etc."
+                    : "Gives your agent ACCESS to real-time data and services. MCP is an open standard created by Anthropic, compatible with Claude, Cursor, Antigravity and OpenClaw. An MCP Server and a connector are the same thing: a bridge between your agent and tools like Slack, GitHub, Google Drive, etc.",
+                  example: isEs ? "Conector de Slack → Tu agente puede leer y enviar mensajes en Slack" : "Slack connector → Your agent can read and send messages in Slack",
                   category: isEs ? "Acceso" : "Access",
                 },
                 {
@@ -460,17 +477,17 @@ const PrimerosPasos = () => {
           </motion.div>
         </section>
 
-        {/* ─── Section 5: Instalá Claude Code ─── */}
+        {/* ─── Section 5: Instalá tu agente ─── */}
         <section id="install" className="max-w-4xl mx-auto px-6 pb-20 scroll-mt-24">
           <motion.div {...fadeUp}>
             <SectionBadge icon={Download} label={isEs ? "Instalación" : "Installation"} />
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              {isEs ? "Instalá Claude Code" : "Install Claude Code"}
+              {isEs ? "Empezá con tu agente favorito" : "Get started with your favorite agent"}
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Para usar skills necesitás Claude Code. La instalación es simple y tarda menos de 5 minutos."
-                : "To use skills you need Claude Code. Installation is simple and takes less than 5 minutes."}
+                ? "Podés usar skills con cualquier agente compatible. El más popular es Claude Code, pero también funcionan con Manus, Cursor, Antigravity y OpenClaw."
+                : "You can use skills with any compatible agent. The most popular is Claude Code, but they also work with Manus, Cursor, Antigravity and OpenClaw."}
             </p>
 
             <div className="space-y-6">
@@ -530,8 +547,8 @@ const PrimerosPasos = () => {
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-3xl">
               {isEs
-                ? "Ahora que tenés Claude Code, instalemos una skill en 2 minutos."
-                : "Now that you have Claude Code, let's install a skill in 2 minutes."}
+                ? "Ahora que tenés tu agente listo, instalemos una skill en 2 minutos. Este ejemplo usa Claude Code, pero el proceso es similar en otros agentes."
+                : "Now that you have your agent ready, let's install a skill in 2 minutes. This example uses Claude Code, but the process is similar on other agents."}
             </p>
 
             <div className="space-y-4">
