@@ -35,8 +35,8 @@ export default {
 
   landing: {
     heroBadge: "35,000+ professional solutions",
-    heroTitle: "Supercharge your team\nwith AI.",
-    heroSubtitle: "Activate ready-to-use solutions in your AI assistant and transform your company's productivity in minutes.",
+    heroTitle: "Supercharge your work\nwith AI.",
+    heroSubtitle: "Activate ready-to-use solutions in your AI assistant and transform your productivity in minutes.",
     multiAgentBadge: "Works with the most popular AI tools",
     heroCtaExplore: "Explore solutions",
     heroCtaLearn: "See how it works",
