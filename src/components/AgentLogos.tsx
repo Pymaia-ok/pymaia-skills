@@ -27,7 +27,7 @@ export function AgentLogoStrip({ className = "" }: { className?: string }) {
     <div className={`flex items-center justify-center gap-8 flex-wrap ${className}`}>
       {agents.map((a) => (
         <div key={a.label} className="flex items-center gap-2">
-          <img src={a.logo} alt={a.label} className="h-6 w-auto max-w-[120px] object-contain dark:invert" />
+          <img src={a.logo} alt={a.label} className="h-6 w-auto max-w-[120px] object-contain dark:brightness-0 dark:invert" />
         </div>
       ))}
     </div>
