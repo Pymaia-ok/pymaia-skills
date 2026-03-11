@@ -263,7 +263,7 @@ const PluginDetail = () => {
               {/* Related Skills */}
               {relatedSkills.length > 0 && (
                 <div className="mb-8">
-                  <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Package className="w-4 h-4" />{isEs ? "Skills relacionadas" : "Related skills"}</h2>
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2"><Package className="w-4 h-4" />{isEs ? "Skills relacionadas" : "Related skills"}</h2>
                   <div className="grid md:grid-cols-2 gap-3">
                     {relatedSkills.map((skill: any, i: number) => <SkillCard key={skill.id} skill={skill} index={i} />)}
                   </div>

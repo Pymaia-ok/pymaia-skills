@@ -248,8 +248,9 @@ const ConectorDetail = () => {
                   {connector.homepage && <a href={connector.homepage} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"><ExternalLink className="w-3.5 h-3.5" />{isEs ? "Sitio web" : "Website"}</a>}
                 </div>
 
-                <div className="border-t border-border pt-3">
+                <div className="border-t border-border pt-3 flex items-center justify-between">
                   <SecurityReportButton itemType="connector" itemId={connector.id} itemSlug={connector.slug} />
+                  <ShareButton url={`https://pymaiaskills.lovable.app/conector/${connector.slug}`} title={connector.name} description={connector.description} />
                 </div>
               </div>
 
