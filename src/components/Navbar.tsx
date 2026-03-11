@@ -56,7 +56,6 @@ const Navbar = () => {
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/enterprise", label: "Enterprise" },
   ];
 
   const mobileLinks = [
