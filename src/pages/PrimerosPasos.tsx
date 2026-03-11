@@ -23,10 +23,10 @@ const PrimerosPasos = () => {
   const isEs = i18n.language === "es";
 
   useSEO({
-    title: isEs ? "Primeros Pasos — Guía completa de Claude Code y Skills" : "Getting Started — Complete Guide to Claude Code & Skills",
+    title: isEs ? "Primeros Pasos — Guía completa de Skills para agentes AI" : "Getting Started — Complete Guide to AI Agent Skills",
     description: isEs
-      ? "Aprende qué es Claude, sus modos, qué son skills, MCPs y conectores. De cero a experto en 10 minutos."
-      : "Learn what Claude is, its modes, what skills, MCPs and connectors are. From zero to expert in 10 minutes.",
+      ? "Aprende qué son las skills, MCPs y conectores para agentes AI como Claude, Manus, Cursor y más. De cero a experto en 10 minutos."
+      : "Learn what skills, MCPs and connectors are for AI agents like Claude, Manus, Cursor and more. From zero to expert in 10 minutes.",
     canonical: "https://pymaiaskills.lovable.app/primeros-pasos",
   });
 
