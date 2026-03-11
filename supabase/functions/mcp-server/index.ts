@@ -551,22 +551,9 @@ mcp.tool("search_connectors", {
     let results = deduplicateConnectors(merged).slice(0, lim);
     let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
-    if (results.length === 0) {
-      fallbackUsed = "top-connectors";
-      let fallback = supabase
-        .from("mcp_servers")
-        .select(selectCols)
-        .eq("status", "approved")
-        .order("github_stars", { ascending: false })
-        .limit(3);
-      if (args.category) fallback = fallback.eq("category", args.category);
-      const { data: topData } = await fallback;
-      results = deduplicateConnectors(topData || []);
-    }
-
     console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No matching connectors found. 💡 Tip: Use `solve_goal` to search across skills, MCP connectors, AND plugins simultaneously for a comprehensive solution." }] };
+    if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré conectores para "${args.query}". Intenta con otros términos o usa \`solve_goal\` para una búsqueda más amplia.` }] };
 
     const text = results
       .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}`)
