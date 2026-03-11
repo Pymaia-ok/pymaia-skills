@@ -1,100 +1,41 @@
 
 
+## Textos de la landing que siguen muy enfocados en "empresas/equipos"
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+Revisé todos los textos de la landing en español e inglés. Hay bastantes secciones que hablan de "tu empresa", "tu equipo", "empresas como la tuya", etc., cuando el tono que elegiste para el hero es más personal ("tu trabajo", "tu productividad"). Acá va el listado de lo que habría que ajustar para mantener consistencia:
 
-### Estado: ~99% completado
+### Secciones a actualizar (ES / EN)
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+| Sección | Texto actual (ES) | Propuesta (ES) |
+|---|---|---|
+| **Marquee** título | "Soluciones para cada área de tu empresa" | "Soluciones para cada área de tu trabajo" |
+| **Marquee** subtítulo | "...cada desafío de tu negocio" | "...cada desafío profesional" |
+| **How it works** paso 1 desc | "...el desafío de tu equipo" | "...tu desafío" |
+| **How it works** paso 3 título | "Tu equipo es más productivo" | "Sos más productivo" |
+| **Two Paths** subtítulo | "...cada necesidad de tu empresa" | "...cada necesidad" |
+| **Two Paths** expert título | "Quiero potenciar mi equipo" | "Quiero ser más productivo" |
+| **Two Paths** expert desc | "...probadas por miles de empresas..." | "...probadas por miles de profesionales..." |
+| **Two Paths** new desc | "...el conocimiento de tu empresa..." | "...tu conocimiento experto..." |
+| **Creator** título | "Creá soluciones para tu empresa" | "Creá tus propias soluciones" |
+| **Creator** subtítulo | "...el conocimiento de tu equipo..." | "...tu conocimiento experto..." |
+| **Creator** feat1 desc | "...el expertise de tu equipo..." | "...tu expertise..." |
+| **Creator** feat2 desc | "...miembros de tu empresa" | "...quienes vos elijas" |
+| **Popular** subtítulo | "Las que más usan las empresas como la tuya" | "Las más activadas por profesionales como vos" |
+| **Connectors** título | "...que tu equipo ya usa" | "...que ya usás" |
+| **Connectors** subtítulo | "...herramientas empresariales..." | "...herramientas profesionales..." |
+| **Plugins** título | "...cada área de tu empresa" | "...cada área de tu trabajo" |
+| **Before/After** título | "El impacto en tu empresa" | "El impacto en tu productividad" |
+| **Before/After** subtítulo | "...productividad de los equipos" | "...la productividad profesional" |
+| **MCP** subtítulo | "...qué necesita tu empresa..." | "...qué necesitás..." |
+| **Wizard** subtítulo | "...qué necesita tu equipo..." | "...qué necesitás..." |
+| **Final CTA** título | "Transformá la productividad de tu equipo" | "Transformá tu productividad" |
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+Se aplicarán los mismos cambios equivalentes en inglés (reemplazando "your team/company/business" por "you/your work/your productivity").
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+### Archivos a modificar
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+- `src/i18n/es.ts` — ~20 keys del namespace `landing`
+- `src/i18n/en.ts` — ~20 keys equivalentes
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+No se tocan componentes, solo traducciones.
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
-
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
-
-### Tools del MCP v8.3.0 (31 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
-17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
-18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
-19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
-
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
-
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
