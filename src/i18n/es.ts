@@ -38,8 +38,8 @@ export default {
   // Landing sections
   landing: {
     heroBadge: "35,000+ soluciones profesionales",
-    heroTitle: "Potenciá tu equipo\ncon inteligencia artificial.",
-    heroSubtitle: "Activá soluciones listas para usar en tu asistente de IA y transformá la productividad de tu empresa en minutos.",
+    heroTitle: "Potenciá tu trabajo\ncon inteligencia artificial.",
+    heroSubtitle: "Activá soluciones listas para usar en tu asistente de IA y transformá tu productividad en minutos.",
     multiAgentBadge: "Funciona con las herramientas de IA más populares",
     heroCtaExplore: "Explorar soluciones",
     heroCtaLearn: "Ver cómo funciona",
