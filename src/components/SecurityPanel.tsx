@@ -176,6 +176,7 @@ export const SecurityPanel = ({
               { key: "typosquatting", label: "Typosquatting", ok: !scanResult.layers?.typosquatting?.flags?.length },
               { key: "scope", label: isEs ? "Permisos" : "Permissions", ok: scanResult.layers?.scope?.scope_assessment !== "excessive" },
               { key: "license", label: isEs ? "Licencia" : "License", ok: !!scanResult.layers?.license?.license },
+              ...(vtData ? [{ key: "virustotal", label: `VirusTotal: ${vtData.detection_ratio || "—"}`, ok: vtData.verdict === "clean" }] : []),
             ].map((check) => (
               <div key={check.key} className="flex items-center gap-1.5 text-xs">
                 {check.ok ? (
