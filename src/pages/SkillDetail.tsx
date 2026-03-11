@@ -20,6 +20,7 @@ import { useSEO } from "@/hooks/useSEO";
 import ShareButton from "@/components/ShareButton";
 import JSZip from "jszip";
 import { parseSkillMd } from "@/lib/parseSkillMd";
+import MultiAgentInstall from "@/components/MultiAgentInstall";
 
 const SkillDetail = () => {
   const { slug } = useParams();
