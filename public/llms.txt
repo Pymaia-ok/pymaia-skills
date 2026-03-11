@@ -31,6 +31,10 @@ Skills use the open AgentSkills standard (SKILL.md) and work with:
 
 IA, Desarrollo, Automatización, Diseño, Productividad, Datos, Marketing, Legal, Negocios, Creatividad, Ventas, Producto, Finanzas, RRHH, Soporte, Salud, Educación, E-commerce, Operaciones
 
+## Security
+
+All skills, connectors, and plugins are scanned by a 13-layer security pipeline including secret detection, prompt injection analysis, typosquatting checks, hidden content detection, MCP scope analysis, hook static analysis, plugin decomposition, content similarity, publisher verification, dependency audit, LLM deep analysis, and VirusTotal malware scanning. Each item receives a Trust Score (0-100) based on security, publisher reputation, community signals, and longevity.
+
 ## MCP Server
 
 Install the Pymaia Skills MCP Server so your AI agent automatically suggests relevant skills based on what you're doing. The server includes an **AI Solutions Architect** — for complex goals, use `solve_goal` to get two curated solution options with trust scores and install commands.
