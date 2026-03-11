@@ -43,6 +43,12 @@ export default {
     multiAgentBadge: "Funciona con las herramientas de IA más populares",
     heroCtaExplore: "Explorar soluciones",
     heroCtaLearn: "Ver cómo funciona",
+    heroChatUser1: "Necesito un análisis competitivo para el board de mañana",
+    heroChatAi1: "Analizando 12 competidores… pricing, features y gaps detectados. Reporte listo en formato ejecutivo.",
+    heroChatUser2: "Revisá este contrato antes de firmar",
+    heroChatAi2: "14 cláusulas revisadas. 3 riesgos altos identificados con sugerencias de modificación.",
+    heroChatTitle: "Asistente AI",
+    heroChatPlaceholder: "Pedí lo que necesites...",
 
     marqueeTitle: "Soluciones para cada área de tu empresa",
     marqueeSubtitle: "Marketing, legal, finanzas, RRHH, ventas y más. Hay una solución para cada desafío de tu negocio.",
