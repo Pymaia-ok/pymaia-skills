@@ -40,9 +40,6 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 apple-blur border-b border-border">
-      {/* Single GlobalSearch instance — handles ⌘K shortcut + dialog */}
-      <GlobalSearch />
-
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Zone 1: Logo */}
         <Link to="/" className="flex items-center shrink-0">
