@@ -830,7 +830,18 @@ mcp.tool("explore_directory", {
 async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: string | null) {
   const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
   
-  for (const kw of keywords.slice(0, 6)) {
+  // Expand multi-word keywords into individual words for broader ILIKE matching
+  const expandedKeywords = new Set<string>();
+  for (const kw of keywords) {
+    expandedKeywords.add(kw);
+    const parts = kw.split(/\s+/).filter(w => w.length >= 2);
+    if (parts.length > 1) {
+      for (const part of parts) expandedKeywords.add(part);
+    }
+  }
+  const uniqueExpanded = [...expandedKeywords].slice(0, 10);
+
+  for (const kw of uniqueExpanded) {
     const q = sanitizeForPostgrest(kw);
     if (!q || q.length < 2) continue;
 
@@ -859,6 +870,8 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
         .order("install_count", { ascending: false }).limit(limit),
     ]);
     
+    console.log(JSON.stringify({ fn: "crossCatalogSearch", keyword: kw, sanitized: q, skills: sk?.length || 0, connectors: mc?.length || 0, plugins: pl?.length || 0 }));
+
     if (sk) results.skills.push(...sk);
     if (mc) results.connectors.push(...mc);
     if (pl) results.plugins.push(...pl);
@@ -868,6 +881,8 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
   results.skills = results.skills.filter(s => { if (seenSlugs.has(s.slug)) return false; seenSlugs.add(s.slug); return true; });
   results.connectors = deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; }));
   results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
+
+  console.log(JSON.stringify({ fn: "crossCatalogSearch", totalKeywords: uniqueExpanded.length, originalKeywords: keywords.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
   
   return results;
 }
