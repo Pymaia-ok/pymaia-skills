@@ -100,7 +100,7 @@ export default {
     creatorChatAi2: "Perfecto. Tu skill analizará cláusulas de riesgo…",
 
     wizardTitle: "Encontrá la solución ideal",
-    wizardSubtitle: "Contanos qué necesita tu equipo y te recomendamos las mejores soluciones.",
+    wizardSubtitle: "Contanos qué necesitás y te recomendamos las mejores soluciones.",
 
     popularTitle: "Soluciones más populares",
     popularSubtitle: "Las que más usan las empresas como la tuya.",
