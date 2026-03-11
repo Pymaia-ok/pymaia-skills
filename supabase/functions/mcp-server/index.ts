@@ -672,7 +672,7 @@ mcp.tool("search_plugins", {
     const text = results
       .map((p: any) => {
         const badges = [p.is_anthropic_verified ? "🏅 Anthropic Verified" : "", p.is_official ? "✅ Official" : ""].filter(Boolean).join(" ");
-        return `**${p.name}** [${p.category}] ${badges}\n${p.description}\n📦 ${p.platform} · ${p.install_count.toLocaleString()} installs`;
+        return `**${p.name}** [${p.category}] ${badges}\n${p.description}\n📦 ${p.platform} · ${p.install_count.toLocaleString()} installs${p.homepage ? `\n🔗 ${p.homepage}` : ""}${p.github_url ? `\nGitHub: ${p.github_url}` : ""}`;
       })
       .join("\n\n---\n\n");
 
