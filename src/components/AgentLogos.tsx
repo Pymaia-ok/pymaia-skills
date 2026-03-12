@@ -24,12 +24,14 @@ export function AgentLogoStrip({ className = "" }: { className?: string }) {
   ];
 
   return (
-    <div className={`flex items-center justify-center gap-8 md:flex-wrap overflow-x-auto md:overflow-visible scrollbar-hide ${className}`}>
-      {agents.map((a) => (
-        <div key={a.label} className="flex items-center gap-2 shrink-0">
-          <img src={a.logo} alt={a.label} className="h-6 w-auto max-w-[120px] object-contain dark:brightness-0 dark:invert" />
-        </div>
-      ))}
+    <div className={`w-full max-w-full overflow-hidden ${className}`}>
+      <div className="flex items-center justify-start md:justify-center gap-8 overflow-x-auto md:overflow-visible md:flex-wrap scrollbar-hide px-4 md:px-0">
+        {agents.map((a) => (
+          <div key={a.label} className="flex items-center gap-2 shrink-0">
+            <img src={a.logo} alt={a.label} className="h-6 w-auto max-w-[120px] object-contain dark:brightness-0 dark:invert" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

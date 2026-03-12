@@ -109,7 +109,7 @@ const HeroSection = () => {
             {t("landing.heroBadge")}
           </div>
 
-          <h1 className="hero-title mb-6 whitespace-pre-line">
+          <h1 className="hero-title mb-6">
             {t("landing.heroTitle")}
           </h1>
 
