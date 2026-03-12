@@ -1,107 +1,76 @@
 
 
+## Plan: Auto-discovery of Skill Monorepos
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+### The Problem
 
-### Estado: ~99% completado
+Today, `github-monorepo` is a manual source — you have to know the repo name and invoke it explicitly. When a new monorepo like `alirezarezvani/claude-skills` appears, it won't get its subdirectory skills indexed until someone manually triggers it.
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+### Solution: Two-Phase Automatic Monorepo Detection
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+#### Phase 1 — Detect monorepos from existing indexed skills
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+**File**: `supabase/functions/discover-trending-skills/index.ts`
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+Add a new mode `monorepo_scan` that:
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+1. Queries the `skills` table for repos with high stars (>500) that were indexed as a single entry but whose GitHub tree contains multiple `SKILL.md` files
+2. Uses the GitHub Trees API to check if an already-indexed repo has >5 `SKILL.md` files at different paths — if so, it's a monorepo
+3. Automatically calls `sync-skills` with `source: "github-monorepo"` for each discovered monorepo
+4. Stores discovered monorepos in a new `monorepo_registry` table to avoid re-scanning known ones
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+#### Phase 2 — Detect monorepos from discovery sources
 
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
+**File**: `supabase/functions/sync-skills/index.ts`
 
-### Tools del MCP v8.5.0 (37 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
-17. **suggest_stack** (Full environment setup recommendation)
-18. **check_compatibility** (Quick compatibility verdict)
-19. **get_setup_guide** (Step-by-step install guide)
-20. **import_skill_from_agent** (Publish SKILL.md from agents)
-21. **get_skill_content** (Read/fork raw SKILL.md) ← NEW v8.5.0
-22. **validate_skill** (Quality check without publishing) ← NEW v8.5.0
-23. **my_skills** (Authenticated user skill management) ← NEW v8.5.0
-24. **semantic_search** (AI-powered vector similarity search) ← NEW v8.5.0
-25. **get_trust_report** (Detailed security/trust breakdown) ← NEW v8.5.0
-26. **whats_new** (Recent catalog additions) ← NEW v8.5.0
+Enhance the `github-popular` and `github-search` sources to flag potential monorepos:
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+1. After fetching a repo, do a lightweight check: `GET /repos/{owner}/{repo}/git/trees/main?recursive=1` and count `SKILL.md` files
+2. If count > 3, insert into `monorepo_registry` for the `monorepo_scan` cron to process later
+3. This avoids blocking the main sync with slow tree traversals
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
+#### Phase 3 — Cron schedule
+
+Add a weekly cron `sync-monorepos-auto` that:
+1. Reads `monorepo_registry` for unprocessed entries
+2. Calls `sync-skills` with `source: "github-monorepo"` for each, in sequence
+3. Marks them as processed with `last_synced_at`
+
+### DB Migration
+
+New table `monorepo_registry`:
+```sql
+CREATE TABLE public.monorepo_registry (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  repo_full_name text NOT NULL UNIQUE,
+  skill_count integer DEFAULT 0,
+  github_stars integer DEFAULT 0,
+  last_synced_at timestamptz,
+  discovered_via text DEFAULT 'manual',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.monorepo_registry ENABLE ROW LEVEL SECURITY;
+-- Service role only
+CREATE POLICY "Service role monorepo_registry" ON public.monorepo_registry
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Admins can view monorepo_registry" ON public.monorepo_registry
+  FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'));
+```
+
+### Files to modify/create
+
+| File | Change |
+|------|--------|
+| `supabase/functions/discover-trending-skills/index.ts` | Add `monorepo_scan` mode: scan high-star repos for multiple SKILL.md files, insert into `monorepo_registry` |
+| `supabase/functions/sync-skills/index.ts` | In `github-popular` and `github-search`, add lightweight monorepo detection (count SKILL.md in tree, insert to registry if >3) |
+| DB migration | Create `monorepo_registry` table |
+| Cron job (SQL insert) | Weekly `sync-monorepos-auto` that processes the registry |
+
+### How it works end-to-end
+
+1. **Daily**: `github-popular` discovers `someuser/mega-skills-repo` (2K stars). It checks the tree, finds 50 `SKILL.md` files, inserts into `monorepo_registry`
+2. **Weekly**: `sync-monorepos-auto` cron picks it up, calls `sync-skills?source=github-monorepo&topic=someuser/mega-skills-repo`
+3. **Result**: All 50 skills are individually indexed with correct subdirectory URLs
+
+This makes monorepo discovery fully autonomous — no manual intervention needed.
+
