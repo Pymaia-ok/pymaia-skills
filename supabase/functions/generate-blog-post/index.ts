@@ -223,8 +223,8 @@ Return your response using the generate_blog_post tool.`;
             parameters: {
               type: "object",
               properties: {
-                title_en: { type: "string", description: "SEO-optimized English title, max 60 chars" },
-                title_es: { type: "string", description: "Spanish translation of the title" },
+                title_en: { type: "string", description: "SEO-optimized English title, max 60 chars. Use sentence case (only capitalize first word and proper nouns)." },
+                title_es: { type: "string", description: "Spanish translation of the title. Use sentence case." },
                 excerpt_en: { type: "string", description: "English excerpt/summary, 1-2 sentences, max 200 chars" },
                 excerpt_es: { type: "string", description: "Spanish excerpt" },
                 content_en: { type: "string", description: "Full article in English, markdown format, ~1500 words" },
