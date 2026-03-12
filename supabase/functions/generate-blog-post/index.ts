@@ -269,6 +269,7 @@ Return your response using the generate_blog_post tool.`;
           related_skill_slugs: (relatedSkills || []).map((s: any) => s.slug),
           related_connector_slugs: (relatedConnectors || []).map((c: any) => c.slug),
           reading_time_minutes: readingTime,
+          cover_image_url: coverImageUrl,
           status: "published",
         });
       } else {
