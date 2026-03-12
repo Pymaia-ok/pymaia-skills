@@ -1031,6 +1031,59 @@ async function fetchGitHubMonorepo(repoFullName: string, batchOffset: number, ba
   return skills;
 }
 
+// ─── MONOREPO DETECTION HELPER ───
+
+async function detectMonorepos(supabase: ReturnType<typeof createClient>, discovered: ParsedSkill[], source: string) {
+  const token = Deno.env.get("GITHUB_TOKEN");
+  if (!token) return;
+
+  // Only check high-star repos
+  const candidates = discovered.filter(s => s.stars >= 500 && s.owner && s.repo);
+  if (candidates.length === 0) return;
+
+  // Get known monorepos to skip
+  const { data: known } = await supabase.from("monorepo_registry").select("repo_full_name");
+  const knownSet = new Set((known || []).map((m: any) => m.repo_full_name.toLowerCase()));
+
+  const unique = new Map<string, ParsedSkill>();
+  for (const c of candidates) {
+    const key = `${c.owner}/${c.repo}`.toLowerCase();
+    if (!knownSet.has(key) && !unique.has(key)) unique.set(key, c);
+  }
+
+  // Check up to 5 repos per run to avoid rate limits
+  let checked = 0;
+  for (const [repoKey, skill] of unique) {
+    if (checked >= 5) break;
+    try {
+      const treeRes = await fetch(`https://api.github.com/repos/${skill.owner}/${skill.repo}/git/trees/main?recursive=1`, {
+        headers: { Authorization: `token ${token}`, Accept: "application/vnd.github.v3+json", "User-Agent": "SkillStoreBot/1.0" },
+      });
+      if (treeRes.status === 403) break;
+      if (!treeRes.ok) { checked++; continue; }
+
+      const treeData = await treeRes.json();
+      const skillCount = (treeData?.tree || []).filter((n: any) => n.type === "blob" && n.path.endsWith("SKILL.md")).length;
+
+      if (skillCount > 3) {
+        await supabase.from("monorepo_registry").upsert({
+          repo_full_name: `${skill.owner}/${skill.repo}`,
+          skill_count: skillCount,
+          github_stars: skill.stars,
+          discovered_via: source,
+        }, { onConflict: "repo_full_name" });
+        console.log(`[detectMonorepos] Flagged ${skill.owner}/${skill.repo} (${skillCount} SKILL.md files)`);
+      }
+
+      checked++;
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) {
+      console.error(`[detectMonorepos] Error checking ${repoKey}:`, (e as Error).message);
+      checked++;
+    }
+  }
+}
+
 // ─── UPSERT LOGIC ───
 
 async function upsertSkills(supabase: ReturnType<typeof createClient>, discovered: ParsedSkill[], insertOffset: number, maxInsert: number) {
@@ -1236,7 +1289,6 @@ Deno.serve(async (req) => {
       case "github-search": {
         const defaultTopics = [
           "mcp-server", "claude-skill", "agent-skill", "mcp", "model-context-protocol",
-          // Domain-specific topics
           "cursor-rules", "claude-rules", "ai-rules",
           "ai-agent", "ai-assistant", "llm-tool",
           "prompt-engineering", "ai-workflow",
@@ -1247,6 +1299,8 @@ Deno.serve(async (req) => {
           const results = await fetchGitHubSearch(t);
           discovered.push(...results);
         }
+        // Phase 2: Lightweight monorepo detection for high-star repos
+        await detectMonorepos(supabase, discovered, "github-search");
         break;
       }
       case "github-code-search": {
@@ -1287,6 +1341,8 @@ Deno.serve(async (req) => {
           const results = await fetchGitHubPopularSearch(q);
           discovered.push(...results);
         }
+        // Phase 2: Lightweight monorepo detection for high-star repos
+        await detectMonorepos(supabase, discovered, "github-popular");
         break;
       }
       case "all": {
