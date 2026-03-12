@@ -1287,6 +1287,8 @@ Deno.serve(async (req) => {
           const results = await fetchGitHubPopularSearch(q);
           discovered.push(...results);
         }
+        // Phase 2: Lightweight monorepo detection for high-star repos
+        await detectMonorepos(supabase, discovered, "github-popular");
         break;
       }
       case "all": {
