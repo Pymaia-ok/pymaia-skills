@@ -12,6 +12,129 @@ Deno.serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { mode = "trending_search", time_range = "week", language = "", limit = 20 } = await req.json().catch(() => ({ mode: "intelligence" }));
 
+    // ── Monorepo Scan: detect monorepos from indexed skills ──
+    if (mode === "monorepo_scan") {
+      const githubToken = Deno.env.get("GITHUB_TOKEN");
+      if (!githubToken) throw new Error("GITHUB_TOKEN not configured");
+
+      // Get already-known monorepos to skip
+      const { data: knownMonorepos } = await supabase.from("monorepo_registry").select("repo_full_name");
+      const knownSet = new Set((knownMonorepos || []).map((m: any) => m.repo_full_name.toLowerCase()));
+
+      // Find distinct high-star repos from skills table
+      const { data: skills } = await supabase
+        .from("skills")
+        .select("github_url, github_stars")
+        .not("github_url", "is", null)
+        .gt("github_stars", 100)
+        .eq("status", "approved")
+        .order("github_stars", { ascending: false })
+        .limit(200);
+
+      // Extract unique repo full names
+      const repoMap = new Map<string, number>();
+      for (const s of skills || []) {
+        const match = s.github_url?.match(/github\.com\/([^\/]+)\/([^\/\s?#]+)/);
+        if (!match) continue;
+        const fullName = `${match[1]}/${match[2]}`.replace(/\.git$/, "");
+        if (knownSet.has(fullName.toLowerCase())) continue;
+        if (!repoMap.has(fullName) || s.github_stars > (repoMap.get(fullName) || 0)) {
+          repoMap.set(fullName, s.github_stars);
+        }
+      }
+
+      console.log(`[monorepo_scan] Checking ${repoMap.size} candidate repos...`);
+      let discovered = 0;
+      const newMonorepos: string[] = [];
+
+      for (const [repoFullName, stars] of repoMap) {
+        try {
+          const treeRes = await fetch(`https://api.github.com/repos/${repoFullName}/git/trees/main?recursive=1`, {
+            headers: { Authorization: `Bearer ${githubToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "Pymaia-Skills-Discovery" },
+          });
+
+          if (treeRes.status === 403) { console.log("[monorepo_scan] Rate limited, stopping"); break; }
+          if (!treeRes.ok) {
+            // Try 'master' branch as fallback
+            const masterRes = await fetch(`https://api.github.com/repos/${repoFullName}/git/trees/master?recursive=1`, {
+              headers: { Authorization: `Bearer ${githubToken}`, Accept: "application/vnd.github.v3+json", "User-Agent": "Pymaia-Skills-Discovery" },
+            });
+            if (!masterRes.ok) continue;
+            const masterData = await masterRes.json();
+            const skillCount = (masterData?.tree || []).filter((n: any) => n.type === "blob" && n.path.endsWith("SKILL.md")).length;
+            if (skillCount > 3) {
+              await supabase.from("monorepo_registry").upsert({ repo_full_name: repoFullName, skill_count: skillCount, github_stars: stars, discovered_via: "monorepo_scan" }, { onConflict: "repo_full_name" });
+              newMonorepos.push(repoFullName);
+              discovered++;
+            }
+            continue;
+          }
+
+          const treeData = await treeRes.json();
+          const skillFiles = (treeData?.tree || []).filter((n: any) => n.type === "blob" && n.path.endsWith("SKILL.md"));
+
+          if (skillFiles.length > 3) {
+            await supabase.from("monorepo_registry").upsert({ repo_full_name: repoFullName, skill_count: skillFiles.length, github_stars: stars, discovered_via: "monorepo_scan" }, { onConflict: "repo_full_name" });
+            newMonorepos.push(repoFullName);
+            discovered++;
+            console.log(`[monorepo_scan] Found monorepo: ${repoFullName} (${skillFiles.length} skills, ${stars}★)`);
+          }
+
+          await new Promise(r => setTimeout(r, 300));
+        } catch (e) { console.error(`[monorepo_scan] Error checking ${repoFullName}:`, e); }
+      }
+
+      await supabase.from("automation_logs").insert({
+        function_name: "discover-trending-skills",
+        action_type: "monorepo_scan",
+        reason: `Scanned ${repoMap.size} repos, found ${discovered} monorepos: ${newMonorepos.join(", ") || "none"}`,
+      });
+
+      return new Response(JSON.stringify({ success: true, mode: "monorepo_scan", candidates_checked: repoMap.size, monorepos_found: discovered, repos: newMonorepos }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── Monorepo Sync: process registry and trigger sync-skills ──
+    if (mode === "monorepo_sync") {
+      const { data: pending } = await supabase
+        .from("monorepo_registry")
+        .select("*")
+        .or("last_synced_at.is.null,last_synced_at.lt." + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order("github_stars", { ascending: false })
+        .limit(5);
+
+      const synced: string[] = [];
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      for (const repo of pending || []) {
+        try {
+          console.log(`[monorepo_sync] Syncing ${repo.repo_full_name}...`);
+          const syncRes = await fetch(`${supabaseUrl}/functions/v1/sync-skills`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ source: "github-monorepo", topic: repo.repo_full_name, batchSize: 200 }),
+          });
+
+          if (syncRes.ok) {
+            const result = await syncRes.json();
+            console.log(`[monorepo_sync] ${repo.repo_full_name}: added=${result.added}, updated=${result.updated}`);
+            await supabase.from("monorepo_registry").update({ last_synced_at: new Date().toISOString(), skill_count: result.discovered || repo.skill_count }).eq("id", repo.id);
+            synced.push(repo.repo_full_name);
+          }
+
+          await new Promise(r => setTimeout(r, 2000));
+        } catch (e) { console.error(`[monorepo_sync] Error syncing ${repo.repo_full_name}:`, e); }
+      }
+
+      await supabase.from("automation_logs").insert({
+        function_name: "discover-trending-skills",
+        action_type: "monorepo_sync",
+        reason: `Synced ${synced.length} monorepos: ${synced.join(", ") || "none"}`,
+      });
+
+      return new Response(JSON.stringify({ success: true, mode: "monorepo_sync", synced }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ── PHASE 3: Intelligence Engine ──
     if (mode === "intelligence") {
       const results: any = {};
