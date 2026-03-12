@@ -929,6 +929,27 @@ mcp.tool("solve_goal", {
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
+    // 0. Conversational Goal Refinement (Sprint 3 - Block 6)
+    const goalWords = goalLower.split(/\s+/).filter(w => w.length >= 2);
+    if (goalWords.length < 3) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            status: "needs_clarification",
+            message: "Your goal is quite broad. To give you the best recommendations, could you provide more detail?",
+            questions: [
+              "What specific task or process do you want to automate/improve?",
+              "What tools or platforms are you currently using?",
+              "What's your technical level: non-technical, semi-technical, or developer?",
+              "What industry are you in? (e.g., marketing, legal, engineering, sales)",
+            ],
+            tip: "Try something like: 'automate outbound sales emails with CRM integration' or 'set up CI/CD pipeline with security scanning'",
+          }),
+        }],
+      };
+    }
+
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
 
