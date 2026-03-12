@@ -69,9 +69,12 @@ interface SkillPreviewProps {
   onPlayground: () => void;
   isRefining: boolean;
   isTesting: boolean;
+  onAutoImprove?: () => void;
+  isAutoImproving?: boolean;
+  autoImproveIterations?: any[];
 }
 
-export default function SkillPreview({ skill, quality, testResults, onRefine, onPublish, onBack, onRunTests, onPlayground, isRefining, isTesting }: SkillPreviewProps) {
+export default function SkillPreview({ skill, quality, testResults, onRefine, onPublish, onBack, onRunTests, onPlayground, isRefining, isTesting, onAutoImprove, isAutoImproving, autoImproveIterations }: SkillPreviewProps) {
   const [refinement, setRefinement] = useState("");
   const [showSkillMd, setShowSkillMd] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -117,7 +120,7 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
         </div>
       </div>
 
-      <SkillScoreCard quality={quality} />
+      <SkillScoreCard quality={quality} onAutoImprove={onAutoImprove} isAutoImproving={isAutoImproving} iterations={autoImproveIterations} />
 
       {/* Test Results */}
       <SkillTestResults results={testResults} onRunTests={onRunTests} isTesting={isTesting} />

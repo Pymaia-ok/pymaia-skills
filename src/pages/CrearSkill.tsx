@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
+import SkillImporter from "@/components/crear-skill/SkillImporter";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { submitSkill, submitPlugin } from "@/lib/api";
@@ -12,11 +13,11 @@ import SkillPublishConfig from "@/components/crear-skill/SkillPublishConfig";
 import type { Msg } from "@/lib/streaming";
 
 interface StepProps {
-  step: "chat" | "preview" | "playground" | "publish";
-  setStep: (step: "chat" | "preview" | "playground" | "publish") => void;
+  step: "chat" | "preview" | "playground" | "publish" | "import";
+  setStep: (step: "chat" | "preview" | "playground" | "publish" | "import") => void;
 }
 
-type Step = "chat" | "preview" | "playground" | "publish";
+type Step = "chat" | "preview" | "playground" | "publish" | "import";
 
 interface RequiredMcp {
   name: string;
@@ -83,6 +84,8 @@ const CrearSkill = () => {
   const [isRefining, setIsRefining] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isAutoImproving, setIsAutoImproving] = useState(false);
+  const [autoImproveIterations, setAutoImproveIterations] = useState<any[]>([]);
   const [generatingPhase, setGeneratingPhase] = useState<string>("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -309,6 +312,25 @@ const CrearSkill = () => {
     setIsTesting(false);
   };
 
+  const handleAutoImprove = async () => {
+    if (!skill) return;
+    setIsAutoImproving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-skill", {
+        body: { action: "auto_improve", skill },
+      });
+      if (error) throw error;
+      setSkill(data.skill);
+      setQuality(data.quality);
+      setAutoImproveIterations(data.iterations || []);
+      toast.success(`Skill mejorada en ${data.cycles_run} ciclos`);
+      await saveDraft(data.skill, data.quality, testResults, messages, "generated");
+    } catch {
+      toast.error("Error en auto-mejora");
+    }
+    setIsAutoImproving(false);
+  };
+
   const handlePublish = async (config: { 
     category: string; 
     industry: string[]; 
@@ -420,6 +442,15 @@ const CrearSkill = () => {
       <div className="pt-14 flex-1 flex flex-col min-h-0">
         {step === "chat" && (
           <div className="flex-1 flex flex-col min-h-0">
+            {/* Import button */}
+            <div className="flex justify-end px-4 py-2">
+              <button
+                onClick={() => setStep("import")}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+              >
+                ¿Ya tenés un SKILL.md? Importar →
+              </button>
+            </div>
             <SkillChat
               messages={messages}
               setMessages={setMessages}
@@ -445,6 +476,9 @@ const CrearSkill = () => {
                 onPlayground={() => setStep("playground")}
                 isRefining={isRefining}
                 isTesting={isTesting}
+                onAutoImprove={handleAutoImprove}
+                isAutoImproving={isAutoImproving}
+                autoImproveIterations={autoImproveIterations}
               />
             </div>
           </div>
@@ -456,6 +490,21 @@ const CrearSkill = () => {
               skill={skill}
               onBack={() => setStep("preview")}
               onRefine={() => setStep("preview")}
+            />
+          </div>
+        )}
+
+        {step === "import" && (
+          <div className="flex-1 overflow-y-auto">
+            <SkillImporter
+              onImported={(importedSkill, importedQuality) => {
+                setSkill(importedSkill);
+                setQuality(importedQuality);
+                setTestResults(null);
+                setAutoImproveIterations([]);
+                setStep("preview");
+              }}
+              onCancel={() => setStep("chat")}
             />
           </div>
         )}

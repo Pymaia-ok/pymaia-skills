@@ -535,6 +535,145 @@ Rules:
       );
     }
 
+    if (action === "auto_improve") {
+      // Auto-improve loop: test → analyze failures → refine → re-test (max 3 cycles)
+      const MAX_CYCLES = 3;
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      let currentSkill = { ...skill };
+      let bestScore = 0;
+      let bestSkill = currentSkill;
+      const iterations: any[] = [];
+
+      for (let cycle = 0; cycle < MAX_CYCLES; cycle++) {
+        // 1. Test the current skill
+        const testResp = await fetch(`${supabaseUrl}/functions/v1/test-skill`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ skill: currentSkill }),
+        });
+        if (!testResp.ok) break;
+        const testData = await testResp.json();
+
+        const passRate = testData.test_results?.filter((t: any) => t.passed).length / (testData.test_results?.length || 1);
+        const avgScore = testData.overall_score || 0;
+
+        iterations.push({
+          cycle: cycle + 1,
+          pass_rate: passRate,
+          avg_score: avgScore,
+          critical_gaps: testData.critical_gaps || [],
+          test_results: testData.test_results,
+        });
+
+        if (avgScore > bestScore) {
+          bestScore = avgScore;
+          bestSkill = { ...currentSkill };
+        }
+
+        // If pass rate is 100% and score >= 8, stop early
+        if (passRate >= 1.0 && avgScore >= 8) break;
+
+        // 2. Analyze failures and refine
+        const failures = (testData.test_results || []).filter((t: any) => !t.passed || t.score < 7);
+        if (failures.length === 0) break;
+
+        const failureSummary = failures.map((f: any) =>
+          `Test "${f.title}" (score: ${f.score}): ${f.feedback}. Output was: ${(f.real_output || "").slice(0, 200)}`
+        ).join("\n");
+
+        const refinePrompt = `Tenés esta skill:\n\n${JSON.stringify(currentSkill)}\n\nEstas pruebas fallaron o tuvieron score bajo:\n${failureSummary}\n\nGaps críticos: ${(testData.critical_gaps || []).join(", ")}\n\nMejorá la skill para que pase estas pruebas. Enfocate en los gaps específicos sin cambiar lo que ya funciona bien.`;
+
+        let refined = await callAI(
+          [
+            { role: "system", content: GENERATE_PROMPT },
+            { role: "user", content: refinePrompt },
+          ],
+          "google/gemini-2.5-flash",
+          [skillTool],
+          { type: "function", function: { name: "create_skill" } }
+        );
+        refined = validateSkillFields(refined);
+        currentSkill = refined;
+      }
+
+      // Final quality judge
+      const judgeRaw = await callAI(
+        [
+          { role: "system", content: JUDGE_PROMPT },
+          { role: "user", content: JSON.stringify(bestSkill) },
+        ],
+        "google/gemini-2.5-flash-lite"
+      );
+      let judge;
+      try {
+        judge = JSON.parse(sanitizeJson(judgeRaw));
+      } catch {
+        const match = judgeRaw.match(/\{[\s\S]*\}/);
+        judge = match ? JSON.parse(sanitizeJson(match[0])) : { score: 7, feedback: "", strengths: [], improvements: [] };
+      }
+
+      return new Response(
+        JSON.stringify({
+          skill: bestSkill,
+          quality: judge,
+          iterations,
+          cycles_run: iterations.length,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "import_skill") {
+      // Parse a raw SKILL.md into structured fields using AI
+      const { skill_md } = await req.json().catch(() => ({ skill_md: "" }));
+      if (!skill_md || skill_md.length < 20) {
+        return new Response(
+          JSON.stringify({ error: "SKILL.md content is too short" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const importPrompt = `Analizá este archivo SKILL.md y extraé la información estructurada.\n\nSKILL.md:\n\`\`\`\n${skill_md.slice(0, 8000)}\n\`\`\`\n\nExtraé todos los campos posibles del contenido. Si no encontrás un campo, usá un valor por defecto razonable.`;
+
+      let imported = await callAI(
+        [
+          { role: "system", content: GENERATE_PROMPT },
+          { role: "user", content: importPrompt },
+        ],
+        "google/gemini-2.5-flash",
+        [skillTool],
+        { type: "function", function: { name: "create_skill" } }
+      );
+      imported = validateSkillFields(imported);
+      // Ensure install_command has the original MD if AI didn't preserve it
+      if (!imported.install_command || imported.install_command.length < skill_md.length * 0.5) {
+        imported.install_command = skill_md;
+      }
+
+      // Judge
+      const judgeRaw = await callAI(
+        [
+          { role: "system", content: JUDGE_PROMPT },
+          { role: "user", content: JSON.stringify(imported) },
+        ],
+        "google/gemini-2.5-flash-lite"
+      );
+      let judge;
+      try {
+        judge = JSON.parse(sanitizeJson(judgeRaw));
+      } catch {
+        const match = judgeRaw.match(/\{[\s\S]*\}/);
+        judge = match ? JSON.parse(sanitizeJson(match[0])) : { score: 7, feedback: "", strengths: [], improvements: [] };
+      }
+
+      return new Response(
+        JSON.stringify({ skill: imported, quality: judge }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: "Acción no válida" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
