@@ -177,17 +177,21 @@ SEO Keywords to naturally include: ${topic.keywords.join(", ")}
 Category: ${topic.category}
 Geo target: ${topic.geo}
 
-Related tools from our catalog to link to:
-${skillLinks || "No specific skills available"}
+Related AI skills from our catalog (link to these!):
+${skillLinks || "No specific skills — link to /explorar instead"}
 
-Related connectors:
-${connectorLinks || "No specific connectors available"}
+Related connectors (integrations):
+${connectorLinks || "No specific connectors — link to /conectores instead"}
+
+Related plugins:
+${pluginLinks || "No specific plugins — link to /plugins instead"}
 
 Also link to these platform pages where relevant:
-- [Explore all AI solutions](/explorar)
-- [MCP Server](/mcp)
-- [Connectors](/conectores)
-- [Security advisories](/seguridad)
+- [Explore all AI tools](/explorar)
+- [Browse connectors](/conectores)
+- [Browse plugins](/plugins)
+- [Create your own skill](/crear-skill)
+- [Getting started guide](/primeros-pasos)
 
 Return your response using the generate_blog_post tool.`;
 

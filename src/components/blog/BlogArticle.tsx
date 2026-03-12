@@ -3,11 +3,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, Shield, Zap, Server, Building2, User } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Shield, Zap, Server, Building2, Bot, User } from "lucide-react";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   security: <Shield className="h-4 w-4" />,
   productivity: <Zap className="h-4 w-4" />,
+  agents: <Bot className="h-4 w-4" />,
   mcp: <Server className="h-4 w-4" />,
   industry: <Building2 className="h-4 w-4" />,
 };

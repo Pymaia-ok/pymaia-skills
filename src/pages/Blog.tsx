@@ -8,19 +8,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Clock, Shield, Zap, Server, Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Shield, Zap, Server, Building2, Bot, ChevronLeft, ChevronRight } from "lucide-react";
 
 const CATEGORIES = [
   { key: "all", label_en: "All", label_es: "Todos" },
-  { key: "security", label_en: "Security", label_es: "Seguridad" },
   { key: "productivity", label_en: "Productivity", label_es: "Productividad" },
-  { key: "mcp", label_en: "MCP", label_es: "MCP" },
+  { key: "agents", label_en: "AI Agents", label_es: "Agentes IA" },
   { key: "industry", label_en: "Industry", label_es: "Industria" },
+  { key: "security", label_en: "Security", label_es: "Seguridad" },
+  { key: "mcp", label_en: "Connectors", label_es: "Conectores" },
 ];
 
 const categoryIcons: Record<string, React.ReactNode> = {
   security: <Shield className="h-4 w-4" />,
   productivity: <Zap className="h-4 w-4" />,
+  agents: <Bot className="h-4 w-4" />,
   mcp: <Server className="h-4 w-4" />,
   industry: <Building2 className="h-4 w-4" />,
 };

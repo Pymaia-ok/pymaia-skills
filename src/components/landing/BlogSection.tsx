@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Clock, Shield, Zap, Server, Building2 } from "lucide-react";
+import { ArrowRight, Clock, Shield, Zap, Server, Building2, Bot } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 const categoryIcons: Record<string, React.ReactNode> = {
   security: <Shield className="h-4 w-4" />,
   productivity: <Zap className="h-4 w-4" />,
+  agents: <Bot className="h-4 w-4" />,
   mcp: <Server className="h-4 w-4" />,
   industry: <Building2 className="h-4 w-4" />,
 };
@@ -18,6 +19,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 const categoryColors: Record<string, string> = {
   security: "bg-destructive/10 text-destructive",
   productivity: "bg-primary/10 text-primary",
+  agents: "bg-chart-4/10 text-chart-4",
   mcp: "bg-accent text-accent-foreground",
   industry: "bg-secondary text-secondary-foreground",
 };
