@@ -13,6 +13,8 @@ interface TrustBadgeProps {
   createdAt?: string;
   isOfficial?: boolean;
   creatorId?: string | null;
+  isStale?: boolean;
+  isVerifiedPublisher?: boolean;
 }
 
 const BADGE_CONFIG: Record<string, { label: string; labelEs: string; color: string; icon: any; bg: string }> = {
