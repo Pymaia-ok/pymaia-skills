@@ -481,25 +481,36 @@ mcp.tool("compare_skills", {
   },
 });
 
-// Deduplicate connectors by brand: prefer is_official, then curated source, then highest stars
+// Deduplicate connectors by brand: prefer is_official, then trust_score, then stars
 function deduplicateConnectors(connectors: any[]): any[] {
   const brandMap = new Map<string, any>();
   for (const c of connectors) {
-    // Normalize brand key: lowercase, remove common suffixes like -mcp, -server
     const brand = c.name.toLowerCase().replace(/[-_](mcp|server|connector)$/i, "").replace(/\s+/g, "-");
     const existing = brandMap.get(brand);
     if (!existing) {
       brandMap.set(brand, c);
     } else {
-      // Prefer official, then higher stars
-      if (c.is_official && !existing.is_official) {
-        brandMap.set(brand, c);
-      } else if (c.is_official === existing.is_official && (c.github_stars || 0) > (existing.github_stars || 0)) {
-        brandMap.set(brand, c);
-      }
+      const cScore = (c.is_official ? 1000 : 0) + (c.trust_score || 0) + (c.github_stars || 0) / 100;
+      const eScore = (existing.is_official ? 1000 : 0) + (existing.trust_score || 0) + (existing.github_stars || 0) / 100;
+      if (cScore > eScore) brandMap.set(brand, c);
     }
   }
   return Array.from(brandMap.values());
+}
+
+// Sort results by trust: official first, then trust_score, then stars
+function sortByTrust(items: any[]): any[] {
+  return items.sort((a, b) => {
+    // Official always first
+    if (a.is_official && !b.is_official) return -1;
+    if (!a.is_official && b.is_official) return 1;
+    // Then by trust_score
+    const ta = a.trust_score || 0;
+    const tb = b.trust_score || 0;
+    if (ta !== tb) return tb - ta;
+    // Then by stars
+    return (b.github_stars || 0) - (a.github_stars || 0);
+  });
 }
 
 // ─── CONNECTOR TOOLS ───
