@@ -201,13 +201,13 @@ function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt
   return warnings;
 }
 
-export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill", createdAt, isOfficial, creatorId }: TrustBadgeProps) => {
+export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill", createdAt, isOfficial, creatorId, isStale, isVerifiedPublisher }: TrustBadgeProps) => {
   const { i18n } = useTranslation();
   const isEs = i18n.language === "es";
   const badgeKey = getBadgeFromScore(trustScore);
   const config = BADGE_CONFIG[badgeKey];
   const Icon = config.icon;
-  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs, createdAt, isOfficial, creatorId) : [];
+  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs, createdAt, isOfficial, creatorId, isStale, isVerifiedPublisher) : [];
 
   const sizeClasses = {
     sm: "text-xs gap-1 px-1.5 py-0.5",
