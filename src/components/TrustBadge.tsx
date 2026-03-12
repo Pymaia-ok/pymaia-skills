@@ -33,11 +33,20 @@ function getBadgeFromScore(score: number): string {
   return "new";
 }
 
-function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt?: string, isOfficial?: boolean, creatorId?: string | null): Array<{ icon: any; text: string; color: string }> {
+function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt?: string, isOfficial?: boolean, creatorId?: string | null, isStale?: boolean, isVerifiedPublisher?: boolean): Array<{ icon: any; text: string; color: string }> {
   const warnings: Array<{ icon: any; text: string; color: string }> = [];
   
-  // ── PRD 7.3: Publisher no verificado ──
-  if (!isOfficial && !creatorId) {
+  // ── Stale item warning ──
+  if (isStale) {
+    warnings.push({
+      icon: CalendarClock,
+      text: isEs ? "No actualizado en más de 90 días" : "Not updated in over 90 days",
+      color: "text-amber-500",
+    });
+  }
+
+  // ── PRD 7.3: Publisher no verificado (skip if verified publisher) ──
+  if (!isOfficial && !creatorId && !isVerifiedPublisher) {
     warnings.push({
       icon: UserX,
       text: isEs ? "Publisher no verificado" : "Unverified publisher",
