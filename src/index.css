@@ -113,6 +113,9 @@
 }
 
 /* Blog prose styles */
+.prose h1 {
+  @apply text-2xl font-bold mt-10 mb-4 text-foreground;
+}
 .prose h2 {
   @apply text-2xl font-bold mt-10 mb-4 text-foreground;
 }
