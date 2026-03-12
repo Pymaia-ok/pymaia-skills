@@ -1,66 +1,107 @@
 
 
-## Estado Actual: alirezarezvani/claude-skills
 
-**Repo**: 4,400+ stars, **177 skills** across 9 domains, v2.1.2
-**En nuestra base**: Solo **13 skills** indexadas (todas apuntan a `github.com/alirezarezvani/claude-skills` sin path específico)
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-### Skills que ya tenemos (13):
-| Slug | Display Name |
-|------|-------------|
-| aws-solution-architect | Aws Solution Architect |
-| financial-analyst | Financial Analyst |
-| information-security-manager-iso27001 | Information Security Manager Iso27001 |
-| ms365-tenant-manager | Ms365 Tenant Manager |
-| quality-manager-qmr | Quality Manager Qmr |
-| sales-engineer | Sales Engineer |
-| senior-frontend | Senior Frontend |
-| senior-prompt-engineer | Senior Prompt Engineer |
-| senior-qa | Senior Qa |
-| social-media-analyzer | Social Media Analyzer |
-| tdd-guide | Tdd Guide |
-| tech-stack-evaluator | Tech Stack Evaluator |
-| ui-design-system | Ui Design System |
+### Estado: ~99% completado
 
-### Lo que nos falta (~164 skills)
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-El repo organiza 177 skills en 9 dominios:
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-| Dominio | Skills | Ejemplos que nos faltan |
-|---------|--------|------------------------|
-| Engineering Core | 24 | senior-architect, senior-backend, devops, secops, ai-ml-engineer |
-| Engineering POWERFUL | 25 | agent-designer, rag-architect, database-designer, mcp-builder, ci-cd-builder |
-| Product | 12 | product-manager, ux-researcher, landing-page-generator, saas-scaffolder |
-| Marketing | 43 | content-creator, seo-strategist, cro-optimizer, growth-hacker, demand-gen |
-| Project Management | 6 | scrum-master, jira-expert, confluence-expert |
-| Regulatory & QM | 12 | iso-13485, mdr-2017-745, fda-compliance, gdpr |
-| C-Level Advisory | 28 | ceo-advisor, cto-advisor, cfo-advisor, cmo-advisor |
-| Business & Growth | 4 | customer-success, revenue-ops, contracts-proposals |
-| Finance | 2 | saas-metrics-coach (ya tenemos financial-analyst) |
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-### Por qué nos faltan
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-Nuestro pipeline `sync-skills` descubre skills via GitHub Topics y búsquedas de código. Este repo es un **monorepo** con 177 subdirectorios, cada uno con su `SKILL.md`. La búsqueda de GitHub solo devuelve el repo padre, no cada subdirectorio. Por eso indexamos solo ~13 que coincidieron por nombre.
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-### Plan: Importación directa del monorepo
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-**Approach**: Crear una acción específica en `sync-skills` (o un nuevo edge function) que recorra la API de GitHub para listar los subdirectorios del monorepo, descargue cada `SKILL.md`, y haga upsert en la tabla `skills`.
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-**Archivo a modificar**: `supabase/functions/sync-skills/index.ts`
+### Tools del MCP v8.5.0 (37 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation)
+18. **check_compatibility** (Quick compatibility verdict)
+19. **get_setup_guide** (Step-by-step install guide)
+20. **import_skill_from_agent** (Publish SKILL.md from agents)
+21. **get_skill_content** (Read/fork raw SKILL.md) ← NEW v8.5.0
+22. **validate_skill** (Quality check without publishing) ← NEW v8.5.0
+23. **my_skills** (Authenticated user skill management) ← NEW v8.5.0
+24. **semantic_search** (AI-powered vector similarity search) ← NEW v8.5.0
+25. **get_trust_report** (Detailed security/trust breakdown) ← NEW v8.5.0
+26. **whats_new** (Recent catalog additions) ← NEW v8.5.0
 
-1. **Nueva source `github-monorepo`**: Recibe un owner/repo como parámetro, usa la GitHub Trees API (`GET /repos/{owner}/{repo}/git/trees/main?recursive=1`) para listar todos los archivos `SKILL.md`
-2. **Para cada SKILL.md encontrado**: Descarga el contenido raw, parsea el YAML frontmatter (name, description), y genera el slug basado en el nombre del directorio padre
-3. **Upsert en `skills`**: Con `github_url` apuntando al subdirectorio específico (ej: `https://github.com/alirezarezvani/claude-skills/tree/main/engineering/agent-designer`), `install_command` con el path correcto, y `source: 'github-monorepo'`
-4. **Ejecutar el batch en segmentos** de 20 skills por invocación (respetando el límite de 60s)
-5. **Deduplicación**: Usar el slug como key de upsert, salteando los 13 existentes si ya tienen datos enriquecidos
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-### Alcance técnico
-
-| Cambio | Detalle |
-|--------|---------|
-| `supabase/functions/sync-skills/index.ts` | Agregar source `github-monorepo` con lógica de tree traversal |
-| Invocar manualmente o via cron | `?source=github-monorepo&repo=alirezarezvani/claude-skills` |
-| Sin migración DB | Usa la tabla `skills` existente |
-
-Esto nos traería **~164 skills nuevas de alta calidad** (4.4K stars, Tessl-validated, con Python tools y references) de un solo golpe.
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)

@@ -936,6 +936,101 @@ async function fetchAwesomeLists(): Promise<ParsedSkill[]> {
   return skills;
 }
 
+// ─── SOURCE 15: GitHub Monorepo (Tree traversal) ───
+
+async function fetchGitHubMonorepo(repoFullName: string, batchOffset: number, batchSize: number): Promise<ParsedSkill[]> {
+  const token = Deno.env.get("GITHUB_TOKEN");
+  if (!token) { console.log("[github-monorepo] No GITHUB_TOKEN"); return []; }
+
+  console.log(`[github-monorepo] Traversing ${repoFullName}...`);
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) { console.error("[github-monorepo] Invalid repo format"); return []; }
+
+  // Get the full tree recursively
+  const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`, {
+    headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json", "User-Agent": "SkillStoreBot/1.0" },
+  });
+
+  if (!treeRes.ok) {
+    console.error(`[github-monorepo] Tree fetch failed: ${treeRes.status}`);
+    return [];
+  }
+
+  const treeData = await treeRes.json();
+  const allNodes = treeData?.tree || [];
+
+  // Find all SKILL.md files
+  const skillFiles = allNodes.filter((n: any) =>
+    n.type === "blob" && n.path.endsWith("SKILL.md") && !n.path.startsWith(".")
+  );
+  console.log(`[github-monorepo] Found ${skillFiles.length} SKILL.md files`);
+
+  // Apply batch window
+  const batch = skillFiles.slice(batchOffset, batchOffset + batchSize);
+  const skills: ParsedSkill[] = [];
+
+  for (const file of batch) {
+    try {
+      // Derive slug from parent directory name
+      const parts = file.path.split("/");
+      const dirName = parts.length >= 2 ? parts[parts.length - 2] : parts[0].replace(".md", "");
+      const slug = slugFromName(dirName);
+      const subPath = parts.slice(0, -1).join("/");
+
+      // Download raw content
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/${file.path}`;
+      const rawRes = await fetch(rawUrl, {
+        headers: { "User-Agent": "SkillStoreBot/1.0" },
+      });
+
+      let description = "";
+      let name = slug;
+
+      if (rawRes.ok) {
+        const content = await rawRes.text();
+        // Parse frontmatter or first heading
+        const titleMatch = content.match(/^#\s+(.+)$/m);
+        if (titleMatch) name = slugFromName(titleMatch[1]);
+
+        // Extract description from first paragraph after heading
+        const descMatch = content.match(/^#\s+.+\n+([^\n#][^\n]+)/m);
+        if (descMatch) description = descMatch[1].trim().slice(0, 300);
+
+        // Try YAML frontmatter
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const fm = fmMatch[1];
+          const fmName = fm.match(/name:\s*["']?(.+?)["']?\s*$/m);
+          const fmDesc = fm.match(/description:\s*["']?(.+?)["']?\s*$/m);
+          if (fmName) name = slugFromName(fmName[1]);
+          if (fmDesc) description = fmDesc[1].trim().slice(0, 300);
+        }
+      }
+
+      // Use directory name as slug (more reliable for monorepos)
+      skills.push({
+        name: slug,
+        owner,
+        repo: `${repo}/tree/main/${subPath}`,
+        installCount: 0,
+        stars: 0,
+        description,
+        source: "github-monorepo",
+      });
+
+      // Small delay to avoid rate limits
+      if (batch.indexOf(file) % 10 === 9) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (e) {
+      console.error(`[github-monorepo] Error processing ${file.path}:`, (e as Error).message);
+    }
+  }
+
+  console.log(`[github-monorepo] Processed ${skills.length} skills (offset=${batchOffset}, batchSize=${batchSize}, total=${skillFiles.length})`);
+  return skills;
+}
+
 // ─── UPSERT LOGIC ───
 
 async function upsertSkills(supabase: ReturnType<typeof createClient>, discovered: ParsedSkill[], insertOffset: number, maxInsert: number) {
@@ -1171,6 +1266,11 @@ Deno.serve(async (req) => {
       case "awesome-lists": discovered = await fetchAwesomeLists(); break;
       case "skillssh-categories": discovered = await fetchSkillsShCategories(); break;
       case "agentskill": discovered = await fetchAgentSkillSh(); break;
+      case "github-monorepo": {
+        const repoName = topic || "alirezarezvani/claude-skills";
+        discovered = await fetchGitHubMonorepo(repoName, insertOffset, batchSize);
+        break;
+      }
       case "github-popular": {
         const defaultQueries = [
           '"ai agent" stars:>500',
