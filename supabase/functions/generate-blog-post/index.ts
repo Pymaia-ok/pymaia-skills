@@ -223,8 +223,20 @@ Return your response using the generate_blog_post tool.`;
                 content_es: { type: "string", description: "Full article in Spanish, markdown format" },
                 meta_description_en: { type: "string", description: "English meta description, max 155 chars" },
                 meta_description_es: { type: "string", description: "Spanish meta description, max 155 chars" },
+                faq_items: {
+                  type: "array",
+                  description: "3-5 FAQ items extracted from the article content for Google FAQ rich snippets",
+                  items: {
+                    type: "object",
+                    properties: {
+                      question: { type: "string", description: "A common question the article answers" },
+                      answer: { type: "string", description: "Concise answer, 1-3 sentences" },
+                    },
+                    required: ["question", "answer"],
+                  },
+                },
               },
-              required: ["title_en", "title_es", "excerpt_en", "excerpt_es", "content_en", "content_es", "meta_description_en", "meta_description_es"],
+              required: ["title_en", "title_es", "excerpt_en", "excerpt_es", "content_en", "content_es", "meta_description_en", "meta_description_es", "faq_items"],
               additionalProperties: false,
             },
           },
