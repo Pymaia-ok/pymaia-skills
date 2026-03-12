@@ -2458,6 +2458,379 @@ mcp.tool("import_skill_from_agent", {
   },
 });
 
+// ─── NEW v8.5.0 TOOLS ───
+
+// ─── get_skill_content: Read raw SKILL.md ───
+mcp.tool("get_skill_content", {
+  description: "Get the raw SKILL.md content for a given skill slug. Use this to read, fork, or adapt existing skills. Returns the full markdown content that can be modified and re-imported via import_skill_from_agent.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slug: { type: "string", description: "The slug identifier of the skill" },
+    },
+    required: ["slug"],
+  },
+  handler: async (args: { slug: string }) => {
+    const apiUserId = currentApiKeyUserId;
+    let q = supabase.from("skills").select("display_name, slug, install_command, category, status, creator_id, is_public");
+    if (apiUserId) {
+      q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
+    } else {
+      q = q.eq("status", "approved").eq("is_public", true);
+    }
+    const { data: skill } = await q.eq("slug", args.slug).maybeSingle();
+
+    if (!skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found or not accessible.` }] };
+    if (!skill.install_command) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" has no SKILL.md content.` }] };
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${skill.install_command}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
+      }],
+    };
+  },
+});
+
+// ─── validate_skill: Quality check without publishing ───
+mcp.tool("validate_skill", {
+  description: "Validate a SKILL.md without publishing it. Returns quality score, parsed fields, and improvement suggestions. Use this before import_skill_from_agent to check quality. No authentication required.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_md: { type: "string", description: "Full content of the SKILL.md to validate" },
+    },
+    required: ["skill_md"],
+  },
+  handler: async (args: { skill_md: string }) => {
+    if (!args.skill_md || args.skill_md.length < 50) {
+      return { content: [{ type: "text" as const, text: "❌ SKILL.md content is too short (minimum 50 characters)." }] };
+    }
+
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ action: "import_skill", skill_md: args.skill_md }),
+      });
+
+      if (!resp.ok) throw new Error(`Validation failed: ${resp.status}`);
+      const data = await resp.json();
+
+      if (!data.skill) throw new Error("Could not parse skill");
+
+      const score = data.quality?.score || "N/A";
+      const feedback = data.quality?.feedback || "No feedback available";
+      const improvements = data.quality?.improvements || [];
+
+      const sections = [
+        `# Skill Validation Report\n`,
+        `## Quality Score: ${score}/10\n`,
+        `## Parsed Fields`,
+        `- **Name:** ${data.skill.name || "Unknown"}`,
+        `- **Category:** ${data.skill.category || "general"}`,
+        `- **Triggers:** ${(data.skill.triggers || []).join(", ") || "none"}`,
+        `- **Target Roles:** ${(data.skill.target_roles || []).join(", ") || "all"}`,
+        `- **Industry:** ${(data.skill.industry || []).join(", ") || "general"}`,
+        `\n## Feedback\n${feedback}`,
+      ];
+
+      if (improvements.length) {
+        sections.push(`\n## Suggestions for Improvement\n${improvements.map((s: string) => `- ${s}`).join("\n")}`);
+      }
+
+      sections.push(`\n---\n✅ Ready to publish? Use \`import_skill_from_agent\` with your API key to submit this skill.`);
+
+      return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+    } catch (e: any) {
+      return { content: [{ type: "text" as const, text: `❌ Validation failed: ${e.message}` }] };
+    }
+  },
+});
+
+// ─── my_skills: List authenticated user's skills ───
+mcp.tool("my_skills", {
+  description: "List all skills owned by the authenticated user (pending, approved, rejected). Shows quality score, status, install count, and eval history. Requires API key authentication (pymsk_...).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      status_filter: { type: "string", description: "Optional filter: 'pending', 'approved', 'rejected', or 'all' (default: all)" },
+    },
+  },
+  handler: async (args: { status_filter?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to list your skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
+    }
+
+    let q = supabase
+      .from("skills")
+      .select("display_name, slug, status, category, install_count, avg_rating, quality_score, created_at, is_public")
+      .eq("creator_id", currentApiKeyUserId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (args.status_filter && args.status_filter !== "all") {
+      q = q.eq("status", args.status_filter);
+    }
+
+    const { data: skills, error } = await q;
+    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    if (!skills?.length) return { content: [{ type: "text" as const, text: "You have no skills yet. Create one with `generate_custom_skill` or import one with `import_skill_from_agent`." }] };
+
+    // Fetch eval runs for these skills
+    const slugs = skills.map((s: any) => s.slug);
+    const { data: evalRuns } = await supabase
+      .from("skill_eval_runs")
+      .select("skill_slug, pass_rate, avg_score, iteration")
+      .in("skill_slug", slugs)
+      .order("iteration", { ascending: false });
+
+    const evalMap: Record<string, any> = {};
+    for (const run of evalRuns || []) {
+      if (run.skill_slug && !evalMap[run.skill_slug]) {
+        evalMap[run.skill_slug] = run;
+      }
+    }
+
+    const statusIcon: Record<string, string> = { approved: "✅", pending: "⏳", rejected: "❌" };
+
+    const text = skills.map((s: any) => {
+      const eval_ = evalMap[s.slug];
+      const evalText = eval_ ? ` · Eval: ${Number(eval_.pass_rate).toFixed(0)}% pass, ${Number(eval_.avg_score).toFixed(1)}/10 (iter ${eval_.iteration})` : "";
+      const qualityText = s.quality_score ? ` · Quality: ${Number(s.quality_score).toFixed(1)}/10` : "";
+      const visibility = s.is_public ? "🌐 Public" : "🔒 Private";
+      return `${statusIcon[s.status] || "❓"} **${s.display_name}** (\`${s.slug}\`) [${s.category}]\n   ${s.status.toUpperCase()} · ${visibility} · ${s.install_count} installs${qualityText}${evalText}`;
+    }).join("\n\n");
+
+    return { content: [{ type: "text" as const, text: `# My Skills (${skills.length})\n\n${text}` }] };
+  },
+});
+
+// ─── semantic_search: AI-powered meaning-based search ───
+mcp.tool("semantic_search", {
+  description: "Search skills using AI-powered semantic similarity. Better than keyword search for natural language queries like 'help me write better pull request descriptions' or 'automate client onboarding emails'. Falls back to keyword search if embeddings are unavailable.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Natural language description of what you're looking for" },
+      category: { type: "string", description: "Optional category filter" },
+      limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
+    },
+    required: ["query"],
+  },
+  handler: async (args: { query: string; category?: string; limit?: number }) => {
+    const lim = Math.min(args.limit || 5, 10);
+
+    try {
+      // Call semantic-search edge function
+      const resp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ query: args.query, category: args.category }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.data?.length) {
+          const results = data.data.slice(0, lim);
+          const text = results
+            .map((s: any, i: number) => {
+              const sim = s.similarity_score ? ` (${(s.similarity_score * 100).toFixed(0)}% match)` : "";
+              return `${i + 1}. **${s.display_name}** [${s.category}]${sim}\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``;
+            })
+            .join("\n\n");
+          return { content: [{ type: "text" as const, text: `# Semantic Search: "${args.query}"\n\n${text}` }] };
+        }
+      }
+    } catch (e) {
+      console.error("Semantic search failed, falling back to keyword:", e);
+    }
+
+    // Fallback to keyword search via RPC
+    const { data: results } = await supabase.rpc("search_skills", {
+      search_query: args.query,
+      filter_category: args.category || null,
+      page_size: lim,
+    });
+
+    if (!results?.length) {
+      return { content: [{ type: "text" as const, text: `No results found for "${args.query}". Try different keywords or use solve_goal for goal-oriented recommendations.` }] };
+    }
+
+    const text = results.map((s: any, i: number) => {
+      return `${i + 1}. **${s.display_name}** [${s.category}]\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``;
+    }).join("\n\n");
+
+    return { content: [{ type: "text" as const, text: `# Search: "${args.query}" (keyword fallback)\n\n${text}` }] };
+  },
+});
+
+// ─── get_trust_report: Detailed security breakdown ───
+mcp.tool("get_trust_report", {
+  description: "Get a detailed trust and security report for a skill, connector, or plugin. Shows trust score breakdown, security scan results, VirusTotal status, GitHub activity, and review sentiment. Use to make informed security recommendations.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      slug: { type: "string", description: "The slug identifier of the item" },
+      type: { type: "string", description: "Item type: 'skill', 'connector', or 'plugin' (default: auto-detect)" },
+    },
+    required: ["slug"],
+  },
+  handler: async (args: { slug: string; type?: string }) => {
+    // Auto-detect type by searching all tables in parallel
+    const [skillRes, connectorRes, pluginRes] = await Promise.all([
+      (!args.type || args.type === "skill") ? supabase.from("skills").select("display_name, slug, trust_score, security_status, security_scan_result, security_scanned_at, security_notes, github_url, github_stars, last_commit_at, avg_rating, review_count, install_count, created_at").eq("slug", args.slug).eq("status", "approved").maybeSingle() : Promise.resolve({ data: null }),
+      (!args.type || args.type === "connector") ? supabase.from("mcp_servers").select("name, slug, trust_score, security_status, security_scan_result, security_scanned_at, security_notes, github_url, github_stars, last_commit_at, install_count, created_at, is_official").eq("slug", args.slug).eq("status", "approved").maybeSingle() : Promise.resolve({ data: null }),
+      (!args.type || args.type === "plugin") ? supabase.from("plugins").select("name, slug, trust_score, security_status, security_scan_result, security_scanned_at, security_notes, github_url, github_stars, last_commit_at, avg_rating, review_count, install_count, created_at, is_anthropic_verified, is_official").eq("slug", args.slug).eq("status", "approved").maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+
+    const item = skillRes.data || connectorRes.data || pluginRes.data;
+    const itemType = skillRes.data ? "Skill" : connectorRes.data ? "Connector" : pluginRes.data ? "Plugin" : null;
+
+    if (!item || !itemType) {
+      return { content: [{ type: "text" as const, text: `"${args.slug}" not found. Check the slug and try again.` }] };
+    }
+
+    const name = (item as any).display_name || (item as any).name;
+    const trustScore = item.trust_score || 0;
+    const trustBadge = trustScore >= 70 ? "🟢 High Trust" : trustScore >= 40 ? "🟡 Moderate" : "⚪ Low/Unscored";
+
+    const sections = [
+      `# Trust Report: ${name}\n`,
+      `**Type:** ${itemType} · **Slug:** \`${item.slug}\`\n`,
+      `## Trust Score: ${trustScore}/100 ${trustBadge}\n`,
+    ];
+
+    // Security status
+    const secIcon: Record<string, string> = { verified: "✅", clean: "✅", suspicious: "⚠️", malicious: "🚨", unverified: "❓" };
+    sections.push(`## Security\n- **Status:** ${secIcon[item.security_status] || "❓"} ${item.security_status.toUpperCase()}`);
+    if (item.security_scanned_at) sections.push(`- **Last Scan:** ${new Date(item.security_scanned_at).toLocaleDateString("en")}`);
+    if (item.security_notes) sections.push(`- **Notes:** ${item.security_notes}`);
+
+    // Scan result breakdown
+    if (item.security_scan_result) {
+      const scan = item.security_scan_result as any;
+      const scanParts: string[] = [];
+      if (scan.verdict) scanParts.push(`Verdict: ${scan.verdict}`);
+      if (scan.risk_level) scanParts.push(`Risk: ${scan.risk_level}`);
+      if (scan.issues?.length) scanParts.push(`Issues: ${scan.issues.length} found`);
+      if (scan.vt_status) scanParts.push(`VirusTotal: ${scan.vt_status}`);
+      if (scanParts.length) sections.push(`- **Scan Details:** ${scanParts.join(" · ")}`);
+    }
+
+    // GitHub activity
+    sections.push(`\n## GitHub Activity`);
+    if (item.github_url) sections.push(`- **Repo:** ${item.github_url}`);
+    sections.push(`- **Stars:** ${(item.github_stars || 0).toLocaleString()}`);
+    if (item.last_commit_at) {
+      const daysSince = Math.floor((Date.now() - new Date(item.last_commit_at).getTime()) / 86400000);
+      sections.push(`- **Last Commit:** ${daysSince} days ago${daysSince > 180 ? " ⚠️ Possibly unmaintained" : ""}`);
+    }
+
+    // Community
+    sections.push(`\n## Community`);
+    sections.push(`- **Installs:** ${item.install_count.toLocaleString()}`);
+    if ("avg_rating" in item) sections.push(`- **Rating:** ⭐ ${Number((item as any).avg_rating).toFixed(1)} (${(item as any).review_count} reviews)`);
+    if ("is_official" in item && (item as any).is_official) sections.push(`- ✅ **Official**`);
+    if ("is_anthropic_verified" in item && (item as any).is_anthropic_verified) sections.push(`- ✅ **Anthropic Verified**`);
+
+    // Recommendation
+    sections.push(`\n## Recommendation`);
+    if (trustScore >= 70) {
+      sections.push("✅ This tool has a strong trust profile. Safe to recommend.");
+    } else if (trustScore >= 40) {
+      sections.push("🟡 Moderate trust. Review security notes before recommending for sensitive workflows.");
+    } else {
+      sections.push("⚪ Low or unscored trust. Recommend caution and manual review before use in production.");
+    }
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+// ─── whats_new: Recent catalog changes ───
+mcp.tool("whats_new", {
+  description: "See what's been recently added or updated in the Pymaia catalog. Returns new skills, connectors, and plugins from the last N days. Useful for proactively suggesting fresh tools to users.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      days: { type: "number", description: "Look back period in days (default: 7, max: 30)" },
+      type: { type: "string", description: "Filter by type: 'skills', 'connectors', 'plugins', or 'all' (default: all)" },
+      limit: { type: "number", description: "Max items per type (default: 5, max: 10)" },
+    },
+  },
+  handler: async (args: { days?: number; type?: string; limit?: number }) => {
+    const days = Math.min(args.days || 7, 30);
+    const lim = Math.min(args.limit || 5, 10);
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    const filterType = args.type || "all";
+
+    const sections: string[] = [`# What's New (last ${days} days)\n`];
+
+    const promises: Promise<any>[] = [];
+
+    if (filterType === "all" || filterType === "skills") {
+      promises.push(
+        supabase.from("skills")
+          .select("display_name, slug, tagline, category, install_command, install_count, created_at")
+          .eq("status", "approved").eq("is_public", true)
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(lim)
+          .then(r => ({ type: "skills", data: r.data || [] }))
+      );
+    }
+    if (filterType === "all" || filterType === "connectors") {
+      promises.push(
+        supabase.from("mcp_servers")
+          .select("name, slug, description, category, install_command, github_stars, created_at")
+          .eq("status", "approved")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(lim)
+          .then(r => ({ type: "connectors", data: r.data || [] }))
+      );
+    }
+    if (filterType === "all" || filterType === "plugins") {
+      promises.push(
+        supabase.from("plugins")
+          .select("name, slug, description, category, platform, install_count, created_at")
+          .eq("status", "approved")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(lim)
+          .then(r => ({ type: "plugins", data: r.data || [] }))
+      );
+    }
+
+    const results = await Promise.all(promises);
+    let totalNew = 0;
+
+    for (const { type, data } of results) {
+      if (!data.length) continue;
+      totalNew += data.length;
+      const icon = type === "skills" ? "🧠" : type === "connectors" ? "🔌" : "📦";
+      sections.push(`## ${icon} New ${type.charAt(0).toUpperCase() + type.slice(1)} (${data.length})\n`);
+
+      for (const item of data) {
+        const name = item.display_name || item.name;
+        const desc = item.tagline || item.description || "";
+        const date = new Date(item.created_at).toLocaleDateString("en");
+        const install = item.install_command ? `\n   \`${item.install_command}\`` : "";
+        sections.push(`- **${name}** [${item.category}] — ${desc}\n   📅 ${date}${install}`);
+      }
+    }
+
+    if (totalNew === 0) {
+      sections.push("No new items in this period. Try increasing the `days` parameter.");
+    } else {
+      sections.push(`\n---\n**Total:** ${totalNew} new items in the last ${days} days.`);
+    }
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
 // ─── RATE LIMITER (tiered: 120/min authenticated, 30/min anonymous) ───
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
