@@ -1401,6 +1401,59 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_eval_runs: {
+        Row: {
+          avg_score: number
+          created_at: string
+          id: string
+          iteration: number
+          model_version: string | null
+          pass_rate: number
+          run_at: string
+          skill_draft_id: string | null
+          skill_md_snapshot: string | null
+          skill_slug: string | null
+          test_cases_json: Json
+          token_usage: number | null
+        }
+        Insert: {
+          avg_score?: number
+          created_at?: string
+          id?: string
+          iteration?: number
+          model_version?: string | null
+          pass_rate?: number
+          run_at?: string
+          skill_draft_id?: string | null
+          skill_md_snapshot?: string | null
+          skill_slug?: string | null
+          test_cases_json?: Json
+          token_usage?: number | null
+        }
+        Update: {
+          avg_score?: number
+          created_at?: string
+          id?: string
+          iteration?: number
+          model_version?: string | null
+          pass_rate?: number
+          run_at?: string
+          skill_draft_id?: string | null
+          skill_md_snapshot?: string | null
+          skill_slug?: string | null
+          test_cases_json?: Json
+          token_usage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_eval_runs_skill_draft_id_fkey"
+            columns: ["skill_draft_id"]
+            isOneToOne: false
+            referencedRelation: "skill_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skills: {
         Row: {
           approved_content_hash: string | null
