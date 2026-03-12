@@ -59,6 +59,7 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
             <Link to={creatorProfile.username ? `/u/${creatorProfile.username}` : "#"} className="flex items-center gap-2 text-sm hover:text-foreground transition-colors text-muted-foreground">
               {creatorProfile.avatar_url ? <img src={creatorProfile.avatar_url} alt="" className="w-5 h-5 rounded-full" /> : <User className="w-4 h-4" />}
               <span>{creatorProfile.display_name || creatorProfile.username || t("detail.author")}</span>
+              {creatorProfile.is_verified_publisher && <span className="text-primary text-xs">✅</span>}
             </Link>
           )}
           {skill.github_url && (

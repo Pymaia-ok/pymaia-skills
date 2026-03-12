@@ -307,7 +307,7 @@ const Admin = () => {
     { name: "Detectar repos muertos", func: "refresh-catalog-data", freq: "Semanal dom 3:00 UTC" },
     { name: "Scrape docs conectores", func: "refresh-catalog-data", freq: "Semanal mié 7:00 UTC" },
     { name: "Generar install commands", func: "generate-install-commands", freq: "Cada 3 min" },
-  ];
+    { name: "Weekly digest", func: "weekly-digest", freq: "Lunes 10:00 UTC" },
 
   return (
     <div className="min-h-screen bg-background">

@@ -102,6 +102,8 @@ const Index = () => {
         <TwoPathsSection />
         {/* 12. Skill Creator */}
         <SkillCreatorSection />
+        {/* 12b. Creator Leaderboard */}
+        <CreatorLeaderboard />
         {/* 13. Blog / Articles */}
         <BlogSection />
         {/* 14. MCP banner */}
