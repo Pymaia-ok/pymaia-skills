@@ -7,6 +7,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Clock, Shield, Zap, Server, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const CATEGORIES = [
@@ -27,7 +28,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 const PAGE_SIZE = 12;
 
 export default function Blog() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isEs = i18n.language?.startsWith("es");
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(0);
@@ -45,7 +46,7 @@ export default function Blog() {
     queryFn: async () => {
       let query = (supabase as any)
         .from("blog_posts")
-        .select("slug, title, title_es, excerpt, excerpt_es, category, reading_time_minutes, created_at, keywords, geo_target", { count: "estimated" })
+        .select("slug, title, title_es, excerpt, excerpt_es, category, reading_time_minutes, created_at, keywords, geo_target, cover_image_url", { count: "estimated" })
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -92,7 +93,7 @@ export default function Blog() {
         {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1,2,3].map(i => (
-              <Card key={i} className="h-64 animate-pulse bg-muted" />
+              <Card key={i} className="h-80 animate-pulse bg-muted" />
             ))}
           </div>
         ) : posts.length === 0 ? (
@@ -104,8 +105,18 @@ export default function Blog() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post: any) => (
                 <Link key={post.slug} to={`/blog/${post.slug}`}>
-                  <Card className="h-full hover:shadow-md transition-shadow border-border/50 group">
-                    <CardContent className="p-6 flex flex-col h-full">
+                  <Card className="h-full hover:shadow-md transition-shadow border-border/50 group overflow-hidden">
+                    {post.cover_image_url && (
+                      <AspectRatio ratio={16 / 9}>
+                        <img
+                          src={post.cover_image_url}
+                          alt={isEs ? post.title_es || post.title : post.title}
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      </AspectRatio>
+                    )}
+                    <CardContent className="p-5 flex flex-col">
                       <div className="flex items-center gap-2 mb-3">
                         <Badge variant="secondary" className="gap-1 text-xs">
                           {categoryIcons[post.category]}
@@ -115,18 +126,18 @@ export default function Blog() {
                           <Clock className="h-3 w-3" /> {post.reading_time_minutes} min
                         </span>
                       </div>
-                      <h2 className="text-lg font-semibold text-foreground group-hover:text-primary/80 transition-colors mb-3 line-clamp-2">
+                      <h2 className="text-lg font-semibold text-foreground group-hover:text-primary/80 transition-colors mb-2 line-clamp-2">
                         {isEs ? post.title_es || post.title : post.title}
                       </h2>
-                      <p className="text-sm text-muted-foreground line-clamp-3 flex-1">
+                      <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
                         {isEs ? post.excerpt_es || post.excerpt : post.excerpt}
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-1">
-                        {(post.keywords || []).slice(0, 3).map((kw: string) => (
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {(post.keywords || []).slice(0, 2).map((kw: string) => (
                           <span key={kw} className="text-xs text-muted-foreground/70 bg-muted px-2 py-0.5 rounded">{kw}</span>
                         ))}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-3">
+                      <p className="text-xs text-muted-foreground mt-2">
                         {new Date(post.created_at).toLocaleDateString(isEs ? "es-ES" : "en-US", {
                           year: "numeric", month: "short", day: "numeric",
                         })}
