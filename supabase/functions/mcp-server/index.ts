@@ -481,25 +481,36 @@ mcp.tool("compare_skills", {
   },
 });
 
-// Deduplicate connectors by brand: prefer is_official, then curated source, then highest stars
+// Deduplicate connectors by brand: prefer is_official, then trust_score, then stars
 function deduplicateConnectors(connectors: any[]): any[] {
   const brandMap = new Map<string, any>();
   for (const c of connectors) {
-    // Normalize brand key: lowercase, remove common suffixes like -mcp, -server
     const brand = c.name.toLowerCase().replace(/[-_](mcp|server|connector)$/i, "").replace(/\s+/g, "-");
     const existing = brandMap.get(brand);
     if (!existing) {
       brandMap.set(brand, c);
     } else {
-      // Prefer official, then higher stars
-      if (c.is_official && !existing.is_official) {
-        brandMap.set(brand, c);
-      } else if (c.is_official === existing.is_official && (c.github_stars || 0) > (existing.github_stars || 0)) {
-        brandMap.set(brand, c);
-      }
+      const cScore = (c.is_official ? 1000 : 0) + (c.trust_score || 0) + (c.github_stars || 0) / 100;
+      const eScore = (existing.is_official ? 1000 : 0) + (existing.trust_score || 0) + (existing.github_stars || 0) / 100;
+      if (cScore > eScore) brandMap.set(brand, c);
     }
   }
   return Array.from(brandMap.values());
+}
+
+// Sort results by trust: official first, then trust_score, then stars
+function sortByTrust(items: any[]): any[] {
+  return items.sort((a, b) => {
+    // Official always first
+    if (a.is_official && !b.is_official) return -1;
+    if (!a.is_official && b.is_official) return 1;
+    // Then by trust_score
+    const ta = a.trust_score || 0;
+    const tb = b.trust_score || 0;
+    if (ta !== tb) return tb - ta;
+    // Then by stars
+    return (b.github_stars || 0) - (a.github_stars || 0);
+  });
 }
 
 // ─── CONNECTOR TOOLS ───
@@ -518,7 +529,7 @@ mcp.tool("search_connectors", {
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
-    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url, homepage, docs_url";
+    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url, homepage, docs_url, trust_score";
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
@@ -528,8 +539,9 @@ mcp.tool("search_connectors", {
       .select(selectCols)
       .eq("status", "approved")
       .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%,description_es.ilike.%${queryLower}%`)
+      .order("is_official", { ascending: false })
       .order("github_stars", { ascending: false })
-      .limit(lim);
+      .limit(lim * 2);
     if (args.category) exactQ = exactQ.eq("category", args.category);
 
     const [exactRes, wordSplitRes] = await Promise.all([
@@ -548,7 +560,7 @@ mcp.tool("search_connectors", {
         merged.push(item);
       }
     }
-    let results = deduplicateConnectors(merged).slice(0, lim);
+    let results = sortByTrust(deduplicateConnectors(merged)).slice(0, lim);
     let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
     console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
@@ -787,11 +799,11 @@ mcp.tool("explore_directory", {
 
     const [skills, connectorsRaw, plugins] = await Promise.all([
       searchTable("skills", "display_name, tagline, slug, category, install_count, install_command", "install_count"),
-      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official, install_command, homepage", "github_stars"),
+      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official, install_command, homepage, trust_score", "github_stars"),
       searchTable("plugins", "name, description, slug, category, platform, install_count, is_official, homepage", "install_count"),
     ]);
 
-    const connectors = deduplicateConnectors(connectorsRaw);
+    const connectors = sortByTrust(deduplicateConnectors(connectorsRaw));
 
     const sections: string[] = [];
 
@@ -851,6 +863,8 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
         .eq("status", "approved")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
+        .order("is_official", { ascending: false })
+        .order("trust_score", { ascending: false })
         .order("github_stars", { ascending: false }).limit(limit),
       supabase.from("plugins")
         .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified, trust_score, security_status, github_stars")
@@ -868,7 +882,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
   
   const seenSlugs = new Set<string>();
   results.skills = results.skills.filter(s => { if (seenSlugs.has(s.slug)) return false; seenSlugs.add(s.slug); return true; });
-  results.connectors = deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; }));
+  results.connectors = sortByTrust(deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; })));
   results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
 
   console.log(JSON.stringify({ fn: "crossCatalogSearch", totalKeywords: uniqueExpanded.length, originalKeywords: keywords.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
