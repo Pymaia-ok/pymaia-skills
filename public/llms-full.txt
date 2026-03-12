@@ -1,6 +1,6 @@
 # Pymaia Skills — Full Documentation
 
-> The #1 skill directory for Claude Code. 35,000+ professional skills. AI Solutions Architect with 28 tools. Install any skill in 2 minutes.
+> The #1 skill directory for Claude Code. 38,000+ professional skills. AI Solutions Architect with 37 tools. Install any skill in 2 minutes.
 
 ## Overview
 
@@ -12,10 +12,10 @@ The MCP server includes an **AI Solutions Architect** (`solve_goal`) that analyz
 
 ## Key Numbers
 
-- 35,000+ skills available
+- 38,000+ skills available
 - 19 categories
 - 100+ MCP connectors
-- 28 MCP tools (AI Solutions Architect)
+- 37 MCP tools (AI Solutions Architect)
 - 2 min average install time
 - Community reviews and ratings
 
@@ -132,7 +132,7 @@ Benefits of authenticated access:
 - Higher rate limit: 120 requests/min (vs 60 for anonymous)
 - API key prefix: `pymsk_`
 
-### Available Tools (28)
+### Available Tools (37)
 
 > **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
@@ -287,6 +287,54 @@ Agent-to-Agent protocol for inter-agent communication. Allows other AI agents to
 - Parameters: `action` ("capabilities" | "search" | "recommend" | "catalog_stats"), `payload` (object)
 - Returns: Structured JSON response for agent consumption
 
+#### Skills 2.0 — Creation & Management (6 tools)
+
+#### 29. get_skill_content
+Read/fork raw SKILL.md content from any skill in the catalog. Enables agents to inspect, adapt, or build upon existing skills.
+- Parameters: `slug` (string, required)
+- Returns: Raw SKILL.md content with frontmatter, decision tree, workflow, and metadata
+
+#### 30. validate_skill
+Quality check a SKILL.md before publishing. Returns quality score, parsed fields, and improvement suggestions without inserting into the catalog.
+- Parameters: `skill_md_content` (string, required)
+- Returns: Quality score (0-100), parsed fields (name, description, compatibility, dependencies), strengths, and improvement suggestions
+
+#### 31. my_skills
+List all skills owned by the authenticated user (requires API key). Includes status (pending, approved, rejected), quality score, install count, and evaluation history.
+- Parameters: `status` ("all" | "pending" | "approved" | "rejected", default "all"), `limit` (number)
+- Returns: Array of user's skills with full metadata and eval runs
+
+#### 32. semantic_search
+AI-powered vector similarity search for natural language queries. Uses embeddings to find skills by meaning, not just keywords.
+- Parameters: `query` (string, required), `category` (string, optional), `limit` (number, default 10)
+- Returns: Ranked skills with similarity scores, descriptions, and install commands
+- Example: "help me write better pull request descriptions" finds relevant skills even without keyword matches
+
+#### 33. get_trust_report
+Detailed security/trust breakdown for any skill, connector, or plugin. Returns comprehensive trust analysis.
+- Parameters: `slug` (string, required)
+- Returns: Trust score breakdown, security scan result (secrets, prompt injection, typosquatting, hidden content), VirusTotal status, GitHub activity (stars, last commit), publisher verification, dependency audit status
+
+#### 34. whats_new
+Recent catalog additions — skills, connectors, and plugins added or updated in the last N days.
+- Parameters: `days` (number, default 7), `limit` (number, default 10)
+- Returns: Recently added items with type, date added, description, and trust score
+
+#### 35. check_compatibility
+Quick compatibility check for 2-4 tools. Returns verdict (compatible, conflict, redundant) with explanation.
+- Parameters: `slugs` (string[], required — 2 to 4 slugs)
+- Returns: Compatibility status, reason, data flow description
+
+#### 36. get_setup_guide
+Step-by-step setup guide with ordered install commands, credentials needed, and verification steps.
+- Parameters: `slugs` (string[], required)
+- Returns: Ordered installation steps, credential requirements, verification commands, estimated total time
+
+#### 37. import_skill_from_agent
+Publish a SKILL.md created by an agent to the Pymaia catalog. Requires authentication. Skill enters pending review status.
+- Parameters: `skill_md_content` (string, required), `name` (string, required), `is_public` (boolean, default true)
+- Returns: Success confirmation, skill slug, and review status
+
 ### Example Conversations
 - "I need to send outbound emails via Gmail" → Claude uses `solve_goal` and returns Option A (email-mcp with SMTP) and Option B (Gmail API connector with OAuth2), with trust scores and install commands
 - "I need to prepare 10 campaign briefs by tomorrow" → Claude uses `solve_goal` to recommend Brief Generator + Campaign Planner with compatibility analysis
@@ -294,6 +342,10 @@ Agent-to-Agent protocol for inter-agent communication. Allows other AI agents to
 - "What skills are marketers using most?" → Claude uses `get_role_kit` with role="marketer"
 - "I want to automate my code reviews" → Claude uses `solve_goal` with two options and install steps
 - "Help me create a financial model" → Claude uses `solve_goal` to recommend Finance modeling skills with trust scores
+- "Fork the pull request reviewer skill" → Claude uses `get_skill_content` to read the raw SKILL.md, then helps adapt it
+- "Check if this custom skill is high quality" → Claude uses `validate_skill` to score it before publishing
+- "What was added to Pymaia this week?" → Claude uses `whats_new` to show recent additions
+- "How secure is the Gmail connector?" → Claude uses `get_trust_report` for detailed security breakdown
 
 ## MCP Connectors Directory
 

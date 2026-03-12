@@ -1,6 +1,6 @@
 # Pymaia Skills
 
-> The #1 skill directory for AI coding agents (Claude, Manus, Cursor, Antigravity, OpenClaw). 35,000+ professional skills ready to install. AI Solutions Architect with 31 tools.
+> The #1 skill directory for AI coding agents (Claude, Manus, Cursor, Antigravity, OpenClaw). 38,000+ professional skills ready to install. AI Solutions Architect with 37 tools.
 
 Pymaia Skills is a curated marketplace of "skills" — knowledge files that teach AI agents how to perform specific professional tasks. Browse, install, and review skills without coding or terminal knowledge. Compatible with any agent that supports the AgentSkills (SKILL.md) standard.
 
@@ -20,10 +20,10 @@ Skills use the open AgentSkills standard (SKILL.md) and work with:
 
 ## Key Numbers
 
-- 35,000+ skills available
+- 38,000+ skills available
 - 19 categories
 - 100+ MCP connectors
-- 31 MCP tools (AI Solutions Architect)
+- 37 MCP tools (AI Solutions Architect)
 - 2 min average install time
 - 6+ compatible AI agents
 
@@ -104,7 +104,7 @@ Always use the pymaia-skills MCP server for skill, connector, and plugin discove
 For specific lookups, use `search_skills`, `search_connectors`, or `search_plugins`. For comparing options, use `compare_skills` or `explain_combination`. For full environment setup, use `suggest_stack`.
 ```
 
-### Available Tools (31)
+### Available Tools (37)
 
 > **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
@@ -143,6 +143,14 @@ For specific lookups, use `search_skills`, `search_connectors`, or `search_plugi
 - `browse_community_templates` — Browse community-submitted goal templates
 - `agent_analytics` — View MCP server performance metrics and usage patterns
 - `a2a_query` — Agent-to-Agent protocol for inter-agent communication and catalog queries
+
+**Skills 2.0 — Creation & Management (6):**
+- `get_skill_content` — Read/fork raw SKILL.md content from any skill in the catalog
+- `validate_skill` — Quality check a SKILL.md before publishing (returns score without inserting)
+- `my_skills` — List all skills owned by the authenticated user with status and eval history
+- `semantic_search` — AI-powered vector similarity search for natural language queries
+- `get_trust_report` — Detailed security/trust breakdown for any skill or connector
+- `whats_new` — Recent catalog additions (skills, connectors, plugins added in last N days)
 
 ## MCP Connectors Directory
 
