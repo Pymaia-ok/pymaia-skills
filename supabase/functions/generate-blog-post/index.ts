@@ -271,7 +271,27 @@ Return your response using the generate_blog_post tool.`;
     // Generate cover image
     let coverImageUrl: string | null = null;
     try {
-      const imagePrompt = `Blog cover image: ${article.title_en}. Professional, modern, tech-themed illustration. No text overlays.`;
+      // Category-aware, varied, realistic image prompts
+      const stylePool = [
+        "Clean flat-lay photograph, top-down view, minimal props on a light desk",
+        "Realistic photograph of a professional workspace, natural lighting, shallow depth of field",
+        "Editorial-style photograph, candid business setting, warm tones",
+        "Minimalist product photography style, clean background, soft shadows",
+        "Photojournalistic style, real people in an office environment, natural colors",
+        "Bird's-eye view photograph of organized desk items, muted color palette",
+        "Lifestyle photograph, cozy workspace with laptop and coffee, golden hour light",
+        "Corporate photography style, modern open office, natural daylight",
+      ];
+      const categoryHints: Record<string, string> = {
+        productivity: "showing real tools, notebooks, screens with charts, organized workspace",
+        agents: "showing a person interacting with a laptop or phone, conversational UI on screen",
+        industry: "showing professionals in their work environment, real-world business context",
+        security: "showing a lock, shield icon, or secure workspace, calm and trustworthy mood",
+        mcp: "showing connected devices, cables, dashboard screens, integration concept",
+      };
+      const hint = categoryHints[topic.category] || "showing a modern professional workspace";
+      const style = stylePool[Math.floor(Math.random() * stylePool.length)];
+      const imagePrompt = `${style}, ${hint}. Topic: ${article.title_en}. Photorealistic, no text overlays, no futuristic neon, no sci-fi elements. Warm natural colors.`;
       const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
