@@ -741,6 +741,7 @@ export type Database = {
           install_command: string
           install_count: number
           is_official: boolean
+          is_stale: boolean | null
           last_commit_at: string | null
           name: string
           readme_raw: string | null
@@ -775,6 +776,7 @@ export type Database = {
           install_command?: string
           install_count?: number
           is_official?: boolean
+          is_stale?: boolean | null
           last_commit_at?: string | null
           name: string
           readme_raw?: string | null
@@ -809,6 +811,7 @@ export type Database = {
           install_command?: string
           install_count?: number
           is_official?: boolean
+          is_stale?: boolean | null
           last_commit_at?: string | null
           name?: string
           readme_raw?: string | null
@@ -912,6 +915,7 @@ export type Database = {
           install_count: number
           is_anthropic_verified: boolean
           is_official: boolean
+          is_stale: boolean | null
           last_commit_at: string | null
           name: string
           name_es: string | null
@@ -947,6 +951,7 @@ export type Database = {
           install_count?: number
           is_anthropic_verified?: boolean
           is_official?: boolean
+          is_stale?: boolean | null
           last_commit_at?: string | null
           name: string
           name_es?: string | null
@@ -982,6 +987,7 @@ export type Database = {
           install_count?: number
           is_anthropic_verified?: boolean
           is_official?: boolean
+          is_stale?: boolean | null
           last_commit_at?: string | null
           name?: string
           name_es?: string | null
@@ -1009,6 +1015,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_verified_publisher: boolean | null
           role: string | null
           updated_at: string
           user_id: string
@@ -1020,6 +1027,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_verified_publisher?: boolean | null
           role?: string | null
           updated_at?: string
           user_id: string
@@ -1031,6 +1039,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_verified_publisher?: boolean | null
           role?: string | null
           updated_at?: string
           user_id?: string
@@ -1490,6 +1499,7 @@ export type Database = {
           auto_approved_reason: string | null
           avg_rating: number
           category: string
+          changelog: string | null
           created_at: string
           creator_id: string | null
           description_human: string
@@ -1504,6 +1514,7 @@ export type Database = {
           install_command: string
           install_count: number
           is_public: boolean
+          is_stale: boolean | null
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
@@ -1536,6 +1547,7 @@ export type Database = {
           auto_approved_reason?: string | null
           avg_rating?: number
           category?: string
+          changelog?: string | null
           created_at?: string
           creator_id?: string | null
           description_human: string
@@ -1550,6 +1562,7 @@ export type Database = {
           install_command: string
           install_count?: number
           is_public?: boolean
+          is_stale?: boolean | null
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
@@ -1582,6 +1595,7 @@ export type Database = {
           auto_approved_reason?: string | null
           avg_rating?: number
           category?: string
+          changelog?: string | null
           created_at?: string
           creator_id?: string | null
           description_human?: string
@@ -1596,6 +1610,7 @@ export type Database = {
           install_command?: string
           install_count?: number
           is_public?: boolean
+          is_stale?: boolean | null
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
@@ -1723,6 +1738,7 @@ export type Database = {
           auto_approved_reason: string | null
           avg_rating: number
           category: string
+          changelog: string | null
           created_at: string
           creator_id: string | null
           description_human: string
@@ -1737,6 +1753,7 @@ export type Database = {
           install_command: string
           install_count: number
           is_public: boolean
+          is_stale: boolean | null
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
