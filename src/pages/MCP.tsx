@@ -111,6 +111,17 @@ const MCP = () => {
         { name: "a2a_query", desc: t("mcp.tools.a2a") },
       ],
     },
+    {
+      label: t("mcp.toolGroupSkills20"),
+      tools: [
+        { name: "get_skill_content", desc: t("mcp.tools.getSkillContent") },
+        { name: "validate_skill", desc: t("mcp.tools.validateSkill") },
+        { name: "my_skills", desc: t("mcp.tools.mySkills") },
+        { name: "semantic_search", desc: t("mcp.tools.semanticSearch") },
+        { name: "get_trust_report", desc: t("mcp.tools.getTrustReport") },
+        { name: "whats_new", desc: t("mcp.tools.whatsNew") },
+      ],
+    },
   ];
 
   return (
