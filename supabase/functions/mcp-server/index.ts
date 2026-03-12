@@ -799,11 +799,11 @@ mcp.tool("explore_directory", {
 
     const [skills, connectorsRaw, plugins] = await Promise.all([
       searchTable("skills", "display_name, tagline, slug, category, install_count, install_command", "install_count"),
-      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official, install_command, homepage", "github_stars"),
+      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official, install_command, homepage, trust_score", "github_stars"),
       searchTable("plugins", "name, description, slug, category, platform, install_count, is_official, homepage", "install_count"),
     ]);
 
-    const connectors = deduplicateConnectors(connectorsRaw);
+    const connectors = sortByTrust(deduplicateConnectors(connectorsRaw));
 
     const sections: string[] = [];
 
