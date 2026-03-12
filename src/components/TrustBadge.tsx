@@ -1,4 +1,4 @@
-import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock, UserX, Fingerprint } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock, UserX, Fingerprint, CalendarClock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 
@@ -13,6 +13,8 @@ interface TrustBadgeProps {
   createdAt?: string;
   isOfficial?: boolean;
   creatorId?: string | null;
+  isStale?: boolean;
+  isVerifiedPublisher?: boolean;
 }
 
 const BADGE_CONFIG: Record<string, { label: string; labelEs: string; color: string; icon: any; bg: string }> = {
@@ -31,11 +33,20 @@ function getBadgeFromScore(score: number): string {
   return "new";
 }
 
-function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt?: string, isOfficial?: boolean, creatorId?: string | null): Array<{ icon: any; text: string; color: string }> {
+function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt?: string, isOfficial?: boolean, creatorId?: string | null, isStale?: boolean, isVerifiedPublisher?: boolean): Array<{ icon: any; text: string; color: string }> {
   const warnings: Array<{ icon: any; text: string; color: string }> = [];
   
-  // ── PRD 7.3: Publisher no verificado ──
-  if (!isOfficial && !creatorId) {
+  // ── Stale item warning ──
+  if (isStale) {
+    warnings.push({
+      icon: CalendarClock,
+      text: isEs ? "No actualizado en más de 90 días" : "Not updated in over 90 days",
+      color: "text-amber-500",
+    });
+  }
+
+  // ── PRD 7.3: Publisher no verificado (skip if verified publisher) ──
+  if (!isOfficial && !creatorId && !isVerifiedPublisher) {
     warnings.push({
       icon: UserX,
       text: isEs ? "Publisher no verificado" : "Unverified publisher",
@@ -190,13 +201,13 @@ function getWarnings(scanResult: any, itemType: string, isEs: boolean, createdAt
   return warnings;
 }
 
-export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill", createdAt, isOfficial, creatorId }: TrustBadgeProps) => {
+export const TrustBadge = ({ trustScore, securityStatus, scanResult, size = "md", showScore = true, showWarnings = false, itemType = "skill", createdAt, isOfficial, creatorId, isStale, isVerifiedPublisher }: TrustBadgeProps) => {
   const { i18n } = useTranslation();
   const isEs = i18n.language === "es";
   const badgeKey = getBadgeFromScore(trustScore);
   const config = BADGE_CONFIG[badgeKey];
   const Icon = config.icon;
-  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs, createdAt, isOfficial, creatorId) : [];
+  const warnings = showWarnings ? getWarnings(scanResult, itemType, isEs, createdAt, isOfficial, creatorId, isStale, isVerifiedPublisher) : [];
 
   const sizeClasses = {
     sm: "text-xs gap-1 px-1.5 py-0.5",

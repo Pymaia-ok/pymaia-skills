@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     );
 
     const { batchSize = 50 } = await req.json().catch(() => ({}));
-    const results = { demoted: 0, rejected: 0, cleaned: 0 };
+    const results = { demoted: 0, rejected: 0, cleaned: 0, stale_flagged: 0 };
 
     // ── 1. Auto-reject flagged approved skills (archived/disabled/404) ──
     const { data: flagged } = await supabase
@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
     if (flagged) {
       for (const skill of flagged) {
         const notes = (skill.security_notes || "").toLowerCase();
-        // Only auto-reject truly dead repos
         if (notes.includes("not found") || notes.includes("archived") || notes.includes("disabled")) {
           await supabase.from("skills").update({
             status: "rejected",
@@ -103,6 +102,37 @@ Deno.serve(async (req) => {
           results.cleaned++;
         }
       }
+    }
+
+    // ── 4. Decay Detection: Flag stale items (>90 days no commit) ──
+    const staleCutoff = new Date();
+    staleCutoff.setDate(staleCutoff.getDate() - 90);
+
+    const tables = ["skills", "mcp_servers", "plugins"] as const;
+    for (const tableName of tables) {
+      // Mark as stale
+      const { data: staleItems } = await supabase
+        .from(tableName)
+        .select("id, slug")
+        .eq("status", "approved")
+        .eq("is_stale", false)
+        .not("last_commit_at", "is", null)
+        .lt("last_commit_at", staleCutoff.toISOString())
+        .limit(batchSize);
+
+      if (staleItems) {
+        for (const item of staleItems) {
+          await supabase.from(tableName).update({ is_stale: true }).eq("id", item.id);
+          results.stale_flagged++;
+        }
+      }
+
+      // Un-mark recently active items
+      await supabase
+        .from(tableName)
+        .update({ is_stale: false })
+        .eq("is_stale", true)
+        .gte("last_commit_at", staleCutoff.toISOString());
     }
 
     return new Response(JSON.stringify({ success: true, ...results }), {

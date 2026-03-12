@@ -21,7 +21,7 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
     <div className="space-y-6 order-1 lg:order-none lg:sticky lg:top-20 lg:self-start">
       <div className="p-5 rounded-2xl border border-border bg-card space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <TrustBadge trustScore={skill.trust_score || 0} securityStatus={skill.security_status} scanResult={skill.security_scan_result} showWarnings itemType="skill" createdAt={skill.created_at} isOfficial={false} creatorId={skill.creator_id} />
+          <TrustBadge trustScore={skill.trust_score || 0} securityStatus={skill.security_status} scanResult={skill.security_scan_result} showWarnings itemType="skill" createdAt={skill.created_at} isOfficial={false} creatorId={skill.creator_id} isStale={skill.is_stale} isVerifiedPublisher={creatorProfile?.is_verified_publisher} />
           {skill.security_scanned_at && <ScannedByPymaiaBadge />}
         </div>
 
@@ -59,6 +59,7 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
             <Link to={creatorProfile.username ? `/u/${creatorProfile.username}` : "#"} className="flex items-center gap-2 text-sm hover:text-foreground transition-colors text-muted-foreground">
               {creatorProfile.avatar_url ? <img src={creatorProfile.avatar_url} alt="" className="w-5 h-5 rounded-full" /> : <User className="w-4 h-4" />}
               <span>{creatorProfile.display_name || creatorProfile.username || t("detail.author")}</span>
+              {creatorProfile.is_verified_publisher && <span className="text-primary text-xs">✅</span>}
             </Link>
           )}
           {skill.github_url && (

@@ -1,4 +1,4 @@
-// calculate-trust-score v2.0 — Computes Trust Score (0-100) with actual abuse report check
+// calculate-trust-score v3.0 — Computes Trust Score (0-100) + Quality Score (0-100)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -49,15 +49,13 @@ async function calculateTrustScore(item: any, abuseCount: number): Promise<{
       security += 5;
     }
 
-    // VirusTotal layer bonus/penalty
     const vt = scanResult.layers?.virustotal;
     if (vt && vt.verdict) {
       if (vt.verdict === "clean" && vt.malicious_count === 0) {
-        security += 5; // VT clean bonus
+        security += 5;
       } else if (vt.verdict === "malicious" || (vt.malicious_count && vt.malicious_count >= 4)) {
-        security -= 15; // VT malicious penalty
+        security -= 15;
       }
-      // suspicious (1-3 detections) = 0 change
     }
   } else {
     if (item.security_status === "verified") security += 5;
@@ -68,15 +66,13 @@ async function calculateTrustScore(item: any, abuseCount: number): Promise<{
   const ghOrg = ghMatch?.[1]?.toLowerCase();
 
   if (ghOrg && TRUSTED_PUBLISHERS.includes(ghOrg)) {
-    publisher += 10; // Verified publisher by Pymaia (known org)
+    publisher += 10;
   }
 
-  // PRD 7.1: GitHub account age > 1 year → 5pts
   const pubData = scanResult?.layers?.publisher;
   if (pubData?.account_age_days != null && pubData.account_age_days >= 365) {
     publisher += 5;
   }
-  // PRD 7.1: GitHub repos > 5 → 3pts
   if (pubData?.public_repos != null && pubData.public_repos >= 5) {
     publisher += 3;
   }
@@ -103,13 +99,11 @@ async function calculateTrustScore(item: any, abuseCount: number): Promise<{
   if (rating >= 4.0 && reviews >= 3) community += 5;
   else if (rating >= 3.5 && reviews >= 1) community += 2;
 
-  // Abuse reports check — deduct from default 5pt bonus
   if (abuseCount === 0) {
-    community += 5; // No abuse reports
+    community += 5;
   } else if (abuseCount <= 2) {
-    community += 2; // Some reports, partial credit
+    community += 2;
   }
-  // 3+ reports = 0 bonus
 
   // ── LONGEVITY SCORE (0-15) ──
   const createdAt = new Date(item.created_at);
@@ -137,6 +131,49 @@ async function calculateTrustScore(item: any, abuseCount: number): Promise<{
   else if (total >= 40) badge = "reviewed";
 
   return { total, security, publisher, community, longevity, badge };
+}
+
+// ── COMPOSITE QUALITY SCORE (Sprint 2 - Block 2) ──
+function calculateQualityScore(item: any, trustScore: number, evalData: any): number {
+  // Trust (25%)
+  const trustComponent = (trustScore / 100) * 25;
+
+  // Eval Pass Rate (25%) — from skill_eval_runs
+  let evalComponent = 0;
+  if (evalData) {
+    evalComponent = (Number(evalData.pass_rate) / 100) * 25;
+  } else {
+    evalComponent = 12.5; // Neutral if no evals
+  }
+
+  // User Satisfaction (20%) — avg_rating normalized to 0-20
+  const rating = Number(item.avg_rating || 0);
+  const reviews = item.review_count || 0;
+  let satisfactionComponent = 10; // Default neutral
+  if (reviews >= 1) {
+    satisfactionComponent = (rating / 5) * 20;
+  }
+
+  // Documentation (15%) — has description, use_cases, github_url
+  let docComponent = 0;
+  if (item.description_human || item.description) docComponent += 5;
+  if (item.github_url) docComponent += 5;
+  if (item.use_cases && Array.isArray(item.use_cases) && item.use_cases.length > 0) docComponent += 5;
+  else if (item.readme_summary) docComponent += 3;
+
+  // Freshness (15%) — last_commit_at recency
+  let freshnessComponent = 0;
+  if (item.last_commit_at) {
+    const monthsAgo = (Date.now() - new Date(item.last_commit_at).getTime()) / (1000 * 60 * 60 * 24 * 30);
+    if (monthsAgo <= 1) freshnessComponent = 15;
+    else if (monthsAgo <= 3) freshnessComponent = 12;
+    else if (monthsAgo <= 6) freshnessComponent = 8;
+    else if (monthsAgo <= 12) freshnessComponent = 4;
+  } else {
+    freshnessComponent = 5; // Unknown = neutral
+  }
+
+  return Math.min(100, Math.round(trustComponent + evalComponent + satisfactionComponent + docComponent + freshnessComponent));
 }
 
 Deno.serve(async (req) => {
@@ -177,10 +214,23 @@ Deno.serve(async (req) => {
 
         const score = await calculateTrustScore(item, abuseCount ?? 0);
         
-        await supabase.from(t.name).update({
-          trust_score: score.total,
-        }).eq("id", item.id);
+        // For skills, also compute quality_score
+        const updateData: any = { trust_score: score.total };
+        
+        if (t.name === "skills") {
+          // Get latest eval run for this skill
+          const { data: evalRun } = await supabase
+            .from("skill_eval_runs")
+            .select("pass_rate, avg_score")
+            .eq("skill_slug", item.slug)
+            .order("iteration", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
+          updateData.quality_score = calculateQualityScore(item, score.total, evalRun);
+        }
+
+        await supabase.from(t.name).update(updateData).eq("id", item.id);
         processed++;
       }
     }
