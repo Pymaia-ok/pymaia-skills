@@ -163,13 +163,21 @@ STRUCTURE (mandatory):
 
 CRITICAL RULES:
 1. Write ~1500 words of genuinely useful content
-2. Use markdown with ## and ### headers
-3. MUST include internal links to skills, connectors, and plugins from the catalog
-4. Reference specific AI agents (Claude, Gemini, Manus, Cursor, etc.) when relevant
-5. Optimize for SEO: use keywords naturally, write definition paragraphs for featured snippets
-6. Include numbered lists, comparison tables, and actionable takeaways
-7. Every article must answer: "How can I actually DO this today?"
-8. Tone: warm, empowering, practical — never condescending`;
+2. Use ONLY markdown syntax for formatting. Use ## and ### for headings. NEVER use HTML tags like <h1>, <h2>, <h3>, <p>, <ul>, etc. Pure markdown only.
+3. Do NOT include an H1 heading — the title is rendered separately. Start your content directly with the hook paragraph, then use ## for sections.
+4. MUST include internal links to skills, connectors, and plugins from the catalog
+5. Reference specific AI agents (Claude, Gemini, Manus, Cursor, etc.) when relevant
+6. Optimize for SEO: use keywords naturally, write definition paragraphs for featured snippets
+7. Include numbered lists, comparison tables, and actionable takeaways
+8. Every article must answer: "How can I actually DO this today?"
+9. Tone: warm, empowering, practical — never condescending
+
+TITLE FORMATTING:
+- Use sentence case for ALL titles (English and Spanish). Only capitalize the first word and proper nouns.
+- CORRECT: "How AI agents are changing project management"
+- WRONG: "How AI Agents Are Changing Project Management"
+- Spanish: "Cómo los agentes de IA están cambiando la gestión de proyectos" (correct)
+- This applies to title_en, title_es, and all headings within the content.`;
 
     const userPrompt = `Write a blog article about: "${topic.topic_en}"
 
