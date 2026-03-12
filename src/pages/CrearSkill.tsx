@@ -494,6 +494,21 @@ const CrearSkill = () => {
           </div>
         )}
 
+        {step === "import" && (
+          <div className="flex-1 overflow-y-auto">
+            <SkillImporter
+              onImported={(importedSkill, importedQuality) => {
+                setSkill(importedSkill);
+                setQuality(importedQuality);
+                setTestResults(null);
+                setAutoImproveIterations([]);
+                setStep("preview");
+              }}
+              onCancel={() => setStep("chat")}
+            />
+          </div>
+        )}
+
         {step === "publish" && skill && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-12">
