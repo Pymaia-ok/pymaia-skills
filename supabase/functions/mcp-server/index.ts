@@ -2390,6 +2390,74 @@ mcp.tool("get_setup_guide", {
   },
 });
 
+// ─── import_skill_from_agent ───
+mcp.tool("import_skill_from_agent", {
+  description: "Import a SKILL.md created by any AI agent into the Pymaia catalog for sharing. Accepts raw SKILL.md content, parses it into structured fields using AI, and submits it for approval. Returns the parsed skill preview. Requires API key authentication (pymsk_...).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_md: { type: "string", description: "Full content of the SKILL.md file to import" },
+      author_name: { type: "string", description: "Name of the author or agent that created this skill" },
+    },
+    required: ["skill_md"],
+  },
+  handler: async (args: { skill_md: string; author_name?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to import skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
+    }
+    if (!args.skill_md || args.skill_md.length < 50) {
+      return { content: [{ type: "text" as const, text: "❌ SKILL.md content is too short (minimum 50 characters)." }] };
+    }
+
+    try {
+      // Call generate-skill with import_skill action
+      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ action: "import_skill", skill_md: args.skill_md }),
+      });
+
+      if (!resp.ok) throw new Error(`Import failed: ${resp.status}`);
+      const data = await resp.json();
+
+      if (!data.skill) throw new Error("No skill parsed");
+
+      // Insert into skills table as pending
+      const slug = (data.skill.name || "imported-skill").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 64);
+      const useCases = (data.skill.examples || []).map((ex: any) => ({
+        title: ex.title, before: ex.input, after: ex.output,
+      }));
+
+      await supabase.from("skills").insert({
+        slug: `${slug}-${Date.now().toString(36)}`,
+        display_name: data.skill.name || "Imported Skill",
+        tagline: data.skill.tagline || "",
+        description_human: data.skill.description || "",
+        install_command: data.skill.install_command || args.skill_md,
+        category: data.skill.category || "general",
+        industry: data.skill.industry || [],
+        target_roles: data.skill.target_roles || [],
+        use_cases: useCases,
+        creator_id: currentApiKeyUserId,
+        status: "pending",
+        quality_score: data.quality?.score || null,
+        is_public: true,
+        required_mcps: data.skill.required_mcps || [],
+      });
+
+      const scoreText = data.quality?.score ? ` Quality score: ${data.quality.score}/10.` : "";
+      return {
+        content: [{
+          type: "text" as const,
+          text: `✅ Skill "${data.skill.name}" imported and submitted for approval.${scoreText}\n\n**Parsed fields:**\n- Category: ${data.skill.category}\n- Triggers: ${(data.skill.triggers || []).join(", ")}\n- Roles: ${(data.skill.target_roles || []).join(", ")}\n\nThe skill will be reviewed and published to the Pymaia catalog.`,
+        }],
+      };
+    } catch (e: any) {
+      return { content: [{ type: "text" as const, text: `❌ Import failed: ${e.message}` }] };
+    }
+  },
+});
+
 // ─── RATE LIMITER (tiered: 120/min authenticated, 30/min anonymous) ───
 
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
