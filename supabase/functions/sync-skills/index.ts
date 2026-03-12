@@ -1266,6 +1266,11 @@ Deno.serve(async (req) => {
       case "awesome-lists": discovered = await fetchAwesomeLists(); break;
       case "skillssh-categories": discovered = await fetchSkillsShCategories(); break;
       case "agentskill": discovered = await fetchAgentSkillSh(); break;
+      case "github-monorepo": {
+        const repoName = topic || "alirezarezvani/claude-skills";
+        discovered = await fetchGitHubMonorepo(repoName, insertOffset, batchSize);
+        break;
+      }
       case "github-popular": {
         const defaultQueries = [
           '"ai agent" stars:>500',
