@@ -120,7 +120,7 @@ export default function SkillPreview({ skill, quality, testResults, onRefine, on
         </div>
       </div>
 
-      <SkillScoreCard quality={quality} />
+      <SkillScoreCard quality={quality} onAutoImprove={onAutoImprove} isAutoImproving={isAutoImproving} iterations={autoImproveIterations} />
 
       {/* Test Results */}
       <SkillTestResults results={testResults} onRunTests={onRunTests} isTesting={isTesting} />
