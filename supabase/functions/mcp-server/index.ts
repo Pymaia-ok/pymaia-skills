@@ -2885,11 +2885,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.4.0",
+  version: "8.5.0",
   rateLimit: "30 req/min anonymous, 120 req/min with API key",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard, Skills 2.0 import.",
-    capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration", "Skills 2.0 import"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard, Skills 2.0 import, semantic search, trust reports.",
+    capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration", "Skills 2.0 import", "Semantic search", "Trust reports", "Skill validation"],
   },
   a2a: {
     protocol: "A2A-compatible",
@@ -2908,6 +2908,7 @@ mcpApp.get("/", (c) => c.json({
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
     "suggest_stack", "check_compatibility", "get_setup_guide",
     "import_skill_from_agent",
+    "get_skill_content", "validate_skill", "my_skills", "semantic_search", "get_trust_report", "whats_new",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
