@@ -431,7 +431,7 @@ export default {
       getTrustReport: "Reporte detallado de seguridad/confianza para cualquier skill o conector.",
       whatsNew: "Novedades del catálogo (skills, conectores, plugins agregados en últimos N días).",
     },
-    },
+    examplesTitle: "Ejemplos de conversación",
     examplesTitle: "Ejemplos de conversación",
     you: "Vos",
     claude: "Claude",
