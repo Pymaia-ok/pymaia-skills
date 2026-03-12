@@ -303,6 +303,9 @@ const Admin = () => {
     { name: "Discover trending", func: "discover-trending-skills", freq: "Lunes 6:00 UTC" },
     { name: "Monorepo scan", func: "discover-trending-skills", freq: "Cada 3 días 4:00 UTC" },
     { name: "Monorepo sync", func: "discover-trending-skills", freq: "Diario 5:00 UTC" },
+    { name: "Refresh READMEs", func: "refresh-catalog-data", freq: "Diario 7:00 UTC" },
+    { name: "Detectar repos muertos", func: "refresh-catalog-data", freq: "Semanal dom 3:00 UTC" },
+    { name: "Scrape docs conectores", func: "refresh-catalog-data", freq: "Semanal mié 7:00 UTC" },
   ];
 
   return (
