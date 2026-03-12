@@ -2443,8 +2443,16 @@ mcp.tool("import_skill_from_agent", {
 
       if (!data.skill) throw new Error("No skill parsed");
 
-      // Insert into skills table as pending
+      // Duplicate detection (Sprint 1 - Block 5)
       const slug = (data.skill.name || "imported-skill").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 64);
+      const { data: similar } = await supabase
+        .from("skills")
+        .select("slug, display_name")
+        .eq("status", "approved")
+        .or(`display_name.ilike.%${data.skill.name}%,slug.ilike.%${slug}%`)
+        .limit(5);
+      const duplicateWarning = similar?.length ? `\n\n⚠️ **Similar skills found:** ${similar.map((s: any) => `${s.display_name} (\`${s.slug}\`)`).join(", ")}. Make sure yours adds unique value.` : "";
+
       const useCases = (data.skill.examples || []).map((ex: any) => ({
         title: ex.title, before: ex.input, after: ex.output,
       }));
