@@ -84,6 +84,8 @@ const CrearSkill = () => {
   const [isRefining, setIsRefining] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isAutoImproving, setIsAutoImproving] = useState(false);
+  const [autoImproveIterations, setAutoImproveIterations] = useState<any[]>([]);
   const [generatingPhase, setGeneratingPhase] = useState<string>("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
