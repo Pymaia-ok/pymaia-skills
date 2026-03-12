@@ -529,7 +529,7 @@ mcp.tool("search_connectors", {
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
-    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url, homepage, docs_url";
+    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url, homepage, docs_url, trust_score";
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
@@ -539,8 +539,9 @@ mcp.tool("search_connectors", {
       .select(selectCols)
       .eq("status", "approved")
       .or(`name.ilike.%${queryLower}%,slug.ilike.%${queryLower}%,description.ilike.%${queryLower}%,description_es.ilike.%${queryLower}%`)
+      .order("is_official", { ascending: false })
       .order("github_stars", { ascending: false })
-      .limit(lim);
+      .limit(lim * 2);
     if (args.category) exactQ = exactQ.eq("category", args.category);
 
     const [exactRes, wordSplitRes] = await Promise.all([
@@ -559,7 +560,7 @@ mcp.tool("search_connectors", {
         merged.push(item);
       }
     }
-    let results = deduplicateConnectors(merged).slice(0, lim);
+    let results = sortByTrust(deduplicateConnectors(merged)).slice(0, lim);
     let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
     console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
