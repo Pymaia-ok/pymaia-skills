@@ -555,11 +555,29 @@ mcp.tool("search_connectors", {
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré conectores para "${args.query}". Intenta con otros términos o usa \`solve_goal\` para una búsqueda más amplia.` }] };
 
+    // Group results by category for better orientation when many results
+    const categoryGroups: Record<string, any[]> = {};
+    for (const c of results) {
+      const cat = c.category || "general";
+      if (!categoryGroups[cat]) categoryGroups[cat] = [];
+      categoryGroups[cat].push(c);
+    }
+    const categorySummary = results.length >= 4
+      ? `\n📂 Categories: ${Object.entries(categoryGroups).map(([cat, items]) => `${cat} (${items.length})`).join(", ")}\n`
+      : "";
+
+    const header = `Found ${results.length} installable MCP connector${results.length > 1 ? "s" : ""} for "${args.query}". These are MCP servers you can add to your AI agent (Claude, Cursor, etc.) to access ${args.query}-related services.${categorySummary}\n`;
+
     const text = results
-      .map((c: any) => `**${c.name}** [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${c.github_url ? `GitHub: ${c.github_url}` : ""}${c.install_command ? `\nInstall: \`${c.install_command}\`` : ""}`)
+      .map((c: any) => {
+        const links = [c.homepage ? `Homepage: ${c.homepage}` : "", c.docs_url ? `Docs: ${c.docs_url}` : "", c.github_url ? `GitHub: ${c.github_url}` : ""].filter(Boolean).join(" · ");
+        return `**${c.name}** (\`${c.slug}\`) [${c.category}]${c.is_official ? " ✅ Official" : ""} (⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars)\n${c.description}\n${links}${c.install_command ? `\nInstall: \`${c.install_command}\`` : ""}`;
+      })
       .join("\n\n---\n\n");
 
-    return { content: [{ type: "text" as const, text }] };
+    const footer = `\n\n---\n💡 **Next steps:** Use \`get_connector_details('${results[0].slug}')\` for full setup guide, or \`get_install_command('${results[0].slug}')\` for the exact install command.`;
+
+    return { content: [{ type: "text" as const, text: header + text + footer }] };
   },
 });
 
