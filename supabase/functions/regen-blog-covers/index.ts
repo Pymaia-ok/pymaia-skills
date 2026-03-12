@@ -34,12 +34,12 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get posts that need image regeneration
+    // Get the post with oldest updated_at (cycles through all)
     const { data: posts } = await supabase
       .from("blog_posts")
       .select("slug, title, category")
       .eq("status", "published")
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: true })
       .limit(30);
 
     if (!posts?.length) {
@@ -48,14 +48,12 @@ serve(async (req) => {
       });
     }
 
-    // Process one post at a time (called by cron every 2 min)
-    // Track which ones are done via a simple check: re-generate all
     const body = await req.json().catch(() => ({}));
-    const targetSlug = body.slug; // optional: regenerate specific slug
+    const targetSlug = body.slug;
 
     const postsToProcess = targetSlug 
       ? posts.filter((p: any) => p.slug === targetSlug)
-      : posts.slice(0, 1); // Process 1 per invocation
+      : posts.slice(0, 1); // oldest updated_at first
 
     const results = [];
 
