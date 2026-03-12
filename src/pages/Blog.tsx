@@ -105,18 +105,16 @@ export default function Blog() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post: any) => (
                 <Link key={post.slug} to={`/blog/${post.slug}`}>
-                  <Card className="h-full hover:shadow-md transition-shadow border-border/50 group overflow-hidden">
-                    {post.cover_image_url && (
-                      <AspectRatio ratio={16 / 9}>
-                        <img
-                          src={post.cover_image_url}
-                          alt={isEs ? post.title_es || post.title : post.title}
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      </AspectRatio>
-                    )}
-                    <CardContent className="p-5 flex flex-col">
+                  <Card className="h-full hover:shadow-md transition-shadow border-border/50 group overflow-hidden flex flex-col">
+                    <AspectRatio ratio={16 / 9}>
+                      <img
+                        src={post.cover_image_url || "/placeholder.svg"}
+                        alt={isEs ? post.title_es || post.title : post.title}
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </AspectRatio>
+                    <CardContent className="p-5 flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-3">
                         <Badge variant="secondary" className="gap-1 text-xs">
                           {categoryIcons[post.category]}
@@ -132,12 +130,7 @@ export default function Blog() {
                       <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
                         {isEs ? post.excerpt_es || post.excerpt : post.excerpt}
                       </p>
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {(post.keywords || []).slice(0, 2).map((kw: string) => (
-                          <span key={kw} className="text-xs text-muted-foreground/70 bg-muted px-2 py-0.5 rounded">{kw}</span>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-xs text-muted-foreground mt-3">
                         {new Date(post.created_at).toLocaleDateString(isEs ? "es-ES" : "en-US", {
                           year: "numeric", month: "short", day: "numeric",
                         })}

@@ -111,3 +111,53 @@
     display: none;
   }
 }
+
+/* Blog prose styles */
+.prose h2 {
+  @apply text-2xl font-bold mt-10 mb-4 text-foreground;
+}
+.prose h3 {
+  @apply text-xl font-semibold mt-8 mb-3 text-foreground;
+}
+.prose h4 {
+  @apply text-lg font-semibold mt-6 mb-2 text-foreground;
+}
+.prose p {
+  @apply mb-4 leading-relaxed;
+}
+.prose ul {
+  @apply list-disc pl-6 mb-4 space-y-1;
+}
+.prose ol {
+  @apply list-decimal pl-6 mb-4 space-y-1;
+}
+.prose li {
+  @apply leading-relaxed;
+}
+.prose blockquote {
+  @apply border-l-4 border-primary/30 pl-4 italic my-4 text-muted-foreground;
+}
+.prose table {
+  @apply w-full border-collapse my-6 text-sm;
+}
+.prose thead th {
+  @apply bg-muted text-left px-4 py-2 font-semibold border border-border;
+}
+.prose tbody td {
+  @apply px-4 py-2 border border-border;
+}
+.prose code {
+  @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+}
+.prose pre {
+  @apply bg-muted p-4 rounded-lg overflow-x-auto my-4;
+}
+.prose pre code {
+  @apply bg-transparent p-0;
+}
+.prose hr {
+  @apply my-8 border-border;
+}
+.prose strong {
+  @apply font-semibold text-foreground;
+}

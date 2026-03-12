@@ -3,18 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
-import ReactMarkdown from "react-markdown";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, Shield, Zap, Server, Building2 } from "lucide-react";
-
-const categoryIcons: Record<string, React.ReactNode> = {
-  security: <Shield className="h-4 w-4" />,
-  productivity: <Zap className="h-4 w-4" />,
-  mcp: <Server className="h-4 w-4" />,
-  industry: <Building2 className="h-4 w-4" />,
-};
+import BlogArticle from "@/components/blog/BlogArticle";
+import BlogSidebar from "@/components/blog/BlogSidebar";
+import BlogCTA from "@/components/blog/BlogCTA";
+import RelatedPosts from "@/components/blog/RelatedPosts";
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -124,121 +117,12 @@ export default function BlogPost() {
     <div className="min-h-screen bg-background pt-20">
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-10">
-          {/* Main article */}
-          <article className="flex-1 max-w-3xl">
-            <Link to="/blog">
-              <Button variant="ghost" size="sm" className="mb-6 gap-1 text-muted-foreground">
-                <ArrowLeft className="h-4 w-4" /> {isEs ? "Blog" : "Blog"}
-              </Button>
-            </Link>
-
-            <div className="flex items-center gap-3 mb-4">
-              <Badge variant="secondary" className="gap-1">
-                {categoryIcons[post.category]}
-                {post.category}
-              </Badge>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" /> {post.reading_time_minutes} min
-              </span>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                {new Date(post.created_at).toLocaleDateString(isEs ? "es-ES" : "en-US", {
-                  year: "numeric", month: "long", day: "numeric",
-                })}
-              </span>
-            </div>
-
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6 leading-tight">
-              {title}
-            </h1>
-
-            {/* Cover image */}
-            {post.cover_image_url && (
-              <div className="rounded-lg overflow-hidden mb-8">
-                <img
-                  src={post.cover_image_url}
-                  alt={title}
-                  className="w-full h-auto object-cover max-h-[400px]"
-                />
-              </div>
-            )}
-
-            {post.keywords?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-8">
-                {post.keywords.map((kw: string) => (
-                  <span key={kw} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
-                    {kw}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
-              <ReactMarkdown
-                components={{
-                  a: ({ href, children }) => {
-                    const isInternal = href?.startsWith("/");
-                    if (isInternal) {
-                      return <Link to={href!} className="text-primary underline">{children}</Link>;
-                    }
-                    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
-                  },
-                }}
-              >
-                {content || ""}
-              </ReactMarkdown>
-            </div>
-          </article>
-
-          {/* Sidebar */}
-          <aside className="lg:w-72 shrink-0">
-            <div className="sticky top-24 space-y-6">
-              {relatedSkills && relatedSkills.length > 0 && (
-                <Card>
-                  <CardContent className="p-5">
-                    <h3 className="font-semibold text-foreground mb-3 text-sm uppercase tracking-wide">
-                      {isEs ? "Skills relacionados" : "Related Skills"}
-                    </h3>
-                    <div className="space-y-3">
-                      {relatedSkills.map((skill: any) => (
-                        <Link
-                          key={skill.slug}
-                          to={`/skill/${skill.slug}`}
-                          className="block group"
-                        >
-                          <p className="text-sm font-medium text-foreground group-hover:text-primary/80 transition-colors">
-                            {isEs ? skill.display_name_es || skill.display_name : skill.display_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">
-                            {isEs ? skill.tagline_es || skill.tagline : skill.tagline}
-                          </p>
-                        </Link>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card>
-                <CardContent className="p-5">
-                  <h3 className="font-semibold text-foreground mb-2 text-sm">
-                    {isEs ? "Explorá más" : "Explore More"}
-                  </h3>
-                  <div className="space-y-2">
-                    <Link to="/explorar" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      → {isEs ? "Catálogo de soluciones" : "Solutions catalog"}
-                    </Link>
-                    <Link to="/conectores" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      → {isEs ? "Conectores MCP" : "MCP Connectors"}
-                    </Link>
-                    <Link to="/seguridad" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      → {isEs ? "Avisos de seguridad" : "Security Advisories"}
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </aside>
+          <div className="flex-1 max-w-3xl">
+            <BlogArticle post={post} title={title} content={content} isEs={isEs} />
+            <BlogCTA isEs={isEs} />
+            <RelatedPosts currentSlug={post.slug} category={post.category} isEs={isEs} />
+          </div>
+          <BlogSidebar relatedSkills={relatedSkills} isEs={isEs} />
         </div>
       </div>
     </div>
