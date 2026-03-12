@@ -118,6 +118,78 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          category: string
+          content: string
+          content_es: string | null
+          cover_image_prompt: string | null
+          created_at: string
+          excerpt: string
+          excerpt_es: string | null
+          geo_target: string
+          id: string
+          keywords: string[] | null
+          meta_description: string | null
+          meta_description_es: string | null
+          reading_time_minutes: number | null
+          related_connector_slugs: string[] | null
+          related_skill_slugs: string[] | null
+          slug: string
+          status: string
+          title: string
+          title_es: string | null
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          category?: string
+          content?: string
+          content_es?: string | null
+          cover_image_prompt?: string | null
+          created_at?: string
+          excerpt?: string
+          excerpt_es?: string | null
+          geo_target?: string
+          id?: string
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_description_es?: string | null
+          reading_time_minutes?: number | null
+          related_connector_slugs?: string[] | null
+          related_skill_slugs?: string[] | null
+          slug: string
+          status?: string
+          title: string
+          title_es?: string | null
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          content_es?: string | null
+          cover_image_prompt?: string | null
+          created_at?: string
+          excerpt?: string
+          excerpt_es?: string | null
+          geo_target?: string
+          id?: string
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_description_es?: string | null
+          reading_time_minutes?: number | null
+          related_connector_slugs?: string[] | null
+          related_skill_slugs?: string[] | null
+          slug?: string
+          status?: string
+          title?: string
+          title_es?: string | null
+          updated_at?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       community_goal_templates: {
         Row: {
           capabilities: Json
