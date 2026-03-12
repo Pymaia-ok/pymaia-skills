@@ -124,6 +124,7 @@ export type Database = {
           content: string
           content_es: string | null
           cover_image_prompt: string | null
+          cover_image_url: string | null
           created_at: string
           excerpt: string
           excerpt_es: string | null
@@ -147,6 +148,7 @@ export type Database = {
           content?: string
           content_es?: string | null
           cover_image_prompt?: string | null
+          cover_image_url?: string | null
           created_at?: string
           excerpt?: string
           excerpt_es?: string | null
@@ -170,6 +172,7 @@ export type Database = {
           content?: string
           content_es?: string | null
           cover_image_prompt?: string | null
+          cover_image_url?: string | null
           created_at?: string
           excerpt?: string
           excerpt_es?: string | null

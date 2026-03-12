@@ -76,6 +76,7 @@ export default function BlogPost() {
       "@type": "Article",
       headline: title,
       description: metaDesc,
+      image: post.cover_image_url ? `https://pymaiaskills.lovable.app${post.cover_image_url}` : undefined,
       datePublished: post.created_at,
       dateModified: post.updated_at,
       author: { "@type": "Organization", name: "Pymaia" },
@@ -94,6 +95,7 @@ export default function BlogPost() {
       <div className="min-h-screen bg-background pt-20">
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="h-8 w-48 bg-muted animate-pulse rounded mb-4" />
+          <div className="h-64 w-full bg-muted animate-pulse rounded-lg mb-6" />
           <div className="h-12 w-full bg-muted animate-pulse rounded mb-6" />
           <div className="space-y-3">
             {[1,2,3,4,5].map(i => <div key={i} className="h-4 bg-muted animate-pulse rounded" />)}
@@ -149,6 +151,17 @@ export default function BlogPost() {
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6 leading-tight">
               {title}
             </h1>
+
+            {/* Cover image */}
+            {post.cover_image_url && (
+              <div className="rounded-lg overflow-hidden mb-8">
+                <img
+                  src={post.cover_image_url}
+                  alt={title}
+                  className="w-full h-auto object-cover max-h-[400px]"
+                />
+              </div>
+            )}
 
             {post.keywords?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-8">
