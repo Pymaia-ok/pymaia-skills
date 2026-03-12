@@ -863,6 +863,8 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
         .eq("status", "approved")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
+        .order("is_official", { ascending: false })
+        .order("trust_score", { ascending: false })
         .order("github_stars", { ascending: false }).limit(limit),
       supabase.from("plugins")
         .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified, trust_score, security_status, github_stars")
