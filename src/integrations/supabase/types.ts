@@ -826,6 +826,36 @@ export type Database = {
         }
         Relationships: []
       }
+      monorepo_registry: {
+        Row: {
+          created_at: string
+          discovered_via: string | null
+          github_stars: number | null
+          id: string
+          last_synced_at: string | null
+          repo_full_name: string
+          skill_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          discovered_via?: string | null
+          github_stars?: number | null
+          id?: string
+          last_synced_at?: string | null
+          repo_full_name: string
+          skill_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          discovered_via?: string | null
+          github_stars?: number | null
+          id?: string
+          last_synced_at?: string | null
+          repo_full_name?: string
+          skill_count?: number | null
+        }
+        Relationships: []
+      }
       plugin_reviews: {
         Row: {
           comment: string | null
