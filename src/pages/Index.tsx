@@ -14,6 +14,7 @@ import BundlesSection from "@/components/landing/BundlesSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import McpBannerSection from "@/components/landing/McpBannerSection";
 import BlogSection from "@/components/landing/BlogSection";
+import CreatorLeaderboard from "@/components/landing/CreatorLeaderboard";
 
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
