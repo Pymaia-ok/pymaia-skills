@@ -882,7 +882,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
   
   const seenSlugs = new Set<string>();
   results.skills = results.skills.filter(s => { if (seenSlugs.has(s.slug)) return false; seenSlugs.add(s.slug); return true; });
-  results.connectors = deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; }));
+  results.connectors = sortByTrust(deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; })));
   results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
 
   console.log(JSON.stringify({ fn: "crossCatalogSearch", totalKeywords: uniqueExpanded.length, originalKeywords: keywords.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
