@@ -1,100 +1,70 @@
 
 
+## Plan: New MCP Tools for Agent Workflows
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+### Analysis of Gaps
 
-### Estado: ~99% completado
+After reviewing all 31 existing tools, I identified 6 high-value tools that agents like Claude lack today:
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+| Gap | Why it matters |
+|-----|---------------|
+| No way to read raw SKILL.md content | Agent can't inspect or fork a skill |
+| No way to test/validate before importing | Agent publishes blind, no quality gate |
+| No "my skills" listing | Authenticated users can't manage their catalog |
+| No semantic search via MCP | 38K skills but agents can only do keyword search |
+| No trust/security detail tool | Agent sees a number but can't explain why |
+| No changelog/what's new tool | Agent can't tell user what changed recently |
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+### New Tools to Add
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+**File**: `supabase/functions/mcp-server/index.ts`
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+#### 1. `get_skill_content` — Read raw SKILL.md
+- Returns the raw `install_command` (which contains the SKILL.md) for a given slug
+- Enables agents to read, fork, or adapt existing skills
+- Uses the same logic as `skill-raw` edge function but accessible via MCP
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+#### 2. `validate_skill` — Quality check without publishing
+- Accepts raw SKILL.md text, sends it to `generate-skill` with `import_skill` action (parse only)
+- Returns quality score, parsed fields, and improvement suggestions
+- Does NOT insert into the catalog — pure validation
+- No auth required (read-only operation)
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+#### 3. `my_skills` — List authenticated user's skills
+- Requires API key auth (pymsk_...)
+- Returns all skills owned by the authenticated user (any status: pending, approved, rejected)
+- Shows quality score, status, install count, eval history
 
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
+#### 4. `semantic_search` — AI-powered meaning-based search
+- Calls the existing `generate-embeddings` edge function to embed the query
+- Uses the existing `semantic_search_skills` RPC for vector similarity search
+- Falls back to keyword search if embeddings fail
+- Much better for natural language queries like "help me write better pull request descriptions"
 
-### Tools del MCP v8.3.0 (31 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
-17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
-18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
-19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
+#### 5. `get_trust_report` — Detailed security breakdown
+- Given a slug, returns the full trust score breakdown: security scan result, VirusTotal status, GitHub activity, review sentiment
+- Helps agents make informed security recommendations
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+#### 6. `whats_new` — Recent catalog changes
+- Returns recently added/updated skills, connectors, and plugins (last N days)
+- Useful for agents to proactively suggest new tools
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
+### Implementation Details
+
+All 6 tools go in `supabase/functions/mcp-server/index.ts`. Version bump to 8.5.0. Update the tools array in the GET `/` response.
+
+- `get_skill_content`: query `skills` table for `install_command` by slug
+- `validate_skill`: POST to `generate-skill` with `action: "import_skill"`, return parsed result without inserting
+- `my_skills`: filter `skills` by `creator_id = currentApiKeyUserId`, join with `skill_eval_runs` for eval history
+- `semantic_search`: POST to `generate-embeddings` to get vector, then call `semantic_search_skills` RPC
+- `get_trust_report`: query `skills` or `mcp_servers` or `plugins` for security fields (scan result, trust score, VT status, last commit, stars)
+- `whats_new`: query all 3 tables ordered by `created_at DESC` with date filter
+
+### Files to modify
+
+| File | Change |
+|------|--------|
+| `supabase/functions/mcp-server/index.ts` | Add 6 new tools, bump version to 8.5.0 |
+
+No DB migrations needed — all tools use existing tables and RPCs.
+
