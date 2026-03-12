@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Shield, Zap, Server, Building2 } from "lucide-react";
+import { Clock, Shield, Zap, Server, Building2, Bot } from "lucide-react";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   security: <Shield className="h-3.5 w-3.5" />,
   productivity: <Zap className="h-3.5 w-3.5" />,
+  agents: <Bot className="h-3.5 w-3.5" />,
   mcp: <Server className="h-3.5 w-3.5" />,
   industry: <Building2 className="h-3.5 w-3.5" />,
 };

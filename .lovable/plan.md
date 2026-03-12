@@ -1,64 +1,100 @@
 
 
-## Plan: Refocus Blog Content for Non-Technical Productivity Users
 
-### Problem
-The current `TOPIC_POOL` in `generate-blog-post/index.ts` is heavily skewed toward security and technical MCP topics. Only ~8 of 30 topics target non-technical users. The system prompt also frames the writer as a "technical writer" speaking to "smart colleagues," which produces content too developer-oriented.
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-### Changes
+### Estado: ~99% completado
 
-#### 1. Rewrite `TOPIC_POOL` (~50 topics, new distribution)
-**File**: `supabase/functions/generate-blog-post/index.ts`
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-New category distribution:
-- **productivity** (~20 topics): GTM automation, competitive research with AI, content creation workflows, email automation, meeting summaries, CRM management, social media scheduling, financial reporting, HR onboarding, project management
-- **agents** (new category, ~12 topics): Claude new features, Manus capabilities, Cursor for non-devs, Antigravity workflows, Gemini updates, OpenAI agent mode, ClawBot, multi-agent collaboration, comparing agents
-- **industry** (~10 topics): Legal + AI, Sales pipelines, Marketing campaigns, E-commerce, Education, Freelancers, Consulting, Real estate
-- **security** (~5 topics): Keep a few but reframe for non-technical readers (e.g., "How to know if an AI tool is safe to use")
-- **mcp** (~5 topics): Reframe as "connectors" for end users (e.g., "Connect your Gmail, Slack, and Notion to your AI assistant")
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-Example new topics:
-```
-"How to automate your Go-To-Market strategy with AI agents"
-"5 ways to do competitive research in minutes using AI"
-"Create a week of social media content in 10 minutes with AI"
-"Claude vs Gemini vs Manus: which AI assistant fits your workflow?"
-"How to connect Slack, Gmail, and Notion to your AI assistant"
-"AI-powered sales prospecting: from lead to close automatically"
-"Non-technical guide: what are AI skills and how to use them"
-```
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-#### 2. Rewrite system prompt for non-technical audience
-**File**: `supabase/functions/generate-blog-post/index.ts` (L104-114)
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-Change from "expert technical writer" to a productivity-focused content writer:
-- Tone: conversational, practical, like a smart friend showing you shortcuts
-- No jargon unless explained
-- Every article must include step-by-step "how to do this" sections
-- Reference specific skills/connectors/plugins from the Pymaia catalog with links
-- Include real use cases and before/after comparisons
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-#### 3. Smarter related content queries
-**File**: `supabase/functions/generate-blog-post/index.ts` (L82-102)
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-Currently queries skills by category match which is too loose. Change to:
-- Query skills using keyword-based text search matching the topic keywords
-- Query connectors relevant to the topic (e.g., Gmail connector for email topics, Slack for team topics)
-- Query plugins related to the use case
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-#### 4. Add "agents" category to frontend
-**Files**: `src/pages/Blog.tsx`, `src/components/landing/BlogSection.tsx`
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
-Add the new "agents" category with a Bot/Cpu icon to the category filters and card badges.
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-#### 5. Update blog category in database
-Add "agents" to the allowed values if there's a constraint (check needed — likely no enum constraint since it's stored as text).
-
-### Files to modify
-| File | Change |
-|------|--------|
-| `supabase/functions/generate-blog-post/index.ts` | Rewrite TOPIC_POOL (~50 productivity-first topics), update system prompt, improve related content queries |
-| `src/pages/Blog.tsx` | Add "agents" category filter |
-| `src/components/landing/BlogSection.tsx` | Add "agents" category icon/color |
-| `src/components/blog/BlogArticle.tsx` | Add "agents" category icon |
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)

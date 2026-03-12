@@ -7,42 +7,67 @@ const corsHeaders = {
 };
 
 const TOPIC_POOL = [
-  // Security
-  { category: "security", keywords: ["seguridad agentes IA", "AI agent security", "MCP security"], geo: "global", topic_en: "How to evaluate the security of AI agents before deploying them in your organization", topic_es: "Cómo evaluar la seguridad de agentes de IA antes de implementarlos en tu organización" },
-  { category: "security", keywords: ["prompt injection", "inyección de prompts", "AI vulnerabilities"], geo: "global", topic_en: "Understanding prompt injection attacks and how to protect your AI workflows", topic_es: "Entendiendo los ataques de inyección de prompts y cómo proteger tus flujos de IA" },
-  { category: "security", keywords: ["MCP server security", "seguridad servidor MCP", "tool permissions"], geo: "global", topic_en: "MCP Server security best practices: permissions, scopes, and auditing", topic_es: "Mejores prácticas de seguridad en servidores MCP: permisos, scopes y auditoría" },
-  { category: "security", keywords: ["typosquatting AI", "supply chain AI", "cadena de suministro IA"], geo: "global", topic_en: "Typosquatting in AI tool ecosystems: a growing supply chain threat", topic_es: "Typosquatting en ecosistemas de herramientas IA: una amenaza creciente en la cadena de suministro" },
-  { category: "security", keywords: ["trust score AI", "puntuación confianza IA", "AI tool verification"], geo: "global", topic_en: "What is a Trust Score and why it matters when choosing AI tools", topic_es: "Qué es un Trust Score y por qué importa al elegir herramientas de IA" },
-  { category: "security", keywords: ["hidden content attacks", "ataques contenido oculto", "zero-width characters"], geo: "global", topic_en: "Hidden content attacks in AI tools: zero-width characters, base64, and homoglyphs", topic_es: "Ataques de contenido oculto en herramientas IA: caracteres de ancho cero, base64 y homoglifos" },
-  { category: "security", keywords: ["AI compliance LATAM", "cumplimiento IA Latinoamérica", "regulación IA"], geo: "latam", topic_en: "AI compliance landscape in Latin America: what businesses need to know in 2026", topic_es: "Panorama de cumplimiento de IA en Latinoamérica: lo que las empresas necesitan saber en 2026" },
-  { category: "security", keywords: ["secret scanning AI", "escaneo de secretos IA", "API key leaks"], geo: "global", topic_en: "Why secret scanning is critical for AI tool marketplaces", topic_es: "Por qué el escaneo de secretos es crítico para marketplaces de herramientas IA" },
-  { category: "security", keywords: ["dependency audit AI", "auditoría dependencias IA", "CVE vulnerabilities"], geo: "global", topic_en: "Automated dependency auditing for AI tools: catching CVEs before they reach production", topic_es: "Auditoría automatizada de dependencias para herramientas IA: detectando CVEs antes de producción" },
-  { category: "security", keywords: ["AI security incident response", "respuesta incidentes seguridad IA"], geo: "global", topic_en: "Building an incident response plan for AI tool security breaches", topic_es: "Construyendo un plan de respuesta a incidentes para brechas de seguridad en herramientas IA" },
+  // ═══ PRODUCTIVITY (~20 topics) ═══
+  { category: "productivity", keywords: ["GTM automation", "go to market IA", "automatizar lanzamiento producto"], geo: "global", topic_en: "How to automate your Go-To-Market strategy with AI agents", topic_es: "Cómo automatizar tu estrategia Go-To-Market con agentes de IA" },
+  { category: "productivity", keywords: ["competitive research AI", "investigación competencia IA", "market analysis"], geo: "global", topic_en: "5 ways to do competitive research in minutes using AI", topic_es: "5 formas de hacer investigación de competencia en minutos usando IA" },
+  { category: "productivity", keywords: ["social media content AI", "contenido redes sociales IA", "content calendar"], geo: "global", topic_en: "Create a week of social media content in 10 minutes with AI", topic_es: "Crea una semana de contenido para redes sociales en 10 minutos con IA" },
+  { category: "productivity", keywords: ["email automation AI", "automatización email IA", "cold outreach"], geo: "global", topic_en: "AI-powered email workflows: from cold outreach to follow-ups on autopilot", topic_es: "Flujos de email con IA: desde prospección fría hasta seguimientos en piloto automático" },
+  { category: "productivity", keywords: ["meeting summaries AI", "resúmenes reuniones IA", "action items"], geo: "global", topic_en: "Never take meeting notes again: AI tools that summarize and create action items", topic_es: "No tomes notas en reuniones nunca más: herramientas IA que resumen y crean tareas" },
+  { category: "productivity", keywords: ["CRM automation AI", "automatización CRM IA", "sales pipeline"], geo: "global", topic_en: "How to automate your CRM with AI: update deals, enrich contacts, and never miss a follow-up", topic_es: "Cómo automatizar tu CRM con IA: actualizar deals, enriquecer contactos y no perder seguimientos" },
+  { category: "productivity", keywords: ["financial reporting AI", "reportes financieros IA", "automated dashboards"], geo: "global", topic_en: "Generate financial reports in seconds: AI tools for non-accountants", topic_es: "Genera reportes financieros en segundos: herramientas IA para no-contadores" },
+  { category: "productivity", keywords: ["HR onboarding AI", "onboarding RRHH IA", "employee experience"], geo: "global", topic_en: "AI-powered employee onboarding: create welcome packages and training in minutes", topic_es: "Onboarding de empleados con IA: crea paquetes de bienvenida y capacitación en minutos" },
+  { category: "productivity", keywords: ["project management AI", "gestión proyectos IA", "task automation"], geo: "global", topic_en: "How AI agents are replacing project management busywork in 2026", topic_es: "Cómo los agentes de IA están reemplazando el trabajo tedioso de gestión de proyectos en 2026" },
+  { category: "productivity", keywords: ["content creation AI workflow", "flujo creación contenido IA", "blog writing"], geo: "global", topic_en: "The complete AI content creation workflow: research, write, edit, and publish", topic_es: "El flujo completo de creación de contenido con IA: investigar, escribir, editar y publicar" },
+  { category: "productivity", keywords: ["data analysis AI no code", "análisis datos IA sin código", "spreadsheet automation"], geo: "global", topic_en: "Analyze any dataset without code: AI tools that turn spreadsheets into insights", topic_es: "Analiza cualquier dataset sin código: herramientas IA que convierten hojas de cálculo en insights" },
+  { category: "productivity", keywords: ["proposal writing AI", "redacción propuestas IA", "business proposals"], geo: "global", topic_en: "Write winning business proposals in half the time with AI assistants", topic_es: "Escribe propuestas de negocio ganadoras en la mitad del tiempo con asistentes IA" },
+  { category: "productivity", keywords: ["customer support AI", "soporte al cliente IA", "help desk automation"], geo: "global", topic_en: "Set up AI-powered customer support without a developer", topic_es: "Configura soporte al cliente con IA sin necesitar un desarrollador" },
+  { category: "productivity", keywords: ["SEO automation AI", "automatización SEO IA", "keyword research"], geo: "global", topic_en: "Automate your SEO workflow: keyword research, content optimization, and reporting with AI", topic_es: "Automatiza tu flujo de SEO: investigación de keywords, optimización de contenido y reportes con IA" },
+  { category: "productivity", keywords: ["inventory management AI", "gestión inventario IA", "stock automation"], geo: "latam", topic_en: "AI inventory management for small businesses: predict demand and automate restocking", topic_es: "Gestión de inventario con IA para pymes: predice demanda y automatiza reabastecimiento" },
+  { category: "productivity", keywords: ["document processing AI", "procesamiento documentos IA", "OCR automation"], geo: "global", topic_en: "Process invoices, contracts, and forms automatically with AI document tools", topic_es: "Procesa facturas, contratos y formularios automáticamente con herramientas IA de documentos" },
+  { category: "productivity", keywords: ["AI daily routine", "rutina diaria IA", "morning workflow"], geo: "global", topic_en: "The perfect AI morning routine: automate your first 2 hours of work", topic_es: "La rutina matutina perfecta con IA: automatiza tus primeras 2 horas de trabajo" },
+  { category: "productivity", keywords: ["presentation AI", "presentaciones IA", "slide decks"], geo: "global", topic_en: "From idea to pitch deck in 15 minutes: AI tools for creating presentations", topic_es: "De idea a pitch deck en 15 minutos: herramientas IA para crear presentaciones" },
+  { category: "productivity", keywords: ["lead generation AI", "generación leads IA", "prospecting automation"], geo: "global", topic_en: "AI-powered lead generation: find, qualify, and reach prospects automatically", topic_es: "Generación de leads con IA: encuentra, califica y contacta prospectos automáticamente" },
+  { category: "productivity", keywords: ["translation AI business", "traducción IA negocios", "multilingual content"], geo: "latam", topic_en: "Expand to new markets: AI translation and localization tools for businesses", topic_es: "Expande a nuevos mercados: herramientas IA de traducción y localización para negocios" },
 
-  // Productivity
-  { category: "productivity", keywords: ["productividad IA empresas", "AI productivity business", "automatización tareas"], geo: "global", topic_en: "10 ways AI agents are transforming daily business operations in 2026", topic_es: "10 formas en que los agentes de IA están transformando las operaciones diarias de negocio en 2026" },
-  { category: "productivity", keywords: ["Claude skills trabajo", "Claude work skills", "AI assistant customization"], geo: "global", topic_en: "How to customize Claude for your specific industry with professional skills", topic_es: "Cómo personalizar Claude para tu industria específica con skills profesionales" },
-  { category: "productivity", keywords: ["automatización marketing IA", "AI marketing automation", "content generation"], geo: "latam", topic_en: "AI-powered marketing automation: from content to campaigns in minutes", topic_es: "Automatización de marketing con IA: de contenido a campañas en minutos" },
-  { category: "productivity", keywords: ["IA para abogados", "AI for lawyers", "legal tech"], geo: "latam", topic_en: "How lawyers are using AI agents to review contracts 10x faster", topic_es: "Cómo los abogados usan agentes de IA para revisar contratos 10 veces más rápido" },
-  { category: "productivity", keywords: ["IA recursos humanos", "AI human resources", "HR automation"], geo: "global", topic_en: "AI in HR: automating recruitment, onboarding, and performance reviews", topic_es: "IA en RRHH: automatizando reclutamiento, onboarding y evaluaciones de desempeño" },
-  { category: "productivity", keywords: ["IA finanzas", "AI finance", "financial analysis automation"], geo: "global", topic_en: "Financial analysis with AI agents: from spreadsheets to strategic insights", topic_es: "Análisis financiero con agentes de IA: de hojas de cálculo a insights estratégicos" },
-  { category: "productivity", keywords: ["IA para equipos", "AI for teams", "team productivity"], geo: "global", topic_en: "Setting up AI agents for your entire team: a step-by-step guide", topic_es: "Configurando agentes de IA para todo tu equipo: guía paso a paso" },
-  { category: "productivity", keywords: ["IA educación", "AI education", "teaching with AI"], geo: "latam", topic_en: "How educators are leveraging AI agents to create personalized learning experiences", topic_es: "Cómo los educadores aprovechan agentes de IA para crear experiencias de aprendizaje personalizadas" },
+  // ═══ AGENTS (~12 topics) ═══
+  { category: "agents", keywords: ["Claude features 2026", "novedades Claude", "Claude assistant"], geo: "global", topic_en: "Claude in 2026: new features that make it the most versatile AI assistant", topic_es: "Claude en 2026: nuevas funciones que lo convierten en el asistente IA más versátil" },
+  { category: "agents", keywords: ["Manus AI agent", "agente Manus IA", "autonomous agent"], geo: "global", topic_en: "What is Manus and why everyone is talking about autonomous AI agents", topic_es: "Qué es Manus y por qué todos hablan de agentes de IA autónomos" },
+  { category: "agents", keywords: ["Cursor AI non developers", "Cursor IA no programadores", "AI coding assistant"], geo: "global", topic_en: "Cursor for non-developers: how to use an AI coding assistant without writing code", topic_es: "Cursor para no-programadores: cómo usar un asistente de código IA sin escribir código" },
+  { category: "agents", keywords: ["Antigravity AI", "agente Antigravity", "browser automation"], geo: "global", topic_en: "Antigravity: the AI agent that browses the web and completes tasks for you", topic_es: "Antigravity: el agente de IA que navega la web y completa tareas por ti" },
+  { category: "agents", keywords: ["Gemini 2025 features", "Gemini funciones", "Google AI assistant"], geo: "global", topic_en: "Gemini's latest features: what Google's AI can do for your daily work", topic_es: "Las últimas funciones de Gemini: qué puede hacer la IA de Google por tu trabajo diario" },
+  { category: "agents", keywords: ["OpenAI agent mode", "modo agente OpenAI", "ChatGPT agents"], geo: "global", topic_en: "OpenAI's agent mode explained: what it means for business users", topic_es: "El modo agente de OpenAI explicado: qué significa para usuarios de negocios" },
+  { category: "agents", keywords: ["ClawBot AI", "agente ClawBot", "open source agent"], geo: "global", topic_en: "ClawBot: the open-source AI agent taking on Claude and GPT", topic_es: "ClawBot: el agente de IA open-source que compite con Claude y GPT" },
+  { category: "agents", keywords: ["multi-agent collaboration", "colaboración multi-agente", "agent orchestration"], geo: "global", topic_en: "Multi-agent workflows: how to make AI agents work together on complex tasks", topic_es: "Flujos multi-agente: cómo hacer que agentes de IA trabajen juntos en tareas complejas" },
+  { category: "agents", keywords: ["compare AI agents 2026", "comparar agentes IA", "Claude vs Gemini vs GPT"], geo: "global", topic_en: "Claude vs Gemini vs GPT vs Manus: which AI assistant fits your workflow?", topic_es: "Claude vs Gemini vs GPT vs Manus: ¿qué asistente IA se adapta a tu flujo de trabajo?" },
+  { category: "agents", keywords: ["AI agent beginners guide", "guía principiantes agentes IA", "what are AI agents"], geo: "global", topic_en: "AI agents for beginners: what they are, how they work, and how to start using them today", topic_es: "Agentes de IA para principiantes: qué son, cómo funcionan y cómo empezar a usarlos hoy" },
+  { category: "agents", keywords: ["AI agent skills", "skills agentes IA", "extend AI capabilities"], geo: "global", topic_en: "What are AI skills and why they're the next big thing for AI assistants", topic_es: "Qué son las skills de IA y por qué son la próxima gran novedad de los asistentes IA" },
+  { category: "agents", keywords: ["AI agent security tools", "herramientas seguridad agentes IA", "safe AI agents"], geo: "global", topic_en: "How to make sure the AI agent you're using is safe: a non-technical checklist", topic_es: "Cómo asegurarte de que el agente de IA que usas es seguro: checklist no técnico" },
 
-  // MCP ecosystem
-  { category: "mcp", keywords: ["MCP protocol", "protocolo MCP", "Model Context Protocol"], geo: "global", topic_en: "Understanding the Model Context Protocol (MCP): the standard for AI tool integration", topic_es: "Entendiendo el Model Context Protocol (MCP): el estándar para integración de herramientas IA" },
-  { category: "mcp", keywords: ["MCP vs API", "MCP comparación API", "AI integrations"], geo: "global", topic_en: "MCP vs traditional APIs: why the AI industry is shifting to a new standard", topic_es: "MCP vs APIs tradicionales: por qué la industria de IA está migrando a un nuevo estándar" },
-  { category: "mcp", keywords: ["crear servidor MCP", "build MCP server", "MCP development"], geo: "global", topic_en: "How to build your first MCP server: a developer's guide", topic_es: "Cómo construir tu primer servidor MCP: guía para desarrolladores" },
-  { category: "mcp", keywords: ["MCP connectors", "conectores MCP", "GitHub Slack MCP"], geo: "global", topic_en: "Top 20 MCP connectors every developer should know about", topic_es: "Los 20 conectores MCP más importantes que todo desarrollador debería conocer" },
-  { category: "mcp", keywords: ["MCP enterprise", "MCP empresas", "enterprise AI integration"], geo: "global", topic_en: "MCP in the enterprise: how large organizations are adopting tool-use AI", topic_es: "MCP en la empresa: cómo las grandes organizaciones están adoptando IA con uso de herramientas" },
+  // ═══ INDUSTRY (~10 topics) ═══
+  { category: "industry", keywords: ["IA abogados contratos", "AI lawyers contracts", "legal automation"], geo: "latam", topic_en: "How lawyers are using AI agents to review contracts 10x faster", topic_es: "Cómo los abogados usan agentes de IA para revisar contratos 10 veces más rápido" },
+  { category: "industry", keywords: ["AI sales pipeline", "pipeline ventas IA", "sales automation"], geo: "global", topic_en: "AI-powered sales pipelines: from lead to close without the busywork", topic_es: "Pipelines de ventas con IA: del lead al cierre sin trabajo tedioso" },
+  { category: "industry", keywords: ["AI marketing campaigns", "campañas marketing IA", "campaign automation"], geo: "global", topic_en: "Launch marketing campaigns 5x faster with AI: a step-by-step playbook", topic_es: "Lanza campañas de marketing 5 veces más rápido con IA: guía paso a paso" },
+  { category: "industry", keywords: ["IA ecommerce ventas", "AI ecommerce sales", "online store automation"], geo: "global", topic_en: "E-commerce + AI: automate product descriptions, customer service, and inventory", topic_es: "E-commerce + IA: automatiza descripciones de producto, atención al cliente e inventario" },
+  { category: "industry", keywords: ["AI education teachers", "IA educación profesores", "personalized learning"], geo: "latam", topic_en: "AI tools for teachers: create lesson plans, quizzes, and feedback in minutes", topic_es: "Herramientas IA para profesores: crea planes de clase, evaluaciones y retroalimentación en minutos" },
+  { category: "industry", keywords: ["AI freelancers productivity", "IA freelancers productividad", "solopreneur"], geo: "global", topic_en: "The freelancer's AI toolkit: 7 tools that replace an entire team", topic_es: "El toolkit de IA del freelancer: 7 herramientas que reemplazan un equipo completo" },
+  { category: "industry", keywords: ["AI consulting firms", "IA consultoras", "consulting automation"], geo: "global", topic_en: "How consulting firms are using AI to deliver insights 3x faster", topic_es: "Cómo las consultoras están usando IA para entregar insights 3 veces más rápido" },
+  { category: "industry", keywords: ["AI real estate", "IA inmobiliaria", "property management AI"], geo: "latam", topic_en: "AI for real estate: automate listings, client follow-ups, and market analysis", topic_es: "IA para inmobiliarias: automatiza listings, seguimiento de clientes y análisis de mercado" },
+  { category: "industry", keywords: ["IA contabilidad pymes", "AI accounting SMB", "bookkeeping automation"], geo: "latam", topic_en: "AI-powered accounting for small businesses: invoicing, reconciliation, and tax prep", topic_es: "Contabilidad con IA para pymes: facturación, conciliación y preparación fiscal" },
+  { category: "industry", keywords: ["AI healthcare clinics", "IA clínicas salud", "patient management"], geo: "latam", topic_en: "AI tools for healthcare clinics: patient scheduling, records, and follow-ups", topic_es: "Herramientas IA para clínicas: agendamiento, expedientes y seguimiento de pacientes" },
 
-  // Industry
-  { category: "industry", keywords: ["IA salud", "AI healthcare", "medical AI agents"], geo: "latam", topic_en: "AI agents in healthcare: improving diagnosis support and patient management", topic_es: "Agentes de IA en salud: mejorando el soporte diagnóstico y la gestión de pacientes" },
-  { category: "industry", keywords: ["IA ecommerce", "AI ecommerce", "online store automation"], geo: "global", topic_en: "How e-commerce businesses are using AI agents to boost sales and customer service", topic_es: "Cómo los negocios de e-commerce usan agentes de IA para impulsar ventas y servicio al cliente" },
-  { category: "industry", keywords: ["IA startups", "AI startups", "startup productivity"], geo: "global", topic_en: "Why startups that adopt AI agents early are outperforming competitors", topic_es: "Por qué las startups que adoptan agentes de IA temprano superan a sus competidores" },
-  { category: "industry", keywords: ["IA contabilidad", "AI accounting", "automated bookkeeping"], geo: "latam", topic_en: "AI-powered accounting: automating invoicing, reconciliation, and tax prep", topic_es: "Contabilidad con IA: automatizando facturación, conciliación y preparación fiscal" },
-  { category: "industry", keywords: ["IA diseño", "AI design", "creative AI tools"], geo: "global", topic_en: "AI tools for designers: from wireframes to brand guidelines in minutes", topic_es: "Herramientas IA para diseñadores: de wireframes a guías de marca en minutos" },
-  { category: "industry", keywords: ["IA ventas", "AI sales", "sales automation"], geo: "global", topic_en: "Sales teams + AI agents: automating prospecting, follow-ups, and pipeline management", topic_es: "Equipos de ventas + agentes de IA: automatizando prospección, seguimiento y gestión de pipeline" },
+  // ═══ SECURITY (~5 topics, non-technical framing) ═══
+  { category: "security", keywords: ["AI tool safety checklist", "checklist seguridad herramientas IA", "trust score"], geo: "global", topic_en: "Is this AI tool safe? A simple checklist anyone can follow", topic_es: "¿Es segura esta herramienta de IA? Un checklist simple que cualquiera puede seguir" },
+  { category: "security", keywords: ["AI data privacy business", "privacidad datos IA negocios", "data protection"], geo: "global", topic_en: "What happens to your data when you use AI tools: a plain-English guide", topic_es: "Qué pasa con tus datos cuando usas herramientas de IA: guía en lenguaje simple" },
+  { category: "security", keywords: ["AI scam tools fake", "herramientas IA falsas estafas", "typosquatting"], geo: "global", topic_en: "How to spot fake AI tools and avoid scams in 2026", topic_es: "Cómo detectar herramientas de IA falsas y evitar estafas en 2026" },
+  { category: "security", keywords: ["AI permissions business", "permisos IA negocios", "access control"], geo: "global", topic_en: "AI tool permissions explained: what access should you grant and what to avoid", topic_es: "Permisos de herramientas IA explicados: qué acceso dar y qué evitar" },
+  { category: "security", keywords: ["AI compliance small business", "cumplimiento IA pymes", "regulations"], geo: "latam", topic_en: "AI compliance for small businesses: what you need to know in 2026", topic_es: "Cumplimiento de IA para pymes: lo que necesitas saber en 2026" },
+
+  // ═══ MCP (~5 topics, user-friendly framing) ═══
+  { category: "mcp", keywords: ["connect apps AI assistant", "conectar apps asistente IA", "integrations"], geo: "global", topic_en: "How to connect Slack, Gmail, and Notion to your AI assistant", topic_es: "Cómo conectar Slack, Gmail y Notion a tu asistente de IA" },
+  { category: "mcp", keywords: ["AI connectors explained", "conectores IA explicados", "MCP for beginners"], geo: "global", topic_en: "AI connectors explained: give your assistant superpowers without coding", topic_es: "Conectores de IA explicados: dale superpoderes a tu asistente sin programar" },
+  { category: "mcp", keywords: ["best AI integrations 2026", "mejores integraciones IA", "top connectors"], geo: "global", topic_en: "The 15 most useful AI integrations for business teams in 2026", topic_es: "Las 15 integraciones de IA más útiles para equipos de trabajo en 2026" },
+  { category: "mcp", keywords: ["AI automation no code", "automatización IA sin código", "workflow automation"], geo: "global", topic_en: "Build powerful AI automations without code using connectors and skills", topic_es: "Construye automatizaciones de IA poderosas sin código usando conectores y skills" },
+  { category: "mcp", keywords: ["AI tool ecosystem", "ecosistema herramientas IA", "plugins connectors skills"], geo: "global", topic_en: "Skills, connectors, and plugins: understanding the AI tool ecosystem", topic_es: "Skills, conectores y plugins: entendiendo el ecosistema de herramientas de IA" },
 ];
 
 serve(async (req) => {
@@ -78,19 +103,33 @@ serve(async (req) => {
 
     const topic = available[Math.floor(Math.random() * available.length)];
 
-    // Get related skills for internal linking
+    // Get related skills using keyword-based search
+    const topicKeywords = topic.keywords[0] || topic.topic_en;
     const { data: relatedSkills } = await supabase
       .from("skills")
       .select("slug, display_name, display_name_es, tagline, category")
       .eq("status", "approved")
-      .eq("category", topic.category === "industry" ? "general" : topic.category)
-      .order("avg_rating", { ascending: false })
+      .or(`display_name.ilike.%${topicKeywords.split(" ")[0]}%,tagline.ilike.%${topicKeywords.split(" ")[0]}%,category.eq.${topic.category}`)
+      .order("install_count", { ascending: false })
       .limit(5);
 
+    // Get related connectors matching topic keywords
+    const connectorKeyword = topic.keywords[0]?.split(" ")[0] || "";
     const { data: relatedConnectors } = await supabase
       .from("mcp_servers")
       .select("slug, name, description")
       .eq("status", "approved")
+      .or(`name.ilike.%${connectorKeyword}%,description.ilike.%${connectorKeyword}%`)
+      .order("trust_score", { ascending: false })
+      .limit(4);
+
+    // Get related plugins
+    const { data: relatedPlugins } = await supabase
+      .from("plugins")
+      .select("slug, name, description")
+      .eq("status", "approved")
+      .or(`name.ilike.%${connectorKeyword}%,category.eq.${topic.category === "agents" ? "development" : topic.category}`)
+      .order("install_count", { ascending: false })
       .limit(3);
 
     const skillLinks = (relatedSkills || []).map((s: any) =>
@@ -101,17 +140,36 @@ serve(async (req) => {
       `- [${c.name}](/conector/${c.slug}): ${c.description?.slice(0, 100)}`
     ).join("\n");
 
-    const systemPrompt = `You are an expert technical writer specializing in AI agent security, productivity, and the MCP (Model Context Protocol) ecosystem. Write authoritative, SEO-optimized blog articles for Pymaia Skills (pymaiaskills.lovable.app), the #1 AI solutions directory.
+    const pluginLinks = (relatedPlugins || []).map((p: any) =>
+      `- [${p.name}](/plugin/${p.slug}): ${p.description?.slice(0, 100)}`
+    ).join("\n");
+
+    const systemPrompt = `You are a friendly productivity writer for Pymaia Skills (pymaiaskills.lovable.app), the #1 directory of AI tools, skills, connectors, and plugins. Your audience is non-technical business professionals who want to work smarter with AI.
+
+WRITING STYLE:
+- Conversational and practical — like a smart friend showing you shortcuts
+- No jargon unless you explain it immediately in parentheses
+- Use "you" directly — make the reader the hero
+- Include specific step-by-step instructions wherever possible
+- Add before/after comparisons (e.g., "Before: 3 hours. With AI: 10 minutes")
+
+STRUCTURE (mandatory):
+1. Hook: Start with a relatable problem or surprising stat
+2. What/Why: Brief explanation accessible to anyone
+3. How-to: Step-by-step guide with specific tools from the Pymaia catalog
+4. Real use case: A concrete scenario showing the workflow
+5. FAQ section: 3-5 questions with clear answers
+6. Call to action: Point readers to explore tools on the platform
 
 CRITICAL RULES:
-1. Write ~1500 words of genuinely useful, expert-level content
-2. Use markdown formatting with H2 (##) and H3 (###) headers
-3. Include practical examples, actionable advice, and data points
-4. MUST include a FAQ section at the end with 3-5 questions/answers
-5. MUST naturally incorporate internal links to the platform using markdown links
-6. Write with authority — cite industry trends, reference real frameworks
-7. Optimize for featured snippets: use definition paragraphs, numbered lists, comparison tables
-8. Tone: professional but accessible, like a senior consultant explaining to a smart colleague`;
+1. Write ~1500 words of genuinely useful content
+2. Use markdown with ## and ### headers
+3. MUST include internal links to skills, connectors, and plugins from the catalog
+4. Reference specific AI agents (Claude, Gemini, Manus, Cursor, etc.) when relevant
+5. Optimize for SEO: use keywords naturally, write definition paragraphs for featured snippets
+6. Include numbered lists, comparison tables, and actionable takeaways
+7. Every article must answer: "How can I actually DO this today?"
+8. Tone: warm, empowering, practical — never condescending`;
 
     const userPrompt = `Write a blog article about: "${topic.topic_en}"
 
@@ -119,17 +177,21 @@ SEO Keywords to naturally include: ${topic.keywords.join(", ")}
 Category: ${topic.category}
 Geo target: ${topic.geo}
 
-Related tools from our catalog to link to:
-${skillLinks || "No specific skills available"}
+Related AI skills from our catalog (link to these!):
+${skillLinks || "No specific skills — link to /explorar instead"}
 
-Related connectors:
-${connectorLinks || "No specific connectors available"}
+Related connectors (integrations):
+${connectorLinks || "No specific connectors — link to /conectores instead"}
+
+Related plugins:
+${pluginLinks || "No specific plugins — link to /plugins instead"}
 
 Also link to these platform pages where relevant:
-- [Explore all AI solutions](/explorar)
-- [MCP Server](/mcp)
-- [Connectors](/conectores)
-- [Security advisories](/seguridad)
+- [Explore all AI tools](/explorar)
+- [Browse connectors](/conectores)
+- [Browse plugins](/plugins)
+- [Create your own skill](/crear-skill)
+- [Getting started guide](/primeros-pasos)
 
 Return your response using the generate_blog_post tool.`;
 
