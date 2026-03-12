@@ -848,7 +848,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
     const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
       skillQuery,
       supabase.from("mcp_servers")
-        .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status")
+        .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
         .eq("status", "approved")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
         .order("github_stars", { ascending: false }).limit(limit),
