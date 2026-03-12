@@ -518,7 +518,7 @@ mcp.tool("search_connectors", {
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
-    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url";
+    const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url, homepage, docs_url";
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
