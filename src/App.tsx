@@ -66,6 +66,8 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/seguridad" element={<SecurityAdvisories />} />
               <Route path="/api-docs" element={<ApiDocs />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/security" element={<Navigate to="/seguridad" replace />} />
               <Route path="/terminos" element={<Terms />} />
               <Route path="/privacidad" element={<Privacy />} />
