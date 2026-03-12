@@ -422,7 +422,7 @@ export default {
       getTrustReport: "Detailed security/trust breakdown for any skill or connector.",
       whatsNew: "Recent catalog additions (skills, connectors, plugins added in last N days).",
     },
-    },
+    examplesTitle: "Conversation examples",
     examplesTitle: "Conversation examples",
     you: "You",
     claude: "Claude",
