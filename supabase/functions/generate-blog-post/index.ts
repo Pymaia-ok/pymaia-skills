@@ -299,7 +299,7 @@ Return your response using the generate_blog_post tool.`;
       };
       const hint = categoryHints[topic.category] || "showing a modern professional workspace";
       const style = stylePool[Math.floor(Math.random() * stylePool.length)];
-      const imagePrompt = `${style}, ${hint}. Topic: ${article.title_en}. Photorealistic, no text overlays, no futuristic neon, no sci-fi elements. Warm natural colors.`;
+      const imagePrompt = `${style}, ${hint}. Topic: ${article.title_en}. MUST be photorealistic like a stock photograph. Absolutely NO illustrations, NO digital art, NO neon glow, NO futuristic elements, NO sci-fi, NO cartoon, NO infographics, NO text overlays, NO tech diagrams. Real people, real objects, real lighting. Warm natural colors, shallow depth of field.`;
       const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {

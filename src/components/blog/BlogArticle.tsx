@@ -86,7 +86,10 @@ export default function BlogArticle({ post, title, content, isEs }: BlogArticleP
       <div className="prose max-w-none">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
           components={{
+            // Strip any h1 from content — the title is already rendered above
+            h1: ({ children }) => <h2 className="text-2xl font-bold mt-10 mb-4 text-foreground">{children}</h2>,
             a: ({ href, children }) => {
               const isInternal = href?.startsWith("/");
               if (isInternal) {
