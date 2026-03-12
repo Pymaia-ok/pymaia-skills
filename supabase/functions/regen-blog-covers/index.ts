@@ -60,7 +60,7 @@ serve(async (req) => {
     for (const post of postsToProcess) {
       const hint = categoryHints[post.category] || "showing a modern professional workspace";
       const style = stylePool[Math.floor(Math.random() * stylePool.length)];
-      const imagePrompt = `${style}, ${hint}. Topic: ${post.title}. Photorealistic, no text overlays, no futuristic neon, no sci-fi elements, no cartoon illustrations. Warm natural colors, real-world setting.`;
+      const imagePrompt = `${style}, ${hint}. Topic: ${post.title}. MUST be photorealistic like a stock photograph. Absolutely NO illustrations, NO digital art, NO neon glow, NO futuristic elements, NO sci-fi, NO cartoon, NO infographics, NO text overlays, NO tech diagrams. Real people, real objects, real lighting. Warm natural colors, shallow depth of field, real-world setting.`;
 
       console.log(`Generating cover for: ${post.slug}`);
 
