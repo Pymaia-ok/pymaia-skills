@@ -1,0 +1,1 @@
+ALTER TABLE public.blog_posts ADD COLUMN IF NOT EXISTS faq_json jsonb DEFAULT '[]'::jsonb;
