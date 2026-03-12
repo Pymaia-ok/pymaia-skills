@@ -180,7 +180,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "👋 Te extrañamos — Nuevas Skills disponibles",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/logo.png" alt="Pymaia Skills" style="height: 32px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">Hay novedades esperándote</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Hace un tiempo que no te vemos por Pymaia Skills. 
