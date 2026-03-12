@@ -1,55 +1,100 @@
 
 
-## Problem Analysis
 
-The MCP server's search works correctly — querying "instagram" returns 10+ relevant connectors. The issue is **Claude's interpretation and behavior**, not the search engine itself. Specifically:
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-1. Claude confused "Pymaia Instagram connector" with a locally connected/installed connector and abandoned the MCP results to try the browser instead
-2. Tool response format lacks clear **actionable guidance** — it returns raw listings without explaining what to do with the results
-3. The `search_connectors` response doesn't clarify that these are **MCP servers the user can install**, not pre-connected APIs
-4. `solve_goal` is described as the primary tool but Claude sometimes bypasses it for direct search tools, getting less helpful responses
+### Estado: ~99% completado
 
-## Changes
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-### 1. Improve `search_connectors` response format
-**File**: `supabase/functions/mcp-server/index.ts`
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-Add a contextual header to the response that explains what the results are and how to use them:
-```
-"Found {N} MCP connectors for '{query}'. These are installable MCP servers 
-that give your AI agent access to {service}. Pick one and use `get_install_command` 
-or `get_connector_details` for setup instructions."
-```
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-Also include `slug` in the response so Claude can call `get_connector_details` or `get_install_command` next.
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-### 2. Improve `search_connectors` tool description
-Make the description clearer about what connectors ARE and what the user should do with results:
-```
-"Search 500+ installable MCP connectors by name. These are MCP servers users 
-can add to Claude, Cursor, or any AI agent. Returns name, install command, 
-and GitHub stars. Use get_connector_details(slug) for full setup guide."
-```
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-### 3. Improve `explore_directory` and `solve_goal` response with actionable next steps
-Add footer text to results suggesting specific next actions:
-- "Use `get_connector_details('instagram')` for full setup instructions"
-- "Use `get_install_command('instagram')` for the exact install command"
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-### 4. Add `display_name` and `homepage` to connector search results
-Currently `search_connectors` returns description but not homepage/docs — Claude lacks the info to tell the user what the connector actually does beyond a one-liner. Add `homepage, docs_url` to the select query so Claude can provide richer answers.
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-### 5. Enhance response when multiple similar connectors exist
-When searching "instagram" returns 10 results, add a summary header grouping them by use case:
-- Publishing/scheduling
-- Analytics/insights  
-- DMs/messaging
-- Ads (Meta Marketing)
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
-This helps Claude (and the user) pick the right one instead of being overwhelmed.
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-### Files to modify
-| File | Change |
-|------|--------|
-| `supabase/functions/mcp-server/index.ts` | Improve tool descriptions, response headers, result formatting for `search_connectors`, `explore_directory`, and `solve_goal` |
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)
