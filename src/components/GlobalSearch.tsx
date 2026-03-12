@@ -265,10 +265,10 @@ const GlobalSearch = () => {
       {/* Mobile trigger */}
       <button
         onClick={() => setOpen(true)}
-        className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+        className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
         aria-label={t("search.placeholder")}
       >
-        <Search className="w-5 h-5" />
+        <Search className="w-4.5 h-4.5" />
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
