@@ -97,10 +97,8 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Search (desktop only — mobile search is in the mobile actions group) */}
-        <div className="hidden md:contents">
-          <GlobalSearch />
-        </div>
+        {/* Search — single instance for both desktop & mobile */}
+        <GlobalSearch />
 
         {/* Actions (desktop) */}
         <div className="hidden md:flex items-center gap-2">
