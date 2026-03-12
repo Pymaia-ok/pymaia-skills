@@ -1,107 +1,172 @@
 
 
+# Plan: Implementar mejoras Best-in-Class del PRD
 
-## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
+## Estado actual vs PRD
 
-### Estado: ~99% completado
+Basado en el analisis exhaustivo del PRD y el codebase actual, estas son las mejoras implementables ahora (sin infraestructura externa como Stripe, SSO, o sandboxes):
 
-### Fase 0 — Foundation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
-| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
-| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
-| 10+ goal templates iniciales | ✅ 50 templates activos |
-| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
-| Install commands copiables | ✅ En todas las respuestas |
+---
 
-### Fase 1 — Smart Composition ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
-| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
-| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
-| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
-| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
-| 20+ templates adicionales | ✅ 50 total |
-| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
+## Bloque 1: MCP Tools faltantes (P0)
 
-### Fase 2 — Custom Generation ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
-| Genera plugin.json | ✅ Con README completo |
-| Validación de seguridad | ✅ Trust badges + conflict warnings |
-| 50 goal templates | ✅ |
+### 1.1 `update_skill` — Actualizar skill existente
+- Nuevo tool en `mcp-server/index.ts`
+- Requiere auth (API key). Acepta `skill_slug`, `skill_md`, `changelog`
+- Verifica que el `creator_id` coincida con el usuario autenticado
+- Parsea el nuevo SKILL.md via `generate-skill`, actualiza el registro en DB
+- Guarda el changelog en un campo `changelog` (nueva columna en `skills`)
 
-### Fase 3 — Intelligence ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
-| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
-| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
-| `trending_solutions` tool | ✅ Popular goals + templates + installs |
-| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
-| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
+### 1.2 `unpublish_skill` — Remover skill del directorio
+- Nuevo tool en `mcp-server/index.ts`
+- Requiere auth. Acepta `skill_slug`, `reason`
+- Cambia status a `rejected` (soft delete). Solo el creator puede despublicar
+- Retorna cuantas instalaciones activas habia
 
-### Fase 4 — Platform ✅ COMPLETA
-| Item | Estado |
-|---|---|
-| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
-| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
-| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
-| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
-| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
-| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
+### 1.3 `report_goal_outcome` — Feedback post-implementacion
+- Nuevo tool en `mcp-server/index.ts`
+- Acepta `goal`, `outcome` (success/partial/failed), `feedback`, `time_spent`, `would_recommend`
+- Inserta en `recommendation_feedback` con campo extendido
+- Alimenta el recommendation engine
 
-### Items no implementables en esta plataforma
-- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
-- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
+### 1.4 `rate_skill` — Rating desde el agente
+- Nuevo tool en `mcp-server/index.ts`
+- Requiere auth. Acepta `skill_slug`, `rating` (1-5), `comment`
+- Inserta en tabla `reviews`. Trigger existente actualiza `avg_rating`
 
-### Items resueltos con alternativas
-- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
-- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
+### 1.5 `get_personalized_feed` — Feed personalizado
+- Nuevo tool basado en historial de instalaciones del usuario
+- Busca skills populares en las categorias preferidas del usuario
+- Excluye skills ya instaladas
 
-### Tools del MCP v8.5.0 (37 tools)
-1. search_skills, get_skill_details, list_popular_skills, list_new_skills
-2. list_categories, search_by_role, recommend_for_task, compare_skills
-3. search_connectors, get_connector_details, list_popular_connectors
-4. search_plugins, get_plugin_details, list_popular_plugins
-5. explore_directory, get_directory_stats, get_install_command
-6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
-7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
-8. **explain_combination** (Tool synergy analysis)
-9. **rate_recommendation** (Feedback loop)
-10. **generate_custom_skill** (SKILL.md / plugin.json generator)
-11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
-12. **trending_solutions** (Ecosystem trends)
-13. **submit_goal_template** (Community marketplace)
-14. **browse_community_templates** (Template browser)
-15. **agent_analytics** (Performance dashboard)
-16. **a2a_query** (Agent-to-Agent protocol)
-17. **suggest_stack** (Full environment setup recommendation)
-18. **check_compatibility** (Quick compatibility verdict)
-19. **get_setup_guide** (Step-by-step install guide)
-20. **import_skill_from_agent** (Publish SKILL.md from agents)
-21. **get_skill_content** (Read/fork raw SKILL.md) ← NEW v8.5.0
-22. **validate_skill** (Quality check without publishing) ← NEW v8.5.0
-23. **my_skills** (Authenticated user skill management) ← NEW v8.5.0
-24. **semantic_search** (AI-powered vector similarity search) ← NEW v8.5.0
-25. **get_trust_report** (Detailed security/trust breakdown) ← NEW v8.5.0
-26. **whats_new** (Recent catalog additions) ← NEW v8.5.0
+**DB migration**: Agregar columna `changelog` (text, nullable) a tabla `skills`
 
-## Auditoría de Seguridad PRD — Estado Final (~97% completado)
+---
 
-### Capas de escaneo activas (scan-security v6.0)
-1. Secret scanning (15 regex patterns)
-2. Prompt injection (regex + patterns)
-3. Typosquatting (Levenshtein)
-4. Format validation (50KB, encoding, frontmatter)
-5. Hidden content (zero-width, base64, bidi, homoglyph)
-6. MCP scope/permission analysis
-7. Hook static analysis (whitelist/blacklist)
-8. Plugin decomposition + cross-component
-9. Content similarity (Jaccard)
-10. Publisher verification (GitHub API)
-11. Dependency audit (GitHub Advisory API)
-12. LLM analysis (Gemini 2.5 Flash)
+## Bloque 2: Quality Score compuesto (P1)
+
+### 2.1 Calculo del Quality Score
+- Modificar `calculate-trust-score/index.ts` para calcular un `quality_score` compuesto:
+  - Trust Score (25%)
+  - Eval Pass Rate (25%) — de `skill_eval_runs`
+  - User Satisfaction (20%) — `avg_rating` normalizado
+  - Documentation (15%) — tiene description, use_cases, github_url
+  - Freshness (15%) — `last_commit_at` reciente
+- Almacenar en columna existente `quality_score` de la tabla `skills`
+
+### 2.2 UI: Mostrar Quality Score en listings
+- Agregar Quality Score badge en `SkillSidebar.tsx` y `SkillCard.tsx`
+- Formato visual con barra o badge: "Quality: 78/100"
+
+**DB migration**: Ninguna (columna `quality_score` ya existe)
+
+---
+
+## Bloque 3: Decay Detection (P1)
+
+### 3.1 Cron `detect-stale-skills`
+- Nueva logica dentro de `quality-maintenance/index.ts`
+- Skills con `last_commit_at` > 90 dias reciben flag visual
+- Agregar columna `is_stale` (boolean, default false) a `skills`
+- El cron actualiza `is_stale = true` para skills sin actividad
+
+### 3.2 UI: Badge "Potentially Stale"
+- En `TrustBadge.tsx`, mostrar warning si `is_stale = true`
+- Texto: "No actualizado en mas de 90 dias"
+
+**DB migration**: Agregar `is_stale boolean default false` a `skills`, `mcp_servers`, `plugins`
+
+---
+
+## Bloque 4: Verified Publisher badge (P1)
+
+### 4.1 Logica de verificacion
+- Un publisher es "verificado" si tiene `creator_id` con perfil completo (username, avatar, bio no nulos)
+- Agregar `is_verified_publisher boolean default false` a `profiles`
+- El admin puede marcar publishers como verificados
+
+### 4.2 UI: Badge en listings y detail
+- En `SkillSidebar.tsx` y cards: "✅ Verified Publisher"
+- En `TrustBadge.tsx`: ocultar warning "Unverified publisher" si es verificado
+
+**DB migration**: Agregar `is_verified_publisher boolean default false` a `profiles`
+
+---
+
+## Bloque 5: Duplicate Detection en publish (P0)
+
+### 5.1 Similarity check en `import_skill_from_agent`
+- Antes de insertar, buscar skills con nombre similar (trigram similarity > 0.6)
+- Si encuentra duplicados, retornar warning con los slugs similares
+- No bloquear, pero advertir al usuario
+
+---
+
+## Bloque 6: Mejoras al AI Solutions Architect (P2)
+
+### 6.1 Conversational Goal Refinement en `solve_goal`
+- Si el goal es muy corto (< 4 palabras) o ambiguo (confidence < 0.3), retornar preguntas de clarificacion en vez de resultados
+- Formato: `{ status: "needs_clarification", questions: [...] }`
+- El agente puede re-llamar con el goal refinado
+
+### 6.2 `report_goal_outcome` (ya cubierto en Bloque 1)
+
+---
+
+## Bloque 7: Leaderboard de Creadores (P1)
+
+### 7.1 UI: Seccion "Top Creators" en landing
+- Nuevo componente `CreatorLeaderboard.tsx`
+- Query: profiles con mas skills aprobados + mayor avg_rating combinado
+- Mostrar top 10 creadores con avatar, nombre, cantidad de skills, avg rating
+
+### 7.2 MCP Tool: `get_top_creators`
+- Nuevo tool que retorna los top creators con sus stats
+
+---
+
+## Bloque 8: Weekly Digest email (P1)
+
+### 8.1 Edge function `weekly-digest`
+- Cron semanal (lunes 10 AM UTC)
+- Recopila: top 5 skills nuevos, trending goals, catalog growth
+- Envia a todos los leads/usuarios con email via `send-email`
+- Usa secuencia existente de email
+
+### 8.2 Registrar secuencia en `email_sequences`
+- Insertar secuencia "weekly-digest" con un solo paso
+
+**DB migration**: Ninguna
+
+---
+
+## Resumen de cambios
+
+```text
+Archivos a modificar:
+├── supabase/functions/mcp-server/index.ts  (5 nuevos tools)
+├── supabase/functions/calculate-trust-score/index.ts (quality score)
+├── supabase/functions/quality-maintenance/index.ts (decay detection)
+├── supabase/functions/weekly-digest/index.ts (NUEVO)
+├── src/components/TrustBadge.tsx (stale badge, verified publisher)
+├── src/components/skill-detail/SkillSidebar.tsx (quality score)
+├── src/components/SkillCard.tsx (quality badge)
+├── src/components/landing/CreatorLeaderboard.tsx (NUEVO)
+├── src/pages/Index.tsx (agregar leaderboard section)
+├── src/pages/Admin.tsx (nuevo cron en lista)
+└── supabase/config.toml (registrar weekly-digest)
+
+Migraciones DB:
+1. ALTER TABLE skills ADD COLUMN changelog text;
+2. ALTER TABLE skills ADD COLUMN is_stale boolean DEFAULT false;
+3. ALTER TABLE mcp_servers ADD COLUMN is_stale boolean DEFAULT false;
+4. ALTER TABLE plugins ADD COLUMN is_stale boolean DEFAULT false;
+5. ALTER TABLE profiles ADD COLUMN is_verified_publisher boolean DEFAULT false;
+```
+
+## Orden de implementacion sugerido
+
+1. **Sprint 1**: Bloque 1 (MCP tools) + Bloque 5 (duplicate detection) — Funcionalidad core de publish
+2. **Sprint 2**: Bloque 2 (Quality Score) + Bloque 3 (Decay) + Bloque 4 (Verified Publisher) — Quality layer
+3. **Sprint 3**: Bloque 6 (Conversational refinement) + Bloque 7 (Leaderboard) + Bloque 8 (Weekly Digest) — Engagement
+
