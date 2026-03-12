@@ -381,7 +381,7 @@ export default {
     step3Title: "¡Listo! Solo necesitás hacer esto una vez",
     step3Desc: "La próxima vez que hables con Claude sobre una tarea, va a buscar skills relevantes automáticamente.",
     toolsTitle: "Herramientas disponibles",
-    toolsSubtitle: "31 herramientas organizadas por categoría. Claude las usa automáticamente.",
+    toolsSubtitle: "37 herramientas organizadas en 6 categorías. Claude las usa automáticamente.",
     toolGroupDiscovery: "Descubrimiento (10)",
     toolGroupArchitect: "AI Solutions Architect (8)",
     toolGroupGeneration: "Generación (2)",
