@@ -150,13 +150,25 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "🔥 Skills recomendadas para vos",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/logo.png" alt="Pymaia Skills" style="height: 32px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">Más Skills para tu stack</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
-          Ya probaste ${data.skill_name || 'tu primera Skill'}. 
+          Ya probaste ${data.skill_name || 'Skill Creator'}. 
           Basado en tu interés, te recomendamos explorar más:
         </p>
-        <a href="https://pymaiaskills.lovable.app/explorar" style="display: inline-block; background: #0a0a0a; color: #fafafa; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500;">
+        <div style="border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin: 16px 0;">
+          <p style="margin: 0; font-weight: 600;">📊 Data Analyst Pro</p>
+          <p style="color: #737373; margin: 4px 0 0;">Análisis de datos con lenguaje natural</p>
+        </div>
+        <div style="border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin: 16px 0;">
+          <p style="margin: 0; font-weight: 600;">✍️ Content Writer</p>
+          <p style="color: #737373; margin: 4px 0 0;">Generación de contenido optimizado para SEO</p>
+        </div>
+        <div style="border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin: 16px 0;">
+          <p style="margin: 0; font-weight: 600;">📋 Project Manager AI</p>
+          <p style="color: #737373; margin: 4px 0 0;">Gestión de proyectos con IA integrada</p>
+        </div>
+        <a href="https://pymaiaskills.lovable.app/explorar" style="display: inline-block; background: #0a0a0a; color: #fafafa; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; margin-top: 16px;">
           Descubrir más Skills →
         </a>
         <p style="color: #a3a3a3; font-size: 13px; margin-top: 32px;">Pymaia Skills</p>
