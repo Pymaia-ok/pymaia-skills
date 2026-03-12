@@ -476,6 +476,9 @@ const CrearSkill = () => {
                 onPlayground={() => setStep("playground")}
                 isRefining={isRefining}
                 isTesting={isTesting}
+                onAutoImprove={handleAutoImprove}
+                isAutoImproving={isAutoImproving}
+                autoImproveIterations={autoImproveIterations}
               />
             </div>
           </div>
