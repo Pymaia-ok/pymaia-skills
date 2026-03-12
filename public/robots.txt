@@ -48,6 +48,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://pymaiaskills.lovable.app/sitemap.xml
+Sitemap: https://zugqvdqactbhzlilwyds.supabase.co/functions/v1/blog-sitemap
 
 # LLM Discovery — https://llmstxt.org
 # llms.txt: https://pymaiaskills.lovable.app/llms.txt

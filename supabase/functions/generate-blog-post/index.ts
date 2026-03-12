@@ -321,6 +321,7 @@ Return your response using the generate_blog_post tool.`;
       related_connector_slugs: (relatedConnectors || []).map((c: any) => c.slug),
       reading_time_minutes: readingTime,
       cover_image_url: coverImageUrl,
+      faq_json: article.faq_items || [],
       status: "published",
     });
 
@@ -345,6 +346,7 @@ Return your response using the generate_blog_post tool.`;
           related_connector_slugs: (relatedConnectors || []).map((c: any) => c.slug),
           reading_time_minutes: readingTime,
           cover_image_url: coverImageUrl,
+          faq_json: article.faq_items || [],
           status: "published",
         });
       } else {
