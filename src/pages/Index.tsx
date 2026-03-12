@@ -13,6 +13,7 @@ import PluginsSection from "@/components/landing/PluginsSection";
 import BundlesSection from "@/components/landing/BundlesSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import McpBannerSection from "@/components/landing/McpBannerSection";
+import BlogSection from "@/components/landing/BlogSection";
 
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
@@ -100,7 +101,9 @@ const Index = () => {
         <TwoPathsSection />
         {/* 12. Skill Creator */}
         <SkillCreatorSection />
-        {/* 13. MCP banner */}
+        {/* 13. Blog / Articles */}
+        <BlogSection />
+        {/* 14. MCP banner */}
         <McpBannerSection />
         {/* 14. Final CTA */}
         <FinalCTA />

@@ -1,99 +1,100 @@
 
 
-## Blog / Artículos SEO Auto-generados
 
-### Concepto
-Agregar un sistema de blog con artículos generados automáticamente por IA sobre seguridad de agentes IA, productividad con IA, y temas del ecosistema MCP. Un cron diario genera 2-3 artículos de alta calidad con keywords SEO y geo-targeting, publicándolos automáticamente.
+## PRD Pymaia Agent — Auditoría de Implementación (MCP v8.2.0)
 
-### Arquitectura
+### Estado: ~99% completado
 
-**Base de datos**: Nueva tabla `blog_posts` con campos para SEO (meta_description, keywords, slug, canonical), contenido bilingüe (ES/EN), y estado de publicación.
+### Fase 0 — Foundation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Vector embeddings / semantic search | ⚠️ No implementable (requiere pgvector/Pinecone) — mitigado con keyword + trigram + FTS |
+| Cross-type search (skills+MCPs+plugins) | ✅ `explore_directory` + `crossCatalogSearch` |
+| `solve_goal` tool | ✅ Con dual options A/B, trust scores, install steps |
+| 10+ goal templates iniciales | ✅ 50 templates activos |
+| `get_role_kit` con 5+ roles | ✅ 14 roles soportados |
+| Install commands copiables | ✅ En todas las respuestas |
 
-**Edge Function `generate-blog-post`**: Ejecutada por cron 3x/día. Usa Gemini 2.5 Flash para generar artículos de ~1500 palabras con:
-- Keywords SEO pre-definidos por categoría (seguridad IA, MCP, productividad, industrias)
-- Geo-targeting (LATAM, España, global)
-- Links internos a skills/conectores/plugins relevantes del catálogo
-- Estructura optimizada (H2/H3, listas, FAQ schema markup)
+### Fase 1 — Smart Composition ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Compatibility matrix v1 | ✅ Tabla + auto-populated via co-install analysis |
+| Solution Composer (Options A vs B) | ✅ En `solve_goal` |
+| Trust Score integration | ✅ Badges 🟢🟡⚪ en todas las recomendaciones |
+| Security warnings en combinaciones | ✅ Conflict/Redundant/Synergy detection |
+| `explain_combination` tool | ✅ Con dependencies, credentials, install order |
+| 20+ templates adicionales | ✅ 50 total |
+| `rate_recommendation` feedback | ✅ Almacena en `recommendation_feedback` |
 
-**Frontend**:
-- Sección en landing (`BlogSection`) mostrando los 3 artículos más recientes
-- Página `/blog` con listado paginado y filtros por categoría
-- Página `/blog/:slug` con artículo completo, SEO meta tags, JSON-LD Article schema
-- Sidebar con skills relacionados del catálogo
+### Fase 2 — Custom Generation ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| `generate_custom_skill` | ✅ SKILL.md con Decision Tree, Workflow, Dependencies |
+| Genera plugin.json | ✅ Con README completo |
+| Validación de seguridad | ✅ Trust badges + conflict warnings |
+| 50 goal templates | ✅ |
 
-### Tabla `blog_posts`
+### Fase 3 — Intelligence ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Auto-generated templates (queries frecuentes) | ✅ `discover-trending-skills` intelligence mode |
+| Co-installation analysis | ✅ Popula `compatibility_matrix` automáticamente |
+| Recommendation personalization (user history) | ✅ `solve_goal` acepta `user_id`, deprioritiza instalados, boost categorías preferidas |
+| `trending_solutions` tool | ✅ Popular goals + templates + installs |
+| A/B testing de composiciones | ✅ Hash-based deterministic variant assignment en `solve_goal` con tracking en `agent_analytics` |
+| API pública para terceros | ✅ `a2a_query` tool (A2A protocol) |
 
-```sql
-CREATE TABLE public.blog_posts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug text UNIQUE NOT NULL,
-  title text NOT NULL,
-  title_es text,
-  excerpt text NOT NULL,
-  excerpt_es text,
-  content text NOT NULL,        -- markdown
-  content_es text,
-  meta_description text,
-  meta_description_es text,
-  keywords text[] DEFAULT '{}',
-  category text DEFAULT 'security',  -- security, productivity, mcp, industry
-  geo_target text DEFAULT 'global',  -- latam, spain, global
-  related_skill_slugs text[] DEFAULT '{}',
-  related_connector_slugs text[] DEFAULT '{}',
-  cover_image_prompt text,      -- para generar con IA si se quiere
-  status text DEFAULT 'published',
-  reading_time_minutes int DEFAULT 5,
-  view_count int DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-```
+### Fase 4 — Platform ✅ COMPLETA
+| Item | Estado |
+|---|---|
+| Marketplace de community templates | ✅ `submit_goal_template` + `browse_community_templates` |
+| Enterprise custom catalogs | ✅ Tabla `enterprise_catalogs` creada |
+| Multi-agent A2A | ✅ `a2a_query` con capabilities/search/recommend/catalog_stats |
+| Analytics dashboard | ✅ `agent_analytics` tool + tabla |
+| Premium role kits | ✅ Tiered kits (essentials/advanced) sin billing — `get_role_kit` con `tier` param |
+| Integración con SkillForge | ✅ `suggest_for_skill_creation` tool — sugiere MCPs, skills similares, y bloque de dependencies |
 
-RLS: lectura pública para `status = 'published'`, escritura solo service_role.
+### Items no implementables en esta plataforma
+- **Semantic search con embeddings** — requiere pgvector/Pinecone, mitigado con keyword + trigram + FTS + AI re-ranking
+- **Premium billing** — requiere Stripe integration (tiered kits implementados como workaround)
 
-### Edge Function `generate-blog-post`
+### Items resueltos con alternativas
+- **ML intent classifier** — ✅ Implementado via Gemini 2.5 Flash Lite (tool calling para clasificación estructurada)
+- **A/B testing framework** — ✅ Implementado con hash-based deterministic assignment + tracking en agent_analytics
 
-1. Consulta un pool de ~50 topic templates con keywords SEO rotativas
-2. Verifica que no se repitan temas recientes (últimos 30 días)
-3. Genera artículo con Gemini 2.5 Flash incluyendo:
-   - Título optimizado para CTR
-   - Meta description < 160 chars
-   - Contenido con headers, listas, ejemplos prácticos
-   - Links internos a `/skill/`, `/conector/`, `/plugin/` relevantes
-   - FAQ section (para featured snippets de Google)
-4. Genera versión en español e inglés
-5. Inserta en `blog_posts` con status `published`
+### Tools del MCP v8.3.0 (31 tools)
+1. search_skills, get_skill_details, list_popular_skills, list_new_skills
+2. list_categories, search_by_role, recommend_for_task, compare_skills
+3. search_connectors, get_connector_details, list_popular_connectors
+4. search_plugins, get_plugin_details, list_popular_plugins
+5. explore_directory, get_directory_stats, get_install_command
+6. **solve_goal** (AI Solutions Architect core — now with user_id personalization)
+7. **get_role_kit** (Role-based recommendations — now with tiered essentials/advanced)
+8. **explain_combination** (Tool synergy analysis)
+9. **rate_recommendation** (Feedback loop)
+10. **generate_custom_skill** (SKILL.md / plugin.json generator)
+11. **suggest_for_skill_creation** (SkillForge ↔ Agent integration)
+12. **trending_solutions** (Ecosystem trends)
+13. **submit_goal_template** (Community marketplace)
+14. **browse_community_templates** (Template browser)
+15. **agent_analytics** (Performance dashboard)
+16. **a2a_query** (Agent-to-Agent protocol)
+17. **suggest_stack** (Full environment setup recommendation) ← NEW v8.3.0
+18. **check_compatibility** (Quick compatibility verdict) ← NEW v8.3.0
+19. **get_setup_guide** (Step-by-step install guide) ← NEW v8.3.0
 
-**Cron**: 3 ejecuciones diarias (09:00, 14:00, 19:00 UTC)
+## Auditoría de Seguridad PRD — Estado Final (~97% completado)
 
-### Páginas Frontend
-
-| Ruta | Componente | Descripción |
-|------|-----------|-------------|
-| Landing section | `BlogSection` | 3 cards con últimos artículos |
-| `/blog` | `Blog.tsx` | Listado paginado + filtros categoría |
-| `/blog/:slug` | `BlogPost.tsx` | Artículo completo con SEO |
-
-### SEO Features
-- JSON-LD `Article` schema en cada post
-- `og:type = article` meta tags
-- Sitemap dinámico actualizado
-- Internal linking automático al catálogo
-- FAQ schema para featured snippets
-- Breadcrumbs structured data
-
-### Cambios
-
-| Archivo | Cambio |
-|---------|--------|
-| DB migration | Crear tabla `blog_posts` |
-| `supabase/functions/generate-blog-post/index.ts` | Edge function de generación |
-| Cron job SQL | 3 ejecuciones diarias |
-| `src/pages/Blog.tsx` | Listado de artículos |
-| `src/pages/BlogPost.tsx` | Artículo individual |
-| `src/components/landing/BlogSection.tsx` | Sección en landing |
-| `src/pages/Index.tsx` | Agregar BlogSection |
-| `src/App.tsx` | Rutas `/blog` y `/blog/:slug` |
-| `src/i18n/es.ts` + `en.ts` | Traducciones |
-| `src/lib/api.ts` | Funciones fetch blog |
-
+### Capas de escaneo activas (scan-security v6.0)
+1. Secret scanning (15 regex patterns)
+2. Prompt injection (regex + patterns)
+3. Typosquatting (Levenshtein)
+4. Format validation (50KB, encoding, frontmatter)
+5. Hidden content (zero-width, base64, bidi, homoglyph)
+6. MCP scope/permission analysis
+7. Hook static analysis (whitelist/blacklist)
+8. Plugin decomposition + cross-component
+9. Content similarity (Jaccard)
+10. Publisher verification (GitHub API)
+11. Dependency audit (GitHub Advisory API)
+12. LLM analysis (Gemini 2.5 Flash)
