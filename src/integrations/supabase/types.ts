@@ -566,6 +566,7 @@ export type Database = {
           description: string
           description_es: string | null
           docs_url: string | null
+          embedding: string | null
           external_use_count: number | null
           github_stars: number | null
           github_url: string | null
@@ -599,6 +600,7 @@ export type Database = {
           description?: string
           description_es?: string | null
           docs_url?: string | null
+          embedding?: string | null
           external_use_count?: number | null
           github_stars?: number | null
           github_url?: string | null
@@ -632,6 +634,7 @@ export type Database = {
           description?: string
           description_es?: string | null
           docs_url?: string | null
+          embedding?: string | null
           external_use_count?: number | null
           github_stars?: number | null
           github_url?: string | null
@@ -705,6 +708,7 @@ export type Database = {
           creator_id: string | null
           description: string
           description_es: string | null
+          embedding: string | null
           github_stars: number
           github_url: string | null
           homepage: string | null
@@ -739,6 +743,7 @@ export type Database = {
           creator_id?: string | null
           description?: string
           description_es?: string | null
+          embedding?: string | null
           github_stars?: number
           github_url?: string | null
           homepage?: string | null
@@ -773,6 +778,7 @@ export type Database = {
           creator_id?: string | null
           description?: string
           description_es?: string | null
+          embedding?: string | null
           github_stars?: number
           github_url?: string | null
           homepage?: string | null
@@ -1242,6 +1248,7 @@ export type Database = {
           description_human_es: string | null
           display_name: string
           display_name_es: string | null
+          embedding: string | null
           github_stars: number
           github_url: string | null
           id: string
@@ -1287,6 +1294,7 @@ export type Database = {
           description_human_es?: string | null
           display_name: string
           display_name_es?: string | null
+          embedding?: string | null
           github_stars?: number
           github_url?: string | null
           id?: string
@@ -1332,6 +1340,7 @@ export type Database = {
           description_human_es?: string | null
           display_name?: string
           display_name_es?: string | null
+          embedding?: string | null
           github_stars?: number
           github_url?: string | null
           id?: string
@@ -1440,6 +1449,7 @@ export type Database = {
           description_human_es: string | null
           display_name: string
           display_name_es: string | null
+          embedding: string | null
           github_stars: number
           github_url: string | null
           id: string
@@ -1522,6 +1532,41 @@ export type Database = {
           target_roles: string[]
           time_to_install_minutes: number
           total_count: number
+          use_cases: Json
+          video_url: string
+        }[]
+      }
+      semantic_search_skills: {
+        Args: {
+          filter_category?: string
+          filter_roles?: string[]
+          match_count?: number
+          query_embedding: string
+          similarity_threshold?: number
+        }
+        Returns: {
+          avg_rating: number
+          category: string
+          created_at: string
+          creator_id: string
+          description_human: string
+          description_human_es: string
+          display_name: string
+          display_name_es: string
+          github_stars: number
+          github_url: string
+          id: string
+          industry: string[]
+          install_command: string
+          install_count: number
+          review_count: number
+          similarity_score: number
+          slug: string
+          status: string
+          tagline: string
+          tagline_es: string
+          target_roles: string[]
+          time_to_install_minutes: number
           use_cases: Json
           video_url: string
         }[]
