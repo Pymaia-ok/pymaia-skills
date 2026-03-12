@@ -787,8 +787,8 @@ mcp.tool("explore_directory", {
 
     const [skills, connectorsRaw, plugins] = await Promise.all([
       searchTable("skills", "display_name, tagline, slug, category, install_count, install_command", "install_count"),
-      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official", "github_stars"),
-      searchTable("plugins", "name, description, slug, category, platform, install_count, is_official", "install_count"),
+      searchTable("mcp_servers", "name, description, slug, category, github_stars, is_official, install_command, homepage", "github_stars"),
+      searchTable("plugins", "name, description, slug, category, platform, install_count, is_official, homepage", "install_count"),
     ]);
 
     const connectors = deduplicateConnectors(connectorsRaw);
@@ -796,18 +796,21 @@ mcp.tool("explore_directory", {
     const sections: string[] = [];
 
     if (skills.length > 0) {
-      sections.push("## 🧠 Skills\n\n" + skills.map((s: any) => `- **${s.display_name}** [${s.category}] — ${s.tagline}\n  \`${s.install_command}\``).join("\n"));
+      sections.push("## 🧠 Skills\n\n" + skills.map((s: any) => `- **${s.display_name}** (\`${s.slug}\`) [${s.category}] — ${s.tagline}\n  \`${s.install_command}\``).join("\n"));
     }
     if (connectors.length > 0) {
-      sections.push("## 🔌 MCP Connectors\n\n" + connectors.map((c: any) => `- **${c.name}** [${c.category}]${c.is_official ? " ✅" : ""} — ${c.description}`).join("\n"));
+      sections.push("## 🔌 MCP Connectors (installable servers)\n\n" + connectors.map((c: any) => `- **${c.name}** (\`${c.slug}\`) [${c.category}]${c.is_official ? " ✅" : ""} — ${c.description}${c.install_command ? `\n  Install: \`${c.install_command}\`` : ""}${c.homepage ? ` · ${c.homepage}` : ""}`).join("\n"));
     }
     if (plugins.length > 0) {
-      sections.push("## 🧩 Plugins\n\n" + plugins.map((p: any) => `- **${p.name}** [${p.category}] (${p.platform}) — ${p.description}`).join("\n"));
+      sections.push("## 🧩 Plugins\n\n" + plugins.map((p: any) => `- **${p.name}** (\`${p.slug}\`) [${p.category}] (${p.platform}) — ${p.description}${p.homepage ? ` · ${p.homepage}` : ""}`).join("\n"));
     }
 
     if (sections.length === 0) return { content: [{ type: "text" as const, text: `No results found for "${args.query}".` }] };
 
-    return { content: [{ type: "text" as const, text: `# Directory results for "${args.query}"\n\n${sections.join("\n\n")}` }] };
+    const allSlugs = [...skills.map((s: any) => s.slug), ...connectors.map((c: any) => c.slug), ...plugins.map((p: any) => p.slug)];
+    const footer = allSlugs.length > 0 ? `\n\n---\n💡 **Next steps:** Use \`get_connector_details('${connectors[0]?.slug || allSlugs[0]}')\` for full setup guide, or \`get_install_command('${allSlugs[0]}')\` for the exact install command.` : "";
+
+    return { content: [{ type: "text" as const, text: `# Directory results for "${args.query}"\n\nThese are installable tools you can add to any AI agent (Claude, Cursor, Windsurf, etc.).\n\n${sections.join("\n\n")}${footer}` }] };
   },
 });
 
