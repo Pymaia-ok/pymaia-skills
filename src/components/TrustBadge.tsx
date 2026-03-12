@@ -1,4 +1,4 @@
-import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock, UserX, Fingerprint } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, ShieldQuestion, Award, AlertTriangle, Info, Terminal, Wifi, HardDrive, Clock, UserX, Fingerprint, CalendarClock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 
