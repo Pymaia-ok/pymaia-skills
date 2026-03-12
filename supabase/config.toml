@@ -114,3 +114,6 @@ verify_jwt = false
 
 [functions.skill-raw]
 verify_jwt = false
+
+[functions.refresh-catalog-data]
+verify_jwt = false
