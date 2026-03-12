@@ -1289,7 +1289,6 @@ Deno.serve(async (req) => {
       case "github-search": {
         const defaultTopics = [
           "mcp-server", "claude-skill", "agent-skill", "mcp", "model-context-protocol",
-          // Domain-specific topics
           "cursor-rules", "claude-rules", "ai-rules",
           "ai-agent", "ai-assistant", "llm-tool",
           "prompt-engineering", "ai-workflow",
@@ -1300,6 +1299,8 @@ Deno.serve(async (req) => {
           const results = await fetchGitHubSearch(t);
           discovered.push(...results);
         }
+        // Phase 2: Lightweight monorepo detection for high-star repos
+        await detectMonorepos(supabase, discovered, "github-search");
         break;
       }
       case "github-code-search": {
