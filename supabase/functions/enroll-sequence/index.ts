@@ -13,7 +13,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "🎉 Bienvenido a Pymaia Skills",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a; margin-bottom: 16px;">¡Bienvenido a Pymaia Skills!</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           ${data.name ? `Hola ${data.name},` : 'Hola,'}<br/><br/>
@@ -42,7 +42,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "💡 3 Skills que están transformando equipos",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">¿Ya encontraste tu Skill ideal?</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Estas son las Skills más populares esta semana:
@@ -71,7 +71,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "🛠️ ¿Sabías que podés crear tu propia Skill?",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">Creá tu propia Skill de IA</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Con nuestro asistente guiado, podés crear una Skill personalizada en minutos. 
@@ -98,7 +98,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: `🎯 Instalaste "${data.skill_name}" — Primeros pasos`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">¡Excelente elección!</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Instalaste <strong>${data.skill_name || 'tu nueva Skill'}</strong>. 
@@ -123,7 +123,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: `⭐ ¿Cómo te fue con "${data.skill_name}"?`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">¿Cómo te fue?</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Hace 3 días instalaste <strong>${data.skill_name || 'una Skill'}</strong>. 
@@ -150,7 +150,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "🔥 Skills recomendadas para vos",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">Más Skills para tu stack</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Ya probaste ${data.skill_name || 'Skill Creator'}. 
@@ -180,7 +180,7 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
     subject: "👋 Te extrañamos — Nuevas Skills disponibles",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" style="height: 40px; margin-bottom: 24px;" />
+        <img src="https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" alt="Pymaia Skills" width="40" height="40" style="height: 40px; width: 40px; display: block; margin-bottom: 24px;" />
         <h1 style="font-size: 24px; font-weight: 600; color: #0a0a0a;">Hay novedades esperándote</h1>
         <p style="color: #525252; font-size: 16px; line-height: 1.6;">
           Hace un tiempo que no te vemos por Pymaia Skills. 
