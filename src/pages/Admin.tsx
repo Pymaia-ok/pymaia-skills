@@ -301,8 +301,8 @@ const Admin = () => {
     { name: "Sync plugins", func: "sync-plugins", freq: "Diario 6:00 UTC" },
     { name: "Sync conectores", func: "sync-connectors", freq: "Diario 6:00 UTC" },
     { name: "Discover trending", func: "discover-trending-skills", freq: "Lunes 6:00 UTC" },
-    { name: "Monorepo scan", func: "discover-trending-skills", freq: "Dom 4:00 UTC" },
-    { name: "Monorepo sync", func: "discover-trending-skills", freq: "Dom 5:00 UTC" },
+    { name: "Monorepo scan", func: "discover-trending-skills", freq: "Cada 3 días 4:00 UTC" },
+    { name: "Monorepo sync", func: "discover-trending-skills", freq: "Diario 5:00 UTC" },
   ];
 
   return (
