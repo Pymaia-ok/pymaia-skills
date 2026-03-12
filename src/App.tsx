@@ -27,6 +27,8 @@ import Enterprise from "./pages/Enterprise";
 import NotFound from "./pages/NotFound";
 import SecurityAdvisories from "./pages/SecurityAdvisories";
 import ApiDocs from "./pages/ApiDocs";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 
