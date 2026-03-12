@@ -442,6 +442,15 @@ const CrearSkill = () => {
       <div className="pt-14 flex-1 flex flex-col min-h-0">
         {step === "chat" && (
           <div className="flex-1 flex flex-col min-h-0">
+            {/* Import button */}
+            <div className="flex justify-end px-4 py-2">
+              <button
+                onClick={() => setStep("import")}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+              >
+                ¿Ya tenés un SKILL.md? Importar →
+              </button>
+            </div>
             <SkillChat
               messages={messages}
               setMessages={setMessages}
