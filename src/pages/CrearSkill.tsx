@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import SkillPlayground from "@/components/crear-skill/SkillPlayground";
+import SkillImporter from "@/components/crear-skill/SkillImporter";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { submitSkill, submitPlugin } from "@/lib/api";
@@ -12,11 +13,11 @@ import SkillPublishConfig from "@/components/crear-skill/SkillPublishConfig";
 import type { Msg } from "@/lib/streaming";
 
 interface StepProps {
-  step: "chat" | "preview" | "playground" | "publish";
-  setStep: (step: "chat" | "preview" | "playground" | "publish") => void;
+  step: "chat" | "preview" | "playground" | "publish" | "import";
+  setStep: (step: "chat" | "preview" | "playground" | "publish" | "import") => void;
 }
 
-type Step = "chat" | "preview" | "playground" | "publish";
+type Step = "chat" | "preview" | "playground" | "publish" | "import";
 
 interface RequiredMcp {
   name: string;
