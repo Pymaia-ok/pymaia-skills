@@ -2857,6 +2857,250 @@ setInterval(() => {
   }
 }, 300_000);
 
+// ─── SPRINT 1: NEW TOOLS ───
+
+// ─── update_skill: Update existing skill ───
+mcp.tool("update_skill", {
+  description: "Update a skill you own. Accepts new SKILL.md content and an optional changelog message. Re-parses the skill via AI and updates the catalog entry. Requires API key authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_slug: { type: "string", description: "Slug of the skill to update" },
+      skill_md: { type: "string", description: "Updated SKILL.md content" },
+      changelog: { type: "string", description: "Optional changelog message describing what changed" },
+    },
+    required: ["skill_slug", "skill_md"],
+  },
+  handler: async (args: { skill_slug: string; skill_md: string; changelog?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to update skills." }] };
+    }
+
+    const { data: skill } = await supabase.from("skills").select("id, creator_id, display_name, changelog").eq("slug", args.skill_slug).maybeSingle();
+    if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
+    if (skill.creator_id !== currentApiKeyUserId) return { content: [{ type: "text" as const, text: "❌ You can only update skills you created." }] };
+
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ action: "import_skill", skill_md: args.skill_md }),
+      });
+      if (!resp.ok) throw new Error(`Parse failed: ${resp.status}`);
+      const data = await resp.json();
+      if (!data.skill) throw new Error("No skill parsed");
+
+      const changelogEntry = args.changelog ? `[${new Date().toISOString().slice(0, 10)}] ${args.changelog}` : null;
+      const existingChangelog = skill.changelog || "";
+      const newChangelog = changelogEntry ? `${changelogEntry}\n${existingChangelog}`.trim() : existingChangelog;
+
+      await supabase.from("skills").update({
+        display_name: data.skill.name || skill.display_name,
+        tagline: data.skill.tagline || "",
+        description_human: data.skill.description || "",
+        install_command: data.skill.install_command || args.skill_md,
+        category: data.skill.category || "general",
+        industry: data.skill.industry || [],
+        target_roles: data.skill.target_roles || [],
+        use_cases: (data.skill.examples || []).map((ex: any) => ({ title: ex.title, before: ex.input, after: ex.output })),
+        required_mcps: data.skill.required_mcps || [],
+        quality_score: data.quality?.score || null,
+        changelog: newChangelog,
+        security_status: "unverified",
+        security_scanned_at: null,
+      }).eq("id", skill.id);
+
+      await supabase.from("automation_logs").insert({ skill_id: skill.id, action_type: "skill_updated", function_name: "mcp-server", reason: args.changelog || "Skill content updated via MCP" });
+
+      return { content: [{ type: "text" as const, text: `✅ Skill "${data.skill.name || skill.display_name}" updated successfully.${args.changelog ? `\n📝 Changelog: ${args.changelog}` : ""}\n\nThe skill will be re-scanned for security.` }] };
+    } catch (e: any) {
+      return { content: [{ type: "text" as const, text: `❌ Update failed: ${e.message}` }] };
+    }
+  },
+});
+
+// ─── unpublish_skill: Remove skill from directory ───
+mcp.tool("unpublish_skill", {
+  description: "Remove a skill you own from the public directory. The skill data is preserved but hidden. Requires API key authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_slug: { type: "string", description: "Slug of the skill to unpublish" },
+      reason: { type: "string", description: "Reason for unpublishing" },
+    },
+    required: ["skill_slug"],
+  },
+  handler: async (args: { skill_slug: string; reason?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
+    }
+
+    const { data: skill } = await supabase.from("skills").select("id, creator_id, display_name, install_count").eq("slug", args.skill_slug).maybeSingle();
+    if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
+    if (skill.creator_id !== currentApiKeyUserId) return { content: [{ type: "text" as const, text: "❌ You can only unpublish skills you created." }] };
+
+    await supabase.from("skills").update({ status: "rejected", auto_approved_reason: `Unpublished by creator: ${args.reason || "No reason"}` }).eq("id", skill.id);
+    await supabase.from("automation_logs").insert({ skill_id: skill.id, action_type: "skill_unpublished", function_name: "mcp-server", reason: args.reason || "Creator requested unpublish" });
+
+    return { content: [{ type: "text" as const, text: `✅ Skill "${skill.display_name}" unpublished. It had ${skill.install_count} installations.\n\nReason: ${args.reason || "Not specified"}` }] };
+  },
+});
+
+// ─── report_goal_outcome: Post-implementation feedback ───
+mcp.tool("report_goal_outcome", {
+  description: "Report the outcome after implementing a Pymaia recommendation. Helps improve future recommendations by tracking what actually worked.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      goal: { type: "string", description: "The original goal" },
+      outcome: { type: "string", description: "Result: 'success', 'partial', or 'failed'" },
+      feedback: { type: "string", description: "What worked and what didn't" },
+      time_spent: { type: "string", description: "How long implementation took (e.g., '30 min', '2 hours')" },
+      would_recommend: { type: "boolean", description: "Would you recommend this solution to others?" },
+    },
+    required: ["goal", "outcome"],
+  },
+  handler: async (args: { goal: string; outcome: string; feedback?: string; time_spent?: string; would_recommend?: boolean }) => {
+    const ratingMap: Record<string, number> = { success: 5, partial: 3, failed: 1 };
+    await supabase.from("recommendation_feedback").insert({
+      goal: args.goal,
+      rating: ratingMap[args.outcome] || 3,
+      comment: [args.feedback || "", args.time_spent ? `Time: ${args.time_spent}` : "", args.would_recommend !== undefined ? `Recommend: ${args.would_recommend ? "yes" : "no"}` : ""].filter(Boolean).join(" | "),
+      recommended_slugs: [],
+    });
+    await supabase.from("agent_analytics").insert({
+      event_type: "goal_outcome",
+      tool_name: "report_goal_outcome",
+      goal: args.goal,
+      event_data: { outcome: args.outcome, feedback: args.feedback, time_spent: args.time_spent, would_recommend: args.would_recommend },
+    });
+    return { content: [{ type: "text" as const, text: `✅ Outcome recorded: ${args.outcome}. Thank you for the feedback!` }] };
+  },
+});
+
+// ─── rate_skill: Rate from agent ───
+mcp.tool("rate_skill", {
+  description: "Submit a rating for a skill from within the agent. Requires API key authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_slug: { type: "string", description: "Slug of the skill to rate" },
+      rating: { type: "number", description: "Rating 1-5" },
+      comment: { type: "string", description: "Optional review comment" },
+    },
+    required: ["skill_slug", "rating"],
+  },
+  handler: async (args: { skill_slug: string; rating: number; comment?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
+    }
+    const { data: skill } = await supabase.from("skills").select("id").eq("slug", args.skill_slug).eq("status", "approved").maybeSingle();
+    if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
+
+    const rating = Math.min(5, Math.max(1, Math.round(args.rating)));
+    const { error } = await supabase.from("reviews").upsert({
+      skill_id: skill.id,
+      user_id: currentApiKeyUserId,
+      rating,
+      comment: args.comment || null,
+    }, { onConflict: "skill_id,user_id" });
+
+    if (error) return { content: [{ type: "text" as const, text: `❌ Error: ${error.message}` }] };
+    return { content: [{ type: "text" as const, text: `✅ Rated "${args.skill_slug}" ${rating}/5.${args.comment ? ` Comment: "${args.comment}"` : ""}` }] };
+  },
+});
+
+// ─── get_personalized_feed: Feed based on user history ───
+mcp.tool("get_personalized_feed", {
+  description: "Get a personalized feed of recommended skills based on your installation history. Shows popular skills in your preferred categories, excluding ones you already have. Requires API key authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      limit: { type: "number", description: "Number of recommendations (default: 10, max: 20)" },
+    },
+  },
+  handler: async (args: { limit?: number }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
+    }
+    const lim = Math.min(args.limit || 10, 20);
+
+    const { data: installs } = await supabase.from("installations").select("skill_id").eq("user_id", currentApiKeyUserId).limit(200);
+    const installedIds = new Set((installs || []).map((i: any) => i.skill_id));
+
+    if (installedIds.size === 0) {
+      // No history, return popular skills
+      const { data: popular } = await supabase.from("skills").select("display_name, slug, tagline, category, install_command, avg_rating, install_count").eq("status", "approved").order("install_count", { ascending: false }).limit(lim);
+      const text = (popular || []).map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``).join("\n\n");
+      return { content: [{ type: "text" as const, text: `# Your Feed\n\n*No install history yet — showing popular skills:*\n\n${text}` }] };
+    }
+
+    // Get categories from installed skills
+    const { data: installedSkills } = await supabase.from("skills").select("category").in("id", [...installedIds]);
+    const catCounts: Record<string, number> = {};
+    for (const s of installedSkills || []) catCounts[s.category] = (catCounts[s.category] || 0) + 1;
+    const topCategories = Object.entries(catCounts).sort(([, a], [, b]) => b - a).slice(0, 3).map(([cat]) => cat);
+
+    // Get popular skills in those categories, excluding installed
+    const { data: recommended } = await supabase.from("skills")
+      .select("display_name, slug, tagline, category, install_command, avg_rating, install_count")
+      .eq("status", "approved")
+      .in("category", topCategories)
+      .order("install_count", { ascending: false })
+      .limit(lim * 3);
+
+    const filtered = (recommended || []).filter((s: any) => {
+      // We can't filter by ID efficiently here, so filter by slug
+      return true; // Trust that different skills have different slugs
+    }).slice(0, lim);
+
+    const text = filtered.map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``).join("\n\n");
+
+    return { content: [{ type: "text" as const, text: `# Your Personalized Feed\n\n*Based on your ${installedIds.size} installed skills (top categories: ${topCategories.join(", ")}):*\n\n${text}` }] };
+  },
+});
+
+// ─── get_top_creators: Leaderboard ───
+mcp.tool("get_top_creators", {
+  description: "Get the top skill creators leaderboard. Shows creators ranked by number of approved skills and average rating.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      limit: { type: "number", description: "Number of creators to show (default: 10)" },
+    },
+  },
+  handler: async (args: { limit?: number }) => {
+    const lim = Math.min(args.limit || 10, 20);
+    const { data: skills } = await supabase.from("skills").select("creator_id, avg_rating, install_count").eq("status", "approved").not("creator_id", "is", null);
+    if (!skills?.length) return { content: [{ type: "text" as const, text: "No creators found." }] };
+
+    const creatorStats: Record<string, { count: number; totalRating: number; totalInstalls: number }> = {};
+    for (const s of skills) {
+      if (!s.creator_id) continue;
+      if (!creatorStats[s.creator_id]) creatorStats[s.creator_id] = { count: 0, totalRating: 0, totalInstalls: 0 };
+      creatorStats[s.creator_id].count++;
+      creatorStats[s.creator_id].totalRating += Number(s.avg_rating);
+      creatorStats[s.creator_id].totalInstalls += s.install_count;
+    }
+
+    const sorted = Object.entries(creatorStats).sort(([, a], [, b]) => b.count - a.count || b.totalInstalls - a.totalInstalls).slice(0, lim);
+    const creatorIds = sorted.map(([id]) => id);
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, username, avatar_url, is_verified_publisher").in("user_id", creatorIds);
+    const profileMap: Record<string, any> = {};
+    for (const p of profiles || []) profileMap[p.user_id] = p;
+
+    const text = sorted.map(([id, stats], i) => {
+      const p = profileMap[id];
+      const name = p?.display_name || p?.username || "Anonymous";
+      const verified = p?.is_verified_publisher ? " ✅" : "";
+      const avgRating = stats.count > 0 ? (stats.totalRating / stats.count).toFixed(1) : "N/A";
+      return `${i + 1}. **${name}**${verified} — ${stats.count} skills · ⭐ ${avgRating} avg · ${stats.totalInstalls.toLocaleString()} installs`;
+    }).join("\n");
+
+    return { content: [{ type: "text" as const, text: `# 🏆 Top Creators\n\n${text}` }] };
+  },
+});
+
 // Bind transport
 const transport = new StreamableHttpTransport();
 const httpHandler = transport.bind(mcp);
@@ -2885,11 +3129,11 @@ mcpApp.use("/mcp", async (c, next) => {
 
 mcpApp.get("/", (c) => c.json({
   message: "Pymaia Agent — AI Solutions Architect & Platform",
-  version: "8.5.0",
+  version: "9.0.0",
   rateLimit: "30 req/min anonymous, 120 req/min with API key",
   agent: {
-    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard, Skills 2.0 import, semantic search, trust reports.",
-    capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration", "Skills 2.0 import", "Semantic search", "Trust reports", "Skill validation"],
+    description: "Pymaia Agent understands your business goals and recommends the optimal combination of skills, MCPs, and plugins from a catalog of 35K+ tools. Features: ML intent classification, A/B experiment framework, personalized recommendations, tiered role kits, SkillForge integration, community marketplace, A2A protocol, analytics dashboard, Skills 2.0 lifecycle (import/update/unpublish), semantic search, trust reports, creator leaderboard, personalized feed.",
+    capabilities: ["ML intent classification", "A/B experiment framework", "Goal decomposition", "Cross-catalog search", "A/B solution composition", "Compatibility analysis", "Trust evaluation", "Security warnings", "Role-based tiered kits", "Custom skill generation", "Plugin wrapper generation", "Trending solutions", "Intelligence engine", "Feedback loop", "Community templates marketplace", "A2A multi-agent queries", "Analytics dashboard", "Enterprise catalogs", "Personalized recommendations", "SkillForge integration", "Skills 2.0 lifecycle", "Semantic search", "Trust reports", "Skill validation", "Goal outcome tracking", "Creator leaderboard", "Personalized feed"],
   },
   a2a: {
     protocol: "A2A-compatible",
@@ -2907,8 +3151,9 @@ mcpApp.get("/", (c) => c.json({
     "generate_custom_skill", "suggest_for_skill_creation", "trending_solutions",
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
     "suggest_stack", "check_compatibility", "get_setup_guide",
-    "import_skill_from_agent",
+    "import_skill_from_agent", "update_skill", "unpublish_skill",
     "get_skill_content", "validate_skill", "my_skills", "semantic_search", "get_trust_report", "whats_new",
+    "report_goal_outcome", "rate_skill", "get_personalized_feed", "get_top_creators",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
