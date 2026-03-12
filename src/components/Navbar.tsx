@@ -95,8 +95,8 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="contents">
+        {/* Search (desktop only — mobile search is in the mobile actions group) */}
+        <div className="hidden md:contents">
           <GlobalSearch />
         </div>
 
