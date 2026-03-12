@@ -117,3 +117,6 @@ verify_jwt = false
 
 [functions.refresh-catalog-data]
 verify_jwt = false
+
+[functions.generate-install-commands]
+verify_jwt = false

@@ -306,6 +306,7 @@ const Admin = () => {
     { name: "Refresh READMEs", func: "refresh-catalog-data", freq: "Diario 7:00 UTC" },
     { name: "Detectar repos muertos", func: "refresh-catalog-data", freq: "Semanal dom 3:00 UTC" },
     { name: "Scrape docs conectores", func: "refresh-catalog-data", freq: "Semanal mié 7:00 UTC" },
+    { name: "Generar install commands", func: "generate-install-commands", freq: "Cada 3 min" },
   ];
 
   return (
