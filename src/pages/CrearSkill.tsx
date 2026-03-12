@@ -312,6 +312,25 @@ const CrearSkill = () => {
     setIsTesting(false);
   };
 
+  const handleAutoImprove = async () => {
+    if (!skill) return;
+    setIsAutoImproving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-skill", {
+        body: { action: "auto_improve", skill },
+      });
+      if (error) throw error;
+      setSkill(data.skill);
+      setQuality(data.quality);
+      setAutoImproveIterations(data.iterations || []);
+      toast.success(`Skill mejorada en ${data.cycles_run} ciclos`);
+      await saveDraft(data.skill, data.quality, testResults, messages, "generated");
+    } catch {
+      toast.error("Error en auto-mejora");
+    }
+    setIsAutoImproving(false);
+  };
+
   const handlePublish = async (config: { 
     category: string; 
     industry: string[]; 
