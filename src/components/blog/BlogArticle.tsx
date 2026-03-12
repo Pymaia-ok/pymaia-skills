@@ -83,6 +83,7 @@ export default function BlogArticle({ post, title, content, isEs }: BlogArticleP
 
       <div className="prose max-w-none">
         <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
           components={{
             a: ({ href, children }) => {
               const isInternal = href?.startsWith("/");
