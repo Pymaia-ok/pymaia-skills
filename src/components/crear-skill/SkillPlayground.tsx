@@ -91,7 +91,7 @@ export default function SkillPlayground({ skill, onBack, onRefine }: SkillPlaygr
           </div>
           <h1 className="text-xl font-semibold text-foreground">Probá tu skill en tu agente AI</h1>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Tu skill está lista. Instalala en Claude, Manus, Cursor o tu agente favorito para probarla con todas las capacidades del agente.
+            Tu skill está lista. Instalala en Claude Code con un comando, o exportala para cualquier agente compatible con Skills 2.0.
           </p>
         </motion.div>
 
