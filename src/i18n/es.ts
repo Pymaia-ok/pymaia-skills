@@ -432,7 +432,6 @@ export default {
       whatsNew: "Novedades del catálogo (skills, conectores, plugins agregados en últimos N días).",
     },
     examplesTitle: "Ejemplos de conversación",
-    examplesTitle: "Ejemplos de conversación",
     you: "Vos",
     claude: "Claude",
     ex1User: "Tengo que preparar 10 briefs de campaña para mañana",

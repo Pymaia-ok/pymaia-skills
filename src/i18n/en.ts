@@ -423,7 +423,6 @@ export default {
       whatsNew: "Recent catalog additions (skills, connectors, plugins added in last N days).",
     },
     examplesTitle: "Conversation examples",
-    examplesTitle: "Conversation examples",
     you: "You",
     claude: "Claude",
     ex1User: "I need to prepare 10 campaign briefs by tomorrow",
