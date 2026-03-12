@@ -267,7 +267,7 @@ Return your response using the generate_blog_post tool.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image",
+          model: "google/gemini-3.1-flash-image-preview",
           messages: [{ role: "user", content: imagePrompt }],
           modalities: ["image", "text"],
         }),
@@ -276,14 +276,15 @@ Return your response using the generate_blog_post tool.`;
         const imgResult = await imgResponse.json();
         const base64 = imgResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (base64) {
-          // Upload to storage
-          const imageBytes = Uint8Array.from(atob(base64.split(",")[1] || base64), c => c.charCodeAt(0));
-          const imagePath = `blog-covers/${slug}.jpg`;
-          await supabase.storage.from("skill-uploads").upload(imagePath, imageBytes, {
+          // Upload to public blog-covers bucket
+          const raw = base64.includes(",") ? base64.split(",")[1] : base64;
+          const imageBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+          const imagePath = `${slug}.jpg`;
+          await supabase.storage.from("blog-covers").upload(imagePath, imageBytes, {
             contentType: "image/jpeg",
             upsert: true,
           });
-          const { data: publicUrl } = supabase.storage.from("skill-uploads").getPublicUrl(imagePath);
+          const { data: publicUrl } = supabase.storage.from("blog-covers").getPublicUrl(imagePath);
           coverImageUrl = publicUrl?.publicUrl || null;
         }
       }

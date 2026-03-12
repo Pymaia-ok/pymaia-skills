@@ -72,8 +72,8 @@ export default function Blog() {
         </h1>
         <p className="text-lg text-muted-foreground mb-8 max-w-2xl">
           {isEs
-            ? "Guías, mejores prácticas y tendencias sobre seguridad de agentes IA, productividad y el ecosistema MCP."
-            : "Guides, best practices, and trends on AI agent security, productivity, and the MCP ecosystem."}
+            ? "Guías prácticas, consejos de productividad y todo lo que necesitas saber para trabajar mejor con agentes de IA."
+            : "Practical guides, productivity tips, and everything you need to work smarter with AI agents."}
         </p>
 
         {/* Category filters */}
