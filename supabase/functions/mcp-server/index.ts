@@ -2478,7 +2478,7 @@ mcp.tool("import_skill_from_agent", {
       return {
         content: [{
           type: "text" as const,
-          text: `✅ Skill "${data.skill.name}" imported and submitted for approval.${scoreText}\n\n**Parsed fields:**\n- Category: ${data.skill.category}\n- Triggers: ${(data.skill.triggers || []).join(", ")}\n- Roles: ${(data.skill.target_roles || []).join(", ")}\n\nThe skill will be reviewed and published to the Pymaia catalog.`,
+          text: `✅ Skill "${data.skill.name}" imported and submitted for approval.${scoreText}\n\n**Parsed fields:**\n- Category: ${data.skill.category}\n- Triggers: ${(data.skill.triggers || []).join(", ")}\n- Roles: ${(data.skill.target_roles || []).join(", ")}\n\nThe skill will be reviewed and published to the Pymaia catalog.${duplicateWarning}`,
         }],
       };
     } catch (e: any) {
