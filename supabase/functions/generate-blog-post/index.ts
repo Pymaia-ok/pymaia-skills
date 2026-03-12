@@ -194,6 +194,41 @@ Return your response using the generate_blog_post tool.`;
     const wordCount = (article.content_en || "").split(/\s+/).length;
     const readingTime = Math.max(3, Math.ceil(wordCount / 250));
 
+    // Generate cover image
+    let coverImageUrl: string | null = null;
+    try {
+      const imagePrompt = `Blog cover image: ${article.title_en}. Professional, modern, tech-themed illustration. No text overlays.`;
+      const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [{ role: "user", content: imagePrompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+      if (imgResponse.ok) {
+        const imgResult = await imgResponse.json();
+        const base64 = imgResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (base64) {
+          // Upload to storage
+          const imageBytes = Uint8Array.from(atob(base64.split(",")[1] || base64), c => c.charCodeAt(0));
+          const imagePath = `blog-covers/${slug}.jpg`;
+          await supabase.storage.from("skill-uploads").upload(imagePath, imageBytes, {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
+          const { data: publicUrl } = supabase.storage.from("skill-uploads").getPublicUrl(imagePath);
+          coverImageUrl = publicUrl?.publicUrl || null;
+        }
+      }
+    } catch (imgErr) {
+      console.error("Cover image generation failed (non-blocking):", imgErr);
+    }
+
     const { error: insertError } = await supabase.from("blog_posts").insert({
       slug,
       title: article.title_en,
@@ -210,6 +245,7 @@ Return your response using the generate_blog_post tool.`;
       related_skill_slugs: (relatedSkills || []).map((s: any) => s.slug),
       related_connector_slugs: (relatedConnectors || []).map((c: any) => c.slug),
       reading_time_minutes: readingTime,
+      cover_image_url: coverImageUrl,
       status: "published",
     });
 
