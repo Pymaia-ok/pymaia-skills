@@ -95,12 +95,37 @@ export default function SkillPlayground({ skill, onBack, onRefine }: SkillPlaygr
           </p>
         </motion.div>
 
+        {/* Option 0: Install from URL (Skills 2.0) */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.08 }} className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ExternalLink className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Install from URL</h3>
+            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">Skills 2.0</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Instalá directamente en Claude Code con un solo comando. La skill se descarga desde Pymaia.
+          </p>
+          <div className="bg-secondary rounded-xl p-3 font-mono text-xs text-foreground overflow-x-auto">
+            claude skill add --from-url {`${window.location.origin}/api/skill/${slug}/raw`}
+          </div>
+          <Button
+            onClick={() => {
+              const cmd = `claude skill add --from-url ${window.location.origin}/api/skill/${slug}/raw`;
+              navigator.clipboard.writeText(cmd);
+              toast.success("Comando copiado");
+            }}
+            size="sm"
+            className="gap-1.5 text-xs w-full"
+          >
+            <Copy className="w-3 h-3" /> Copiar comando de instalación
+          </Button>
+        </motion.div>
+
         {/* Option 1: Claude Code */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold text-foreground">Claude Code</h3>
-            <Badge variant="secondary" className="text-[10px]">Recomendado</Badge>
+            <h3 className="text-sm font-semibold text-foreground">Claude Code (manual)</h3>
           </div>
           <p className="text-xs text-muted-foreground">
             Copiá el archivo SKILL.md y pegalo en tu proyecto, o usá el comando de instalación.
