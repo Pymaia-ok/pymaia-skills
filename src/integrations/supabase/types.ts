@@ -128,6 +128,7 @@ export type Database = {
           created_at: string
           excerpt: string
           excerpt_es: string | null
+          faq_json: Json | null
           geo_target: string
           id: string
           keywords: string[] | null
@@ -152,6 +153,7 @@ export type Database = {
           created_at?: string
           excerpt?: string
           excerpt_es?: string | null
+          faq_json?: Json | null
           geo_target?: string
           id?: string
           keywords?: string[] | null
@@ -176,6 +178,7 @@ export type Database = {
           created_at?: string
           excerpt?: string
           excerpt_es?: string | null
+          faq_json?: Json | null
           geo_target?: string
           id?: string
           keywords?: string[] | null

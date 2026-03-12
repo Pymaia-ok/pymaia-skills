@@ -9,6 +9,13 @@ import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCTA from "@/components/blog/BlogCTA";
 import RelatedPosts from "@/components/blog/RelatedPosts";
 
+const GEO_REGION_MAP: Record<string, string> = {
+  latam: "419",
+  global: "",
+  us: "US",
+  es: "ES",
+};
+
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const { i18n } = useTranslation();
@@ -59,28 +66,77 @@ export default function BlogPost() {
   const title = isEs ? post?.title_es || post?.title : post?.title;
   const content = isEs ? post?.content_es || post?.content : post?.content;
   const metaDesc = isEs ? post?.meta_description_es || post?.meta_description : post?.meta_description;
+  const baseUrl = "https://pymaiaskills.lovable.app";
+  const postUrl = `${baseUrl}/blog/${slug}`;
 
-  useSEO({
-    title: title ? `${title}` : "Blog — Pymaia Skills",
-    description: metaDesc || "",
-    canonical: `https://pymaiaskills.lovable.app/blog/${slug}`,
-    jsonLd: post ? {
+  // Build JSON-LD schemas
+  const jsonLdSchemas: Record<string, unknown>[] = [];
+
+  // Article schema
+  if (post) {
+    jsonLdSchemas.push({
       "@context": "https://schema.org",
       "@type": "Article",
       headline: title,
       description: metaDesc,
-      image: post.cover_image_url ? `https://pymaiaskills.lovable.app${post.cover_image_url}` : undefined,
+      image: post.cover_image_url ? (post.cover_image_url.startsWith("http") ? post.cover_image_url : `${baseUrl}${post.cover_image_url}`) : undefined,
       datePublished: post.created_at,
       dateModified: post.updated_at,
       author: { "@type": "Organization", name: "Pymaia" },
       publisher: {
         "@type": "Organization",
         name: "Pymaia Skills",
-        logo: { "@type": "ImageObject", url: "https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png" },
+        logo: { "@type": "ImageObject", url: `${baseUrl}/images/pymaia-skills-icon.png` },
       },
-      mainEntityOfPage: `https://pymaiaskills.lovable.app/blog/${slug}`,
+      mainEntityOfPage: postUrl,
       keywords: (post.keywords || []).join(", "),
+      inLanguage: isEs ? "es" : "en",
+    });
+
+    // BreadcrumbList schema
+    jsonLdSchemas.push({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
+        { "@type": "ListItem", position: 2, name: "Blog", item: `${baseUrl}/blog` },
+        { "@type": "ListItem", position: 3, name: post.category, item: `${baseUrl}/blog?cat=${post.category}` },
+        { "@type": "ListItem", position: 4, name: title },
+      ],
+    });
+
+    // FAQPage schema from faq_json
+    const faqItems = post.faq_json || [];
+    if (faqItems.length > 0) {
+      jsonLdSchemas.push({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqItems.map((faq: { question: string; answer: string }) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      });
+    }
+  }
+
+  const geoRegion = post?.geo_target ? GEO_REGION_MAP[post.geo_target] || "" : "";
+
+  useSEO({
+    title: title ? `${title}` : "Blog — Pymaia Skills",
+    description: metaDesc || "",
+    canonical: postUrl,
+    jsonLd: jsonLdSchemas.length > 0 ? jsonLdSchemas : undefined,
+    hreflang: post ? {
+      en: postUrl,
+      es: postUrl,
     } : undefined,
+    geoRegion: geoRegion || undefined,
+    aiDescription: metaDesc || undefined,
+    aiContentType: "article",
   });
 
   if (isLoading) {
