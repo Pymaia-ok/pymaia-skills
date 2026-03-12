@@ -505,7 +505,7 @@ function deduplicateConnectors(connectors: any[]): any[] {
 // ─── CONNECTOR TOOLS ───
 
 mcp.tool("search_connectors", {
-  description: "Search MCP connectors (integrations) by name, category, or description. Connectors give Claude access to external tools and services like Slack, GitHub, databases, etc. NOTE: For goal-oriented queries (e.g. 'I want to run Meta Ads'), use solve_goal instead — it searches skills, connectors, AND plugins simultaneously and returns curated solutions.",
+  description: "Search 500+ installable MCP connectors (servers) by name. These are MCP servers users can add to Claude, Cursor, Windsurf, or any AI agent to access external services (Slack, GitHub, Instagram, databases, etc.). Returns name, slug, install command, homepage, and GitHub stars. Use get_connector_details(slug) for full setup guide, or get_install_command(slug) for the exact install command. NOTE: For goal-oriented queries, use solve_goal instead.",
   inputSchema: {
     type: "object",
     properties: {
