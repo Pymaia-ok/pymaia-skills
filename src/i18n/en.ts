@@ -378,6 +378,7 @@ export default {
     toolGroupGeneration: "Generation (2)",
     toolGroupIntelligence: "Intelligence (2)",
     toolGroupPlatform: "Platform & Community (4)",
+    toolGroupSkills20: "Skills 2.0 — Creation & Management (6)",
     authTitle: "Private skills via API Key",
     authDesc: "If you published private skills, authenticate to include them in Claude's searches and recommendations.",
     authStep1: "1. Generate an API key from your profile in My Skills.",
