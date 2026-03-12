@@ -757,7 +757,7 @@ mcp.tool("list_popular_plugins", {
 // ─── UNIFIED SEARCH ───
 
 mcp.tool("explore_directory", {
-  description: "Search across the entire Pymaia directory — skills, MCP connectors, and plugins — in a single query. Great for broad discovery.",
+  description: "Search across the entire Pymaia directory — skills, MCP connectors (installable servers), and plugins — in a single query. Results are installable tools you can add to any AI agent. Great for broad discovery. Use get_install_command(slug) or get_connector_details(slug) for setup instructions on any result.",
   inputSchema: {
     type: "object",
     properties: {
