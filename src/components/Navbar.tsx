@@ -95,8 +95,8 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="contents">
+        {/* Search (desktop only — mobile search is in the mobile actions group) */}
+        <div className="hidden md:contents">
           <GlobalSearch />
         </div>
 
@@ -225,9 +225,10 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile hamburger */}
-        <div className="md:hidden flex items-center">
-          <button className="p-2" onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
+        {/* Mobile actions */}
+        <div className="md:hidden flex items-center gap-1">
+          <GlobalSearch />
+          <button className="p-2 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? "Close menu" : "Open menu"}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
