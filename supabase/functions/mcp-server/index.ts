@@ -124,7 +124,7 @@ function assignVariant(goal: string, userId?: string): ABVariant {
 
 const mcp = new McpServer({
   name: "pymaia-agent",
-  version: "8.5.0",
+  version: "9.0.0",
 });
 
 // Sanitize queries for PostgREST .or() filter parsing
@@ -929,7 +929,7 @@ mcp.tool("solve_goal", {
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
-    // 0. Conversational Goal Refinement (Sprint 3 - Block 6)
+    // 0. Conversational Goal Refinement with structured options
     const goalWords = goalLower.split(/\s+/).filter(w => w.length >= 2);
     if (goalWords.length < 3) {
       return {
@@ -938,6 +938,11 @@ mcp.tool("solve_goal", {
           text: JSON.stringify({
             status: "needs_clarification",
             message: "Your goal is quite broad. To give you the best recommendations, could you provide more detail?",
+            structured_options: {
+              domain: ["engineering", "marketing", "sales", "design", "legal", "finance", "operations", "general"],
+              technical_level: ["non-technical", "semi-technical", "developer"],
+              budget: ["free-only", "paid-ok", "enterprise"],
+            },
             questions: [
               "What specific task or process do you want to automate/improve?",
               "What tools or platforms are you currently using?",
@@ -2419,10 +2424,11 @@ mcp.tool("import_skill_from_agent", {
     properties: {
       skill_md: { type: "string", description: "Full content of the SKILL.md file to import" },
       author_name: { type: "string", description: "Name of the author or agent that created this skill" },
+      is_public: { type: "boolean", description: "Whether the skill should be publicly visible. Default: true" },
     },
     required: ["skill_md"],
   },
-  handler: async (args: { skill_md: string; author_name?: string }) => {
+  handler: async (args: { skill_md: string; author_name?: string; is_public?: boolean }) => {
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to import skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
@@ -2431,7 +2437,6 @@ mcp.tool("import_skill_from_agent", {
     }
 
     try {
-      // Call generate-skill with import_skill action
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
@@ -2443,7 +2448,6 @@ mcp.tool("import_skill_from_agent", {
 
       if (!data.skill) throw new Error("No skill parsed");
 
-      // Duplicate detection (Sprint 1 - Block 5)
       const slug = (data.skill.name || "imported-skill").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 64);
       const { data: similar } = await supabase
         .from("skills")
@@ -2456,6 +2460,8 @@ mcp.tool("import_skill_from_agent", {
       const useCases = (data.skill.examples || []).map((ex: any) => ({
         title: ex.title, before: ex.input, after: ex.output,
       }));
+
+      const visibility = args.is_public !== undefined ? args.is_public : true;
 
       await supabase.from("skills").insert({
         slug: `${slug}-${Date.now().toString(36)}`,
@@ -2470,8 +2476,9 @@ mcp.tool("import_skill_from_agent", {
         creator_id: currentApiKeyUserId,
         status: "pending",
         quality_score: data.quality?.score || null,
-        is_public: true,
+        is_public: visibility,
         required_mcps: data.skill.required_mcps || [],
+        version: "1.0.0",
       });
 
       const scoreText = data.quality?.score ? ` Quality score: ${data.quality.score}/10.` : "";
@@ -2888,26 +2895,37 @@ setInterval(() => {
 
 // ─── SPRINT 1: NEW TOOLS ───
 
-// ─── update_skill: Update existing skill ───
+// ─── update_skill: Update existing skill with semantic versioning ───
 mcp.tool("update_skill", {
-  description: "Update a skill you own. Accepts new SKILL.md content and an optional changelog message. Re-parses the skill via AI and updates the catalog entry. Requires API key authentication.",
+  description: "Update a skill you own. Accepts new SKILL.md content, an optional changelog message, and version bump type. Re-parses the skill via AI and updates the catalog entry. Requires API key authentication.",
   inputSchema: {
     type: "object",
     properties: {
       skill_slug: { type: "string", description: "Slug of the skill to update" },
       skill_md: { type: "string", description: "Updated SKILL.md content" },
       changelog: { type: "string", description: "Optional changelog message describing what changed" },
+      version_bump: { type: "string", description: "Version bump type: 'patch' (bug fixes), 'minor' (new features), 'major' (breaking changes). Default: patch" },
     },
     required: ["skill_slug", "skill_md"],
   },
-  handler: async (args: { skill_slug: string; skill_md: string; changelog?: string }) => {
+  handler: async (args: { skill_slug: string; skill_md: string; changelog?: string; version_bump?: string }) => {
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to update skills." }] };
     }
 
-    const { data: skill } = await supabase.from("skills").select("id, creator_id, display_name, changelog").eq("slug", args.skill_slug).maybeSingle();
+    const { data: skill } = await supabase.from("skills").select("id, creator_id, display_name, changelog, version").eq("slug", args.skill_slug).maybeSingle();
     if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
     if (skill.creator_id !== currentApiKeyUserId) return { content: [{ type: "text" as const, text: "❌ You can only update skills you created." }] };
+
+    // Semantic version bump
+    const currentVersion = (skill as any).version || "1.0.0";
+    const [major, minor, patch] = currentVersion.split(".").map(Number);
+    let newVersion: string;
+    switch (args.version_bump) {
+      case "major": newVersion = `${major + 1}.0.0`; break;
+      case "minor": newVersion = `${major}.${minor + 1}.0`; break;
+      default: newVersion = `${major}.${minor}.${patch + 1}`;
+    }
 
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
@@ -2919,7 +2937,7 @@ mcp.tool("update_skill", {
       const data = await resp.json();
       if (!data.skill) throw new Error("No skill parsed");
 
-      const changelogEntry = args.changelog ? `[${new Date().toISOString().slice(0, 10)}] ${args.changelog}` : null;
+      const changelogEntry = args.changelog ? `[${new Date().toISOString().slice(0, 10)} v${newVersion}] ${args.changelog}` : null;
       const existingChangelog = skill.changelog || "";
       const newChangelog = changelogEntry ? `${changelogEntry}\n${existingChangelog}`.trim() : existingChangelog;
 
@@ -2935,13 +2953,14 @@ mcp.tool("update_skill", {
         required_mcps: data.skill.required_mcps || [],
         quality_score: data.quality?.score || null,
         changelog: newChangelog,
+        version: newVersion,
         security_status: "unverified",
         security_scanned_at: null,
       }).eq("id", skill.id);
 
-      await supabase.from("automation_logs").insert({ skill_id: skill.id, action_type: "skill_updated", function_name: "mcp-server", reason: args.changelog || "Skill content updated via MCP" });
+      await supabase.from("automation_logs").insert({ skill_id: skill.id, action_type: "skill_updated", function_name: "mcp-server", reason: args.changelog || "Skill content updated via MCP", metadata: { version: newVersion, bump: args.version_bump || "patch" } });
 
-      return { content: [{ type: "text" as const, text: `✅ Skill "${data.skill.name || skill.display_name}" updated successfully.${args.changelog ? `\n📝 Changelog: ${args.changelog}` : ""}\n\nThe skill will be re-scanned for security.` }] };
+      return { content: [{ type: "text" as const, text: `✅ Skill "${data.skill.name || skill.display_name}" updated to v${newVersion}.${args.changelog ? `\n📝 Changelog: ${args.changelog}` : ""}\n\nThe skill will be re-scanned for security.` }] };
     } catch (e: any) {
       return { content: [{ type: "text" as const, text: `❌ Update failed: ${e.message}` }] };
     }
@@ -3127,6 +3146,196 @@ mcp.tool("get_top_creators", {
     }).join("\n");
 
     return { content: [{ type: "text" as const, text: `# 🏆 Top Creators\n\n${text}` }] };
+  },
+});
+
+// ─── get_skill_analytics: Creator analytics ───
+mcp.tool("get_skill_analytics", {
+  description: "Get analytics for a specific skill or all your skills. Shows installs, ratings, trends, and eval results. Requires API key authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_slug: { type: "string", description: "Optional: specific skill slug. If omitted, returns aggregate stats for all your skills." },
+    },
+  },
+  handler: async (args: { skill_slug?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
+    }
+
+    let q = supabase.from("skills").select("id, slug, display_name, install_count, avg_rating, review_count, quality_score, version, created_at, category, github_stars").eq("creator_id", currentApiKeyUserId);
+    if (args.skill_slug) q = q.eq("slug", args.skill_slug);
+    const { data: skills } = await q;
+    if (!skills?.length) return { content: [{ type: "text" as const, text: args.skill_slug ? `Skill "${args.skill_slug}" not found or not owned by you.` : "You have no skills." }] };
+
+    // Get eval runs
+    const slugs = skills.map(s => s.slug);
+    const { data: evalRuns } = await supabase.from("skill_eval_runs").select("skill_slug, pass_rate, avg_score, iteration").in("skill_slug", slugs).order("iteration", { ascending: false });
+    const evalMap: Record<string, any> = {};
+    for (const r of evalRuns || []) { if (r.skill_slug && !evalMap[r.skill_slug]) evalMap[r.skill_slug] = r; }
+
+    // Get recent reviews
+    const skillIds = skills.map(s => s.id);
+    const { data: reviews } = await supabase.from("reviews").select("skill_id, rating, comment, created_at").in("skill_id", skillIds).order("created_at", { ascending: false }).limit(10);
+
+    const sections: string[] = [`# 📊 Skill Analytics\n`];
+
+    // Aggregate stats
+    const totalInstalls = skills.reduce((acc, s) => acc + s.install_count, 0);
+    const avgRating = skills.reduce((acc, s) => acc + Number(s.avg_rating), 0) / skills.length;
+    const totalReviews = skills.reduce((acc, s) => acc + s.review_count, 0);
+
+    sections.push(`## Overview\n- **Skills:** ${skills.length}\n- **Total installs:** ${totalInstalls.toLocaleString()}\n- **Avg rating:** ⭐ ${avgRating.toFixed(1)}\n- **Total reviews:** ${totalReviews}\n`);
+
+    // Creator tier
+    const tier = skills.length >= 10 && avgRating >= 4.0 ? "🏆 Expert" : skills.length >= 3 ? "🔨 Builder" : "🌱 Starter";
+    sections.push(`**Creator Tier:** ${tier}\n`);
+
+    // Per-skill breakdown
+    sections.push(`## Per-Skill Breakdown\n`);
+    for (const s of skills.sort((a, b) => b.install_count - a.install_count)) {
+      const eval_ = evalMap[s.slug];
+      const evalText = eval_ ? ` · Eval: ${Number(eval_.pass_rate).toFixed(0)}% pass` : "";
+      const qualityText = s.quality_score ? ` · Q${Number(s.quality_score).toFixed(0)}` : "";
+      sections.push(`- **${s.display_name}** v${(s as any).version || "1.0.0"} [${s.category}]\n  ${s.install_count} installs · ⭐ ${Number(s.avg_rating).toFixed(1)} (${s.review_count})${qualityText}${evalText}`);
+    }
+
+    // Recent reviews
+    if (reviews?.length) {
+      sections.push(`\n## Recent Reviews\n`);
+      for (const r of reviews.slice(0, 5)) {
+        const date = new Date(r.created_at).toLocaleDateString("en");
+        sections.push(`- ⭐ ${r.rating}/5 (${date})${r.comment ? `: "${r.comment}"` : ""}`);
+      }
+    }
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+// ─── install_bundle: Install all skills in a bundle ───
+mcp.tool("install_bundle", {
+  description: "Get install commands for all skills in a pre-built bundle. Bundles are curated collections of skills for specific roles.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      bundle_id: { type: "string", description: "Bundle ID or role slug to find bundles for" },
+    },
+    required: ["bundle_id"],
+  },
+  handler: async (args: { bundle_id: string }) => {
+    // Try by ID first, then by role_slug
+    let bundle: any = null;
+    const { data: byId } = await supabase.from("skill_bundles").select("*").eq("id", args.bundle_id).eq("is_active", true).maybeSingle();
+    if (byId) { bundle = byId; } else {
+      const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id).eq("is_active", true).limit(1).maybeSingle();
+      bundle = byRole;
+    }
+    if (!bundle) return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.` }] };
+
+    // Get skills in bundle
+    const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs);
+
+    const sections: string[] = [`# ${bundle.hero_emoji || "📦"} ${bundle.title}\n\n${bundle.description}\n`];
+    sections.push(`## Install All (${(skills || []).length} skills)\n`);
+    for (const s of skills || []) {
+      sections.push(`### ${s.display_name} [${s.category}]\n\`\`\`\n${s.install_command}\n\`\`\`\n`);
+    }
+
+    const missingSlugs = bundle.skill_slugs.filter((slug: string) => !(skills || []).find((s: any) => s.slug === slug));
+    if (missingSlugs.length) sections.push(`\n⚠️ ${missingSlugs.length} skill(s) not found: ${missingSlugs.join(", ")}`);
+
+    return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+  },
+});
+
+// ─── scan_skill: Trigger security scan ───
+mcp.tool("scan_skill", {
+  description: "Trigger a security scan for a skill before publishing. Returns scan results including trust score impact. No authentication required.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_md: { type: "string", description: "SKILL.md content to scan" },
+    },
+    required: ["skill_md"],
+  },
+  handler: async (args: { skill_md: string }) => {
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/scan-security`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ content: args.skill_md, item_type: "skill", item_slug: "pre-publish-scan" }),
+      });
+      if (!resp.ok) throw new Error(`Scan failed: ${resp.status}`);
+      const result = await resp.json();
+
+      const verdict = result.verdict || "UNKNOWN";
+      const riskLevel = result.risk_level || "unknown";
+      const issues = result.issues || [];
+
+      const sections: string[] = [`# 🔍 Security Scan Results\n`];
+      sections.push(`**Verdict:** ${verdict === "CLEAN" ? "✅ CLEAN" : verdict === "SUSPICIOUS" ? "⚠️ SUSPICIOUS" : "🚨 " + verdict}`);
+      sections.push(`**Risk Level:** ${riskLevel}\n`);
+
+      if (issues.length > 0) {
+        sections.push(`## Issues Found (${issues.length})\n`);
+        for (const issue of issues) {
+          sections.push(`- **${issue.severity || "info"}**: ${issue.description || issue.message || JSON.stringify(issue)}`);
+        }
+      } else {
+        sections.push(`✅ No issues detected.`);
+      }
+
+      return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+    } catch (e: any) {
+      return { content: [{ type: "text" as const, text: `❌ Scan error: ${e.message}` }] };
+    }
+  },
+});
+
+// ─── run_skill_evals: Run evaluation tests ───
+mcp.tool("run_skill_evals", {
+  description: "Run automated evaluation tests against a SKILL.md. Tests 5 cases: happy path, edge case, no-activation, pitfall, and complex. Returns pass/fail results and overall score. Use to ensure skill quality before publishing.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_md: { type: "string", description: "Full SKILL.md content to evaluate" },
+    },
+    required: ["skill_md"],
+  },
+  handler: async (args: { skill_md: string }) => {
+    try {
+      const resp = await fetch(`${supabaseUrl}/functions/v1/test-skill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ skill: args.skill_md }),
+      });
+      if (!resp.ok) throw new Error(`Eval failed: ${resp.status}`);
+      const results = await resp.json();
+
+      const sections: string[] = [`# 🧪 Skill Evaluation Results\n`];
+      sections.push(`**Overall Score:** ${results.overall_score || "N/A"}/10`);
+      sections.push(`**Pass Rate:** ${results.test_results ? `${results.test_results.filter((r: any) => r.passed).length}/${results.test_results.length}` : "N/A"}\n`);
+
+      if (results.test_results) {
+        for (const r of results.test_results) {
+          sections.push(`## ${r.passed ? "✅" : "❌"} ${r.title} (${r.case_type}) — ${r.score}/10`);
+          sections.push(`**Input:** ${r.input}`);
+          sections.push(`**Feedback:** ${r.feedback}\n`);
+        }
+      }
+
+      if (results.critical_gaps?.length) {
+        sections.push(`## ⚠️ Critical Gaps\n`);
+        for (const gap of results.critical_gaps) sections.push(`- ${gap}`);
+      }
+
+      if (results.overall_feedback) sections.push(`\n## Summary\n${results.overall_feedback}`);
+
+      return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+    } catch (e: any) {
+      return { content: [{ type: "text" as const, text: `❌ Eval error: ${e.message}` }] };
+    }
   },
 });
 

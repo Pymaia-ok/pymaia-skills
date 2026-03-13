@@ -135,6 +135,8 @@ export interface SkillFromDB {
   last_commit_at?: string | null;
   quality_score?: number | null;
   is_stale?: boolean | null;
+  version?: string | null;
+  eval_verified?: boolean;
 }
 
 export function parseUseCases(uc: unknown): { title: string; before: string; after: string }[] {

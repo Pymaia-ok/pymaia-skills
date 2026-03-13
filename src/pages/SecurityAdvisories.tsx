@@ -38,11 +38,39 @@ const SecurityAdvisories = () => {
               {isEs ? "Avisos de Seguridad" : "Security Advisories"}
             </h1>
           </div>
-          <p className="text-muted-foreground mb-10">
+          <p className="text-muted-foreground mb-6">
             {isEs
               ? "Transparencia total: publicamos todos los incidentes de seguridad detectados y las acciones tomadas."
               : "Full transparency: we publish all detected security incidents and actions taken."}
           </p>
+
+          {/* Security metrics dashboard */}
+          {advisories && advisories.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+              <div className="p-4 rounded-xl bg-secondary text-center">
+                <div className="text-2xl font-bold text-foreground">{advisories.length}</div>
+                <div className="text-xs text-muted-foreground">{isEs ? "Total advisories" : "Total advisories"}</div>
+              </div>
+              <div className="p-4 rounded-xl bg-secondary text-center">
+                <div className="text-2xl font-bold text-destructive">
+                  {advisories.filter((a: any) => a.severity === "P0" || a.severity === "P1").length}
+                </div>
+                <div className="text-xs text-muted-foreground">{isEs ? "Críticos/Altos" : "Critical/High"}</div>
+              </div>
+              <div className="p-4 rounded-xl bg-secondary text-center">
+                <div className="text-2xl font-bold text-emerald-500">
+                  {advisories.filter((a: any) => a.action_taken).length}
+                </div>
+                <div className="text-xs text-muted-foreground">{isEs ? "Resueltos" : "Resolved"}</div>
+              </div>
+              <div className="p-4 rounded-xl bg-secondary text-center">
+                <div className="text-2xl font-bold text-foreground">
+                  {new Set(advisories.map((a: any) => a.item_slug)).size}
+                </div>
+                <div className="text-xs text-muted-foreground">{isEs ? "Items afectados" : "Items affected"}</div>
+              </div>
+            </div>
+          )}
 
           {isLoading ? (
             <div className="space-y-4">
