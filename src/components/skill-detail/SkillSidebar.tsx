@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Star, Clock, Heart, ExternalLink, User, Lock, Activity } from "lucide-react";
+import { Star, Clock, Heart, ExternalLink, User, Lock, Activity, CheckCircle2 } from "lucide-react";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";
 import SecurityPanel from "@/components/SecurityPanel";
 import SecurityReportButton from "@/components/SecurityReportButton";
