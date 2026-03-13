@@ -929,7 +929,7 @@ mcp.tool("solve_goal", {
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
-    // 0. Conversational Goal Refinement (Sprint 3 - Block 6)
+    // 0. Conversational Goal Refinement with structured options
     const goalWords = goalLower.split(/\s+/).filter(w => w.length >= 2);
     if (goalWords.length < 3) {
       return {
