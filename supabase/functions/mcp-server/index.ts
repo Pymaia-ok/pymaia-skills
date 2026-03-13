@@ -3551,9 +3551,10 @@ mcpApp.get("/", (c) => c.json({
     "generate_custom_skill", "suggest_for_skill_creation", "trending_solutions",
     "submit_goal_template", "browse_community_templates", "agent_analytics", "a2a_query",
     "suggest_stack", "check_compatibility", "get_setup_guide",
-    "import_skill_from_agent", "update_skill", "unpublish_skill",
+    "publish_skill", "import_skill_from_agent", "update_skill", "unpublish_skill",
     "get_skill_content", "validate_skill", "my_skills", "semantic_search", "get_trust_report", "whats_new",
     "report_goal_outcome", "rate_skill", "get_personalized_feed", "get_top_creators",
+    "get_skill_analytics", "install_bundle", "scan_skill", "run_skill_evals", "report_skill",
   ],
 }));
 mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
