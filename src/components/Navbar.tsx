@@ -239,62 +239,82 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-background/95 apple-blur px-6 py-4 space-y-3">
+        <div className="md:hidden border-t border-border bg-background/95 apple-blur px-6 py-4 space-y-1">
+          {/* Navigation links */}
           {mobileLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
               onClick={() => setMobileOpen(false)}
-              className={`block text-sm py-1.5 ${
-                location.pathname === link.to ? "text-foreground font-medium" : "text-muted-foreground"
+              className={`block text-sm py-2.5 ${
+                location.pathname === link.to || (link.to !== "/" && location.pathname.startsWith(link.to))
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground"
               }`}
             >
               {link.label}
             </Link>
           ))}
 
-          <div className="h-px bg-border my-2" />
+          <div className="h-px bg-border my-3" />
 
-          <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="flex items-center gap-1.5 text-sm py-1.5 text-muted-foreground">
-            <Plus className="w-3.5 h-3.5" />
-            {t("nav.createSkill")}
-          </Link>
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground w-full"
-          >
-            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            {isDark ? t("nav.lightMode") : t("nav.darkMode")}
-          </button>
-
-          <button
-            onClick={toggleLang}
-            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-full bg-secondary text-muted-foreground"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            {i18n.language === "es" ? "EN" : "ES"}
-          </button>
-
+          {/* User section */}
           {user ? (
             <>
-              <div className="h-px bg-border my-2" />
-              <Link to="/mis-skills" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm py-1.5 text-muted-foreground">
+              <Link to="/mis-skills" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 text-sm py-2.5 text-foreground">
                 <Avatar className="h-6 w-6">
                   <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">{initials}</AvatarFallback>
                 </Avatar>
-                {displayName}
+                <span className="font-medium">{displayName}</span>
               </Link>
-              <button onClick={() => { signOut(); setMobileOpen(false); }} className="text-sm text-muted-foreground">
+
+              <Link to="/crear-skill" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm py-2.5 text-muted-foreground">
+                <Plus className="w-4 h-4" />
+                {t("nav.createSkill")}
+              </Link>
+
+              <Link to="/enterprise" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-sm py-2.5 text-muted-foreground">
+                <Building2 className="w-4 h-4" />
+                {t("nav.enterprise")}
+              </Link>
+
+              <div className="h-px bg-border my-3" />
+
+              <button onClick={() => { signOut(); setMobileOpen(false); }} className="flex items-center gap-2 text-sm py-2.5 text-muted-foreground w-full">
+                <LogOut className="w-4 h-4" />
                 {t("nav.signOut")}
               </button>
             </>
           ) : (
-            <Link to="/auth" onClick={() => setMobileOpen(false)} className="block text-sm font-medium py-1.5">
+            <Link
+              to="/auth"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center text-sm font-medium py-2.5 px-4 rounded-full bg-foreground text-background"
+            >
               {t("nav.signIn")}
             </Link>
           )}
+
+          <div className="h-px bg-border my-3" />
+
+          {/* Preferences row */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-secondary text-muted-foreground"
+            >
+              {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {isDark ? t("nav.lightMode") : t("nav.darkMode")}
+            </button>
+
+            <button
+              onClick={toggleLang}
+              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-secondary text-muted-foreground"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              {i18n.language === "es" ? "EN" : "ES"}
+            </button>
+          </div>
         </div>
       )}
     </nav>
