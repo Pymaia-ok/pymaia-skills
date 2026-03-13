@@ -10,16 +10,20 @@ import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
+  const isEs = i18n.language?.startsWith("es");
+
   useSEO({
-    title: "Explore Skills — Pymaia Skills",
-    description: "Browse 35,000+ skills for AI coding agents. Compatible with Claude, Manus, Cursor, Antigravity & OpenClaw. Filter by 19 categories and find the perfect skill.",
+    title: isEs ? "Explorar soluciones — Pymaia Skills" : "Explore Skills — Pymaia Skills",
+    description: isEs
+      ? "Navegá 35,000+ soluciones para agentes de IA. Compatible con Claude, Manus, Cursor, Antigravity y OpenClaw. Filtrá por 19 categorías."
+      : "Browse 35,000+ skills for AI coding agents. Compatible with Claude, Manus, Cursor, Antigravity & OpenClaw. Filter by 19 categories and find the perfect skill.",
     canonical: "https://pymaiaskills.lovable.app/explorar",
     jsonLd: {
       "@context": "https://schema.org",

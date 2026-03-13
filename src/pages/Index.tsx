@@ -29,9 +29,16 @@ const Index = () => {
   });
   const allSkills = skillsResult?.data ?? [];
 
+  const { i18n } = useTranslation();
+  const isEs = i18n.language?.startsWith("es");
+
   useSEO({
-    title: "Pymaia Skills — Potenciá tu equipo con inteligencia artificial",
-    description: "35,000+ soluciones profesionales para tu asistente de IA. Activá soluciones para marketing, legal, finanzas, RRHH y más. Compatible con Claude, Manus, Cursor y más.",
+    title: isEs
+      ? "Pymaia Skills — Potenciá tu equipo con inteligencia artificial"
+      : "Pymaia Skills — Supercharge your team with AI",
+    description: isEs
+      ? "35,000+ soluciones profesionales para tu asistente de IA. Activá soluciones para marketing, legal, finanzas, RRHH y más. Compatible con Claude, Manus, Cursor y más."
+      : "35,000+ professional AI solutions for your assistant. Activate solutions for marketing, legal, finance, HR and more. Compatible with Claude, Manus, Cursor and more.",
     canonical: "https://pymaiaskills.lovable.app/",
     jsonLd: {
       "@context": "https://schema.org",

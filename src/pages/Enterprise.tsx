@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -80,7 +81,14 @@ const statusConfig: Record<string, { icon: React.ReactNode; label: string; color
 
 // ─── Main Component ───
 const Enterprise = () => {
-  useSEO({ title: "Portal Empresarial — Pymaia", description: "Listá y gestioná tus plugins empresariales en el marketplace de Pymaia." });
+  const { i18n } = useTranslation();
+  const isEs = i18n.language?.startsWith("es");
+  useSEO({
+    title: isEs ? "Portal Empresarial — Pymaia" : "Enterprise Portal — Pymaia",
+    description: isEs
+      ? "Listá y gestioná tus plugins empresariales en el marketplace de Pymaia."
+      : "List and manage your enterprise plugins on the Pymaia marketplace.",
+  });
   const { user, loading } = useAuth();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"dashboard" | "apply" | "pricing">("dashboard");

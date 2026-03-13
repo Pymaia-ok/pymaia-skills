@@ -73,7 +73,10 @@ const ConectorDetail = () => {
     enabled: !!connector,
   });
 
-  useSEO({ title: connector ? `${connector.name} — Conectores` : "Conector", description: connector?.description || "" });
+  useSEO({
+    title: connector ? `${connector.name} — ${isEs ? "Conectores" : "Connectors"}` : (isEs ? "Conector" : "Connector"),
+    description: isEs ? (connector?.description_es || connector?.description || "") : (connector?.description || ""),
+  });
 
   const handleCopy = () => {
     if (connector?.install_command) {
