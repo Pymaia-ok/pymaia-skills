@@ -133,6 +133,8 @@ export interface SkillFromDB {
   trust_score?: number | null;
   security_scan_result?: any;
   last_commit_at?: string | null;
+  quality_score?: number | null;
+  is_stale?: boolean | null;
 }
 
 export function parseUseCases(uc: unknown): { title: string; before: string; after: string }[] {

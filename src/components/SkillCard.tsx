@@ -38,6 +38,15 @@ const SkillCard = forwardRef<HTMLDivElement, SkillCardProps>(({ skill, index = 0
             {catLabel}
           </span>
           <TrustBadgeCompact trustScore={skill.trust_score ?? 0} securityStatus={skill.security_status} />
+          {skill.quality_score != null && skill.quality_score > 0 && (
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+              skill.quality_score >= 75 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" :
+              skill.quality_score >= 50 ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" :
+              "bg-muted/50 border-border text-muted-foreground"
+            }`}>
+              Q{skill.quality_score}
+            </span>
+          )}
           {skill.industry.slice(0, 1).map((ind) => (
             <span
               key={ind}
