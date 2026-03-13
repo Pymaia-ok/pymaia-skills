@@ -2888,26 +2888,37 @@ setInterval(() => {
 
 // ─── SPRINT 1: NEW TOOLS ───
 
-// ─── update_skill: Update existing skill ───
+// ─── update_skill: Update existing skill with semantic versioning ───
 mcp.tool("update_skill", {
-  description: "Update a skill you own. Accepts new SKILL.md content and an optional changelog message. Re-parses the skill via AI and updates the catalog entry. Requires API key authentication.",
+  description: "Update a skill you own. Accepts new SKILL.md content, an optional changelog message, and version bump type. Re-parses the skill via AI and updates the catalog entry. Requires API key authentication.",
   inputSchema: {
     type: "object",
     properties: {
       skill_slug: { type: "string", description: "Slug of the skill to update" },
       skill_md: { type: "string", description: "Updated SKILL.md content" },
       changelog: { type: "string", description: "Optional changelog message describing what changed" },
+      version_bump: { type: "string", description: "Version bump type: 'patch' (bug fixes), 'minor' (new features), 'major' (breaking changes). Default: patch" },
     },
     required: ["skill_slug", "skill_md"],
   },
-  handler: async (args: { skill_slug: string; skill_md: string; changelog?: string }) => {
+  handler: async (args: { skill_slug: string; skill_md: string; changelog?: string; version_bump?: string }) => {
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to update skills." }] };
     }
 
-    const { data: skill } = await supabase.from("skills").select("id, creator_id, display_name, changelog").eq("slug", args.skill_slug).maybeSingle();
+    const { data: skill } = await supabase.from("skills").select("id, creator_id, display_name, changelog, version").eq("slug", args.skill_slug).maybeSingle();
     if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
     if (skill.creator_id !== currentApiKeyUserId) return { content: [{ type: "text" as const, text: "❌ You can only update skills you created." }] };
+
+    // Semantic version bump
+    const currentVersion = (skill as any).version || "1.0.0";
+    const [major, minor, patch] = currentVersion.split(".").map(Number);
+    let newVersion: string;
+    switch (args.version_bump) {
+      case "major": newVersion = `${major + 1}.0.0`; break;
+      case "minor": newVersion = `${major}.${minor + 1}.0`; break;
+      default: newVersion = `${major}.${minor}.${patch + 1}`;
+    }
 
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
@@ -2919,7 +2930,7 @@ mcp.tool("update_skill", {
       const data = await resp.json();
       if (!data.skill) throw new Error("No skill parsed");
 
-      const changelogEntry = args.changelog ? `[${new Date().toISOString().slice(0, 10)}] ${args.changelog}` : null;
+      const changelogEntry = args.changelog ? `[${new Date().toISOString().slice(0, 10)} v${newVersion}] ${args.changelog}` : null;
       const existingChangelog = skill.changelog || "";
       const newChangelog = changelogEntry ? `${changelogEntry}\n${existingChangelog}`.trim() : existingChangelog;
 
@@ -2935,13 +2946,14 @@ mcp.tool("update_skill", {
         required_mcps: data.skill.required_mcps || [],
         quality_score: data.quality?.score || null,
         changelog: newChangelog,
+        version: newVersion,
         security_status: "unverified",
         security_scanned_at: null,
       }).eq("id", skill.id);
 
-      await supabase.from("automation_logs").insert({ skill_id: skill.id, action_type: "skill_updated", function_name: "mcp-server", reason: args.changelog || "Skill content updated via MCP" });
+      await supabase.from("automation_logs").insert({ skill_id: skill.id, action_type: "skill_updated", function_name: "mcp-server", reason: args.changelog || "Skill content updated via MCP", metadata: { version: newVersion, bump: args.version_bump || "patch" } });
 
-      return { content: [{ type: "text" as const, text: `✅ Skill "${data.skill.name || skill.display_name}" updated successfully.${args.changelog ? `\n📝 Changelog: ${args.changelog}` : ""}\n\nThe skill will be re-scanned for security.` }] };
+      return { content: [{ type: "text" as const, text: `✅ Skill "${data.skill.name || skill.display_name}" updated to v${newVersion}.${args.changelog ? `\n📝 Changelog: ${args.changelog}` : ""}\n\nThe skill will be re-scanned for security.` }] };
     } catch (e: any) {
       return { content: [{ type: "text" as const, text: `❌ Update failed: ${e.message}` }] };
     }
