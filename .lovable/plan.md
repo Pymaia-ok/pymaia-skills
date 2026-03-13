@@ -34,5 +34,59 @@
 - Edge function `weekly-digest` — recopila nuevos skills, connectors, trending goals
 - Registrado en `supabase/config.toml`
 
-### MCP Server v8.6.0 — 43 tools totales
-Nuevos tools agregados: `update_skill`, `unpublish_skill`, `report_goal_outcome`, `rate_skill`, `get_personalized_feed`, `get_top_creators`
+### Bloque 9: Sprint 2 — PRD Best-in-Class v9.1.0 ✅
+
+#### 9.1 `publish_skill` MCP Tool (P0) ✅
+- Full publish flow: visibility (public/unlisted/private), pricing (free/paid/freemium), auto security scan
+- Auto-approve si trust_score >= 70, pending_review si 40-69, rejected si < 40
+- Duplicate detection, changelog, version 1.0.0 automático
+
+#### 9.2 `report_skill` MCP Tool (P1) ✅
+- Reportar skill malicioso/broken/policy_violation desde el agente
+- Inserta en `security_reports` para revisión manual
+
+#### 9.3 Semantic Versioning en `update_skill` ✅
+- Bumps major/minor/patch con changelog acumulativo
+
+#### 9.4 `get_skill_analytics` MCP Tool (P1) ✅
+- Métricas de instalaciones, ratings, eval results
+- Creator Tiers: Starter / Builder / Expert
+
+#### 9.5 `install_bundle` MCP Tool (P1) ✅
+- Obtener install commands de todos los skills en un bundle
+
+#### 9.6 `scan_skill` MCP Tool (P0) ✅
+- Auditoría de seguridad pre-publicación sin publicar
+
+#### 9.7 `run_skill_evals` MCP Tool (P1) ✅
+- Ejecutar 5 test cases automatizados contra SKILL.md
+
+#### 9.8 Eval-Verified Badge ✅
+- Badge en `SkillCard.tsx` y `SkillSidebar.tsx` para skills con 100% pass rate
+
+#### 9.9 Rising Stars ✅
+- Componente `RisingStars.tsx` en Explore — skills nuevos (<30 días) con tracción rápida
+
+#### 9.10 Version + Changelog en SkillDetail ✅
+- Badge de versión y desplegable de changelog en la página de detalle
+
+#### 9.11 Enhanced Goal Templates ✅
+- `recommended_skills`, `difficulty`, `estimated_time_minutes` en `goal_templates`
+
+#### 9.12 Structured Clarification en `solve_goal` ✅
+- Opciones tipificadas (dominio, nivel, presupuesto) para refinamiento
+
+#### 9.13 Visibility Control en `import_skill_from_agent` ✅
+- Parámetro `is_public` para skills privados
+
+#### 9.14 Security Dashboard ✅
+- Métricas de advisories, críticos, resueltos en `/security-advisories`
+
+### MCP Server v9.1.0 — 48 tools totales
+Nuevos tools: `publish_skill`, `report_skill`, `get_skill_analytics`, `install_bundle`, `scan_skill`, `run_skill_evals`
+
+### Pendiente (requiere infra externa):
+- Stripe Connect para monetización (P2)
+- Behavioral Sandbox (P2)
+- SSO / Enterprise Policy Engine (P2)
+- Compatibility CI multi-agente (P2)

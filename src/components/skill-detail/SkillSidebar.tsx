@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Star, Clock, Heart, ExternalLink, User, Lock, Activity } from "lucide-react";
+import { Star, Clock, Heart, ExternalLink, User, Lock, Activity, CheckCircle2 } from "lucide-react";
 import { TrustBadge, ScannedByPymaiaBadge } from "@/components/TrustBadge";
 import SecurityPanel from "@/components/SecurityPanel";
 import SecurityReportButton from "@/components/SecurityReportButton";
@@ -37,6 +37,16 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
             <div>
               <div className="text-xs font-medium text-foreground">{isEs ? "Quality Score" : "Quality Score"}</div>
               <div className="text-[10px] text-muted-foreground">{isEs ? "Trust + evals + comunidad + docs + frescura" : "Trust + evals + community + docs + freshness"}</div>
+            </div>
+          </div>
+        )}
+
+        {(skill as any).eval_verified && (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/20">
+            <CheckCircle2 className="w-4 h-4 text-primary" />
+            <div>
+              <div className="text-xs font-medium text-primary">Eval-Verified</div>
+              <div className="text-[10px] text-muted-foreground">{isEs ? "100% tests pasados" : "100% tests passed"}</div>
             </div>
           </div>
         )}

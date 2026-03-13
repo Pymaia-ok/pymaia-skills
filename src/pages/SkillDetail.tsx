@@ -191,6 +191,27 @@ const SkillDetail = () => {
 
           <SkillHero displayName={displayName} tagline={tagline} industry={skill.industry} />
 
+          {/* Version + Changelog */}
+          {((skill as any).version || (skill as any).changelog) && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-wrap items-center gap-3">
+              {(skill as any).version && (
+                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-secondary text-muted-foreground border border-border">
+                  v{(skill as any).version}
+                </span>
+              )}
+              {(skill as any).changelog && (
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    {isEs ? "Ver changelog" : "View changelog"}
+                  </summary>
+                  <pre className="mt-2 p-3 rounded-xl bg-secondary text-xs text-muted-foreground whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {(skill as any).changelog}
+                  </pre>
+                </details>
+              )}
+            </motion.div>
+          )}
+
           {/* 2-column grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}

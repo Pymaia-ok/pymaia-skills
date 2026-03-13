@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
 import SkillCard from "@/components/SkillCard";
+import RisingStars from "@/components/landing/RisingStars";
 import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
 import { useSEO } from "@/hooks/useSEO";
 
@@ -251,6 +252,9 @@ const Explore = () => {
               {t("explore.mostUsed")}
             </button>
           </div>
+
+          {/* Rising Stars */}
+          {!debouncedSearch && !selectedCategory && page === 0 && <RisingStars />}
 
           {isLoading ? (
             <div className="grid md:grid-cols-2 gap-4">
