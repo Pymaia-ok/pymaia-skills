@@ -86,7 +86,7 @@ const Conectores = () => {
     setTimeout(updateScrollIndicators, 300);
   };
 
-  const isEs = i18n.language?.startsWith("es");
+  
 
   useSEO({
     title: isEs ? "Conectores — Pymaia Skills" : "Connectors — Pymaia Skills",

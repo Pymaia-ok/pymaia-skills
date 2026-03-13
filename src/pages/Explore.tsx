@@ -10,7 +10,7 @@ import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
