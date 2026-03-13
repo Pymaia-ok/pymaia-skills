@@ -372,6 +372,7 @@ export default {
     step2Desc: "Copy and paste this JSON into your MCP configuration file:",
     step3Title: "Done! You only need to do this once",
     step3Desc: "Next time you talk to Claude about a task, it will automatically search for relevant skills.",
+    toolsTitle: "Available tools",
     toolsSubtitle: "48 tools organized by 8 categories. Claude uses them automatically.",
     toolGroupDiscovery: "Discovery (15)",
     toolGroupArchitect: "AI Solutions Architect (8)",
