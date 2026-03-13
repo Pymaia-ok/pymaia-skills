@@ -606,12 +606,15 @@ export type Database = {
           created_at: string
           description: string
           description_es: string | null
+          difficulty: string | null
           display_name: string
           display_name_es: string | null
           domain: string
+          estimated_time_minutes: number | null
           example_solutions: Json
           id: string
           is_active: boolean
+          recommended_skills: string[] | null
           slug: string
           triggers: string[]
           updated_at: string
@@ -622,12 +625,15 @@ export type Database = {
           created_at?: string
           description?: string
           description_es?: string | null
+          difficulty?: string | null
           display_name: string
           display_name_es?: string | null
           domain?: string
+          estimated_time_minutes?: number | null
           example_solutions?: Json
           id?: string
           is_active?: boolean
+          recommended_skills?: string[] | null
           slug: string
           triggers?: string[]
           updated_at?: string
@@ -638,12 +644,15 @@ export type Database = {
           created_at?: string
           description?: string
           description_es?: string | null
+          difficulty?: string | null
           display_name?: string
           display_name_es?: string | null
           domain?: string
+          estimated_time_minutes?: number | null
           example_solutions?: Json
           id?: string
           is_active?: boolean
+          recommended_skills?: string[] | null
           slug?: string
           triggers?: string[]
           updated_at?: string
@@ -1540,6 +1549,7 @@ export type Database = {
           trust_score: number | null
           updated_at: string
           use_cases: Json
+          version: string | null
           video_url: string | null
         }
         Insert: {
@@ -1588,6 +1598,7 @@ export type Database = {
           trust_score?: number | null
           updated_at?: string
           use_cases?: Json
+          version?: string | null
           video_url?: string | null
         }
         Update: {
@@ -1636,6 +1647,7 @@ export type Database = {
           trust_score?: number | null
           updated_at?: string
           use_cases?: Json
+          version?: string | null
           video_url?: string | null
         }
         Relationships: []
@@ -1779,6 +1791,7 @@ export type Database = {
           trust_score: number | null
           updated_at: string
           use_cases: Json
+          version: string | null
           video_url: string | null
         }[]
         SetofOptions: {
