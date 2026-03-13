@@ -253,6 +253,9 @@ const Explore = () => {
             </button>
           </div>
 
+          {/* Rising Stars */}
+          {!debouncedSearch && !selectedCategory && page === 0 && <RisingStars />}
+
           {isLoading ? (
             <div className="grid md:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
