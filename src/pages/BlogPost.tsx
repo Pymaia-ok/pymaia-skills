@@ -63,9 +63,16 @@ export default function BlogPost() {
     enabled: !!post?.related_skill_slugs?.length,
   });
 
-  const title = isEs ? post?.title_es || post?.title : post?.title;
-  const content = isEs ? post?.content_es || post?.content : post?.content;
-  const metaDesc = isEs ? post?.meta_description_es || post?.meta_description : post?.meta_description;
+  // Quality-aware translation: fall back to English if Spanish version is <50% length
+  const hasGoodTranslation = (es: string | null, en: string | null) =>
+    es && en && es.length >= en.length * 0.5;
+
+  const title = isEs && hasGoodTranslation(post?.title_es, post?.title)
+    ? post?.title_es : post?.title;
+  const content = isEs && hasGoodTranslation(post?.content_es, post?.content)
+    ? post?.content_es : post?.content;
+  const metaDesc = isEs && hasGoodTranslation(post?.meta_description_es, post?.meta_description)
+    ? post?.meta_description_es : post?.meta_description;
   const baseUrl = "https://pymaiaskills.lovable.app";
   const postUrl = `${baseUrl}/blog/${slug}`;
 

@@ -86,9 +86,13 @@ const Conectores = () => {
     setTimeout(updateScrollIndicators, 300);
   };
 
+  const isEs = i18n.language?.startsWith("es");
+
   useSEO({
-    title: "Conectores — Pymaia Skills",
-    description: "Connect your AI with Gmail, GitHub, Slack and more. Browse connectors that supercharge your skills.",
+    title: isEs ? "Conectores — Pymaia Skills" : "Connectors — Pymaia Skills",
+    description: isEs
+      ? "Conectá tu IA con Gmail, GitHub, Slack y más. Explorá conectores que potencian tus soluciones."
+      : "Connect your AI with Gmail, GitHub, Slack and more. Browse connectors that supercharge your skills.",
     canonical: "https://pymaiaskills.lovable.app/conectores",
   });
 
