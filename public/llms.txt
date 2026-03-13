@@ -23,7 +23,7 @@ Skills use the open AgentSkills standard (SKILL.md) and work with:
 - 38,000+ skills available
 - 19 categories
 - 100+ MCP connectors
-- 37 MCP tools (AI Solutions Architect)
+- 48 MCP tools (AI Solutions Architect)
 - 2 min average install time
 - 6+ compatible AI agents
 
