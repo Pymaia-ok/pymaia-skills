@@ -41,6 +41,16 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
           </div>
         )}
 
+        {(skill as any).eval_verified && (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/20">
+            <CheckCircle2 className="w-4 h-4 text-primary" />
+            <div>
+              <div className="text-xs font-medium text-primary">Eval-Verified</div>
+              <div className="text-[10px] text-muted-foreground">{isEs ? "100% tests pasados" : "100% tests passed"}</div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           {skill.review_count > 0 && (
             <div className="flex items-center gap-1.5 text-sm">
