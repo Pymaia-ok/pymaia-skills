@@ -1,6 +1,6 @@
 # Pymaia Skills
 
-> The #1 skill directory for AI coding agents (Claude, Manus, Cursor, Antigravity, OpenClaw). 38,000+ professional skills ready to install. AI Solutions Architect with 37 tools.
+> The #1 skill directory for AI coding agents (Claude, Manus, Cursor, Antigravity, OpenClaw). 38,000+ professional skills ready to install. AI Solutions Architect with 48 tools.
 
 Pymaia Skills is a curated marketplace of "skills" — knowledge files that teach AI agents how to perform specific professional tasks. Browse, install, and review skills without coding or terminal knowledge. Compatible with any agent that supports the AgentSkills (SKILL.md) standard.
 
