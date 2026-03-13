@@ -71,8 +71,13 @@ const MCP = () => {
         { name: "search_by_role", desc: t("mcp.tools.searchByRole") },
         { name: "explore_directory", desc: t("mcp.tools.explore") },
         { name: "search_connectors", desc: t("mcp.tools.searchConnectors") },
+        { name: "get_connector_details", desc: t("mcp.tools.getConnectorDetails") },
+        { name: "list_popular_connectors", desc: t("mcp.tools.listPopularConnectors") },
         { name: "search_plugins", desc: t("mcp.tools.searchPlugins") },
+        { name: "get_plugin_details", desc: t("mcp.tools.getPluginDetails") },
+        { name: "list_popular_plugins", desc: t("mcp.tools.listPopularPlugins") },
         { name: "get_install_command", desc: t("mcp.tools.getInstall") },
+        { name: "get_directory_stats", desc: t("mcp.tools.getDirectoryStats") },
       ],
     },
     {
@@ -100,6 +105,8 @@ const MCP = () => {
       tools: [
         { name: "trending_solutions", desc: t("mcp.tools.trending") },
         { name: "rate_recommendation", desc: t("mcp.tools.rateRec") },
+        { name: "personalized_feed", desc: t("mcp.tools.personalizedFeed") },
+        { name: "get_top_creators", desc: t("mcp.tools.topCreators") },
       ],
     },
     {
@@ -109,6 +116,7 @@ const MCP = () => {
         { name: "browse_community_templates", desc: t("mcp.tools.browseTemplates") },
         { name: "agent_analytics", desc: t("mcp.tools.analytics") },
         { name: "a2a_query", desc: t("mcp.tools.a2a") },
+        { name: "install_bundle", desc: t("mcp.tools.installBundle") },
       ],
     },
     {
@@ -120,6 +128,24 @@ const MCP = () => {
         { name: "semantic_search", desc: t("mcp.tools.semanticSearch") },
         { name: "get_trust_report", desc: t("mcp.tools.getTrustReport") },
         { name: "whats_new", desc: t("mcp.tools.whatsNew") },
+      ],
+    },
+    {
+      label: t("mcp.toolGroupLifecycle"),
+      tools: [
+        { name: "publish_skill", desc: t("mcp.tools.publishSkill") },
+        { name: "import_skill_from_agent", desc: t("mcp.tools.importSkill") },
+        { name: "update_skill", desc: t("mcp.tools.updateSkill") },
+        { name: "unpublish_skill", desc: t("mcp.tools.unpublishSkill") },
+        { name: "report_skill", desc: t("mcp.tools.reportSkill") },
+      ],
+    },
+    {
+      label: t("mcp.toolGroupQuality"),
+      tools: [
+        { name: "scan_skill", desc: t("mcp.tools.scanSkill") },
+        { name: "run_skill_evals", desc: t("mcp.tools.runSkillEvals") },
+        { name: "get_skill_analytics", desc: t("mcp.tools.getSkillAnalytics") },
       ],
     },
   ];
