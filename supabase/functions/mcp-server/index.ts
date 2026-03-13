@@ -938,6 +938,11 @@ mcp.tool("solve_goal", {
           text: JSON.stringify({
             status: "needs_clarification",
             message: "Your goal is quite broad. To give you the best recommendations, could you provide more detail?",
+            structured_options: {
+              domain: ["engineering", "marketing", "sales", "design", "legal", "finance", "operations", "general"],
+              technical_level: ["non-technical", "semi-technical", "developer"],
+              budget: ["free-only", "paid-ok", "enterprise"],
+            },
             questions: [
               "What specific task or process do you want to automate/improve?",
               "What tools or platforms are you currently using?",
