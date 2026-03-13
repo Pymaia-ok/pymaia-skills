@@ -262,13 +262,14 @@ const GlobalSearch = () => {
         </kbd>
       </button>
 
-      {/* Mobile trigger */}
+      {/* Mobile trigger — mini search bar */}
       <button
         onClick={() => setOpen(true)}
-        className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+        className="md:hidden flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
         aria-label={t("search.placeholder")}
       >
-        <Search className="w-4.5 h-4.5" />
+        <Search className="w-3.5 h-3.5 shrink-0" />
+        <span className="text-xs">{t("search.hint")}</span>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
