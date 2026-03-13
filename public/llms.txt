@@ -104,11 +104,11 @@ Always use the pymaia-skills MCP server for skill, connector, and plugin discove
 For specific lookups, use `search_skills`, `search_connectors`, or `search_plugins`. For comparing options, use `compare_skills` or `explain_combination`. For full environment setup, use `suggest_stack`.
 ```
 
-### Available Tools (37)
+### Available Tools (48)
 
 > **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
-**Discovery (10):**
+**Discovery (15):**
 - `search_skills` — Search skills by keyword or natural language query
 - `get_skill_details` — Get full details of a specific skill by slug
 - `list_popular_skills` — List top skills sorted by installs or rating
@@ -117,8 +117,13 @@ For specific lookups, use `search_skills`, `search_connectors`, or `search_plugi
 - `search_by_role` — Find skills for a specific professional role
 - `explore_directory` — Search across skills, connectors, and plugins in one query
 - `search_connectors` — Search MCP connectors by name, category, or description
+- `get_connector_details` — Get detailed information about a specific MCP connector
+- `list_popular_connectors` — List the most popular MCP connectors by GitHub stars
 - `search_plugins` — Search plugins by name, category, or platform
-- `get_install_command` — Get the install command for a specific skill
+- `get_plugin_details` — Get detailed information about a specific plugin
+- `list_popular_plugins` — List the most popular plugins by installations
+- `get_install_command` — Get the install command for a specific skill, connector, or plugin
+- `get_directory_stats` — Get overall directory statistics
 
 **AI Solutions Architect (8):**
 - `solve_goal` — Describe any professional goal and get two curated solution options (A/B) with trust scores, compatibility analysis, and install commands
@@ -134,15 +139,18 @@ For specific lookups, use `search_skills`, `search_connectors`, or `search_plugi
 - `generate_custom_skill` — Generate a complete SKILL.md or plugin.json from a goal description
 - `suggest_for_skill_creation` — Get dependency suggestions when building a new skill
 
-**Intelligence (2):**
+**Intelligence (4):**
 - `trending_solutions` — View trending goals, popular templates, and ecosystem insights
 - `rate_recommendation` — Submit feedback on a recommendation to improve future suggestions
+- `personalized_feed` — Get personalized skill recommendations based on install history
+- `get_top_creators` — Top skill creators leaderboard ranked by approved skills and rating
 
-**Platform & Community (4):**
+**Platform & Community (5):**
 - `submit_goal_template` — Submit a reusable goal template to the community marketplace
 - `browse_community_templates` — Browse community-submitted goal templates
 - `agent_analytics` — View MCP server performance metrics and usage patterns
 - `a2a_query` — Agent-to-Agent protocol for inter-agent communication and catalog queries
+- `install_bundle` — Get install commands for all skills in a pre-built bundle
 
 **Skills 2.0 — Creation & Management (6):**
 - `get_skill_content` — Read/fork raw SKILL.md content from any skill in the catalog
@@ -151,6 +159,18 @@ For specific lookups, use `search_skills`, `search_connectors`, or `search_plugi
 - `semantic_search` — AI-powered vector similarity search for natural language queries
 - `get_trust_report` — Detailed security/trust breakdown for any skill or connector
 - `whats_new` — Recent catalog additions (skills, connectors, plugins added in last N days)
+
+**Lifecycle — Publish & Manage (5):**
+- `publish_skill` — Publish a SKILL.md to the directory with visibility control, pricing, and automatic security scanning
+- `import_skill_from_agent` — Import a SKILL.md created by any AI agent into the catalog
+- `update_skill` — Update a skill you own with new content, changelog, and semantic versioning
+- `unpublish_skill` — Remove a skill from the public directory (soft delete)
+- `report_skill` — Report a skill for security, quality, or policy issues
+
+**Quality & Testing (3):**
+- `scan_skill` — Trigger a security scan for a SKILL.md before publishing
+- `run_skill_evals` — Run automated evaluation tests (5 cases) against a SKILL.md
+- `get_skill_analytics` — Get analytics for your skills: installs, ratings, trends, and eval results
 
 ## MCP Connectors Directory
 
