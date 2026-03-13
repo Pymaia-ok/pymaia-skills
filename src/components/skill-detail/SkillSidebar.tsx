@@ -25,6 +25,22 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
           {skill.security_scanned_at && <ScannedByPymaiaBadge />}
         </div>
 
+        {skill.quality_score != null && skill.quality_score > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
+              skill.quality_score >= 75 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+              skill.quality_score >= 50 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+              "bg-muted text-muted-foreground"
+            }`}>
+              {skill.quality_score}
+            </div>
+            <div>
+              <div className="text-xs font-medium text-foreground">{isEs ? "Quality Score" : "Quality Score"}</div>
+              <div className="text-[10px] text-muted-foreground">{isEs ? "Trust + evals + comunidad + docs + frescura" : "Trust + evals + community + docs + freshness"}</div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           {skill.review_count > 0 && (
             <div className="flex items-center gap-1.5 text-sm">
