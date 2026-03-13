@@ -175,7 +175,7 @@ const Conectores = () => {
     return (b.external_use_count || 0) - (a.external_use_count || 0);
   });
 
-  const isEs = i18n.language === "es";
+  
 
   return (
     <div className="min-h-screen bg-background">
