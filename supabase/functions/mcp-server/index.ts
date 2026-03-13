@@ -2424,10 +2424,11 @@ mcp.tool("import_skill_from_agent", {
     properties: {
       skill_md: { type: "string", description: "Full content of the SKILL.md file to import" },
       author_name: { type: "string", description: "Name of the author or agent that created this skill" },
+      is_public: { type: "boolean", description: "Whether the skill should be publicly visible. Default: true" },
     },
     required: ["skill_md"],
   },
-  handler: async (args: { skill_md: string; author_name?: string }) => {
+  handler: async (args: { skill_md: string; author_name?: string; is_public?: boolean }) => {
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to import skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
@@ -2436,7 +2437,6 @@ mcp.tool("import_skill_from_agent", {
     }
 
     try {
-      // Call generate-skill with import_skill action
       const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
@@ -2448,7 +2448,6 @@ mcp.tool("import_skill_from_agent", {
 
       if (!data.skill) throw new Error("No skill parsed");
 
-      // Duplicate detection (Sprint 1 - Block 5)
       const slug = (data.skill.name || "imported-skill").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 64);
       const { data: similar } = await supabase
         .from("skills")
@@ -2461,6 +2460,8 @@ mcp.tool("import_skill_from_agent", {
       const useCases = (data.skill.examples || []).map((ex: any) => ({
         title: ex.title, before: ex.input, after: ex.output,
       }));
+
+      const visibility = args.is_public !== undefined ? args.is_public : true;
 
       await supabase.from("skills").insert({
         slug: `${slug}-${Date.now().toString(36)}`,
@@ -2475,8 +2476,9 @@ mcp.tool("import_skill_from_agent", {
         creator_id: currentApiKeyUserId,
         status: "pending",
         quality_score: data.quality?.score || null,
-        is_public: true,
+        is_public: visibility,
         required_mcps: data.skill.required_mcps || [],
+        version: "1.0.0",
       });
 
       const scoreText = data.quality?.score ? ` Quality score: ${data.quality.score}/10.` : "";
