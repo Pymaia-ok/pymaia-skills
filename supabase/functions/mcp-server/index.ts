@@ -3339,6 +3339,168 @@ mcp.tool("run_skill_evals", {
   },
 });
 
+// ─── publish_skill: Full publish flow with visibility + pricing ───
+mcp.tool("publish_skill", {
+  description: "Publish a SKILL.md to the Pymaia directory from your agent. Full publish flow with visibility control, pricing, and automatic security scanning. Returns skill URL, trust score, and review status. Requires API key authentication.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_md: { type: "string", description: "Full content of the SKILL.md file" },
+      visibility: { type: "string", description: "Visibility: 'public' (default), 'unlisted', or 'private'" },
+      category: { type: "string", description: "Category override (auto-detected if omitted)" },
+      pricing: { type: "string", description: "Pricing model: 'free' (default), 'paid', or 'freemium'" },
+      price_usd: { type: "number", description: "Price in USD (if paid/freemium)" },
+      changelog: { type: "string", description: "Description of changes (for updates)" },
+    },
+    required: ["skill_md"],
+  },
+  handler: async (args: { skill_md: string; visibility?: string; category?: string; pricing?: string; price_usd?: number; changelog?: string }) => {
+    if (!currentApiKeyUserId) {
+      return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to publish skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
+    }
+    if (!args.skill_md || args.skill_md.length < 50) {
+      return { content: [{ type: "text" as const, text: "❌ SKILL.md content is too short (minimum 50 characters)." }] };
+    }
+
+    try {
+      // Parse skill via AI
+      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-skill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({ action: "import_skill", skill_md: args.skill_md }),
+      });
+      if (!resp.ok) throw new Error(`Parse failed: ${resp.status}`);
+      const data = await resp.json();
+      if (!data.skill) throw new Error("No skill parsed");
+
+      const skillName = data.skill.name || "Published Skill";
+      const slug = skillName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 64);
+
+      // Duplicate detection
+      const { data: similar } = await supabase
+        .from("skills")
+        .select("slug, display_name")
+        .eq("status", "approved")
+        .or(`display_name.ilike.%${skillName}%,slug.ilike.%${slug}%`)
+        .limit(5);
+      const duplicateWarning = similar?.length ? `\n\n⚠️ **Similar skills found:** ${similar.map((s: any) => `${s.display_name} (\`${s.slug}\`)`).join(", ")}` : "";
+
+      // Run security scan in parallel
+      let scanResult: any = null;
+      try {
+        const scanResp = await fetch(`${supabaseUrl}/functions/v1/scan-security`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ content: args.skill_md, item_type: "skill", item_slug: slug }),
+        });
+        if (scanResp.ok) scanResult = await scanResp.json();
+      } catch {}
+
+      const trustScore = scanResult?.trust_score || 0;
+      const verdict = scanResult?.verdict || "UNKNOWN";
+      const isPublic = args.visibility !== "private" && args.visibility !== "unlisted";
+      const autoApprove = trustScore >= 70 && verdict === "CLEAN";
+      const status = autoApprove ? "approved" : trustScore < 40 ? "rejected" : "pending";
+      const reviewStatus = autoApprove ? "auto_approved" : status === "rejected" ? "rejected" : "pending_review";
+
+      const finalSlug = `${slug}-${Date.now().toString(36)}`;
+      const pricingModel = args.pricing || "free";
+
+      await supabase.from("skills").insert({
+        slug: finalSlug,
+        display_name: skillName,
+        tagline: data.skill.tagline || "",
+        description_human: data.skill.description || "",
+        install_command: data.skill.install_command || args.skill_md,
+        category: args.category || data.skill.category || "general",
+        industry: data.skill.industry || [],
+        target_roles: data.skill.target_roles || [],
+        use_cases: (data.skill.examples || []).map((ex: any) => ({ title: ex.title, before: ex.input, after: ex.output })),
+        creator_id: currentApiKeyUserId,
+        status,
+        auto_approved_reason: autoApprove ? `Trust score ${trustScore} >= 70, scan clean` : null,
+        quality_score: data.quality?.score || null,
+        is_public: isPublic,
+        required_mcps: data.skill.required_mcps || [],
+        version: "1.0.0",
+        pricing_model: pricingModel,
+        price_amount: args.price_usd || null,
+        changelog: args.changelog || null,
+        security_scan_result: scanResult || null,
+        security_status: verdict === "CLEAN" ? "scanned" : "unverified",
+        trust_score: trustScore,
+      });
+
+      await supabase.from("automation_logs").insert({
+        action_type: "skill_published",
+        function_name: "mcp-server",
+        reason: `Published via publish_skill MCP tool`,
+        metadata: { slug: finalSlug, visibility: args.visibility || "public", pricing: pricingModel, trust_score: trustScore, review_status: reviewStatus },
+      });
+
+      const skillUrl = `https://pymaiaskills.lovable.app/skill/${finalSlug}`;
+      const warnings = scanResult?.issues?.map((i: any) => i.description || i.message) || [];
+
+      const sections = [
+        `✅ Skill "${skillName}" published!`,
+        `\n**URL:** ${skillUrl}`,
+        `**Trust Score:** ${trustScore}/100`,
+        `**Review Status:** ${reviewStatus}`,
+        `**Version:** 1.0.0`,
+        `**Visibility:** ${args.visibility || "public"}`,
+        `**Pricing:** ${pricingModel}${args.price_usd ? ` ($${args.price_usd})` : ""}`,
+      ];
+
+      if (warnings.length) {
+        sections.push(`\n⚠️ **Scanner Warnings:**\n${warnings.map((w: string) => `- ${w}`).join("\n")}`);
+      }
+
+      if (status === "rejected") {
+        sections.push(`\n🚨 **Rejected:** Trust score too low (${trustScore}). Fix security issues and re-publish.`);
+      } else if (status === "pending") {
+        sections.push(`\n⏳ **Pending Review:** Manual review required (< 24h).`);
+      }
+
+      sections.push(duplicateWarning);
+
+      return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+    } catch (e: any) {
+      return { content: [{ type: "text" as const, text: `❌ Publish failed: ${e.message}` }] };
+    }
+  },
+});
+
+// ─── report_skill: Report malicious or broken skill ───
+mcp.tool("report_skill", {
+  description: "Report a skill as malicious, broken, or policy-violating. No authentication required. Reports are reviewed by the Pymaia security team.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      skill_slug: { type: "string", description: "Slug of the skill to report" },
+      report_type: { type: "string", description: "Type: 'malicious', 'broken', 'policy_violation', 'other'" },
+      description: { type: "string", description: "Detailed description of the issue" },
+      reporter_email: { type: "string", description: "Optional email for follow-up" },
+    },
+    required: ["skill_slug", "report_type", "description"],
+  },
+  handler: async (args: { skill_slug: string; report_type: string; description: string; reporter_email?: string }) => {
+    const { data: skill } = await supabase.from("skills").select("id, display_name").eq("slug", args.skill_slug).maybeSingle();
+    if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
+
+    await supabase.from("security_reports").insert({
+      item_type: "skill",
+      item_id: skill.id,
+      item_slug: args.skill_slug,
+      report_type: args.report_type,
+      description: args.description,
+      reporter_email: args.reporter_email || null,
+      reporter_user_id: currentApiKeyUserId || null,
+    });
+
+    return { content: [{ type: "text" as const, text: `✅ Report submitted for "${skill.display_name}". Our security team will review it within 24 hours.\n\nReport type: ${args.report_type}\nDescription: ${args.description}` }] };
+  },
+});
+
 // Bind transport
 const transport = new StreamableHttpTransport();
 const httpHandler = transport.bind(mcp);
