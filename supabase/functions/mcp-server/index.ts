@@ -132,6 +132,26 @@ function sanitizeForPostgrest(query: string): string {
   return query.replace(/[,()."\\]/g, "").trim().toLowerCase();
 }
 
+// ─── SLUG REDIRECT RESOLVER ───
+// Checks slug_redirects table first, then returns the canonical slug
+async function resolveSlug(slug: string, itemType?: string): Promise<string> {
+  const type = itemType || "skill";
+  const { data } = await supabase
+    .from("slug_redirects")
+    .select("new_slug")
+    .eq("old_slug", slug)
+    .eq("item_type", type)
+    .maybeSingle();
+  return data?.new_slug || slug;
+}
+
+// ─── ENSURE RESPONSE UTILITY ───
+// Wraps tool outputs to never return empty/blank responses
+function ensureResponse(text: string | null | undefined, fallback: string): string {
+  if (!text || text.trim().length === 0) return fallback;
+  return text;
+}
+
 // Build word-split fallback query for multi-word searches
 async function wordSplitSearch(
   table: "skills" | "mcp_servers" | "plugins",
@@ -243,7 +263,8 @@ mcp.tool("get_skill_details", {
   },
   handler: async (args: { slug: string }) => {
     const apiUserId = currentApiKeyUserId;
-    let q = supabase.from("skills").select("*").eq("slug", args.slug);
+    const resolvedSlug = await resolveSlug(args.slug, "skill");
+    let q = supabase.from("skills").select("*").eq("slug", resolvedSlug);
     if (apiUserId) {
       q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
     } else {
@@ -251,7 +272,7 @@ mcp.tool("get_skill_details", {
     }
     const { data: skill, error } = await q.maybeSingle();
 
-    if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" no encontrada.` }] };
+    if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found. Try \`search_skills('${args.slug}')\` to find similar skills.` }] };
 
     const useCases = Array.isArray(skill.use_cases)
       ? (skill.use_cases as { title: string; after: string }[]).map((uc) => `• ${uc.title}: ${uc.after}`).join("\n")
@@ -276,20 +297,28 @@ mcp.tool("list_popular_skills", {
     },
   },
   handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
-    const orderCol = args.sort_by === "rating" ? "avg_rating" : "install_count";
+    const lim = Math.min(args.limit || 5, 10);
+    // Composite ranking: prioritize tracked installs, then trust_score + avg_rating
     let q = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category")
-      .eq("status", "approved")
-      .order(orderCol, { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, trust_score, install_count_source")
+      .eq("status", "approved");
 
     if (args.category) q = q.eq("category", args.category);
 
-    const { data: skills, error } = await q;
+    // Get more results for client-side composite ranking
+    const { data: skills, error } = await q.order("install_count", { ascending: false }).limit(lim * 5);
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const text = (skills || [])
+    // Composite ranking: tracked installs first, then trust_score + rating as tiebreaker
+    const ranked = (skills || []).map((s: any) => {
+      const trackedBonus = s.install_count_source === 'tracked' ? 1000000 : 0;
+      const qualityScore = (s.trust_score || 0) + Number(s.avg_rating) * 20;
+      const compositeScore = trackedBonus + (args.sort_by === "rating" ? Number(s.avg_rating) * 100000 : s.install_count) + qualityScore;
+      return { ...s, _composite: compositeScore };
+    }).sort((a: any, b: any) => b._composite - a._composite).slice(0, lim);
+
+    const text = ranked
       .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
       .join("\n\n");
 
@@ -464,10 +493,12 @@ mcp.tool("compare_skills", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    // Resolve slugs through redirects
+    const resolvedSlugs = await Promise.all(args.slugs.map(s => resolveSlug(s, "skill")));
     const { data: skills, error } = await supabase
       .from("skills")
       .select("*")
-      .in("slug", args.slugs)
+      .in("slug", resolvedSlugs)
       .eq("status", "approved");
 
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
@@ -1145,6 +1176,14 @@ mcp.tool("solve_goal", {
       if (low.length > 0) { sections.push(`**⚠️ Security:**`); for (const l of low) sections.push(`- ${l.name}: low Trust (${l.trust_score}/100)`); sections.push(""); }
     }
 
+    // Check if both options are empty
+    if (optionA.length === 0 && optionB.length === 0) {
+      sections.push(`## No matching tools found\n`);
+      sections.push(`We couldn't find tools matching "${args.goal}" in our catalog.\n`);
+      sections.push(`### Try:\n- **Broader keywords:** Use more general terms\n- **\`explore_directory('${goalWords2.slice(0, 2).join(" ")}')\`** for cross-catalog discovery\n- **\`suggest_stack('${args.role || "general"}')\`** for role-based recommendations\n- **\`browse_community_templates\`** for curated goal templates\n`);
+      return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+    }
+
     formatOption("Option A", "Simple & Fast", optionA, warningsA);
     formatOption("Option B", "Flexible & Customizable", optionB, warningsB);
 
@@ -1414,11 +1453,16 @@ mcp.tool("explain_combination", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    // Resolve slugs through redirects
+    const resolvedSlugs = await Promise.all(args.slugs.map(async s => {
+      const r = await resolveSlug(s, "skill");
+      return r !== s ? r : s; // Keep original if no redirect (works for connectors/plugins too)
+    }));
     // Search across all 3 tables
     const [{ data: skills }, { data: connectors }, { data: plugins }] = await Promise.all([
-      supabase.from("skills").select("display_name, slug, tagline, description_human, category, install_command, trust_score, security_status, required_mcps").in("slug", args.slugs).eq("status", "approved"),
-      supabase.from("mcp_servers").select("name, slug, description, category, install_command, trust_score, security_status, credentials_needed, is_official").in("slug", args.slugs).eq("status", "approved"),
-      supabase.from("plugins").select("name, slug, description, category, platform, trust_score, security_status, is_official, is_anthropic_verified").in("slug", args.slugs).eq("status", "approved"),
+      supabase.from("skills").select("display_name, slug, tagline, description_human, category, install_command, trust_score, security_status, required_mcps").in("slug", resolvedSlugs).eq("status", "approved"),
+      supabase.from("mcp_servers").select("name, slug, description, category, install_command, trust_score, security_status, credentials_needed, is_official").in("slug", resolvedSlugs).eq("status", "approved"),
+      supabase.from("plugins").select("name, slug, description, category, platform, trust_score, security_status, is_official, is_anthropic_verified").in("slug", resolvedSlugs).eq("status", "approved"),
     ]);
 
     const allItems = [
@@ -2103,15 +2147,23 @@ mcp.tool("a2a_query", {
     }
 
     if (args.action === "catalog_stats") {
+      // Use materialized view for consistent stats
+      const { data: stats } = await supabase.from("directory_stats_mv").select("*").limit(1).maybeSingle();
+      if (stats) {
+        const result = { skills: stats.skills_count, connectors: stats.connectors_count, plugins: stats.plugins_count, goal_templates: stats.goal_templates_count, total: (stats.skills_count || 0) + (stats.connectors_count || 0) + (stats.plugins_count || 0) };
+        if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+        return { content: [{ type: "text" as const, text: `Catalog: ${result.total} tools (${result.skills} skills, ${result.connectors} MCPs, ${result.plugins} plugins), ${result.goal_templates} goal templates` }] };
+      }
+      // Fallback
       const [{ count: s }, { count: m }, { count: p }, { count: gt }] = await Promise.all([
         supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("goal_templates").select("id", { count: "exact", head: true }).eq("is_active", true),
       ]);
-      const stats = { skills: s, connectors: m, plugins: p, goal_templates: gt, total: (s || 0) + (m || 0) + (p || 0) };
-      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(stats) }] };
-      return { content: [{ type: "text" as const, text: `Catalog: ${stats.total} tools (${stats.skills} skills, ${stats.connectors} MCPs, ${stats.plugins} plugins), ${stats.goal_templates} goal templates` }] };
+      const fallbackStats = { skills: s, connectors: m, plugins: p, goal_templates: gt, total: (s || 0) + (m || 0) + (p || 0) };
+      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(fallbackStats) }] };
+      return { content: [{ type: "text" as const, text: `Catalog: ${fallbackStats.total} tools (${fallbackStats.skills} skills, ${fallbackStats.connectors} MCPs, ${fallbackStats.plugins} plugins), ${fallbackStats.goal_templates} goal templates` }] };
     }
 
     if (args.action === "search" && args.query) {
@@ -2182,25 +2234,36 @@ mcp.tool("a2a_query", {
 // ─── STATS TOOLS ───
 
 mcp.tool("get_directory_stats", {
-  description: "Get overall statistics about the SkillHub directory: total skills, categories, top rated, most installed.",
+  description: "Get overall statistics about the SkillHub directory: total skills, connectors, plugins, categories, and highlights.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
-    const { data: skills, error } = await supabase
-      .from("skills")
-      .select("display_name, slug, avg_rating, install_count, category, created_at")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false });
+    // Use materialized view for accurate counts (avoids 1000-row limit)
+    const { data: stats, error: statsError } = await supabase
+      .from("directory_stats_mv")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
 
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    if (statsError || !stats) {
+      // Fallback to count: exact if materialized view not available
+      const [{ count: s }, { count: m }, { count: p }] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      ]);
+      const total = (s || 0) + (m || 0) + (p || 0);
+      return { content: [{ type: "text" as const, text: `# 📊 Directory Stats\n\n- **${(s || 0).toLocaleString()}** skills\n- **${(m || 0).toLocaleString()}** MCP connectors\n- **${(p || 0).toLocaleString()}** plugins\n- **${total.toLocaleString()}** total tools` }] };
+    }
 
-    const all = skills || [];
-    const totalInstalls = all.reduce((sum: number, s: any) => sum + s.install_count, 0);
-    const categories = new Set(all.map((s: any) => s.category));
-    const topInstalled = all[0];
-    const topRated = [...all].sort((a: any, b: any) => Number(b.avg_rating) - Number(a.avg_rating))[0];
-    const newest = [...all].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const total = (stats.skills_count || 0) + (stats.connectors_count || 0) + (stats.plugins_count || 0);
 
-    const text = `# 📊 SkillHub Directory Stats\n\n- **${all.length}** skills disponibles\n- **${categories.size}** categorías\n- **${totalInstalls.toLocaleString()}** instalaciones totales\n\n## Highlights\n- 🏆 Más instalada: **${topInstalled?.display_name}** (${topInstalled?.install_count.toLocaleString()})\n- ⭐ Mejor valorada: **${topRated?.display_name}** (${Number(topRated?.avg_rating).toFixed(1)})\n- 🆕 Más reciente: **${newest?.display_name}**`;
+    // Get highlights (top installed + top rated)
+    const [{ data: topInstalled }, { data: topRated }] = await Promise.all([
+      supabase.from("skills").select("display_name, install_count").eq("status", "approved").order("install_count", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("skills").select("display_name, avg_rating").eq("status", "approved").order("avg_rating", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    const text = `# 📊 SkillHub Directory Stats\n\n- **${stats.skills_count?.toLocaleString()}** skills\n- **${stats.connectors_count?.toLocaleString()}** MCP connectors\n- **${stats.plugins_count?.toLocaleString()}** plugins\n- **${stats.categories_count}** categories\n- **${total.toLocaleString()}** total tools\n- **${stats.goal_templates_count}** active goal templates\n\n## Highlights\n- 🏆 Most installed: **${topInstalled?.display_name || "N/A"}** (${topInstalled?.install_count?.toLocaleString() || 0})\n- ⭐ Top rated: **${topRated?.display_name || "N/A"}** (${Number(topRated?.avg_rating || 0).toFixed(1)})`;
 
     return { content: [{ type: "text" as const, text }] };
   },
@@ -2218,24 +2281,32 @@ mcp.tool("get_install_command", {
   handler: async (args: { name: string }) => {
     const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
 
+    // Resolve slug redirects first
+    const resolvedSlug = await resolveSlug(nameLower, "skill");
+
     // 1. Search skills by slug
     const { data: skill } = await supabase
       .from("skills")
-      .select("display_name, install_command, slug")
+      .select("display_name, install_command, slug, install_count_source")
       .eq("status", "approved")
-      .eq("slug", nameLower)
+      .eq("slug", resolvedSlug)
       .maybeSingle();
 
     if (skill) {
+      // Mark as tracked install source
+      if (skill.install_count_source !== 'tracked') {
+        supabase.from("skills").update({ install_count_source: 'tracked' }).eq("slug", skill.slug).then(() => {});
+      }
       return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
     }
 
-    // 2. Search MCP connectors by slug
+    // 2. Search MCP connectors by slug (also check redirect)
+    const resolvedConnSlug = await resolveSlug(nameLower, "connector");
     const { data: connector } = await supabase
       .from("mcp_servers")
       .select("name, install_command, slug")
       .eq("status", "approved")
-      .eq("slug", nameLower)
+      .eq("slug", resolvedConnSlug)
       .maybeSingle();
 
     if (connector) {
@@ -2573,7 +2644,30 @@ mcp.tool("validate_skill", {
         body: JSON.stringify({ action: "import_skill", skill_md: args.skill_md }),
       });
 
-      if (!resp.ok) throw new Error(`Validation failed: ${resp.status}`);
+      if (!resp.ok) {
+        // Parse error body for specific feedback instead of throwing
+        const errorText = await resp.text().catch(() => "");
+        const sections = [`# Skill Validation Report\n`, `## ❌ Validation Error\n`];
+        
+        // Provide structural feedback based on content analysis
+        const hasTitle = /^#\s+.+/m.test(args.skill_md);
+        const hasSections = (args.skill_md.match(/^##\s+/gm) || []).length;
+        const hasUsageInstructions = /usage|how to|example|instruction/i.test(args.skill_md);
+        const minLength = args.skill_md.length >= 200;
+        
+        sections.push(`### Structural Analysis`);
+        sections.push(`- ${hasTitle ? "✅" : "❌"} Has title (# heading)`);
+        sections.push(`- ${hasSections >= 2 ? "✅" : "❌"} Has sections (found ${hasSections} ## headings, need ≥ 2)`);
+        sections.push(`- ${minLength ? "✅" : "❌"} Minimum length (${args.skill_md.length} chars, need ≥ 200)`);
+        sections.push(`- ${hasUsageInstructions ? "✅" : "❌"} Has usage instructions`);
+        sections.push(`\n### Suggestions`);
+        if (!hasTitle) sections.push(`- Add a title with \`# Your Skill Name\``);
+        if (hasSections < 2) sections.push(`- Add sections like \`## Description\`, \`## Usage\`, \`## Examples\``);
+        if (!minLength) sections.push(`- Expand the content with more detail (at least 200 characters)`);
+        if (!hasUsageInstructions) sections.push(`- Add usage instructions or examples`);
+        
+        return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+      }
       const data = await resp.json();
 
       if (!data.skill) throw new Error("Could not parse skill");
@@ -3143,7 +3237,11 @@ mcp.tool("get_top_creators", {
   handler: async (args: { limit?: number }) => {
     const lim = Math.min(args.limit || 10, 20);
     const { data: skills } = await supabase.from("skills").select("creator_id, avg_rating, install_count").eq("status", "approved").not("creator_id", "is", null);
-    if (!skills?.length) return { content: [{ type: "text" as const, text: "No creators found." }] };
+    if (!skills?.length) {
+      // Provide context about why there are no creators
+      const { count: totalSkills } = await supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved");
+      return { content: [{ type: "text" as const, text: `Creator profiles are being built. The catalog has ${(totalSkills || 0).toLocaleString()} skills but most were imported without creator attribution.\n\nTo appear on the leaderboard, publish skills via \`publish_skill\` or \`import_skill_from_agent\` with your API key.` }] };
+    }
 
     const creatorStats: Record<string, { count: number; totalRating: number; totalInstalls: number }> = {};
     for (const s of skills) {
@@ -3254,7 +3352,12 @@ mcp.tool("install_bundle", {
       const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id).eq("is_active", true).limit(1).maybeSingle();
       bundle = byRole;
     }
-    if (!bundle) return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.` }] };
+    if (!bundle) {
+      // List available bundles
+      const { data: available } = await supabase.from("skill_bundles").select("role_slug, title, hero_emoji").eq("is_active", true).limit(10);
+      const availableList = (available || []).map((b: any) => `- ${b.hero_emoji || "📦"} **${b.title}** (use \`install_bundle('${b.role_slug}')\`)`).join("\n");
+      return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.\n\n${availableList ? `## Available Bundles\n\n${availableList}` : "No bundles are currently available."}` }] };
+    }
 
     // Get skills in bundle
     const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs);
