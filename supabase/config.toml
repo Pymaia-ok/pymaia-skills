@@ -124,5 +124,3 @@ verify_jwt = false
 [functions.weekly-digest]
 verify_jwt = false
 
-[functions.reveal-db-url]
-verify_jwt = false
