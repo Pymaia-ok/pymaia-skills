@@ -1453,11 +1453,16 @@ mcp.tool("explain_combination", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    // Resolve slugs through redirects
+    const resolvedSlugs = await Promise.all(args.slugs.map(async s => {
+      const r = await resolveSlug(s, "skill");
+      return r !== s ? r : s; // Keep original if no redirect (works for connectors/plugins too)
+    }));
     // Search across all 3 tables
     const [{ data: skills }, { data: connectors }, { data: plugins }] = await Promise.all([
-      supabase.from("skills").select("display_name, slug, tagline, description_human, category, install_command, trust_score, security_status, required_mcps").in("slug", args.slugs).eq("status", "approved"),
-      supabase.from("mcp_servers").select("name, slug, description, category, install_command, trust_score, security_status, credentials_needed, is_official").in("slug", args.slugs).eq("status", "approved"),
-      supabase.from("plugins").select("name, slug, description, category, platform, trust_score, security_status, is_official, is_anthropic_verified").in("slug", args.slugs).eq("status", "approved"),
+      supabase.from("skills").select("display_name, slug, tagline, description_human, category, install_command, trust_score, security_status, required_mcps").in("slug", resolvedSlugs).eq("status", "approved"),
+      supabase.from("mcp_servers").select("name, slug, description, category, install_command, trust_score, security_status, credentials_needed, is_official").in("slug", resolvedSlugs).eq("status", "approved"),
+      supabase.from("plugins").select("name, slug, description, category, platform, trust_score, security_status, is_official, is_anthropic_verified").in("slug", resolvedSlugs).eq("status", "approved"),
     ]);
 
     const allItems = [
