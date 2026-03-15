@@ -1158,13 +1158,61 @@ mcp.tool("solve_goal", {
 
     // 3. Cross-catalog search (with category hint from classifier)
     const searchResults = await crossCatalogSearch(uniqueKeywords, 8, apiUserId);
-    const allItems = [
+    let allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
 
-    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { skills: searchResults.skills.length, connectors: searchResults.connectors.length, plugins: searchResults.plugins.length, total: allItems.length } }));
+    // 3b. FALLBACK: If cross-catalog search returned nothing, try semantic search
+    if (allItems.length === 0) {
+      try {
+        const semanticResp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: args.goal, limit: 12 }),
+        });
+        if (semanticResp.ok) {
+          const semanticData = await semanticResp.json();
+          for (const s of semanticData.results || []) {
+            allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline || s.description_human });
+          }
+        }
+      } catch { /* skip */ }
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "semantic_fallback", goal: args.goal, results: allItems.length }));
+    }
+
+    // 3c. FALLBACK: If still nothing, try FTS RPC
+    if (allItems.length === 0) {
+      const { data: ftsResults } = await supabase.rpc("search_skills", {
+        search_query: args.goal,
+        page_size: 12,
+      });
+      if (ftsResults && ftsResults.length > 0) {
+        for (const s of ftsResults) {
+          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
+        }
+      }
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", goal: args.goal, results: allItems.length }));
+    }
+
+    // 3d. FALLBACK: category-based browse
+    if (allItems.length === 0 && intent.category) {
+      const { data: catSkills } = await supabase
+        .from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, quality_rank, github_stars")
+        .eq("status", "approved")
+        .eq("category", intent.category)
+        .order("quality_rank", { ascending: false })
+        .limit(8);
+      if (catSkills) {
+        for (const s of catSkills) {
+          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
+        }
+      }
+    }
+
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
