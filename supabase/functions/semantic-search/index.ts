@@ -195,13 +195,29 @@ serve(async (req) => {
       }
     }
 
-    // 4. Quality-weighted scoring (same approach as MCP solve_goal)
+    // 4. Quality-weighted scoring with corruption guards
+    const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
     const goalWords = query.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
     
     const scoredSkills = Array.from(skillMap.values()).map((s: any) => {
       let score = 0;
-      const searchable = `${s.display_name} ${s.display_name_es || ""} ${s.tagline} ${s.tagline_es || ""} ${s.description_human} ${s.category}`.toLowerCase();
+      const taglineLower = (s.tagline || "").toLowerCase();
+      const nameLower = (s.display_name || "").toLowerCase();
+      const searchable = `${nameLower} ${s.display_name_es || ""} ${taglineLower} ${s.tagline_es || ""} ${s.description_human || ""} ${s.category}`.toLowerCase();
       
+      // QUALITY GUARD: Penalize corrupted/generic taglines (monorepo inheritance)
+      const hasCorruptedTagline = CORRUPTED_TAGLINES.some(ct => taglineLower.startsWith(ct));
+      if (hasCorruptedTagline) score -= 15;
+
+      // QUALITY GUARD: Penalize items where tagline doesn't relate to the name
+      const nameWords = nameLower.split(/[\s-]+/).filter((w: string) => w.length >= 3);
+      const taglineMatchesName = nameWords.some((w: string) => taglineLower.includes(w));
+      if (!taglineMatchesName && nameWords.length > 0 && !hasCorruptedTagline) score -= 5;
+
+      // QUALITY GUARD: Penalize zero-signal items
+      const totalSignals = (s.github_stars || 0) + (s.install_count || 0) + (s.trust_score || 0);
+      if (totalSignals === 0) score -= 8;
+
       // Goal word matches (high weight)
       for (const w of goalWords) { if (searchable.includes(w)) score += 3; }
       // AI keyword matches
@@ -213,17 +229,20 @@ serve(async (req) => {
       }
       // Category match from AI
       if (searchCategory && s.category === searchCategory) score += 4;
-      // Quality signals
+      
+      // Quality signals (with inflated-stars guard)
       const stars = s.github_stars || 0;
-      if (stars > 10000) score += 5;
-      else if (stars > 1000) score += 3;
-      else if (stars > 100) score += 1;
+      if (!hasCorruptedTagline) {
+        if (stars > 10000) score += 5;
+        else if (stars > 1000) score += 3;
+        else if (stars > 100) score += 1;
+      }
+      if (s.install_count > 100) score += 3;
+      else if (s.install_count > 10) score += 1;
+      if (s.avg_rating >= 4.0) score += 2;
       score += (s.trust_score || 0) / 20;
       score += (s.quality_score || 0) / 25;
-      // Penalize stale
       if (s.is_stale) score -= 2;
-      // Penalize low quality
-      if (s.avg_rating < 3) score -= 3;
       
       return { ...s, relevance_score: score };
     });
