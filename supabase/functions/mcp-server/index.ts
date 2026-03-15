@@ -488,37 +488,64 @@ mcp.tool("list_categories", {
 });
 
 mcp.tool("search_by_role", {
-  description: "Find the best skills for a specific professional role: marketer, abogado, consultor, founder, diseñador, or general.",
+  description: "Find the best skills for a specific professional role: marketer, abogado, consultor, founder, diseñador, developer, data-analyst, or general.",
   inputSchema: {
     type: "object",
     properties: {
-      role: { type: "string", description: "Professional role: marketer, abogado, consultor, founder, disenador, otro" },
+      role: { type: "string", description: "Professional role: marketer, abogado, consultor, founder, disenador, developer, data-analyst, otro" },
       limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
     },
     required: ["role"],
   },
   handler: async (args: { role: string; limit?: number }) => {
-    const { data: skills, error } = await supabase
-      .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles")
-      .eq("status", "approved")
-      .contains("target_roles", [args.role])
-      .order("install_count", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+    const roleLower = args.role.toLowerCase();
+    const relevantCategories = ROLE_CATEGORIES[roleLower] || [];
+    const lim = Math.min(args.limit || 5, 10);
 
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-    if (!skills?.length) return { content: [{ type: "text" as const, text: `No encontré skills para el rol "${args.role}".` }] };
+    // First try role-based category filtering with quality_rank sort
+    let skills: any[] = [];
+    if (relevantCategories.length > 0) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, quality_rank, trust_score")
+        .eq("status", "approved")
+        .in("category", relevantCategories)
+        .order("quality_rank", { ascending: false })
+        .limit(lim * 2);
+      skills = data || [];
+    }
+
+    // Fallback: try target_roles filter
+    if (skills.length < lim) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, quality_rank, trust_score")
+        .eq("status", "approved")
+        .contains("target_roles", [roleLower])
+        .order("quality_rank", { ascending: false })
+        .limit(lim);
+      const existingSlugs = new Set(skills.map(s => s.slug));
+      for (const s of data || []) {
+        if (!existingSlugs.has(s.slug)) skills.push(s);
+      }
+    }
+
+    // Sort by quality_rank and take top results
+    skills = skills.sort((a: any, b: any) => (b.quality_rank || 0) - (a.quality_rank || 0)).slice(0, lim);
+
+    if (!skills.length) return { content: [{ type: "text" as const, text: `No encontré skills para el rol "${args.role}". Probá con \`explore_directory\` o \`solve_goal\`.` }] };
 
     const roleLabels: Record<string, string> = {
       marketer: "📣 Marketer", abogado: "⚖️ Abogado", consultor: "💼 Consultor",
-      founder: "🚀 Founder", disenador: "🎨 Diseñador", otro: "✨ General",
+      founder: "🚀 Founder", disenador: "🎨 Diseñador", developer: "🛠️ Developer",
+      "data-analyst": "📊 Data Analyst", otro: "✨ General",
     };
 
     const text = skills
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%\n   \`${s.install_command}\``)
       .join("\n\n");
 
-    return { content: [{ type: "text" as const, text: `# Skills para ${roleLabels[args.role] || args.role}\n\n${text}` }] };
+    return { content: [{ type: "text" as const, text: `# Skills para ${roleLabels[roleLower] || args.role}\n\n${text}` }] };
   },
 });
 
