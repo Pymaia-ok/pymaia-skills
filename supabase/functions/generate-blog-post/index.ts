@@ -187,24 +187,28 @@ serve(async (req) => {
           const esShort = (post.content_es?.length || 0) < 2000;
           if (!enShort && !esShort) continue;
 
-          const regenPrompt = `Rewrite and COMPLETE this blog article. The previous version was truncated/incomplete.
+          const regenPrompt = `You MUST rewrite this blog article COMPLETELY from scratch. The previous version was TRUNCATED and incomplete.
 
-Title: "${post.title}"
-Title ES: "${post.title_es || ''}"
+Title (EN): "${post.title}"
+Title (ES): "${post.title_es || ''}"
 Category: ${post.category}
 Keywords: ${(post.keywords || []).join(", ")}
 
-The article MUST be complete with:
-- A hook/introduction
-- 3-5 detailed sections with ## headings
-- Step-by-step instructions where applicable  
-- A FAQ section with 3-5 Q&As
-- A conclusion with call-to-action linking to /explorar, /conectores, or /crear-skill
+CRITICAL REQUIREMENTS:
+1. content_en MUST be at least 1500 words (approximately 8000+ characters)
+2. content_es MUST be at least 1500 words (approximately 9000+ characters) — full Spanish translation, NOT a summary
+3. Include a compelling introduction paragraph
+4. Include 4-6 detailed sections with ## headings  
+5. Include practical step-by-step instructions with examples
+6. Include a FAQ section with 4-5 Q&As at the end
+7. End with a conclusion and call-to-action linking to /explorar, /conectores, or /crear-skill
+8. Use internal links: /explorar, /conectores, /plugins, /crear-skill, /primeros-pasos
+9. DO NOT cut the article short. Write the FULL article.
 
-Previous content (may be truncated - use as reference for topic/style but write completely new):
-${(post.content || "").slice(0, 2000)}...
+Previous content (TRUNCATED — do NOT copy, write fresh):
+${(post.content || "").slice(0, 1500)}
 
-Return the COMPLETE article using the generate_blog_post tool. Both English and Spanish versions must be FULL articles (~1500 words each).`;
+Return the COMPLETE article using the generate_blog_post tool.`;
 
           const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -213,8 +217,8 @@ Return the COMPLETE article using the generate_blog_post tool. Both English and 
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              max_tokens: 16000,
+              model: "google/gemini-2.5-pro",
+              max_tokens: 32000,
               messages: [
                 { role: "system", content: systemPromptText },
                 { role: "user", content: regenPrompt },
