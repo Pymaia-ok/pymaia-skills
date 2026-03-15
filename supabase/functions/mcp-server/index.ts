@@ -985,7 +985,7 @@ mcp.tool("solve_goal", {
     const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
     const goalWords2 = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
-    allKeywords.push(...goalWords);
+    allKeywords.push(...goalWords2);
     const uniqueKeywords = [...new Set(allKeywords)];
 
     // 3. Cross-catalog search (with category hint from classifier)
