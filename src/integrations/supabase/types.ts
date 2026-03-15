@@ -2130,34 +2130,15 @@ export type Database = {
         Returns: {
           category: string
           content: string
-          content_es: string | null
-          cover_image_prompt: string | null
-          cover_image_url: string | null
-          created_at: string
-          excerpt: string
-          excerpt_es: string | null
-          faq_json: Json | null
-          geo_target: string
+          content_es: string
           id: string
-          keywords: string[] | null
-          meta_description: string | null
-          meta_description_es: string | null
-          reading_time_minutes: number | null
-          related_connector_slugs: string[] | null
-          related_skill_slugs: string[] | null
+          keywords: string[]
+          related_connector_slugs: string[]
+          related_skill_slugs: string[]
           slug: string
-          status: string
           title: string
-          title_es: string | null
-          updated_at: string
-          view_count: number | null
+          title_es: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "blog_posts"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       has_role: {
         Args: {

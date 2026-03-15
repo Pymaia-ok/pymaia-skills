@@ -381,8 +381,8 @@ Return your response using the generate_blog_post tool.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        max_tokens: 16000,
+        model: "google/gemini-2.5-pro",
+        max_tokens: 32000,
         messages: [
           { role: "system", content: systemPromptText },
           { role: "user", content: userPrompt },
@@ -403,6 +403,38 @@ Return your response using the generate_blog_post tool.`;
     if (!toolCall) throw new Error("No tool call in AI response");
 
     const article = JSON.parse(toolCall.function.arguments);
+
+    // Validate content length — reject truncated output and retry once
+    const enLen = (article.content_en || "").length;
+    const esLen = (article.content_es || "").length;
+    if (enLen < 5000 || esLen < 3000) {
+      console.warn(`⚠️ Generated content too short (EN: ${enLen}, ES: ${esLen}). Retrying with stronger prompt...`);
+      const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          max_tokens: 32000,
+          messages: [
+            { role: "system", content: systemPromptText },
+            { role: "user", content: userPrompt + "\n\nCRITICAL: Your previous attempt was truncated. content_en MUST be at least 1500 words (8000+ characters). content_es MUST be at least 1500 words (9000+ characters). Write the COMPLETE article with full conclusion and CTA. Do NOT stop early." },
+          ],
+          tools: [blogToolDef],
+          tool_choice: { type: "function", function: { name: "generate_blog_post" } },
+        }),
+      });
+      if (retryResponse.ok) {
+        const retryResult = await retryResponse.json();
+        const retryCall = retryResult.choices?.[0]?.message?.tool_calls?.[0];
+        if (retryCall) {
+          const retryArticle = JSON.parse(retryCall.function.arguments);
+          if ((retryArticle.content_en || "").length > enLen) Object.assign(article, retryArticle);
+        }
+      }
+    }
 
     // Generate slug
     const slug = article.title_en
