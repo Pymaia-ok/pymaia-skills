@@ -39,17 +39,24 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { batchSize = 100 } = await req.json().catch(() => ({}));
+    const { batchSize = 100, batch_size, priority } = await req.json().catch(() => ({}));
+    const limit = batch_size || batchSize;
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const githubToken = Deno.env.get("GITHUB_TOKEN");
 
-    const { data: skills, error } = await supabase
+    let query = supabase
       .from("skills")
       .select("id, slug, display_name, github_url, install_command, category, description_human, skill_md_status")
       .eq("skill_md_status", "pending")
       .not("github_url", "is", null)
-      .eq("status", "approved")
-      .limit(batchSize);
+      .eq("status", "approved");
+
+    // Prioritize high-star repos when requested
+    if (priority === "high_stars") {
+      query = query.order("github_stars", { ascending: false });
+    }
+
+    const { data: skills, error } = await query.limit(limit);
 
     if (error) throw error;
     if (!skills || skills.length === 0) {
