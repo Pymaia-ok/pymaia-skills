@@ -337,6 +337,9 @@ mcp.tool("search_skills", {
 
     console.log(JSON.stringify({ tool: "search_skills", query: args.query, category: args.category || null, resultCount: results.length, method: rpcResults?.length ? "fts_rpc" : "semantic_fallback" }));
 
+    // Log search results as usage events
+    logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "skill" })), args.query);
+
     if (results.length === 0) {
       return { content: [{ type: "text" as const, text: `No skills found for "${args.query}". Try broader keywords, or use \`solve_goal\` for natural language goal-based search.` }] };
     }
