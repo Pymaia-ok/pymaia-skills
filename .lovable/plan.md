@@ -1,92 +1,83 @@
-## Plan: Mejoras Best-in-Class del PRD — Estado: ✅ 100% Completado
 
-### Bloque 1: MCP Tools (P0) ✅
-- `update_skill` — actualizar skill existente con changelog
-- `unpublish_skill` — remover skill del directorio (soft delete)
-- `report_goal_outcome` — feedback post-implementación
-- `rate_skill` — rating desde el agente
-- `get_personalized_feed` — feed basado en historial de instalaciones
-- `get_top_creators` — leaderboard de creadores
 
-### Bloque 2: Quality Score compuesto (P1) ✅
-- Cálculo en `calculate-trust-score`: Trust(25%) + Evals(25%) + Satisfaction(20%) + Docs(15%) + Freshness(15%)
-- UI: Quality Score badge en `SkillCard.tsx` y `SkillSidebar.tsx`
+## Estado Actual y Brechas por Cerrar
 
-### Bloque 3: Decay Detection (P1) ✅
-- Lógica en `quality-maintenance/index.ts` — flag `is_stale` para >90 días sin commit
-- UI: Warning "Not updated in over 90 days" en `TrustBadge.tsx`
+Hice una auditoría completa. Aquí está el resumen de cobertura:
 
-### Bloque 4: Verified Publisher badge (P1) ✅
-- Campo `is_verified_publisher` en `profiles`
-- Badge ✅ en `SkillSidebar.tsx` y `CreatorLeaderboard.tsx`
+```text
+Pipeline                    | Hecho      | Total     | %     | Estado
+────────────────────────────┼────────────┼───────────┼───────┼────────────
+Traducción skills           | 36,497     | 36,822    | 99.1% | ✅ Cron activo
+Traducción conectores       | 6,360      | 6,360     | 100%  | ✅ Completo
+Traducción plugins          | 480        | 480       | 100%  | ✅ Completo
+Traducción readme_summary_es| 13,400     | 17,692    | 75.7% | ⚠️ Cron activo, lento
+Security scan skills        | 36,529     | 36,822    | 99.2% | ✅ Casi completo
+Security scan conectores    | 6,123      | 6,360     | 96.3% | ⚠️ Cron activo
+Security scan plugins       | 433        | 480       | 90.2% | ⚠️ Cron activo
+Trust score skills          | 35,913     | 36,822    | 97.5% | ⚠️ 909 faltan
+Trust score conectores      | 107        | 6,360     | 1.7%  | ❌ CRÍTICO
+Trust score plugins         | 125        | 480       | 26.0% | ❌ CRÍTICO
+README fetch (skills)       | 17,692     | 36,564    | 48.4% | ⚠️ Cron activo, 19K faltan
+Embeddings (semántica)      | 0          | 36,822    | 0%    | ❌ Sin cron
+Skills pending              | 6,183      | —         | —     | ⚠️ Backlog
+Install cmd conectores      | 2,586      | 6,360     | 40.7% | ⚠️ 3,774 sin cmd
+```
 
-### Bloque 5: Duplicate Detection (P0) ✅
-- Similarity check en `import_skill_from_agent` — busca nombres/slugs similares antes de insertar
+### Problemas Críticos (no al 100%)
 
-### Bloque 6: Conversational Goal Refinement (P2) ✅
-- `solve_goal` retorna `needs_clarification` si el goal tiene <3 palabras
+1. **Trust Score conectores/plugins**: El cron `calculate-trust-scores-fast` envía `batch_size: 50` y `table: "all"`, pero procesa skills primero (ordenado por `updated_at ASC`), dejando conectores y plugins sin procesar. Con 6,253 conectores sin score, a 50/15min tardaría ~31 horas solo para llegar a ellos.
 
-### Bloque 7: Creator Leaderboard (P1) ✅
-- Componente `CreatorLeaderboard.tsx` en landing
-- MCP tool `get_top_creators`
+2. **Embeddings 0%**: No hay cron de `generate-embeddings`. La búsqueda semántica está inactiva.
 
-### Bloque 8: Weekly Digest (P1) ✅
-- Edge function `weekly-digest` — recopila nuevos skills, connectors, trending goals
-- Registrado en `supabase/config.toml`
+3. **README fetch**: 19,130 skills sin README. El cron `fetch-readme-auto` procesa 10/ejecución. A ese ritmo ~1,913 ejecuciones = ~4 días continuos.
 
-### Bloque 9: Sprint 2 — PRD Best-in-Class v9.1.0 ✅
+4. **readme_summary_es**: 4,292 skills tienen summary en inglés pero no en español.
 
-#### 9.1 `publish_skill` MCP Tool (P0) ✅
-- Full publish flow: visibility (public/unlisted/private), pricing (free/paid/freemium), auto security scan
-- Auto-approve si trust_score >= 70, pending_review si 40-69, rejected si < 40
-- Duplicate detection, changelog, version 1.0.0 automático
+5. **Conectores sin install_command**: 3,774 conectores (59%) no tienen comando de instalación.
 
-#### 9.2 `report_skill` MCP Tool (P1) ✅
-- Reportar skill malicioso/broken/policy_violation desde el agente
-- Inserta en `security_reports` para revisión manual
+---
 
-#### 9.3 Semantic Versioning en `update_skill` ✅
-- Bumps major/minor/patch con changelog acumulativo
+### Plan de Acción
 
-#### 9.4 `get_skill_analytics` MCP Tool (P1) ✅
-- Métricas de instalaciones, ratings, eval results
-- Creator Tiers: Starter / Builder / Expert
+#### 1. Acelerar Trust Score para conectores y plugins
+- Crear 2 crons adicionales dedicados:
+  - `calculate-trust-connectors` cada 5 min, `body: {"batch_size":100,"table":"mcp_servers"}`
+  - `calculate-trust-plugins` cada 10 min, `body: {"batch_size":100,"table":"plugins"}`
+- ETA: conectores ~5.2 horas, plugins ~35 min
 
-#### 9.5 `install_bundle` MCP Tool (P1) ✅
-- Obtener install commands de todos los skills en un bundle
+#### 2. Activar cron de embeddings
+- Crear cron `generate-embeddings-auto` cada 3 min, batch 20
+- ETA: ~36,822 / 20 = 1,841 ejecuciones ÷ 20/hora = ~92 horas (gradual, no urgente)
 
-#### 9.6 `scan_skill` MCP Tool (P0) ✅
-- Auditoría de seguridad pre-publicación sin publicar
+#### 3. Acelerar README fetch
+- Aumentar batch del cron existente de 10 a 30
+- Actualizar el cron `fetch-readme-auto` con `batchSize: 30`
+- ETA: 19,130 / 30 = 638 ejecuciones. A */3 min = ~32 horas
 
-#### 9.7 `run_skill_evals` MCP Tool (P1) ✅
-- Ejecutar 5 test cases automatizados contra SKILL.md
+#### 4. Traducción readme_summary_es
+- Verificar que el cron de `translate-skills` ya procesa `readme_summary_es`. Si no, agregar.
+- 4,292 pendientes deberían resolverse con el cron existente de traducción.
 
-#### 9.8 Eval-Verified Badge ✅
-- Badge en `SkillCard.tsx` y `SkillSidebar.tsx` para skills con 100% pass rate
+#### 5. Install commands conectores
+- El cron `generate-install-commands` ya existe pero solo procesa skills. Extenderlo para procesar también `mcp_servers` sin install_command.
 
-#### 9.9 Rising Stars ✅
-- Componente `RisingStars.tsx` en Explore — skills nuevos (<30 días) con tracción rápida
+#### 6. Procesar backlog de 6,183 pending
+- El cron `auto-approve-skills` ya corre cada 3 min con batch 100. ETA: ~3 horas para procesar todo el backlog.
 
-#### 9.10 Version + Changelog en SkillDetail ✅
-- Badge de versión y desplegable de changelog en la página de detalle
+---
 
-#### 9.11 Enhanced Goal Templates ✅
-- `recommended_skills`, `difficulty`, `estimated_time_minutes` en `goal_templates`
+### Cambios Técnicos
 
-#### 9.12 Structured Clarification en `solve_goal` ✅
-- Opciones tipificadas (dominio, nivel, presupuesto) para refinamiento
+**Solo SQL (crons nuevos)** — 3 inserts en `cron.schedule`:
+1. `calculate-trust-connectors` — cada 5 min
+2. `calculate-trust-plugins` — cada 10 min  
+3. `generate-embeddings-auto` — cada 3 min
 
-#### 9.13 Visibility Control en `import_skill_from_agent` ✅
-- Parámetro `is_public` para skills privados
+**Actualizar cron existente** — 1 update:
+4. `fetch-readme-auto` batch 10 → 30
 
-#### 9.14 Security Dashboard ✅
-- Métricas de advisories, críticos, resueltos en `/security-advisories`
+**Modificar edge function** (1 archivo):
+5. `generate-install-commands/index.ts` — agregar soporte para tabla `mcp_servers`
 
-### MCP Server v9.1.0 — 48 tools totales
-Nuevos tools: `publish_skill`, `report_skill`, `get_skill_analytics`, `install_bundle`, `scan_skill`, `run_skill_evals`
+Total: 4 operaciones de base de datos + 1 edición de edge function.
 
-### Pendiente (requiere infra externa):
-- Stripe Connect para monetización (P2)
-- Behavioral Sandbox (P2)
-- SSO / Enterprise Policy Engine (P2)
-- Compatibility CI multi-agente (P2)
