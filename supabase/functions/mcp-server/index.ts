@@ -201,51 +201,44 @@ mcp.tool("search_skills", {
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const q = sanitizeForPostgrest(args.query);
     const apiUserId = currentApiKeyUserId;
-    const selectCols = "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles, is_public, creator_id";
-    const words = q.split(/\s+/).filter(w => w.length >= 2);
-    const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
-    // Run exact-phrase AND word-split in parallel
-    let exactQ = supabase
-      .from("skills")
-      .select(selectCols)
-      .or(
-        apiUserId
-          ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
-          : `and(status.eq.approved,is_public.eq.true)`
-      )
-      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,description_human.ilike.%${q}%`)
-      .order("install_count", { ascending: false })
-      .limit(lim);
-    if (args.category) exactQ = exactQ.eq("category", args.category);
+    // Use the full-text search RPC (search_vector + trigram + ILIKE fallbacks)
+    const { data: rpcResults, error: rpcError } = await supabase.rpc("search_skills", {
+      search_query: args.query,
+      filter_category: args.category || null,
+      filter_industry: null,
+      filter_roles: null,
+      sort_by: "rating",
+      page_num: 0,
+      page_size: lim,
+    });
 
-    const [exactRes, wordSplitRes] = await Promise.all([
-      exactQ.then(r => r.data || []),
-      words.length > 1
-        ? wordSplitSearch("skills", selectCols, words, "install_count", lim * 2, catFilter)
-        : Promise.resolve([]),
-    ]);
+    let results = rpcResults || [];
 
-    // Merge deduplicated
-    const seenSlugs = new Set<string>();
-    const merged: any[] = [];
-    for (const item of [...exactRes, ...wordSplitRes]) {
-      if (!seenSlugs.has(item.slug)) {
-        seenSlugs.add(item.slug);
-        merged.push(item);
-      }
+    // If FTS returned nothing, try semantic search as last resort
+    if (results.length === 0) {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ query: args.query, category: args.category, page: 0 }),
+        });
+        if (resp.ok) {
+          const semanticData = await resp.json();
+          results = (semanticData.data || []).slice(0, lim);
+        }
+      } catch { /* semantic search unavailable, continue with empty */ }
     }
-    let results = merged.slice(0, lim);
-    let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
-    console.log(JSON.stringify({ tool: "search_skills", query: args.query, sanitized: q, category: args.category || null, resultCount: results.length, fallbackUsed }));
+    console.log(JSON.stringify({ tool: "search_skills", query: args.query, category: args.category || null, resultCount: results.length, method: rpcResults?.length ? "fts_rpc" : "semantic_fallback" }));
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré "${args.query}". Usa search_skills para buscar.` }] };
+    if (results.length === 0) {
+      return { content: [{ type: "text" as const, text: `No skills found for "${args.query}". Try broader keywords, or use \`solve_goal\` for natural language goal-based search.` }] };
+    }
 
     const text = results
-      .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count.toLocaleString()} installs)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
+      .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${(s.install_count || 0).toLocaleString()} installs)\n${s.tagline}\nInstall: \`${s.install_command}\``)
       .join("\n\n---\n\n");
 
     return { content: [{ type: "text" as const, text }] };
@@ -274,11 +267,33 @@ mcp.tool("get_skill_details", {
 
     if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found. Try \`search_skills('${args.slug}')\` to find similar skills.` }] };
 
+    // Enrich with github_metadata if available
+    let ghMeta: any = null;
+    if (skill.github_url) {
+      const repoMatch = skill.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
+      if (repoMatch) {
+        const repoName = repoMatch[1].replace(/\.git$/, "");
+        const { data } = await supabase.from("github_metadata").select("*").eq("repo_full_name", repoName).eq("fetch_status", "success").maybeSingle();
+        ghMeta = data;
+      }
+    }
+
     const useCases = Array.isArray(skill.use_cases)
       ? (skill.use_cases as { title: string; after: string }[]).map((uc) => `• ${uc.title}: ${uc.after}`).join("\n")
       : "";
 
-    const text = `# ${skill.display_name}\n\n📂 Categoría: ${skill.category}\n🎯 Roles: ${skill.target_roles?.join(", ") || "todos"}\n\n${skill.tagline}\n\n⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count.toLocaleString()} instalaciones\n\n## Descripción\n${skill.description_human}\n\n${useCases ? `## Casos de uso\n${useCases}\n\n` : ""}## Instalación\n\`${skill.install_command}\``;
+    const stars = ghMeta?.stars ?? skill.github_stars ?? 0;
+    const ghInfo: string[] = [];
+    if (ghMeta) {
+      if (ghMeta.license) ghInfo.push(`📜 License: ${ghMeta.license}`);
+      if (ghMeta.last_commit_at) {
+        const days = Math.floor((Date.now() - new Date(ghMeta.last_commit_at).getTime()) / 86400000);
+        ghInfo.push(`🕐 Last commit: ${days} days ago${days > 180 ? " ⚠️" : ""}`);
+      }
+      if (ghMeta.archived) ghInfo.push(`⚠️ Repository archived`);
+    }
+
+    const text = `# ${skill.display_name}\n\n📂 Category: ${skill.category}\n🎯 Roles: ${skill.target_roles?.join(", ") || "all"}\n⭐ GitHub Stars: ${stars.toLocaleString()}\n${ghInfo.length ? ghInfo.join("\n") + "\n" : ""}\n${skill.tagline}\n\n⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count.toLocaleString()} installs\n\n## Description\n${skill.description_human}\n\n${useCases ? `## Use Cases\n${useCases}\n\n` : ""}## Install\n\`${skill.install_command}\``;
 
     return { content: [{ type: "text" as const, text }] };
   },
@@ -2602,23 +2617,87 @@ mcp.tool("get_skill_content", {
   },
   handler: async (args: { slug: string }) => {
     const apiUserId = currentApiKeyUserId;
-    let q = supabase.from("skills").select("display_name, slug, install_command, category, status, creator_id, is_public");
+    const resolvedSlug = await resolveSlug(args.slug, "skill");
+    let q = supabase.from("skills").select("display_name, slug, install_command, category, description_human, github_url, skill_md, skill_md_status, status, creator_id, is_public");
     if (apiUserId) {
       q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
     } else {
       q = q.eq("status", "approved").eq("is_public", true);
     }
-    const { data: skill } = await q.eq("slug", args.slug).maybeSingle();
+    const { data: skill } = await q.eq("slug", resolvedSlug).maybeSingle();
 
     if (!skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found or not accessible.` }] };
-    if (!skill.install_command) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" has no SKILL.md content.` }] };
 
-    return {
-      content: [{
-        type: "text" as const,
-        text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${skill.install_command}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
-      }],
-    };
+    // If we have cached SKILL.md content, return it
+    if (skill.skill_md && skill.skill_md.length > 100) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${skill.skill_md}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
+        }],
+      };
+    }
+
+    // Try to fetch from GitHub on the fly
+    if (skill.github_url) {
+      const m = skill.github_url.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/);
+      if (m) {
+        const owner = m[1];
+        const repo = m[2].replace(/\.git$/, "");
+        const githubToken = Deno.env.get("GITHUB_TOKEN");
+        
+        // Extract skill name from install_command
+        const skillMatch = (skill.install_command || "").match(/--skill\s+(\S+)/);
+        const pathMatch = (skill.install_command || "").match(/skills\/([^\/\s]+)/);
+        const skillName = skillMatch?.[1] || pathMatch?.[1] || null;
+
+        const paths = skillName
+          ? [`skills/${skillName}/SKILL.md`, `.claude/skills/${skillName}/SKILL.md`, `SKILL.md`]
+          : [`SKILL.md`, `skills/SKILL.md`];
+
+        for (const branch of ["main", "master"]) {
+          let found = false;
+          for (const path of paths) {
+            try {
+              const headers: Record<string, string> = {};
+              if (githubToken) headers.Authorization = `token ${githubToken}`;
+              const resp = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`, { headers });
+              if (resp.ok) {
+                const content = await resp.text();
+                if (content.length > 50) {
+                  // Cache it
+                  await supabase.from("skills").update({ skill_md: content, skill_md_status: "fetched" }).eq("slug", resolvedSlug);
+                  return {
+                    content: [{
+                      type: "text" as const,
+                      text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${content}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
+                    }],
+                  };
+                }
+              }
+            } catch { /* try next path */ }
+          }
+          if (found) break;
+        }
+        // Mark as not_found so we don't retry
+        await supabase.from("skills").update({ skill_md_status: "not_found" }).eq("slug", resolvedSlug);
+      }
+    }
+
+    // Fallback: return available info
+    const fallback = [
+      `# ${skill.display_name}`,
+      `\nSKILL.md content is not available from the repository.`,
+      `\n## Available Information`,
+      `- **Category:** ${skill.category}`,
+      `- **Description:** ${skill.description_human || "N/A"}`,
+      skill.github_url ? `- **Repository:** ${skill.github_url}` : null,
+      `\n## Install`,
+      `\`${skill.install_command}\``,
+      skill.github_url ? `\nYou can view the source at: ${skill.github_url}` : null,
+    ].filter(Boolean).join("\n");
+
+    return { content: [{ type: "text" as const, text: fallback }] };
   },
 });
 
@@ -2871,12 +2950,27 @@ mcp.tool("get_trust_report", {
       if (scanParts.length) sections.push(`- **Scan Details:** ${scanParts.join(" · ")}`);
     }
 
-    // GitHub activity
+    // GitHub activity — enriched with github_metadata
+    let ghMeta: any = null;
+    if (item.github_url) {
+      const repoMatch = item.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
+      if (repoMatch) {
+        const repoName = repoMatch[1].replace(/\.git$/, "");
+        const { data } = await supabase.from("github_metadata").select("*").eq("repo_full_name", repoName).eq("fetch_status", "success").maybeSingle();
+        ghMeta = data;
+      }
+    }
+
     sections.push(`\n## GitHub Activity`);
     if (item.github_url) sections.push(`- **Repo:** ${item.github_url}`);
-    sections.push(`- **Stars:** ${(item.github_stars || 0).toLocaleString()}`);
-    if (item.last_commit_at) {
-      const daysSince = Math.floor((Date.now() - new Date(item.last_commit_at).getTime()) / 86400000);
+    const realStars = ghMeta?.stars ?? item.github_stars ?? 0;
+    sections.push(`- **Stars:** ${realStars.toLocaleString()}${ghMeta ? " ✓ verified" : ""}`);
+    if (ghMeta?.license) sections.push(`- **License:** ${ghMeta.license}`);
+    if (ghMeta?.forks) sections.push(`- **Forks:** ${ghMeta.forks.toLocaleString()}`);
+    if (ghMeta?.archived) sections.push(`- ⚠️ **Repository is archived**`);
+    const lastCommit = ghMeta?.last_commit_at || item.last_commit_at;
+    if (lastCommit) {
+      const daysSince = Math.floor((Date.now() - new Date(lastCommit).getTime()) / 86400000);
       sections.push(`- **Last Commit:** ${daysSince} days ago${daysSince > 180 ? " ⚠️ Possibly unmaintained" : ""}`);
     }
 

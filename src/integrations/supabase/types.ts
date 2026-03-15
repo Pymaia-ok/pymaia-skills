@@ -600,6 +600,54 @@ export type Database = {
         }
         Relationships: []
       }
+      github_metadata: {
+        Row: {
+          archived: boolean
+          contributor_count: number
+          description: string | null
+          fetch_status: string
+          fetched_at: string | null
+          forks: number
+          last_commit_at: string | null
+          last_push_at: string | null
+          license: string | null
+          open_issues: number
+          repo_full_name: string
+          stars: number
+          topics: string[]
+        }
+        Insert: {
+          archived?: boolean
+          contributor_count?: number
+          description?: string | null
+          fetch_status?: string
+          fetched_at?: string | null
+          forks?: number
+          last_commit_at?: string | null
+          last_push_at?: string | null
+          license?: string | null
+          open_issues?: number
+          repo_full_name: string
+          stars?: number
+          topics?: string[]
+        }
+        Update: {
+          archived?: boolean
+          contributor_count?: number
+          description?: string | null
+          fetch_status?: string
+          fetched_at?: string | null
+          forks?: number
+          last_commit_at?: string | null
+          last_push_at?: string | null
+          license?: string | null
+          open_issues?: number
+          repo_full_name?: string
+          stars?: number
+          topics?: string[]
+        }
+        Relationships: []
+      }
       goal_templates: {
         Row: {
           capabilities: Json
@@ -1542,6 +1590,8 @@ export type Database = {
           security_scanned_at: string | null
           security_status: string
           share_token: string | null
+          skill_md: string | null
+          skill_md_status: string
           slug: string
           status: string
           tagline: string
@@ -1593,6 +1643,8 @@ export type Database = {
           security_scanned_at?: string | null
           security_status?: string
           share_token?: string | null
+          skill_md?: string | null
+          skill_md_status?: string
           slug: string
           status?: string
           tagline: string
@@ -1644,6 +1696,8 @@ export type Database = {
           security_scanned_at?: string | null
           security_status?: string
           share_token?: string | null
+          skill_md?: string | null
+          skill_md_status?: string
           slug?: string
           status?: string
           tagline?: string
@@ -1824,6 +1878,8 @@ export type Database = {
           security_scanned_at: string | null
           security_status: string
           share_token: string | null
+          skill_md: string | null
+          skill_md_status: string
           slug: string
           status: string
           tagline: string
