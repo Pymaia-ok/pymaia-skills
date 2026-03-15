@@ -132,6 +132,26 @@ function sanitizeForPostgrest(query: string): string {
   return query.replace(/[,()."\\]/g, "").trim().toLowerCase();
 }
 
+// ─── SLUG REDIRECT RESOLVER ───
+// Checks slug_redirects table first, then returns the canonical slug
+async function resolveSlug(slug: string, itemType?: string): Promise<string> {
+  const type = itemType || "skill";
+  const { data } = await supabase
+    .from("slug_redirects")
+    .select("new_slug")
+    .eq("old_slug", slug)
+    .eq("item_type", type)
+    .maybeSingle();
+  return data?.new_slug || slug;
+}
+
+// ─── ENSURE RESPONSE UTILITY ───
+// Wraps tool outputs to never return empty/blank responses
+function ensureResponse(text: string | null | undefined, fallback: string): string {
+  if (!text || text.trim().length === 0) return fallback;
+  return text;
+}
+
 // Build word-split fallback query for multi-word searches
 async function wordSplitSearch(
   table: "skills" | "mcp_servers" | "plugins",
