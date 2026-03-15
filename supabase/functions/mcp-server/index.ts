@@ -984,8 +984,8 @@ mcp.tool("solve_goal", {
     // 2. Collect search keywords (ML-enhanced + template + goal words)
     const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
-    const goalWords = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
-    allKeywords.push(...goalWords);
+    const goalWords2 = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
+    allKeywords.push(...goalWords2);
     const uniqueKeywords = [...new Set(allKeywords)];
 
     // 3. Cross-catalog search (with category hint from classifier)
@@ -1002,7 +1002,7 @@ mcp.tool("solve_goal", {
     const scored = allItems.map((item: any) => {
       let score = 0;
       const searchable = `${item.name} ${item.desc || ""} ${item.category || ""}`.toLowerCase();
-      for (const kw of goalWords) { if (searchable.includes(kw)) score += 3; }
+      for (const kw of goalWords2) { if (searchable.includes(kw)) score += 3; }
       for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
       // ML classifier boost: AI-extracted keywords get extra weight
       for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
