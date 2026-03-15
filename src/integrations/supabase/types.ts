@@ -1715,6 +1715,69 @@ export type Database = {
         }
         Relationships: []
       }
+      skills_import_staging: {
+        Row: {
+          category: string | null
+          created_at: string
+          dedup_reason: string | null
+          dedup_status: string
+          description: string | null
+          id: string
+          import_status: string
+          imported_at: string | null
+          install_command: string | null
+          matched_existing_slug: string | null
+          name: string
+          repo_name: string | null
+          repo_owner: string | null
+          repo_url: string | null
+          skill_folder: string | null
+          source: string
+          source_install_count: number | null
+          source_slug: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          dedup_reason?: string | null
+          dedup_status?: string
+          description?: string | null
+          id?: string
+          import_status?: string
+          imported_at?: string | null
+          install_command?: string | null
+          matched_existing_slug?: string | null
+          name: string
+          repo_name?: string | null
+          repo_owner?: string | null
+          repo_url?: string | null
+          skill_folder?: string | null
+          source?: string
+          source_install_count?: number | null
+          source_slug?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          dedup_reason?: string | null
+          dedup_status?: string
+          description?: string | null
+          id?: string
+          import_status?: string
+          imported_at?: string | null
+          install_command?: string | null
+          matched_existing_slug?: string | null
+          name?: string
+          repo_name?: string | null
+          repo_owner?: string | null
+          repo_url?: string | null
+          skill_folder?: string | null
+          source?: string
+          source_install_count?: number | null
+          source_slug?: string | null
+        }
+        Relationships: []
+      }
       slug_redirects: {
         Row: {
           created_at: string
@@ -1760,6 +1823,54 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      sync_log: {
+        Row: {
+          completed_at: string | null
+          duplicate_count: number | null
+          duration_seconds: number | null
+          error_count: number | null
+          error_log: Json | null
+          id: string
+          imported_count: number | null
+          new_count: number | null
+          skipped_count: number | null
+          source: string
+          started_at: string
+          status: string
+          total_scraped: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          duplicate_count?: number | null
+          duration_seconds?: number | null
+          error_count?: number | null
+          error_log?: Json | null
+          id?: string
+          imported_count?: number | null
+          new_count?: number | null
+          skipped_count?: number | null
+          source?: string
+          started_at?: string
+          status?: string
+          total_scraped?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          duplicate_count?: number | null
+          duration_seconds?: number | null
+          error_count?: number | null
+          error_log?: Json | null
+          id?: string
+          imported_count?: number | null
+          new_count?: number | null
+          skipped_count?: number | null
+          source?: string
+          started_at?: string
+          status?: string
+          total_scraped?: number | null
         }
         Relationships: []
       }
