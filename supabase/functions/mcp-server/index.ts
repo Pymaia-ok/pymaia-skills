@@ -1002,7 +1002,7 @@ mcp.tool("solve_goal", {
     const scored = allItems.map((item: any) => {
       let score = 0;
       const searchable = `${item.name} ${item.desc || ""} ${item.category || ""}`.toLowerCase();
-      for (const kw of goalWords) { if (searchable.includes(kw)) score += 3; }
+      for (const kw of goalWords2) { if (searchable.includes(kw)) score += 3; }
       for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
       // ML classifier boost: AI-extracted keywords get extra weight
       for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
