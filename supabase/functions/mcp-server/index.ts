@@ -2276,24 +2276,32 @@ mcp.tool("get_install_command", {
   handler: async (args: { name: string }) => {
     const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
 
+    // Resolve slug redirects first
+    const resolvedSlug = await resolveSlug(nameLower, "skill");
+
     // 1. Search skills by slug
     const { data: skill } = await supabase
       .from("skills")
-      .select("display_name, install_command, slug")
+      .select("display_name, install_command, slug, install_count_source")
       .eq("status", "approved")
-      .eq("slug", nameLower)
+      .eq("slug", resolvedSlug)
       .maybeSingle();
 
     if (skill) {
+      // Mark as tracked install source
+      if (skill.install_count_source !== 'tracked') {
+        supabase.from("skills").update({ install_count_source: 'tracked' }).eq("slug", skill.slug).then(() => {});
+      }
       return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
     }
 
-    // 2. Search MCP connectors by slug
+    // 2. Search MCP connectors by slug (also check redirect)
+    const resolvedConnSlug = await resolveSlug(nameLower, "connector");
     const { data: connector } = await supabase
       .from("mcp_servers")
       .select("name, install_command, slug")
       .eq("status", "approved")
-      .eq("slug", nameLower)
+      .eq("slug", resolvedConnSlug)
       .maybeSingle();
 
     if (connector) {
