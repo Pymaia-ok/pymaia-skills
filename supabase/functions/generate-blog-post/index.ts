@@ -70,7 +70,76 @@ const TOPIC_POOL = [
   { category: "mcp", keywords: ["AI tool ecosystem", "ecosistema herramientas IA", "plugins connectors skills"], geo: "global", topic_en: "Skills, connectors, and plugins: understanding the AI tool ecosystem", topic_es: "Skills, conectores y plugins: entendiendo el ecosistema de herramientas de IA" },
 ];
 
-serve(async (req) => {
+const systemPromptText = `You are a friendly productivity writer for Pymaia Skills (pymaiaskills.lovable.app), the #1 directory of AI tools, skills, connectors, and plugins. Your audience is non-technical business professionals who want to work smarter with AI.
+
+WRITING STYLE:
+- Conversational and practical — like a smart friend showing you shortcuts
+- No jargon unless you explain it immediately in parentheses
+- Use "you" directly — make the reader the hero
+- Include specific step-by-step instructions wherever possible
+- Add before/after comparisons (e.g., "Before: 3 hours. With AI: 10 minutes")
+
+STRUCTURE (mandatory):
+1. Hook: Start with a relatable problem or surprising stat
+2. What/Why: Brief explanation accessible to anyone
+3. How-to: Step-by-step guide with specific tools from the Pymaia catalog
+4. Real use case: A concrete scenario showing the workflow
+5. FAQ section: 3-5 questions with clear answers
+6. Call to action: Point readers to explore tools on the platform
+
+CRITICAL RULES:
+1. Write ~1500 words of genuinely useful content
+2. Use ONLY markdown syntax for formatting. Use ## and ### for headings. NEVER use HTML tags like <h1>, <h2>, <h3>, <p>, <ul>, etc. Pure markdown only.
+3. Do NOT include an H1 heading — the title is rendered separately. Start your content directly with the hook paragraph, then use ## for sections.
+4. MUST include internal links to skills, connectors, and plugins from the catalog
+5. Reference specific AI agents (Claude, Gemini, Manus, Cursor, etc.) when relevant
+6. Optimize for SEO: use keywords naturally, write definition paragraphs for featured snippets
+7. Include numbered lists, comparison tables, and actionable takeaways
+8. Every article must answer: "How can I actually DO this today?"
+9. Tone: warm, empowering, practical — never condescending
+
+TITLE FORMATTING:
+- Use sentence case for ALL titles (English and Spanish). Only capitalize the first word and proper nouns.
+- CORRECT: "How AI agents are changing project management"
+- WRONG: "How AI Agents Are Changing Project Management"
+- Spanish: "Cómo los agentes de IA están cambiando la gestión de proyectos" (correct)
+- This applies to title_en, title_es, and all headings within the content.`;
+
+const blogToolDef = {
+  type: "function" as const,
+  function: {
+    name: "generate_blog_post",
+    description: "Generate a complete blog post with all metadata",
+    parameters: {
+      type: "object",
+      properties: {
+        title_en: { type: "string", description: "SEO-optimized English title, max 60 chars. Use sentence case." },
+        title_es: { type: "string", description: "Spanish translation of the title. Use sentence case." },
+        excerpt_en: { type: "string", description: "English excerpt/summary, 1-2 sentences, max 200 chars" },
+        excerpt_es: { type: "string", description: "Spanish excerpt" },
+        content_en: { type: "string", description: "Full article in English, markdown format, ~1500 words. MUST be complete with conclusion and CTA." },
+        content_es: { type: "string", description: "Full article in Spanish, markdown format. MUST be complete with conclusion and CTA." },
+        meta_description_en: { type: "string", description: "English meta description, max 155 chars" },
+        meta_description_es: { type: "string", description: "Spanish meta description, max 155 chars" },
+        faq_items: {
+          type: "array",
+          description: "3-5 FAQ items for Google FAQ rich snippets",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              answer: { type: "string" },
+            },
+            required: ["question", "answer"],
+          },
+        },
+      },
+      required: ["title_en", "title_es", "excerpt_en", "excerpt_es", "content_en", "content_es", "meta_description_en", "meta_description_es", "faq_items"],
+      additionalProperties: false,
+    },
+  },
+};
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
