@@ -2211,25 +2211,36 @@ mcp.tool("a2a_query", {
 // ─── STATS TOOLS ───
 
 mcp.tool("get_directory_stats", {
-  description: "Get overall statistics about the SkillHub directory: total skills, categories, top rated, most installed.",
+  description: "Get overall statistics about the SkillHub directory: total skills, connectors, plugins, categories, and highlights.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
-    const { data: skills, error } = await supabase
-      .from("skills")
-      .select("display_name, slug, avg_rating, install_count, category, created_at")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false });
+    // Use materialized view for accurate counts (avoids 1000-row limit)
+    const { data: stats, error: statsError } = await supabase
+      .from("directory_stats_mv")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
 
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
+    if (statsError || !stats) {
+      // Fallback to count: exact if materialized view not available
+      const [{ count: s }, { count: m }, { count: p }] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      ]);
+      const total = (s || 0) + (m || 0) + (p || 0);
+      return { content: [{ type: "text" as const, text: `# 📊 Directory Stats\n\n- **${(s || 0).toLocaleString()}** skills\n- **${(m || 0).toLocaleString()}** MCP connectors\n- **${(p || 0).toLocaleString()}** plugins\n- **${total.toLocaleString()}** total tools` }] };
+    }
 
-    const all = skills || [];
-    const totalInstalls = all.reduce((sum: number, s: any) => sum + s.install_count, 0);
-    const categories = new Set(all.map((s: any) => s.category));
-    const topInstalled = all[0];
-    const topRated = [...all].sort((a: any, b: any) => Number(b.avg_rating) - Number(a.avg_rating))[0];
-    const newest = [...all].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const total = (stats.skills_count || 0) + (stats.connectors_count || 0) + (stats.plugins_count || 0);
 
-    const text = `# 📊 SkillHub Directory Stats\n\n- **${all.length}** skills disponibles\n- **${categories.size}** categorías\n- **${totalInstalls.toLocaleString()}** instalaciones totales\n\n## Highlights\n- 🏆 Más instalada: **${topInstalled?.display_name}** (${topInstalled?.install_count.toLocaleString()})\n- ⭐ Mejor valorada: **${topRated?.display_name}** (${Number(topRated?.avg_rating).toFixed(1)})\n- 🆕 Más reciente: **${newest?.display_name}**`;
+    // Get highlights (top installed + top rated)
+    const [{ data: topInstalled }, { data: topRated }] = await Promise.all([
+      supabase.from("skills").select("display_name, install_count").eq("status", "approved").order("install_count", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("skills").select("display_name, avg_rating").eq("status", "approved").order("avg_rating", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    const text = `# 📊 SkillHub Directory Stats\n\n- **${stats.skills_count?.toLocaleString()}** skills\n- **${stats.connectors_count?.toLocaleString()}** MCP connectors\n- **${stats.plugins_count?.toLocaleString()}** plugins\n- **${stats.categories_count}** categories\n- **${total.toLocaleString()}** total tools\n- **${stats.goal_templates_count}** active goal templates\n\n## Highlights\n- 🏆 Most installed: **${topInstalled?.display_name || "N/A"}** (${topInstalled?.install_count?.toLocaleString() || 0})\n- ⭐ Top rated: **${topRated?.display_name || "N/A"}** (${Number(topRated?.avg_rating || 0).toFixed(1)})`;
 
     return { content: [{ type: "text" as const, text }] };
   },
