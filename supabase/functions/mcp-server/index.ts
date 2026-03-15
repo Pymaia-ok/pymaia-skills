@@ -998,22 +998,45 @@ mcp.tool("solve_goal", {
 
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { skills: searchResults.skills.length, connectors: searchResults.connectors.length, plugins: searchResults.plugins.length, total: allItems.length } }));
 
-    // 4. Score by relevance (ML-enhanced with AI-extracted capabilities)
+    // 4. Score by relevance (ML-enhanced with quality guards)
+    const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
     const scored = allItems.map((item: any) => {
       let score = 0;
-      const searchable = `${item.name} ${item.desc || ""} ${item.category || ""}`.toLowerCase();
+      const descLower = (item.desc || "").toLowerCase();
+      const nameLower = (item.name || "").toLowerCase();
+      const searchable = `${nameLower} ${descLower} ${item.category || ""}`;
+
+      // QUALITY GUARD: Penalize corrupted/generic taglines (monorepo inheritance)
+      const hasCorruptedTagline = CORRUPTED_TAGLINES.some(ct => descLower.startsWith(ct));
+      if (hasCorruptedTagline) score -= 15;
+
+      // QUALITY GUARD: Penalize items where tagline doesn't relate to the name at all
+      const nameWords = nameLower.split(/[\s-]+/).filter((w: string) => w.length >= 3);
+      const taglineMatchesName = nameWords.some((w: string) => descLower.includes(w));
+      if (!taglineMatchesName && nameWords.length > 0) score -= 5;
+
+      // QUALITY GUARD: Penalize zero-signal items (no stars, no installs, no trust)
+      const totalSignals = (item.github_stars || 0) + (item.install_count || 0) + (item.trust_score || 0);
+      if (totalSignals === 0) score -= 8;
+
+      // Keyword relevance
       for (const kw of goalWords2) { if (searchable.includes(kw)) score += 3; }
       for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
-      // ML classifier boost: AI-extracted keywords get extra weight
       for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
-      // ML classifier boost: match AI-detected capabilities
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
-      // Category match from classifier
       if (intent.category && item.category === intent.category) score += 4;
-      const stars = item.github_stars || item.install_count || 0;
-      if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
+
+      // Quality signals (with inflated-stars guard)
+      const stars = item.github_stars || 0;
+      const installs = item.install_count || 0;
+      // Only trust high star counts if tagline isn't corrupted
+      if (!hasCorruptedTagline) {
+        if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
+      }
+      if (installs > 100) score += 3; else if (installs > 10) score += 1;
       if (item.is_official) score += 3;
       if (item.is_anthropic_verified) score += 2;
+      if (item.avg_rating >= 4.0) score += 2;
       score += (item.trust_score || 0) / 20;
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
