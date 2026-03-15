@@ -359,7 +359,8 @@ mcp.tool("get_skill_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
-    const apiUserId = currentApiKeyUserId;
+    // Log usage event
+    logUsageEvent("view", args.slug, "skill");
     const resolvedSlug = await resolveSlug(args.slug, "skill");
     let q = supabase.from("skills").select("*").eq("slug", resolvedSlug);
     if (apiUserId) {
