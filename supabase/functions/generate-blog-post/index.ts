@@ -235,12 +235,21 @@ Return the COMPLETE article using the generate_blog_post tool.`;
 
           const article = JSON.parse(toolCall.function.arguments);
           
-          // Only update if new content is longer
+          // Reject if regenerated content is still too short
+          const newEnLen = (article.content_en || "").length;
+          const newEsLen = (article.content_es || "").length;
+          if (newEnLen < 4000 && newEsLen < 4000) {
+            console.warn(`⚠️ Skipping ${post.slug}: regenerated content still too short (EN: ${newEnLen}, ES: ${newEsLen})`);
+            continue;
+          }
+
           const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-          if (article.content_en && article.content_en.length > (post.content?.length || 0)) {
+          // Update EN if new is longer OR old was truncated (< minLen)
+          if (article.content_en && (newEnLen > (post.content?.length || 0) || (post.content?.length || 0) < minLen)) {
             updateData.content = article.content_en;
           }
-          if (article.content_es && article.content_es.length > (post.content_es?.length || 0)) {
+          // Update ES if new is longer OR old was too short
+          if (article.content_es && (newEsLen > (post.content_es?.length || 0) || (post.content_es?.length || 0) < 2000)) {
             updateData.content_es = article.content_es;
           }
           if (article.faq_items?.length > 0) {
