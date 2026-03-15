@@ -201,51 +201,44 @@ mcp.tool("search_skills", {
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    const q = sanitizeForPostgrest(args.query);
     const apiUserId = currentApiKeyUserId;
-    const selectCols = "display_name, tagline, slug, avg_rating, review_count, install_count, install_command, category, target_roles, is_public, creator_id";
-    const words = q.split(/\s+/).filter(w => w.length >= 2);
-    const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
-    // Run exact-phrase AND word-split in parallel
-    let exactQ = supabase
-      .from("skills")
-      .select(selectCols)
-      .or(
-        apiUserId
-          ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
-          : `and(status.eq.approved,is_public.eq.true)`
-      )
-      .or(`display_name.ilike.%${q}%,tagline.ilike.%${q}%,slug.ilike.%${q}%,description_human.ilike.%${q}%`)
-      .order("install_count", { ascending: false })
-      .limit(lim);
-    if (args.category) exactQ = exactQ.eq("category", args.category);
+    // Use the full-text search RPC (search_vector + trigram + ILIKE fallbacks)
+    const { data: rpcResults, error: rpcError } = await supabase.rpc("search_skills", {
+      search_query: args.query,
+      filter_category: args.category || null,
+      filter_industry: null,
+      filter_roles: null,
+      sort_by: "rating",
+      page_num: 0,
+      page_size: lim,
+    });
 
-    const [exactRes, wordSplitRes] = await Promise.all([
-      exactQ.then(r => r.data || []),
-      words.length > 1
-        ? wordSplitSearch("skills", selectCols, words, "install_count", lim * 2, catFilter)
-        : Promise.resolve([]),
-    ]);
+    let results = rpcResults || [];
 
-    // Merge deduplicated
-    const seenSlugs = new Set<string>();
-    const merged: any[] = [];
-    for (const item of [...exactRes, ...wordSplitRes]) {
-      if (!seenSlugs.has(item.slug)) {
-        seenSlugs.add(item.slug);
-        merged.push(item);
-      }
+    // If FTS returned nothing, try semantic search as last resort
+    if (results.length === 0) {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ query: args.query, category: args.category, page: 0 }),
+        });
+        if (resp.ok) {
+          const semanticData = await resp.json();
+          results = (semanticData.data || []).slice(0, lim);
+        }
+      } catch { /* semantic search unavailable, continue with empty */ }
     }
-    let results = merged.slice(0, lim);
-    let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
-    console.log(JSON.stringify({ tool: "search_skills", query: args.query, sanitized: q, category: args.category || null, resultCount: results.length, fallbackUsed }));
+    console.log(JSON.stringify({ tool: "search_skills", query: args.query, category: args.category || null, resultCount: results.length, method: rpcResults?.length ? "fts_rpc" : "semantic_fallback" }));
 
-    if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré "${args.query}". Usa search_skills para buscar.` }] };
+    if (results.length === 0) {
+      return { content: [{ type: "text" as const, text: `No skills found for "${args.query}". Try broader keywords, or use \`solve_goal\` for natural language goal-based search.` }] };
+    }
 
     const text = results
-      .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${s.install_count.toLocaleString()} installs)\n${s.tagline}\nInstalar: \`${s.install_command}\``)
+      .map((s: any) => `**${s.display_name}** [${s.category}] (⭐ ${Number(s.avg_rating).toFixed(1)}, ${(s.install_count || 0).toLocaleString()} installs)\n${s.tagline}\nInstall: \`${s.install_command}\``)
       .join("\n\n---\n\n");
 
     return { content: [{ type: "text" as const, text }] };
