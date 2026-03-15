@@ -2132,15 +2132,23 @@ mcp.tool("a2a_query", {
     }
 
     if (args.action === "catalog_stats") {
+      // Use materialized view for consistent stats
+      const { data: stats } = await supabase.from("directory_stats_mv").select("*").limit(1).maybeSingle();
+      if (stats) {
+        const result = { skills: stats.skills_count, connectors: stats.connectors_count, plugins: stats.plugins_count, goal_templates: stats.goal_templates_count, total: (stats.skills_count || 0) + (stats.connectors_count || 0) + (stats.plugins_count || 0) };
+        if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+        return { content: [{ type: "text" as const, text: `Catalog: ${result.total} tools (${result.skills} skills, ${result.connectors} MCPs, ${result.plugins} plugins), ${result.goal_templates} goal templates` }] };
+      }
+      // Fallback
       const [{ count: s }, { count: m }, { count: p }, { count: gt }] = await Promise.all([
         supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("goal_templates").select("id", { count: "exact", head: true }).eq("is_active", true),
       ]);
-      const stats = { skills: s, connectors: m, plugins: p, goal_templates: gt, total: (s || 0) + (m || 0) + (p || 0) };
-      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(stats) }] };
-      return { content: [{ type: "text" as const, text: `Catalog: ${stats.total} tools (${stats.skills} skills, ${stats.connectors} MCPs, ${stats.plugins} plugins), ${stats.goal_templates} goal templates` }] };
+      const fallbackStats = { skills: s, connectors: m, plugins: p, goal_templates: gt, total: (s || 0) + (m || 0) + (p || 0) };
+      if (structured) return { content: [{ type: "text" as const, text: JSON.stringify(fallbackStats) }] };
+      return { content: [{ type: "text" as const, text: `Catalog: ${fallbackStats.total} tools (${fallbackStats.skills} skills, ${fallbackStats.connectors} MCPs, ${fallbackStats.plugins} plugins), ${fallbackStats.goal_templates} goal templates` }] };
     }
 
     if (args.action === "search" && args.query) {
