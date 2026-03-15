@@ -493,10 +493,12 @@ mcp.tool("compare_skills", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    // Resolve slugs through redirects
+    const resolvedSlugs = await Promise.all(args.slugs.map(s => resolveSlug(s, "skill")));
     const { data: skills, error } = await supabase
       .from("skills")
       .select("*")
-      .in("slug", args.slugs)
+      .in("slug", resolvedSlugs)
       .eq("status", "approved");
 
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
