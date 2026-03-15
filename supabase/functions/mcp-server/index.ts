@@ -267,11 +267,33 @@ mcp.tool("get_skill_details", {
 
     if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found. Try \`search_skills('${args.slug}')\` to find similar skills.` }] };
 
+    // Enrich with github_metadata if available
+    let ghMeta: any = null;
+    if (skill.github_url) {
+      const repoMatch = skill.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
+      if (repoMatch) {
+        const repoName = repoMatch[1].replace(/\.git$/, "");
+        const { data } = await supabase.from("github_metadata").select("*").eq("repo_full_name", repoName).eq("fetch_status", "success").maybeSingle();
+        ghMeta = data;
+      }
+    }
+
     const useCases = Array.isArray(skill.use_cases)
       ? (skill.use_cases as { title: string; after: string }[]).map((uc) => `• ${uc.title}: ${uc.after}`).join("\n")
       : "";
 
-    const text = `# ${skill.display_name}\n\n📂 Categoría: ${skill.category}\n🎯 Roles: ${skill.target_roles?.join(", ") || "todos"}\n\n${skill.tagline}\n\n⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count.toLocaleString()} instalaciones\n\n## Descripción\n${skill.description_human}\n\n${useCases ? `## Casos de uso\n${useCases}\n\n` : ""}## Instalación\n\`${skill.install_command}\``;
+    const stars = ghMeta?.stars ?? skill.github_stars ?? 0;
+    const ghInfo: string[] = [];
+    if (ghMeta) {
+      if (ghMeta.license) ghInfo.push(`📜 License: ${ghMeta.license}`);
+      if (ghMeta.last_commit_at) {
+        const days = Math.floor((Date.now() - new Date(ghMeta.last_commit_at).getTime()) / 86400000);
+        ghInfo.push(`🕐 Last commit: ${days} days ago${days > 180 ? " ⚠️" : ""}`);
+      }
+      if (ghMeta.archived) ghInfo.push(`⚠️ Repository archived`);
+    }
+
+    const text = `# ${skill.display_name}\n\n📂 Category: ${skill.category}\n🎯 Roles: ${skill.target_roles?.join(", ") || "all"}\n⭐ GitHub Stars: ${stars.toLocaleString()}\n${ghInfo.length ? ghInfo.join("\n") + "\n" : ""}\n${skill.tagline}\n\n⭐ ${Number(skill.avg_rating).toFixed(1)} (${skill.review_count} reviews) · ${skill.install_count.toLocaleString()} installs\n\n## Description\n${skill.description_human}\n\n${useCases ? `## Use Cases\n${useCases}\n\n` : ""}## Install\n\`${skill.install_command}\``;
 
     return { content: [{ type: "text" as const, text }] };
   },
