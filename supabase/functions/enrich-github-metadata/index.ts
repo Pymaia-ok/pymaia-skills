@@ -12,7 +12,7 @@ function extractRepoFullName(url: string): string | null {
   return m[1].replace(/\.git$/, "");
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
