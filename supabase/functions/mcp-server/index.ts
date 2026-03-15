@@ -3191,7 +3191,11 @@ mcp.tool("get_top_creators", {
   handler: async (args: { limit?: number }) => {
     const lim = Math.min(args.limit || 10, 20);
     const { data: skills } = await supabase.from("skills").select("creator_id, avg_rating, install_count").eq("status", "approved").not("creator_id", "is", null);
-    if (!skills?.length) return { content: [{ type: "text" as const, text: "No creators found." }] };
+    if (!skills?.length) {
+      // Provide context about why there are no creators
+      const { count: totalSkills } = await supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved");
+      return { content: [{ type: "text" as const, text: `Creator profiles are being built. The catalog has ${(totalSkills || 0).toLocaleString()} skills but most were imported without creator attribution.\n\nTo appear on the leaderboard, publish skills via \`publish_skill\` or \`import_skill_from_agent\` with your API key.` }] };
+    }
 
     const creatorStats: Record<string, { count: number; totalRating: number; totalInstalls: number }> = {};
     for (const s of skills) {
