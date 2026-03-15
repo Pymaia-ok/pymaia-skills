@@ -1,4 +1,4 @@
-// generate-install-commands v1 — Extract install commands from GitHub READMEs
+// generate-install-commands v2 — Extract install commands from GitHub READMEs (skills + connectors)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -16,12 +16,14 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { batchSize = 10, minStars = 0 } = await req.json().catch(() => ({}));
+    const { batchSize = 10, minStars = 0, table = "mcp_servers" } = await req.json().catch(() => ({}));
 
-    // Get connectors with github_url but no install_command
+    const targetTable = table === "skills" ? "skills" : "mcp_servers";
+
+    // Get items with github_url but no install_command
     const { data: items, error } = await supabase
-      .from("mcp_servers")
-      .select("id, slug, name, github_url, github_stars, readme_raw")
+      .from(targetTable)
+      .select("id, slug, name, github_url, github_stars, readme_raw" + (targetTable === "skills" ? ", display_name" : ""))
       .eq("status", "approved")
       .not("github_url", "is", null)
       .neq("github_url", "")
@@ -32,7 +34,7 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
     if (!items || items.length === 0) {
-      return jsonRes({ processed: 0, message: "No items to process" });
+      return jsonRes({ processed: 0, message: "No items to process", table: targetTable });
     }
 
     const ghHeaders: Record<string, string> = { Accept: "application/vnd.github.v3.raw" };
@@ -42,14 +44,13 @@ Deno.serve(async (req) => {
 
     for (const item of items) {
       try {
-        // Get README content
+        const itemName = (item as any).display_name || item.name;
         let readme = item.readme_raw || "";
 
         if (!readme || readme.length < 50) {
           const match = item.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
           if (!match) {
-            // No valid GitHub URL — reject
-            await supabase.from("mcp_servers").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", item.id);
+            await supabase.from(targetTable).update({ status: "rejected", updated_at: new Date().toISOString() } as any).eq("id", item.id);
             rejected++;
             continue;
           }
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
           const res = await fetch(`https://api.github.com/repos/${repo}/readme`, { headers: ghHeaders });
           if (res.status === 403 || res.status === 429) break;
           if (res.status === 404) {
-            await supabase.from("mcp_servers").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", item.id);
+            await supabase.from(targetTable).update({ status: "rejected", updated_at: new Date().toISOString() } as any).eq("id", item.id);
             rejected++;
             continue;
           }
@@ -67,12 +68,10 @@ Deno.serve(async (req) => {
           if (readme.length > 15000) readme = readme.slice(0, 15000);
         }
 
-        // Try to extract install command using patterns
-        let installCmd = extractInstallCommand(readme, item.github_url, item.name);
+        let installCmd = extractInstallCommand(readme, item.github_url, itemName);
 
-        // If no command found via regex, use AI as fallback for high-star repos
-        if (!installCmd && lovableApiKey && item.github_stars >= 10) {
-          installCmd = await aiExtractCommand(lovableApiKey, readme, item.name, item.github_url);
+        if (!installCmd && lovableApiKey && (item.github_stars ?? 0) >= 10) {
+          installCmd = await aiExtractCommand(lovableApiKey, readme, itemName, item.github_url);
         }
 
         if (installCmd) {
@@ -82,17 +81,15 @@ Deno.serve(async (req) => {
           };
           if (!item.readme_raw) updateData.readme_raw = readme;
           
-          await supabase.from("mcp_servers").update(updateData).eq("id", item.id);
+          await supabase.from(targetTable).update(updateData as any).eq("id", item.id);
           generated++;
-          console.log(`✅ ${item.slug}: ${installCmd.slice(0, 80)}...`);
-        } else if (item.github_stars < 5) {
-          // Low quality, no install command extractable — reject
-          await supabase.from("mcp_servers").update({ status: "rejected", updated_at: new Date().toISOString() }).eq("id", item.id);
+          console.log(`✅ [${targetTable}] ${item.slug}: ${installCmd.slice(0, 80)}...`);
+        } else if ((item.github_stars ?? 0) < 5) {
+          await supabase.from(targetTable).update({ status: "rejected", updated_at: new Date().toISOString() } as any).eq("id", item.id);
           rejected++;
         } else {
           skipped++;
-          // Touch updated_at to avoid re-processing
-          await supabase.from("mcp_servers").update({ updated_at: new Date().toISOString() }).eq("id", item.id);
+          await supabase.from(targetTable).update({ updated_at: new Date().toISOString() } as any).eq("id", item.id);
         }
       } catch (e) {
         console.error(`Error ${item.slug}:`, e);
@@ -103,11 +100,11 @@ Deno.serve(async (req) => {
     await supabase.from("automation_logs").insert({
       function_name: "generate-install-commands",
       action_type: "batch_generate",
-      reason: `Generated ${generated}, rejected ${rejected}, skipped ${skipped} of ${items.length}`,
-      metadata: { generated, rejected, skipped, total: items.length },
+      reason: `[${targetTable}] Generated ${generated}, rejected ${rejected}, skipped ${skipped} of ${items.length}`,
+      metadata: { generated, rejected, skipped, total: items.length, table: targetTable },
     });
 
-    return jsonRes({ generated, rejected, skipped, processed: items.length });
+    return jsonRes({ generated, rejected, skipped, processed: items.length, table: targetTable });
   } catch (e) {
     console.error("Error:", (e as Error).message);
     return jsonRes({ error: (e as Error).message }, 500);
