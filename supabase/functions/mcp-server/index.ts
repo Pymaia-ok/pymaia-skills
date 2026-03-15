@@ -1361,11 +1361,50 @@ mcp.tool("solve_goal", {
       if (low.length > 0) { sections.push(`**⚠️ Security:**`); for (const l of low) sections.push(`- ${l.name}: low Trust (${l.trust_score}/100)`); sections.push(""); }
     }
 
-    // Check if both options are empty
+    // Check if both options are empty — guaranteed non-empty final response
     if (optionA.length === 0 && optionB.length === 0) {
-      sections.push(`## No matching tools found\n`);
-      sections.push(`We couldn't find tools matching "${args.goal}" in our catalog.\n`);
-      sections.push(`### Try:\n- **Broader keywords:** Use more general terms\n- **\`explore_directory('${goalWords2.slice(0, 2).join(" ")}')\`** for cross-catalog discovery\n- **\`suggest_stack('${args.role || "general"}')\`** for role-based recommendations\n- **\`browse_community_templates\`** for curated goal templates\n`);
+      // Get catalog stats for context
+      const { data: statsRow } = await supabase.from("directory_stats_mv").select("*").limit(1).maybeSingle();
+      const totalTools = (statsRow?.skills_count || 0) + (statsRow?.connectors_count || 0) + (statsRow?.plugins_count || 0);
+
+      // Find related categories
+      const keywordDomain = detectDomainByKeywords(args.goal);
+      const relatedCats = keywordDomain.domain !== "general"
+        ? [DOMAIN_TO_CATEGORY[keywordDomain.domain], intent.category].filter(Boolean)
+        : [intent.category].filter(Boolean);
+
+      // Get top skills from related categories as suggestions
+      let suggestions: any[] = [];
+      if (relatedCats.length > 0) {
+        const { data } = await supabase
+          .from("skills")
+          .select("display_name, slug, tagline, category, install_command, quality_rank")
+          .eq("status", "approved")
+          .in("category", relatedCats)
+          .order("quality_rank", { ascending: false })
+          .limit(3);
+        suggestions = data || [];
+      }
+
+      sections.push(`## Could not find a specific solution for: "${args.goal}"\n`);
+      sections.push(`Searched ${totalTools.toLocaleString()}+ tools but couldn't find an exact match.\n`);
+      sections.push(`### Suggestions`);
+      sections.push(`- Try rephrasing your goal with more specific keywords`);
+      sections.push(`- Use \`search_skills\`, \`search_connectors\`, or \`search_plugins\` to search individually`);
+      sections.push(`- Use \`explore_directory\` for broad cross-catalog search`);
+      sections.push(`- Browse \`list_categories\` to find relevant categories\n`);
+
+      if (suggestions.length > 0) {
+        sections.push(`### Related tools you might find useful\n`);
+        for (const s of suggestions) {
+          sections.push(`- **${s.display_name}** [${s.category}] — ${s.tagline}\n  \`${s.install_command}\``);
+        }
+      }
+
+      if (relatedCats.length > 0) {
+        sections.push(`\n### Related categories: ${relatedCats.join(", ")}`);
+      }
+
       return { content: [{ type: "text" as const, text: sections.join("\n") }] };
     }
 
