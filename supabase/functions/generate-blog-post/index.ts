@@ -156,14 +156,22 @@ serve(async (req) => {
       const minLen = body.min_content_length || 5000;
       const batchSize = body.batch_size || 3;
 
-      // Find truncated posts (short EN or short ES)
-      const { data: truncated } = await supabase
-        .from("blog_posts")
-        .select("id, slug, title, title_es, category, keywords, content, content_es, related_skill_slugs, related_connector_slugs")
-        .eq("status", "published")
-        .or(`content.lt.${minLen}`)
-        .order("created_at", { ascending: true })
-        .limit(batchSize);
+      let truncated: any[] = [];
+
+      if (body.slugs && Array.isArray(body.slugs) && body.slugs.length > 0) {
+        // Explicit slugs provided
+        const { data } = await supabase
+          .from("blog_posts")
+          .select("id, slug, title, title_es, category, keywords, content, content_es, related_skill_slugs, related_connector_slugs")
+          .eq("status", "published")
+          .in("slug", body.slugs)
+          .limit(batchSize);
+        truncated = data || [];
+      } else {
+        // Auto-detect: use RPC to find short posts by char length
+        const { data } = await supabase.rpc("find_truncated_blog_posts", { min_len: minLen, batch_limit: batchSize });
+        truncated = data || [];
+      }
 
       if (!truncated || truncated.length === 0) {
         return new Response(JSON.stringify({ message: "No truncated posts found" }), {
@@ -179,24 +187,28 @@ serve(async (req) => {
           const esShort = (post.content_es?.length || 0) < 2000;
           if (!enShort && !esShort) continue;
 
-          const regenPrompt = `Rewrite and COMPLETE this blog article. The previous version was truncated/incomplete.
+          const regenPrompt = `You MUST rewrite this blog article COMPLETELY from scratch. The previous version was TRUNCATED and incomplete.
 
-Title: "${post.title}"
-Title ES: "${post.title_es || ''}"
+Title (EN): "${post.title}"
+Title (ES): "${post.title_es || ''}"
 Category: ${post.category}
 Keywords: ${(post.keywords || []).join(", ")}
 
-The article MUST be complete with:
-- A hook/introduction
-- 3-5 detailed sections with ## headings
-- Step-by-step instructions where applicable  
-- A FAQ section with 3-5 Q&As
-- A conclusion with call-to-action linking to /explorar, /conectores, or /crear-skill
+CRITICAL REQUIREMENTS:
+1. content_en MUST be at least 1500 words (approximately 8000+ characters)
+2. content_es MUST be at least 1500 words (approximately 9000+ characters) — full Spanish translation, NOT a summary
+3. Include a compelling introduction paragraph
+4. Include 4-6 detailed sections with ## headings  
+5. Include practical step-by-step instructions with examples
+6. Include a FAQ section with 4-5 Q&As at the end
+7. End with a conclusion and call-to-action linking to /explorar, /conectores, or /crear-skill
+8. Use internal links: /explorar, /conectores, /plugins, /crear-skill, /primeros-pasos
+9. DO NOT cut the article short. Write the FULL article.
 
-Previous content (may be truncated - use as reference for topic/style but write completely new):
-${(post.content || "").slice(0, 2000)}...
+Previous content (TRUNCATED — do NOT copy, write fresh):
+${(post.content || "").slice(0, 1500)}
 
-Return the COMPLETE article using the generate_blog_post tool. Both English and Spanish versions must be FULL articles (~1500 words each).`;
+Return the COMPLETE article using the generate_blog_post tool.`;
 
           const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -205,8 +217,8 @@ Return the COMPLETE article using the generate_blog_post tool. Both English and 
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              max_tokens: 16000,
+              model: "google/gemini-2.5-pro",
+              max_tokens: 32000,
               messages: [
                 { role: "system", content: systemPromptText },
                 { role: "user", content: regenPrompt },
@@ -223,12 +235,21 @@ Return the COMPLETE article using the generate_blog_post tool. Both English and 
 
           const article = JSON.parse(toolCall.function.arguments);
           
-          // Only update if new content is longer
+          // Reject if regenerated content is still too short
+          const newEnLen = (article.content_en || "").length;
+          const newEsLen = (article.content_es || "").length;
+          if (newEnLen < 4000 && newEsLen < 4000) {
+            console.warn(`⚠️ Skipping ${post.slug}: regenerated content still too short (EN: ${newEnLen}, ES: ${newEsLen})`);
+            continue;
+          }
+
           const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
-          if (article.content_en && article.content_en.length > (post.content?.length || 0)) {
+          // Update EN if new is longer OR old was truncated (< minLen)
+          if (article.content_en && (newEnLen > (post.content?.length || 0) || (post.content?.length || 0) < minLen)) {
             updateData.content = article.content_en;
           }
-          if (article.content_es && article.content_es.length > (post.content_es?.length || 0)) {
+          // Update ES if new is longer OR old was too short
+          if (article.content_es && (newEsLen > (post.content_es?.length || 0) || (post.content_es?.length || 0) < 2000)) {
             updateData.content_es = article.content_es;
           }
           if (article.faq_items?.length > 0) {
