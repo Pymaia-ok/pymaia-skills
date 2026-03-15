@@ -385,39 +385,32 @@ mcp.tool("get_skill_details", {
 // ─── RANKING TOOLS ───
 
 mcp.tool("list_popular_skills", {
-  description: "List the most popular skills sorted by installations or rating. Optionally filter by category.",
+  description: "List the most popular skills sorted by quality ranking (combines GitHub activity, ratings, trust scores, content quality). Optionally filter by category.",
   inputSchema: {
     type: "object",
     properties: {
-      sort_by: { type: "string", description: "Sort by 'installs' or 'rating' (default: installs)" },
+      sort_by: { type: "string", description: "Sort by 'quality' (default), 'rating', or 'installs'" },
       category: { type: "string", description: "Optional category filter" },
       limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
     },
   },
   handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    // Composite ranking: prioritize tracked installs, then trust_score + avg_rating
     let q = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, trust_score, install_count_source")
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, trust_score, quality_rank, install_count_source")
       .eq("status", "approved");
 
     if (args.category) q = q.eq("category", args.category);
 
-    // Get more results for client-side composite ranking
-    const { data: skills, error } = await q.order("install_count", { ascending: false }).limit(lim * 5);
+    // Sort by quality_rank by default
+    const sortCol = args.sort_by === "rating" ? "avg_rating" : args.sort_by === "installs" ? "install_count" : "quality_rank";
+    const { data: skills, error } = await q.order(sortCol, { ascending: false }).limit(lim);
+
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    // Composite ranking: tracked installs first, then trust_score + rating as tiebreaker
-    const ranked = (skills || []).map((s: any) => {
-      const trackedBonus = s.install_count_source === 'tracked' ? 1000000 : 0;
-      const qualityScore = (s.trust_score || 0) + Number(s.avg_rating) * 20;
-      const compositeScore = trackedBonus + (args.sort_by === "rating" ? Number(s.avg_rating) * 100000 : s.install_count) + qualityScore;
-      return { ...s, _composite: compositeScore };
-    }).sort((a: any, b: any) => b._composite - a._composite).slice(0, lim);
-
-    const text = ranked
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+    const text = (skills || [])
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%\n   \`${s.install_command}\``)
       .join("\n\n");
 
     return { content: [{ type: "text" as const, text: text || "No hay skills disponibles." }] };
