@@ -34,8 +34,79 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
   }
 }
 
+// ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
+const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads"],
+  "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
+  "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
+  "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
+  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad"],
+  "legal": ["contract", "legal", "compliance", "patent", "trademark", "litigation", "contrato", "abogado"],
+  "data": ["data pipeline", "etl", "analytics", "dashboard", "visualization", "sql", "warehouse", "datos"],
+  "security": ["vulnerability", "penetration test", "security audit", "firewall", "encryption", "seguridad"],
+  "design": ["ui/ux", "figma", "wireframe", "prototype", "design system", "accessibility", "diseño"],
+  "sales": ["crm", "prospecting", "cold email", "lead generation", "outbound", "pipeline", "ventas"],
+  "hr": ["recruiting", "hiring", "onboarding", "employee", "payroll", "performance review", "rrhh"],
+  "support": ["customer support", "ticket", "helpdesk", "chatbot", "faq", "knowledge base", "soporte"],
+  "development": ["code review", "pull request", "testing", "refactoring", "debugging", "api", "desarrollo", "programación"],
+  "marketing": ["seo", "copywriting", "content marketing", "branding", "growth", "marketing"],
+};
+
+// Map domain IDs to catalog categories
+const DOMAIN_TO_CATEGORY: Record<string, string> = {
+  "advertising": "marketing",
+  "email-marketing": "marketing",
+  "social-media": "marketing",
+  "devops": "desarrollo",
+  "finance": "negocios",
+  "legal": "legal",
+  "data": "datos",
+  "security": "desarrollo",
+  "design": "diseño",
+  "sales": "negocios",
+  "hr": "negocios",
+  "support": "productividad",
+  "development": "desarrollo",
+  "marketing": "marketing",
+};
+
+function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
+  const goalLower = goal.toLowerCase();
+  let bestDomain = "general";
+  let bestScore = 0;
+
+  for (const [domain, keywords] of Object.entries(KEYWORD_DOMAIN_MAP)) {
+    let score = 0;
+    for (const kw of keywords) {
+      if (goalLower.includes(kw)) score += kw.split(/\s+/).length; // multi-word matches score higher
+    }
+    if (score > bestScore) { bestScore = score; bestDomain = domain; }
+  }
+
+  if (bestScore >= 2) {
+    return { domain: bestDomain, category: DOMAIN_TO_CATEGORY[bestDomain] || null, confidence: Math.min(bestScore / 4, 1.0) };
+  }
+  return { domain: "general", category: null, confidence: 0 };
+}
+
+// ─── ROLE-TO-CATEGORY MAPPING ───
+const ROLE_CATEGORIES: Record<string, string[]> = {
+  "marketer": ["marketing", "ventas", "creatividad", "automatización"],
+  "developer": ["desarrollo", "productividad", "ia", "automatización"],
+  "designer": ["diseño", "creatividad", "productividad"],
+  "founder": ["negocios", "producto", "ventas", "marketing"],
+  "lawyer": ["legal", "negocios"],
+  "abogado": ["legal", "negocios"],
+  "data-analyst": ["datos", "ia", "automatización"],
+  "consultant": ["negocios", "productividad", "datos"],
+  "consultor": ["negocios", "productividad", "datos"],
+  "sales": ["ventas", "negocios", "marketing"],
+  "product-manager": ["productividad", "negocios", "desarrollo"],
+  "devops": ["desarrollo", "automatización", "ia"],
+  "hr": ["negocios", "productividad"],
+};
+
 // ─── ML INTENT CLASSIFIER ───
-// Uses Gemini Flash Lite to extract structured intent from natural language goals
 async function classifyIntent(goal: string, role?: string): Promise<{
   keywords: string[];
   category: string | null;
@@ -43,10 +114,12 @@ async function classifyIntent(goal: string, role?: string): Promise<{
   domain: string;
   confidence: number;
 }> {
+  // Step 1: keyword-based domain detection (fast, reliable)
+  const keywordResult = detectDomainByKeywords(goal);
+
   if (!LOVABLE_API_KEY) {
-    // Fallback: basic keyword extraction
     const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
   }
 
   try {
@@ -96,11 +169,21 @@ Be precise with keywords - they should match actual tool names and descriptions.
     const data = await resp.json();
     const call = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!call) throw new Error("No tool call");
-    return JSON.parse(call.function.arguments);
+    const llmResult = JSON.parse(call.function.arguments);
+
+    // Override: if keyword detection has high confidence and LLM disagrees on domain, prefer keyword
+    if (keywordResult.confidence >= 0.75 && keywordResult.domain !== "general") {
+      if (llmResult.domain !== keywordResult.domain && llmResult.confidence < 0.9) {
+        llmResult.domain = keywordResult.domain;
+        llmResult.category = keywordResult.category || llmResult.category;
+      }
+    }
+
+    return llmResult;
   } catch (e) {
     console.error("Intent classifier fallback:", e);
     const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
   }
 }
 
