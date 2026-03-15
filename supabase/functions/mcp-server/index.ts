@@ -263,7 +263,8 @@ mcp.tool("get_skill_details", {
   },
   handler: async (args: { slug: string }) => {
     const apiUserId = currentApiKeyUserId;
-    let q = supabase.from("skills").select("*").eq("slug", args.slug);
+    const resolvedSlug = await resolveSlug(args.slug, "skill");
+    let q = supabase.from("skills").select("*").eq("slug", resolvedSlug);
     if (apiUserId) {
       q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
     } else {
@@ -271,7 +272,7 @@ mcp.tool("get_skill_details", {
     }
     const { data: skill, error } = await q.maybeSingle();
 
-    if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" no encontrada.` }] };
+    if (error || !skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found. Try \`search_skills('${args.slug}')\` to find similar skills.` }] };
 
     const useCases = Array.isArray(skill.use_cases)
       ? (skill.use_cases as { title: string; after: string }[]).map((uc) => `• ${uc.title}: ${uc.after}`).join("\n")
