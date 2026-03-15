@@ -34,8 +34,79 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
   }
 }
 
+// ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
+const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads"],
+  "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
+  "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
+  "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
+  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad"],
+  "legal": ["contract", "legal", "compliance", "patent", "trademark", "litigation", "contrato", "abogado"],
+  "data": ["data pipeline", "etl", "analytics", "dashboard", "visualization", "sql", "warehouse", "datos"],
+  "security": ["vulnerability", "penetration test", "security audit", "firewall", "encryption", "seguridad"],
+  "design": ["ui/ux", "figma", "wireframe", "prototype", "design system", "accessibility", "diseño"],
+  "sales": ["crm", "prospecting", "cold email", "lead generation", "outbound", "pipeline", "ventas"],
+  "hr": ["recruiting", "hiring", "onboarding", "employee", "payroll", "performance review", "rrhh"],
+  "support": ["customer support", "ticket", "helpdesk", "chatbot", "faq", "knowledge base", "soporte"],
+  "development": ["code review", "pull request", "testing", "refactoring", "debugging", "api", "desarrollo", "programación"],
+  "marketing": ["seo", "copywriting", "content marketing", "branding", "growth", "marketing"],
+};
+
+// Map domain IDs to catalog categories
+const DOMAIN_TO_CATEGORY: Record<string, string> = {
+  "advertising": "marketing",
+  "email-marketing": "marketing",
+  "social-media": "marketing",
+  "devops": "desarrollo",
+  "finance": "negocios",
+  "legal": "legal",
+  "data": "datos",
+  "security": "desarrollo",
+  "design": "diseño",
+  "sales": "negocios",
+  "hr": "negocios",
+  "support": "productividad",
+  "development": "desarrollo",
+  "marketing": "marketing",
+};
+
+function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
+  const goalLower = goal.toLowerCase();
+  let bestDomain = "general";
+  let bestScore = 0;
+
+  for (const [domain, keywords] of Object.entries(KEYWORD_DOMAIN_MAP)) {
+    let score = 0;
+    for (const kw of keywords) {
+      if (goalLower.includes(kw)) score += kw.split(/\s+/).length; // multi-word matches score higher
+    }
+    if (score > bestScore) { bestScore = score; bestDomain = domain; }
+  }
+
+  if (bestScore >= 2) {
+    return { domain: bestDomain, category: DOMAIN_TO_CATEGORY[bestDomain] || null, confidence: Math.min(bestScore / 4, 1.0) };
+  }
+  return { domain: "general", category: null, confidence: 0 };
+}
+
+// ─── ROLE-TO-CATEGORY MAPPING ───
+const ROLE_CATEGORIES: Record<string, string[]> = {
+  "marketer": ["marketing", "ventas", "creatividad", "automatización"],
+  "developer": ["desarrollo", "productividad", "ia", "automatización"],
+  "designer": ["diseño", "creatividad", "productividad"],
+  "founder": ["negocios", "producto", "ventas", "marketing"],
+  "lawyer": ["legal", "negocios"],
+  "abogado": ["legal", "negocios"],
+  "data-analyst": ["datos", "ia", "automatización"],
+  "consultant": ["negocios", "productividad", "datos"],
+  "consultor": ["negocios", "productividad", "datos"],
+  "sales": ["ventas", "negocios", "marketing"],
+  "product-manager": ["productividad", "negocios", "desarrollo"],
+  "devops": ["desarrollo", "automatización", "ia"],
+  "hr": ["negocios", "productividad"],
+};
+
 // ─── ML INTENT CLASSIFIER ───
-// Uses Gemini Flash Lite to extract structured intent from natural language goals
 async function classifyIntent(goal: string, role?: string): Promise<{
   keywords: string[];
   category: string | null;
@@ -43,10 +114,12 @@ async function classifyIntent(goal: string, role?: string): Promise<{
   domain: string;
   confidence: number;
 }> {
+  // Step 1: keyword-based domain detection (fast, reliable)
+  const keywordResult = detectDomainByKeywords(goal);
+
   if (!LOVABLE_API_KEY) {
-    // Fallback: basic keyword extraction
     const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
   }
 
   try {
@@ -96,11 +169,21 @@ Be precise with keywords - they should match actual tool names and descriptions.
     const data = await resp.json();
     const call = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!call) throw new Error("No tool call");
-    return JSON.parse(call.function.arguments);
+    const llmResult = JSON.parse(call.function.arguments);
+
+    // Override: if keyword detection has high confidence and LLM disagrees on domain, prefer keyword
+    if (keywordResult.confidence >= 0.75 && keywordResult.domain !== "general") {
+      if (llmResult.domain !== keywordResult.domain && llmResult.confidence < 0.9) {
+        llmResult.domain = keywordResult.domain;
+        llmResult.category = keywordResult.category || llmResult.category;
+      }
+    }
+
+    return llmResult;
   } catch (e) {
     console.error("Intent classifier fallback:", e);
     const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: null, capabilities: [], domain: "general", confidence: 0 };
+    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
   }
 }
 
@@ -302,39 +385,32 @@ mcp.tool("get_skill_details", {
 // ─── RANKING TOOLS ───
 
 mcp.tool("list_popular_skills", {
-  description: "List the most popular skills sorted by installations or rating. Optionally filter by category.",
+  description: "List the most popular skills sorted by quality ranking (combines GitHub activity, ratings, trust scores, content quality). Optionally filter by category.",
   inputSchema: {
     type: "object",
     properties: {
-      sort_by: { type: "string", description: "Sort by 'installs' or 'rating' (default: installs)" },
+      sort_by: { type: "string", description: "Sort by 'quality' (default), 'rating', or 'installs'" },
       category: { type: "string", description: "Optional category filter" },
       limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
     },
   },
   handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
     const lim = Math.min(args.limit || 5, 10);
-    // Composite ranking: prioritize tracked installs, then trust_score + avg_rating
     let q = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, trust_score, install_count_source")
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, trust_score, quality_rank, install_count_source")
       .eq("status", "approved");
 
     if (args.category) q = q.eq("category", args.category);
 
-    // Get more results for client-side composite ranking
-    const { data: skills, error } = await q.order("install_count", { ascending: false }).limit(lim * 5);
+    // Sort by quality_rank by default
+    const sortCol = args.sort_by === "rating" ? "avg_rating" : args.sort_by === "installs" ? "install_count" : "quality_rank";
+    const { data: skills, error } = await q.order(sortCol, { ascending: false }).limit(lim);
+
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    // Composite ranking: tracked installs first, then trust_score + rating as tiebreaker
-    const ranked = (skills || []).map((s: any) => {
-      const trackedBonus = s.install_count_source === 'tracked' ? 1000000 : 0;
-      const qualityScore = (s.trust_score || 0) + Number(s.avg_rating) * 20;
-      const compositeScore = trackedBonus + (args.sort_by === "rating" ? Number(s.avg_rating) * 100000 : s.install_count) + qualityScore;
-      return { ...s, _composite: compositeScore };
-    }).sort((a: any, b: any) => b._composite - a._composite).slice(0, lim);
-
-    const text = ranked
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+    const text = (skills || [])
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%\n   \`${s.install_command}\``)
       .join("\n\n");
 
     return { content: [{ type: "text" as const, text: text || "No hay skills disponibles." }] };
@@ -412,44 +488,71 @@ mcp.tool("list_categories", {
 });
 
 mcp.tool("search_by_role", {
-  description: "Find the best skills for a specific professional role: marketer, abogado, consultor, founder, diseñador, or general.",
+  description: "Find the best skills for a specific professional role: marketer, abogado, consultor, founder, diseñador, developer, data-analyst, or general.",
   inputSchema: {
     type: "object",
     properties: {
-      role: { type: "string", description: "Professional role: marketer, abogado, consultor, founder, disenador, otro" },
+      role: { type: "string", description: "Professional role: marketer, abogado, consultor, founder, disenador, developer, data-analyst, otro" },
       limit: { type: "number", description: "Number of results (default: 5, max: 10)" },
     },
     required: ["role"],
   },
   handler: async (args: { role: string; limit?: number }) => {
-    const { data: skills, error } = await supabase
-      .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles")
-      .eq("status", "approved")
-      .contains("target_roles", [args.role])
-      .order("install_count", { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+    const roleLower = args.role.toLowerCase();
+    const relevantCategories = ROLE_CATEGORIES[roleLower] || [];
+    const lim = Math.min(args.limit || 5, 10);
 
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-    if (!skills?.length) return { content: [{ type: "text" as const, text: `No encontré skills para el rol "${args.role}".` }] };
+    // First try role-based category filtering with quality_rank sort
+    let skills: any[] = [];
+    if (relevantCategories.length > 0) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, quality_rank, trust_score")
+        .eq("status", "approved")
+        .in("category", relevantCategories)
+        .order("quality_rank", { ascending: false })
+        .limit(lim * 2);
+      skills = data || [];
+    }
+
+    // Fallback: try target_roles filter
+    if (skills.length < lim) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, quality_rank, trust_score")
+        .eq("status", "approved")
+        .contains("target_roles", [roleLower])
+        .order("quality_rank", { ascending: false })
+        .limit(lim);
+      const existingSlugs = new Set(skills.map(s => s.slug));
+      for (const s of data || []) {
+        if (!existingSlugs.has(s.slug)) skills.push(s);
+      }
+    }
+
+    // Sort by quality_rank and take top results
+    skills = skills.sort((a: any, b: any) => (b.quality_rank || 0) - (a.quality_rank || 0)).slice(0, lim);
+
+    if (!skills.length) return { content: [{ type: "text" as const, text: `No encontré skills para el rol "${args.role}". Probá con \`explore_directory\` o \`solve_goal\`.` }] };
 
     const roleLabels: Record<string, string> = {
       marketer: "📣 Marketer", abogado: "⚖️ Abogado", consultor: "💼 Consultor",
-      founder: "🚀 Founder", disenador: "🎨 Diseñador", otro: "✨ General",
+      founder: "🚀 Founder", disenador: "🎨 Diseñador", developer: "🛠️ Developer",
+      "data-analyst": "📊 Data Analyst", otro: "✨ General",
     };
 
     const text = skills
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%\n   \`${s.install_command}\``)
       .join("\n\n");
 
-    return { content: [{ type: "text" as const, text: `# Skills para ${roleLabels[args.role] || args.role}\n\n${text}` }] };
+    return { content: [{ type: "text" as const, text: `# Skills para ${roleLabels[roleLower] || args.role}\n\n${text}` }] };
   },
 });
 
 // ─── RECOMMENDATION TOOLS ───
 
 mcp.tool("recommend_for_task", {
-  description: "Get skill recommendations based on a specific task you want to accomplish. Describe what you need to do and get the best matching skills.",
+  description: "Get skill recommendations based on a specific task you want to accomplish. Uses semantic search and multi-signal quality ranking for relevant results.",
   inputSchema: {
     type: "object",
     properties: {
@@ -459,39 +562,58 @@ mcp.tool("recommend_for_task", {
     required: ["task"],
   },
   handler: async (args: { task: string; role?: string }) => {
-    let q = supabase
-      .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, description_human, industry")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false })
-      .limit(20);
-
-    if (args.role) q = q.contains("target_roles", [args.role]);
-
-    const { data: skills, error } = await q;
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-
     const taskLower = args.task.toLowerCase();
-    const keywords = taskLower.split(/\s+/).filter(w => w.length > 3);
+    const roleLower = (args.role || "").toLowerCase();
+    const roleCategories = ROLE_CATEGORIES[roleLower] || [];
 
-    const scored = (skills || []).map((s: any) => {
-      let score = 0;
-      const searchable = `${s.display_name} ${s.tagline} ${s.description_human} ${(s.industry || []).join(" ")}`.toLowerCase();
-      for (const kw of keywords) {
-        if (searchable.includes(kw)) score += 2;
-      }
-      if (s.install_count > 100000) score += 3;
-      else if (s.install_count > 50000) score += 2;
-      else if (s.install_count > 10000) score += 1;
-      score += Number(s.avg_rating) * 0.5;
-      return { ...s, score };
+    // Step 1: Use FTS RPC as primary candidate generator
+    const { data: ftsResults } = await supabase.rpc("search_skills", {
+      search_query: args.task,
+      page_size: 20,
     });
 
-    const results = scored.sort((a: any, b: any) => b.score - a.score).slice(0, 5);
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes para esa tarea." }] };
+    let candidates: any[] = ftsResults || [];
+
+    // Step 2: If FTS returns < 5, fallback to semantic search
+    if (candidates.length < 5) {
+      try {
+        const semanticResp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: args.task, limit: 20 }),
+        });
+        if (semanticResp.ok) {
+          const semanticData = await semanticResp.json();
+          const existingSlugs = new Set(candidates.map(c => c.slug));
+          for (const s of semanticData.results || []) {
+            if (!existingSlugs.has(s.slug)) {
+              candidates.push({ ...s, similarity_score: s.similarity_score || 0.5 });
+            }
+          }
+        }
+      } catch { /* skip semantic errors */ }
+    }
+
+    // Step 3: Multi-signal re-ranking
+    const scored = candidates.map((s: any) => {
+      // 70% semantic/FTS similarity
+      const semanticScore = (s.similarity_score || 0.5) * 0.70;
+      // 15% quality rank
+      const qualityScore = (s.quality_rank || 0) * 0.15;
+      // 10% role relevance
+      const roleBoost = roleCategories.includes(s.category) ? 0.10 : 0;
+      // 5% verified installs
+      const installScore = s.install_count_source === "tracked" ? Math.min(s.install_count || 0, 1000) / 1000 * 0.05 : 0;
+
+      const finalScore = semanticScore + qualityScore + roleBoost + installScore;
+      return { ...s, _finalScore: finalScore };
+    });
+
+    const results = scored.sort((a: any, b: any) => b._finalScore - a._finalScore).slice(0, 5);
+    if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré skills relevantes para "${args.task}". Probá con \`solve_goal("${args.task}")\` para una búsqueda más amplia.` }] };
 
     const text = results
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}]\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}]\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating || 0).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%\n   \`${s.install_command}\``)
       .join("\n\n");
 
     return { content: [{ type: "text" as const, text: `# Recomendaciones para: "${args.task}"\n\n${text}` }] };
@@ -1036,13 +1158,61 @@ mcp.tool("solve_goal", {
 
     // 3. Cross-catalog search (with category hint from classifier)
     const searchResults = await crossCatalogSearch(uniqueKeywords, 8, apiUserId);
-    const allItems = [
+    let allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
 
-    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { skills: searchResults.skills.length, connectors: searchResults.connectors.length, plugins: searchResults.plugins.length, total: allItems.length } }));
+    // 3b. FALLBACK: If cross-catalog search returned nothing, try semantic search
+    if (allItems.length === 0) {
+      try {
+        const semanticResp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: args.goal, limit: 12 }),
+        });
+        if (semanticResp.ok) {
+          const semanticData = await semanticResp.json();
+          for (const s of semanticData.results || []) {
+            allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline || s.description_human });
+          }
+        }
+      } catch { /* skip */ }
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "semantic_fallback", goal: args.goal, results: allItems.length }));
+    }
+
+    // 3c. FALLBACK: If still nothing, try FTS RPC
+    if (allItems.length === 0) {
+      const { data: ftsResults } = await supabase.rpc("search_skills", {
+        search_query: args.goal,
+        page_size: 12,
+      });
+      if (ftsResults && ftsResults.length > 0) {
+        for (const s of ftsResults) {
+          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
+        }
+      }
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", goal: args.goal, results: allItems.length }));
+    }
+
+    // 3d. FALLBACK: category-based browse
+    if (allItems.length === 0 && intent.category) {
+      const { data: catSkills } = await supabase
+        .from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, quality_rank, github_stars")
+        .eq("status", "approved")
+        .eq("category", intent.category)
+        .order("quality_rank", { ascending: false })
+        .limit(8);
+      if (catSkills) {
+        for (const s of catSkills) {
+          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
+        }
+      }
+    }
+
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
@@ -1191,11 +1361,50 @@ mcp.tool("solve_goal", {
       if (low.length > 0) { sections.push(`**⚠️ Security:**`); for (const l of low) sections.push(`- ${l.name}: low Trust (${l.trust_score}/100)`); sections.push(""); }
     }
 
-    // Check if both options are empty
+    // Check if both options are empty — guaranteed non-empty final response
     if (optionA.length === 0 && optionB.length === 0) {
-      sections.push(`## No matching tools found\n`);
-      sections.push(`We couldn't find tools matching "${args.goal}" in our catalog.\n`);
-      sections.push(`### Try:\n- **Broader keywords:** Use more general terms\n- **\`explore_directory('${goalWords2.slice(0, 2).join(" ")}')\`** for cross-catalog discovery\n- **\`suggest_stack('${args.role || "general"}')\`** for role-based recommendations\n- **\`browse_community_templates\`** for curated goal templates\n`);
+      // Get catalog stats for context
+      const { data: statsRow } = await supabase.from("directory_stats_mv").select("*").limit(1).maybeSingle();
+      const totalTools = (statsRow?.skills_count || 0) + (statsRow?.connectors_count || 0) + (statsRow?.plugins_count || 0);
+
+      // Find related categories
+      const keywordDomain = detectDomainByKeywords(args.goal);
+      const relatedCats = keywordDomain.domain !== "general"
+        ? [DOMAIN_TO_CATEGORY[keywordDomain.domain], intent.category].filter(Boolean)
+        : [intent.category].filter(Boolean);
+
+      // Get top skills from related categories as suggestions
+      let suggestions: any[] = [];
+      if (relatedCats.length > 0) {
+        const { data } = await supabase
+          .from("skills")
+          .select("display_name, slug, tagline, category, install_command, quality_rank")
+          .eq("status", "approved")
+          .in("category", relatedCats)
+          .order("quality_rank", { ascending: false })
+          .limit(3);
+        suggestions = data || [];
+      }
+
+      sections.push(`## Could not find a specific solution for: "${args.goal}"\n`);
+      sections.push(`Searched ${totalTools.toLocaleString()}+ tools but couldn't find an exact match.\n`);
+      sections.push(`### Suggestions`);
+      sections.push(`- Try rephrasing your goal with more specific keywords`);
+      sections.push(`- Use \`search_skills\`, \`search_connectors\`, or \`search_plugins\` to search individually`);
+      sections.push(`- Use \`explore_directory\` for broad cross-catalog search`);
+      sections.push(`- Browse \`list_categories\` to find relevant categories\n`);
+
+      if (suggestions.length > 0) {
+        sections.push(`### Related tools you might find useful\n`);
+        for (const s of suggestions) {
+          sections.push(`- **${s.display_name}** [${s.category}] — ${s.tagline}\n  \`${s.install_command}\``);
+        }
+      }
+
+      if (relatedCats.length > 0) {
+        sections.push(`\n### Related categories: ${relatedCats.join(", ")}`);
+      }
+
       return { content: [{ type: "text" as const, text: sections.join("\n") }] };
     }
 
@@ -1314,38 +1523,52 @@ mcp.tool("get_role_kit", {
     const lim = Math.min(args.limit || (isAdvanced ? 10 : 5), 15);
     const roleLower = args.role.toLowerCase();
 
+    // Use ROLE_CATEGORIES for category-based filtering
+    const relevantCategories = ROLE_CATEGORIES[roleLower] || [];
+
     // Map common role names to target_roles values
     const roleMap: Record<string, string[]> = {
-      "marketer": ["marketer"],
-      "developer": ["developer", "ingeniero"],
-      "product-manager": ["product-manager", "founder"],
-      "designer": ["disenador", "designer"],
-      "sales": ["ventas", "sales"],
-      "consultant": ["consultor"],
-      "lawyer": ["abogado"],
-      "founder": ["founder"],
-      "data-analyst": ["data-analyst", "datos"],
-      "devops": ["devops", "developer"],
-      "doctor": ["medico"],
-      "teacher": ["profesor"],
-      "hr": ["rrhh"],
-      "other": ["otro"],
+      "marketer": ["marketer"], "developer": ["developer", "ingeniero"],
+      "product-manager": ["product-manager", "founder"], "designer": ["disenador", "designer"],
+      "sales": ["ventas", "sales"], "consultant": ["consultor"], "lawyer": ["abogado"],
+      "founder": ["founder"], "data-analyst": ["data-analyst", "datos"],
+      "devops": ["devops", "developer"], "doctor": ["medico"], "teacher": ["profesor"],
+      "hr": ["rrhh"], "other": ["otro"],
     };
-
     const roleFilters = roleMap[roleLower] || [roleLower];
 
-    // Fetch skills for this role
-    let skillQuery = supabase
-      .from("skills")
-      .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, target_roles")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false })
-      .limit(lim * 2);
+    // Fetch skills: prioritize by category + quality_rank
+    let roleSkills: any[] = [];
+    if (relevantCategories.length > 0) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, target_roles, quality_rank")
+        .eq("status", "approved")
+        .in("category", relevantCategories)
+        .gte("quality_rank", 0.2) // Minimum quality threshold
+        .order("quality_rank", { ascending: false })
+        .limit(lim * 3);
+      roleSkills = data || [];
+    }
 
-    // Filter by any matching role
-    skillQuery = skillQuery.overlaps("target_roles", roleFilters);
+    // Fallback: also try target_roles
+    if (roleSkills.length < lim) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, target_roles, quality_rank")
+        .eq("status", "approved")
+        .overlaps("target_roles", roleFilters)
+        .gte("quality_rank", 0.15)
+        .order("quality_rank", { ascending: false })
+        .limit(lim);
+      const existingSlugs = new Set(roleSkills.map(s => s.slug));
+      for (const s of data || []) {
+        if (!existingSlugs.has(s.slug)) roleSkills.push(s);
+      }
+    }
 
-    const { data: roleSkills } = await skillQuery;
+    // Sort by quality_rank
+    roleSkills = roleSkills.sort((a: any, b: any) => (b.quality_rank || 0) - (a.quality_rank || 0));
 
     // If stack provided, search for stack-specific connectors
     let stackConnectors: any[] = [];
@@ -1356,13 +1579,17 @@ mcp.tool("get_role_kit", {
           .from("mcp_servers")
           .select("name, slug, description, category, github_stars, is_official, install_command, trust_score")
           .eq("status", "approved")
-          .or(`name.ilike.%${q}%,slug.ilike.%${q}%`)
+          .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
           .order("github_stars", { ascending: false })
           .limit(2);
         if (data) stackConnectors.push(...data);
       }
       stackConnectors = deduplicateConnectors(stackConnectors);
     }
+
+    // Deduplicate: if a tool appears as both skill and connector, remove from skills
+    const connectorSlugs = new Set(stackConnectors.map(c => c.slug));
+    roleSkills = roleSkills.filter(s => !connectorSlugs.has(s.slug));
 
     // Fetch bundles for this role
     const { data: bundles } = await supabase
@@ -1383,7 +1610,7 @@ mcp.tool("get_role_kit", {
     }
 
     // Essential skills
-    const essential = (roleSkills || []).slice(0, lim);
+    const essential = roleSkills.slice(0, lim);
     if (essential.length > 0) {
       sections.push(`## ${isAdvanced ? "Top" : "Essential"} Skills\n`);
       sections.push(`Top ${essential.length} skills used by ${roleLabel}s:\n`);
@@ -1392,7 +1619,7 @@ mcp.tool("get_role_kit", {
         const trustBadge = (s.trust_score || 0) >= 70 ? "🟢" : (s.trust_score || 0) >= 40 ? "🟡" : "⚪";
         sections.push(`${i + 1}. **${s.display_name}** [${s.category}] ${trustBadge} Trust: ${s.trust_score || "N/A"}`);
         sections.push(`   ${s.tagline}`);
-        sections.push(`   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs`);
+        sections.push(`   ⭐ ${Number(s.avg_rating).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%`);
         sections.push(`   \`${s.install_command}\`\n`);
       }
     }
@@ -1420,20 +1647,28 @@ mcp.tool("get_role_kit", {
 
     // Advanced: cross-reference with popular plugins for this role
     if (isAdvanced) {
-      const { data: rolePlugins } = await supabase
+      let pluginCategories = relevantCategories.length > 0 ? relevantCategories : undefined;
+      let pluginQuery = supabase
         .from("plugins")
         .select("name, slug, description, category, install_count, trust_score, is_official")
-        .eq("status", "approved")
-        .order("install_count", { ascending: false })
-        .limit(5);
+        .eq("status", "approved");
+      if (pluginCategories) pluginQuery = pluginQuery.in("category", pluginCategories);
+      pluginQuery = pluginQuery.order("trust_score", { ascending: false }).limit(5);
+      const { data: rolePlugins } = await pluginQuery;
+
       if (rolePlugins && rolePlugins.length > 0) {
-        sections.push(`## Recommended Plugins ⭐\n`);
-        for (const p of rolePlugins) {
-          const tb = (p.trust_score || 0) >= 70 ? "🟢" : (p.trust_score || 0) >= 40 ? "🟡" : "⚪";
-          sections.push(`- 🧩 **${p.name}** [${p.category}] ${tb} Trust: ${p.trust_score || "N/A"} · ${p.install_count.toLocaleString()} installs`);
-          sections.push(`  ${p.description}`);
+        // Deduplicate against skills
+        const skillSlugs = new Set(essential.map(s => s.slug));
+        const uniquePlugins = rolePlugins.filter(p => !skillSlugs.has(p.slug));
+        if (uniquePlugins.length > 0) {
+          sections.push(`## Recommended Plugins ⭐\n`);
+          for (const p of uniquePlugins) {
+            const tb = (p.trust_score || 0) >= 70 ? "🟢" : (p.trust_score || 0) >= 40 ? "🟡" : "⚪";
+            sections.push(`- 🧩 **${p.name}** [${p.category}] ${tb} Trust: ${p.trust_score || "N/A"}`);
+            sections.push(`  ${p.description}`);
+          }
+          sections.push("");
         }
-        sections.push("");
       }
     }
 
