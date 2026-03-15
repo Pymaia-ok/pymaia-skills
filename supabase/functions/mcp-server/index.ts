@@ -3306,7 +3306,12 @@ mcp.tool("install_bundle", {
       const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id).eq("is_active", true).limit(1).maybeSingle();
       bundle = byRole;
     }
-    if (!bundle) return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.` }] };
+    if (!bundle) {
+      // List available bundles
+      const { data: available } = await supabase.from("skill_bundles").select("role_slug, title, hero_emoji").eq("is_active", true).limit(10);
+      const availableList = (available || []).map((b: any) => `- ${b.hero_emoji || "📦"} **${b.title}** (use \`install_bundle('${b.role_slug}')\`)`).join("\n");
+      return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.\n\n${availableList ? `## Available Bundles\n\n${availableList}` : "No bundles are currently available."}` }] };
+    }
 
     // Get skills in bundle
     const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs);
