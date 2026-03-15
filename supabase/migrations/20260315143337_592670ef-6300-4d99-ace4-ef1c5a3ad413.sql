@@ -1,0 +1,1 @@
+UPDATE blog_posts SET cover_image_url = NULL WHERE slug = 'launch-marketing-campaigns-5x-faster-with-ai-a-step-by-step-playbook'
