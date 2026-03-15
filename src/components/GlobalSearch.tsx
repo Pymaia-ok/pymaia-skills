@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { isIntentQuery } from "@/lib/api";
 
 interface SearchResult {
   slug: string;
@@ -65,7 +66,6 @@ const GlobalSearch = () => {
   const isEs = i18n.language === "es";
   const abortRef = useRef<AbortController | null>(null);
 
-  // Load recents when opening
   useEffect(() => {
     if (open) {
       setRecentSearches(getRecentSearches());
@@ -76,7 +76,6 @@ const GlobalSearch = () => {
     }
   }, [open]);
 
-  // ⌘K / Ctrl+K shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -100,9 +99,23 @@ const GlobalSearch = () => {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // Detect if this is a natural language intent query
+    const isIntent = isIntentQuery(query);
+    const debounceMs = isIntent ? 500 : 300;
+
     const timer = setTimeout(async () => {
       setLoading(true);
       setAiResults([]);
+
+      if (isIntent) {
+        // For intent queries, skip ilike and go straight to AI-powered search
+        setResults({ skills: [], connectors: [], plugins: [] });
+        setLoading(false);
+        triggerAiSearch(query, controller.signal);
+        return;
+      }
+
+      // Standard keyword search (ilike on name/slug + tagline)
       const pattern = `%${query}%`;
 
       try {
@@ -113,15 +126,15 @@ const GlobalSearch = () => {
             .eq("status", "approved")
             .eq("is_public", true)
             .or(
-              `display_name.ilike.${pattern},display_name_es.ilike.${pattern},slug.ilike.${pattern}`
+              `display_name.ilike.${pattern},display_name_es.ilike.${pattern},slug.ilike.${pattern},tagline.ilike.${pattern},tagline_es.ilike.${pattern}`
             )
-            .limit(5),
+            .limit(6),
           supabase
             .from("mcp_servers")
             .select("slug, name, description, description_es, category")
             .eq("status", "approved")
             .or(
-              `name.ilike.${pattern},slug.ilike.${pattern}`
+              `name.ilike.${pattern},slug.ilike.${pattern},description.ilike.${pattern}`
             )
             .limit(5),
           supabase
@@ -161,7 +174,7 @@ const GlobalSearch = () => {
         setResults({ skills, connectors, plugins });
         setLoading(false);
 
-        // If few direct results and query looks like intent (3+ chars, has space), trigger AI search
+        // If few direct results, also trigger AI search as supplement
         const totalDirect = skills.length + connectors.length + plugins.length;
         if (totalDirect < 3 && query.length >= 4) {
           triggerAiSearch(query, controller.signal);
@@ -169,7 +182,7 @@ const GlobalSearch = () => {
       } catch {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 300);
+    }, debounceMs);
 
     return () => {
       clearTimeout(timer);
@@ -180,27 +193,73 @@ const GlobalSearch = () => {
   const triggerAiSearch = async (q: string, signal: AbortSignal) => {
     setAiLoading(true);
     try {
-      // Use semantic search (vector embeddings) for AI-powered results
+      // Use unified semantic search (AI keyword extraction + broad ilike + quality scoring)
       const resp = await supabase.functions.invoke("semantic-search", {
-        body: { query: q, page: 0 },
+        body: { query: q, page: 0, tables: ["skills", "connectors", "plugins"] },
       });
       if (signal.aborted) return;
-      
-      // If semantic search fails, fallback to smart-search
-      const searchData = resp.data?.fallback || resp.error
-        ? (await supabase.functions.invoke("smart-search", { body: { query: q, page: 0 } })).data
-        : resp.data;
-      
-      if (searchData?.data) {
-        const aiSkills: SearchResult[] = (searchData.data as any[]).slice(0, 5).map((s) => ({
-          slug: s.slug,
-          name: isEs ? s.display_name_es || s.display_name : s.display_name,
-          tagline: isEs ? s.tagline_es || s.tagline : s.tagline,
-          category: s.category,
-          type: "skill" as const,
-        }));
-        setAiResults(aiSkills);
+
+      if (resp.error) {
+        // Fallback to smart-search
+        const fallback = await supabase.functions.invoke("smart-search", {
+          body: { query: q, page: 0 },
+        });
+        if (signal.aborted) return;
+        if (fallback.data?.data) {
+          setAiResults(
+            (fallback.data.data as any[]).slice(0, 6).map((s) => ({
+              slug: s.slug,
+              name: isEs ? s.display_name_es || s.display_name : s.display_name,
+              tagline: isEs ? s.tagline_es || s.tagline : s.tagline,
+              category: s.category,
+              type: "skill" as const,
+            }))
+          );
+        }
+        return;
       }
+
+      const searchData = resp.data;
+      const allResults: SearchResult[] = [];
+
+      // Skills
+      if (searchData?.data) {
+        for (const s of (searchData.data as any[]).slice(0, 6)) {
+          allResults.push({
+            slug: s.slug,
+            name: isEs ? s.display_name_es || s.display_name : s.display_name,
+            tagline: isEs ? s.tagline_es || s.tagline : s.tagline,
+            category: s.category,
+            type: "skill",
+          });
+        }
+      }
+      // Connectors
+      if (searchData?.connectors) {
+        for (const c of (searchData.connectors as any[]).slice(0, 3)) {
+          allResults.push({
+            slug: c.slug,
+            name: c.name,
+            tagline: isEs ? c.description_es || c.description : c.description,
+            category: c.category,
+            type: "connector",
+          });
+        }
+      }
+      // Plugins
+      if (searchData?.plugins) {
+        for (const p of (searchData.plugins as any[]).slice(0, 3)) {
+          allResults.push({
+            slug: p.slug,
+            name: isEs ? p.name_es || p.name : p.name,
+            tagline: isEs ? p.description_es || p.description : p.description,
+            category: p.category,
+            type: "plugin",
+          });
+        }
+      }
+
+      setAiResults(allResults);
     } catch {
       // Silently fail AI search
     } finally {
@@ -217,7 +276,6 @@ const GlobalSearch = () => {
       else if (type === "connector") navigate(`/conector/${slug}`);
       else if (type === "plugin") navigate(`/plugin/${slug}`);
       else if (type === "recent" || type === "popular") {
-        // Set query to search for it
         setQuery(name || slug);
         setOpen(true);
       }
@@ -262,7 +320,7 @@ const GlobalSearch = () => {
         </kbd>
       </button>
 
-      {/* Mobile trigger — mini search bar */}
+      {/* Mobile trigger */}
       <button
         onClick={() => setOpen(true)}
         className="md:hidden flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
@@ -285,7 +343,6 @@ const GlobalSearch = () => {
             </div>
           )}
 
-          {/* Empty state: recent searches + popular (only when not actively searching) */}
           {showEmptyState && !isSearching && (
             <>
               {recentSearches.length > 0 && (
@@ -339,21 +396,15 @@ const GlobalSearch = () => {
                   {typeIcon.skill}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{r.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {r.tagline}
-                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{r.tagline}</p>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {r.category}
-                  </Badge>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>
                 </CommandItem>
               ))}
             </CommandGroup>
           )}
 
-          {!loading &&
-            results.skills.length > 0 &&
-            results.connectors.length > 0 && <CommandSeparator />}
+          {!loading && results.skills.length > 0 && results.connectors.length > 0 && <CommandSeparator />}
 
           {!loading && results.connectors.length > 0 && (
             <CommandGroup heading={t("search.connectors")}>
@@ -367,21 +418,15 @@ const GlobalSearch = () => {
                   {typeIcon.connector}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{r.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {r.tagline}
-                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{r.tagline}</p>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {r.category}
-                  </Badge>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>
                 </CommandItem>
               ))}
             </CommandGroup>
           )}
 
-          {!loading &&
-            (results.connectors.length > 0 || results.skills.length > 0) &&
-            results.plugins.length > 0 && <CommandSeparator />}
+          {!loading && (results.connectors.length > 0 || results.skills.length > 0) && results.plugins.length > 0 && <CommandSeparator />}
 
           {!loading && results.plugins.length > 0 && (
             <CommandGroup heading={t("search.plugins")}>
@@ -395,13 +440,9 @@ const GlobalSearch = () => {
                   {typeIcon.plugin}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{r.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {r.tagline}
-                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{r.tagline}</p>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {r.category}
-                  </Badge>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -414,21 +455,23 @@ const GlobalSearch = () => {
               <CommandGroup heading={t("search.aiSuggestions")}>
                 {aiResults.map((r) => (
                   <CommandItem
-                    key={`ai-${r.slug}`}
-                    value={`ai-${r.slug}-${r.name}`}
-                    onSelect={() => handleSelect("skill", r.slug)}
+                    key={`ai-${r.type}-${r.slug}`}
+                    value={`ai-${r.type}-${r.slug}-${r.name}`}
+                    onSelect={() => handleSelect(r.type, r.slug)}
                     className="flex items-center gap-3 cursor-pointer"
                   >
-                    <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+                    {r.type === "connector" ? (
+                      <Plug className="w-4 h-4 text-blue-500 shrink-0" />
+                    ) : r.type === "plugin" ? (
+                      <Package className="w-4 h-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{r.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {r.tagline}
-                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{r.tagline}</p>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] shrink-0">
-                      {r.category}
-                    </Badge>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>
                   </CommandItem>
                 ))}
               </CommandGroup>
