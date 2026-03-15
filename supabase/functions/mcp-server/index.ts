@@ -235,6 +235,27 @@ function ensureResponse(text: string | null | undefined, fallback: string): stri
   return text;
 }
 
+// ─── USAGE EVENT LOGGING (fire-and-forget) ───
+function logUsageEvent(eventType: string, itemSlug?: string, itemType?: string, queryText?: string) {
+  supabase.from("usage_events").insert({
+    event_type: eventType,
+    item_slug: itemSlug || null,
+    item_type: itemType || null,
+    query_text: queryText || null,
+  }).then(() => {}).catch(() => {});
+}
+
+function logUsageEvents(eventType: string, items: Array<{ slug: string; type: string }>, queryText?: string) {
+  if (items.length === 0) return;
+  const rows = items.map(i => ({
+    event_type: eventType,
+    item_slug: i.slug,
+    item_type: i.type,
+    query_text: queryText || null,
+  }));
+  supabase.from("usage_events").insert(rows).then(() => {}).catch(() => {});
+}
+
 // Build word-split fallback query for multi-word searches
 async function wordSplitSearch(
   table: "skills" | "mcp_servers" | "plugins",
@@ -316,6 +337,9 @@ mcp.tool("search_skills", {
 
     console.log(JSON.stringify({ tool: "search_skills", query: args.query, category: args.category || null, resultCount: results.length, method: rpcResults?.length ? "fts_rpc" : "semantic_fallback" }));
 
+    // Log search results as usage events
+    logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "skill" })), args.query);
+
     if (results.length === 0) {
       return { content: [{ type: "text" as const, text: `No skills found for "${args.query}". Try broader keywords, or use \`solve_goal\` for natural language goal-based search.` }] };
     }
@@ -338,7 +362,8 @@ mcp.tool("get_skill_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
-    const apiUserId = currentApiKeyUserId;
+    // Log usage event
+    logUsageEvent("view", args.slug, "skill");
     const resolvedSlug = await resolveSlug(args.slug, "skill");
     let q = supabase.from("skills").select("*").eq("slug", resolvedSlug);
     if (apiUserId) {
@@ -2055,7 +2080,7 @@ mcp.tool("suggest_for_skill_creation", {
 // ─── PHASE 3: INTELLIGENCE TOOLS ───
 
 mcp.tool("trending_solutions", {
-  description: "Shows trending goals and popular solutions that other users are implementing right now. Discover what's hot in the ecosystem.",
+  description: "Shows trending skills, connectors, popular searches, and goals based on real usage data. Discover what's hot in the ecosystem.",
   inputSchema: {
     type: "object",
     properties: {
@@ -2066,76 +2091,110 @@ mcp.tool("trending_solutions", {
     const days = args.period === "month" ? 30 : 7;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get trending feedback
+    const sections: string[] = [];
+    sections.push(`# 🔥 Trending This ${days === 7 ? "Week" : "Month"}\n`);
+
+    // Query usage_events for weighted trending
+    const { data: events } = await supabase
+      .from("usage_events")
+      .select("event_type, item_slug, item_type, query_text")
+      .gte("created_at", since)
+      .limit(5000);
+
+    if (events && events.length > 0) {
+      const weights: Record<string, number> = { install_copied: 5, content_viewed: 3, view: 2, trust_checked: 2, recommended: 1, search_result: 0.5, compared: 2 };
+
+      // Aggregate by item
+      const itemScores: Record<string, { score: number; type: string; events: Record<string, number> }> = {};
+      const searchQueries: Record<string, number> = {};
+
+      for (const e of events) {
+        if (e.item_slug) {
+          if (!itemScores[e.item_slug]) itemScores[e.item_slug] = { score: 0, type: e.item_type || "skill", events: {} };
+          const w = weights[e.event_type] || 1;
+          itemScores[e.item_slug].score += w;
+          itemScores[e.item_slug].events[e.event_type] = (itemScores[e.item_slug].events[e.event_type] || 0) + 1;
+        }
+        if (e.query_text) {
+          const q = e.query_text.toLowerCase().trim();
+          searchQueries[q] = (searchQueries[q] || 0) + 1;
+        }
+      }
+
+      // Most installed skills
+      const installed = Object.entries(itemScores)
+        .filter(([, v]) => v.events.install_copied)
+        .sort(([, a], [, b]) => (b.events.install_copied || 0) - (a.events.install_copied || 0))
+        .slice(0, 5);
+      if (installed.length > 0) {
+        sections.push(`## Most Installed Skills\n`);
+        for (const [slug, data] of installed) {
+          sections.push(`${installed.indexOf([slug, data]) + 1}. **${slug}** (${data.type}) — ${data.events.install_copied} installs this ${days === 7 ? "week" : "month"}`);
+        }
+        sections.push("");
+      } else {
+        sections.push(`## Most Installed Skills\n*No data yet.*\n`);
+      }
+
+      // Most viewed
+      const viewed = Object.entries(itemScores).sort(([, a], [, b]) => b.score - a.score).slice(0, 5);
+      if (viewed.length > 0) {
+        sections.push(`## Most Viewed\n`);
+        for (let i = 0; i < viewed.length; i++) {
+          const [slug, data] = viewed[i];
+          sections.push(`${i + 1}. **${slug}** (${data.type}) — ${(data.events.view || 0)} views`);
+        }
+        sections.push("");
+      }
+
+      // Popular searches
+      const topSearches = Object.entries(searchQueries).sort(([, a], [, b]) => b - a).slice(0, 5);
+      if (topSearches.length > 0) {
+        sections.push(`## Popular Searches\n`);
+        for (let i = 0; i < topSearches.length; i++) {
+          sections.push(`${i + 1}. "${topSearches[i][0]}" — searched ${topSearches[i][1]} times`);
+        }
+        sections.push("");
+      } else {
+        sections.push(`## Popular Searches\n*No data yet.*\n`);
+      }
+    } else {
+      // Fallback to old logic when no usage events exist yet
+      const { data: recentInstalls } = await supabase
+        .from("skills")
+        .select("display_name, slug, category, install_count, tagline")
+        .eq("status", "approved")
+        .order("quality_rank", { ascending: false }).limit(5);
+
+      if (recentInstalls && recentInstalls.length > 0) {
+        sections.push(`## Top Skills by Quality\n`);
+        for (const s of recentInstalls) {
+          sections.push(`- **${s.display_name}** [${s.category}] — ${s.tagline}`);
+        }
+      }
+      sections.push(`\n*Usage tracking is active. Real trending data will appear as users interact with the catalog.*\n`);
+    }
+
+    // Trending goals from recommendation_feedback
     const { data: recentFeedback } = await supabase
       .from("recommendation_feedback")
-      .select("goal, rating, chosen_option, created_at")
+      .select("goal, created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false }).limit(200);
 
-    const goalScores: Record<string, { count: number; ratings: number[]; options: string[] }> = {};
-    for (const f of recentFeedback || []) {
-      const n = f.goal.toLowerCase().trim();
-      if (!goalScores[n]) goalScores[n] = { count: 0, ratings: [], options: [] };
-      goalScores[n].count++;
-      if (f.rating) goalScores[n].ratings.push(f.rating);
-      if (f.chosen_option) goalScores[n].options.push(f.chosen_option);
-    }
-
-    const trending = Object.entries(goalScores)
-      .sort(([, a], [, b]) => b.count - a.count)
-      .slice(0, 10);
-
-    // Get most used templates
-    const { data: topTemplates } = await supabase
-      .from("goal_templates")
-      .select("slug, display_name, domain, usage_count, description")
-      .eq("is_active", true)
-      .order("usage_count", { ascending: false }).limit(10);
-
-    // Get recently installed skills
-    const { data: recentInstalls } = await supabase
-      .from("skills")
-      .select("display_name, slug, category, install_count, tagline")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false }).limit(5);
-
-    const sections: string[] = [];
-    sections.push(`# 🔥 Trending Solutions (last ${days} days)\n`);
-
-    if (trending.length > 0) {
-      sections.push(`## Popular Goals\n`);
-      for (let i = 0; i < trending.length; i++) {
-        const [goal, data] = trending[i];
-        const avg = data.ratings.length > 0 ? (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length).toFixed(1) : "N/A";
-        const preferred = data.options.filter(o => o === "A").length >= data.options.filter(o => o === "B").length ? "A (Simple)" : "B (Flexible)";
-        sections.push(`${i + 1}. **"${goal}"** — ${data.count} requests, ⭐ ${avg}/5`);
-        if (data.options.length > 0) sections.push(`   Preferred: Option ${preferred}`);
-      }
-      sections.push("");
-    } else {
-      sections.push(`*No trending goals yet. Be the first to use \`solve_goal\`!*\n`);
-    }
-
-    if (topTemplates && topTemplates.length > 0) {
-      sections.push(`## Most Used Goal Templates\n`);
-      for (const t of topTemplates.filter(t => t.usage_count > 0)) {
-        sections.push(`- **${t.display_name}** [${t.domain}] — ${t.usage_count} uses`);
-        if (t.description) sections.push(`  *${t.description}*`);
-      }
-      sections.push("");
-    }
-
-    if (recentInstalls && recentInstalls.length > 0) {
-      sections.push(`## Most Installed Skills\n`);
-      for (const s of recentInstalls) {
-        sections.push(`- **${s.display_name}** [${s.category}] — ${s.install_count.toLocaleString()} installs`);
-        sections.push(`  ${s.tagline}`);
+    if (recentFeedback && recentFeedback.length > 0) {
+      const goalCounts: Record<string, number> = {};
+      for (const f of recentFeedback) { const n = f.goal.toLowerCase().trim(); goalCounts[n] = (goalCounts[n] || 0) + 1; }
+      const topGoals = Object.entries(goalCounts).sort(([, a], [, b]) => b - a).slice(0, 5);
+      if (topGoals.length > 0) {
+        sections.push(`## Trending Goals (from solve_goal)\n`);
+        for (let i = 0; i < topGoals.length; i++) {
+          sections.push(`${i + 1}. "${topGoals[i][0]}" — asked ${topGoals[i][1]} times`);
+        }
       }
     }
 
     sections.push(`\n💡 *Use \`solve_goal\` with any trending goal to get a personalized solution.*`);
-
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
 });
@@ -3554,9 +3613,9 @@ mcp.tool("get_personalized_feed", {
   },
 });
 
-// ─── get_top_creators: Leaderboard ───
+// ─── get_top_creators: Leaderboard (powered by creators table) ───
 mcp.tool("get_top_creators", {
-  description: "Get the top skill creators leaderboard. Shows creators ranked by number of approved skills and average rating.",
+  description: "Get the top skill creators leaderboard. Shows GitHub creators ranked by skills, ratings, trust scores, and followers.",
   inputSchema: {
     type: "object",
     properties: {
@@ -3565,9 +3624,37 @@ mcp.tool("get_top_creators", {
   },
   handler: async (args: { limit?: number }) => {
     const lim = Math.min(args.limit || 10, 20);
+
+    // Try the creators table first (populated by sync-creators)
+    const { data: creators } = await supabase
+      .from("creators")
+      .select("*")
+      .gt("skill_count", 0)
+      .order("skill_count", { ascending: false })
+      .limit(lim * 2);
+
+    if (creators && creators.length > 0) {
+      // Sort by composite score
+      const scored = creators.map((c: any) => ({
+        ...c,
+        score: (c.skill_count || 0) * 0.3 + (c.avg_rating || 0) * 0.3 + Math.min(c.total_installs || 0, 10000) / 10000 * 0.2 + (c.avg_trust_score || 0) / 100 * 0.2,
+      })).sort((a: any, b: any) => b.score - a.score).slice(0, lim);
+
+      const text = scored.map((c: any, i: number) => {
+        const verified = c.verified ? " ✅" : "";
+        const orgBadge = c.is_organization ? " 🏢" : "";
+        const avatar = c.avatar_url ? `![](${c.avatar_url}&s=24) ` : "";
+        const name = c.display_name || c.github_username;
+        const topCat = c.top_category ? ` · Top: ${c.top_category}` : "";
+        return `${i + 1}. ${avatar}**${name}**${verified}${orgBadge} (@${c.github_username})\n   ${c.skill_count} skills · ${c.connector_count || 0} connectors · ⭐ ${(c.avg_rating || 0).toFixed(1)} avg · 🛡️ Trust: ${(c.avg_trust_score || 0).toFixed(0)}${topCat}\n   ${c.github_followers ? `👥 ${c.github_followers.toLocaleString()} followers` : ""}`;
+      }).join("\n\n");
+
+      return { content: [{ type: "text" as const, text: `# 🏆 Top Creators\n\n${text}` }] };
+    }
+
+    // Fallback: old logic using creator_id from skills
     const { data: skills } = await supabase.from("skills").select("creator_id, avg_rating, install_count").eq("status", "approved").not("creator_id", "is", null);
     if (!skills?.length) {
-      // Provide context about why there are no creators
       const { count: totalSkills } = await supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved");
       return { content: [{ type: "text" as const, text: `Creator profiles are being built. The catalog has ${(totalSkills || 0).toLocaleString()} skills but most were imported without creator attribution.\n\nTo appear on the leaderboard, publish skills via \`publish_skill\` or \`import_skill_from_agent\` with your API key.` }] };
     }
@@ -3663,42 +3750,69 @@ mcp.tool("get_skill_analytics", {
   },
 });
 
-// ─── install_bundle: Install all skills in a bundle ───
+// ─── install_bundle: Install all tools in a bundle (skills + connectors + plugins) ───
 mcp.tool("install_bundle", {
-  description: "Get install commands for all skills in a pre-built bundle. Bundles are curated collections of skills for specific roles.",
+  description: "Get install commands for all tools in a pre-built bundle. Bundles are curated collections of skills, connectors, and plugins for specific roles (developer, marketer, designer, data-analyst, founder, devops, lawyer, product-manager, sales, hr).",
   inputSchema: {
     type: "object",
     properties: {
-      bundle_id: { type: "string", description: "Bundle ID or role slug to find bundles for" },
+      bundle_id: { type: "string", description: "Bundle ID or role slug (e.g., 'developer', 'marketer', 'designer')" },
     },
     required: ["bundle_id"],
   },
   handler: async (args: { bundle_id: string }) => {
-    // Try by ID first, then by role_slug
     let bundle: any = null;
     const { data: byId } = await supabase.from("skill_bundles").select("*").eq("id", args.bundle_id).eq("is_active", true).maybeSingle();
     if (byId) { bundle = byId; } else {
-      const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id).eq("is_active", true).limit(1).maybeSingle();
+      const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id.toLowerCase()).eq("is_active", true).limit(1).maybeSingle();
       bundle = byRole;
     }
     if (!bundle) {
-      // List available bundles
-      const { data: available } = await supabase.from("skill_bundles").select("role_slug, title, hero_emoji").eq("is_active", true).limit(10);
-      const availableList = (available || []).map((b: any) => `- ${b.hero_emoji || "📦"} **${b.title}** (use \`install_bundle('${b.role_slug}')\`)`).join("\n");
+      const { data: available } = await supabase.from("skill_bundles").select("role_slug, title, hero_emoji, total_items").eq("is_active", true).limit(15);
+      const availableList = (available || []).map((b: any) => `- ${b.hero_emoji || "📦"} **${b.title}** (${b.total_items || 0} tools) → \`install_bundle('${b.role_slug}')\``).join("\n");
       return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.\n\n${availableList ? `## Available Bundles\n\n${availableList}` : "No bundles are currently available."}` }] };
     }
 
-    // Get skills in bundle
-    const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs);
-
     const sections: string[] = [`# ${bundle.hero_emoji || "📦"} ${bundle.title}\n\n${bundle.description}\n`];
-    sections.push(`## Install All (${(skills || []).length} skills)\n`);
-    for (const s of skills || []) {
-      sections.push(`### ${s.display_name} [${s.category}]\n\`\`\`\n${s.install_command}\n\`\`\`\n`);
+
+    // Fetch and display connectors first
+    const connectorSlugs = bundle.connector_slugs || [];
+    if (connectorSlugs.length > 0) {
+      const { data: connectors } = await supabase.from("mcp_servers").select("name, slug, install_command, category, is_official").eq("status", "approved").in("slug", connectorSlugs);
+      if (connectors && connectors.length > 0) {
+        sections.push(`## 🔌 MCP Connectors (${connectors.length})\n`);
+        for (const c of connectors) {
+          const official = c.is_official ? " ✅" : "";
+          sections.push(`### ${c.name}${official} [${c.category}]`);
+          if (c.install_command) sections.push(`\`\`\`\n${c.install_command}\n\`\`\`\n`);
+        }
+      }
     }
 
-    const missingSlugs = bundle.skill_slugs.filter((slug: string) => !(skills || []).find((s: any) => s.slug === slug));
-    if (missingSlugs.length) sections.push(`\n⚠️ ${missingSlugs.length} skill(s) not found: ${missingSlugs.join(", ")}`);
+    // Skills
+    const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs || []);
+    if (skills && skills.length > 0) {
+      sections.push(`## 🧠 Skills (${skills.length})\n`);
+      for (const s of skills) {
+        sections.push(`### ${s.display_name} [${s.category}]\n\`\`\`\n${s.install_command}\n\`\`\`\n`);
+      }
+    }
+
+    // Plugins
+    const pluginSlugs = bundle.plugin_slugs || [];
+    if (pluginSlugs.length > 0) {
+      const { data: plugins } = await supabase.from("plugins").select("name, slug, description, category").eq("status", "approved").in("slug", pluginSlugs);
+      if (plugins && plugins.length > 0) {
+        sections.push(`## 🧩 Plugins (${plugins.length})\n`);
+        for (const p of plugins) {
+          sections.push(`- **${p.name}** [${p.category}] — ${p.description}`);
+        }
+        sections.push("");
+      }
+    }
+
+    const totalItems = (skills?.length || 0) + connectorSlugs.length + pluginSlugs.length;
+    sections.push(`\n---\n📦 **Total: ${totalItems} tools** · Estimated install time: ~${Math.max(totalItems * 2, 5)} minutes`);
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },

@@ -292,6 +292,72 @@ export type Database = {
         }
         Relationships: []
       }
+      creators: {
+        Row: {
+          avatar_url: string | null
+          avg_rating: number
+          avg_trust_score: number
+          bio: string | null
+          company: string | null
+          connector_count: number
+          created_at: string
+          display_name: string | null
+          fetched_at: string | null
+          github_followers: number
+          github_username: string
+          id: string
+          is_organization: boolean
+          plugin_count: number
+          skill_count: number
+          top_category: string | null
+          total_installs: number
+          verified: boolean
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          avg_rating?: number
+          avg_trust_score?: number
+          bio?: string | null
+          company?: string | null
+          connector_count?: number
+          created_at?: string
+          display_name?: string | null
+          fetched_at?: string | null
+          github_followers?: number
+          github_username: string
+          id?: string
+          is_organization?: boolean
+          plugin_count?: number
+          skill_count?: number
+          top_category?: string | null
+          total_installs?: number
+          verified?: boolean
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          avg_rating?: number
+          avg_trust_score?: number
+          bio?: string | null
+          company?: string | null
+          connector_count?: number
+          created_at?: string
+          display_name?: string | null
+          fetched_at?: string | null
+          github_followers?: number
+          github_username?: string
+          id?: string
+          is_organization?: boolean
+          plugin_count?: number
+          skill_count?: number
+          top_category?: string | null
+          total_installs?: number
+          verified?: boolean
+          website?: string | null
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           clicked_at: string | null
@@ -1421,40 +1487,55 @@ export type Database = {
       }
       skill_bundles: {
         Row: {
+          auto_generated: boolean
+          connector_slugs: string[]
           created_at: string | null
           description: string
           description_es: string | null
           hero_emoji: string | null
           id: string
           is_active: boolean | null
+          last_regenerated_at: string | null
+          plugin_slugs: string[]
           role_slug: string
           skill_slugs: string[]
           title: string
           title_es: string | null
+          total_items: number
         }
         Insert: {
+          auto_generated?: boolean
+          connector_slugs?: string[]
           created_at?: string | null
           description: string
           description_es?: string | null
           hero_emoji?: string | null
           id?: string
           is_active?: boolean | null
+          last_regenerated_at?: string | null
+          plugin_slugs?: string[]
           role_slug: string
           skill_slugs?: string[]
           title: string
           title_es?: string | null
+          total_items?: number
         }
         Update: {
+          auto_generated?: boolean
+          connector_slugs?: string[]
           created_at?: string | null
           description?: string
           description_es?: string | null
           hero_emoji?: string | null
           id?: string
           is_active?: boolean | null
+          last_regenerated_at?: string | null
+          plugin_slugs?: string[]
           role_slug?: string
           skill_slugs?: string[]
           title?: string
           title_es?: string | null
+          total_items?: number
         }
         Relationships: []
       }
@@ -1871,6 +1952,36 @@ export type Database = {
           started_at?: string
           status?: string
           total_scraped?: number | null
+        }
+        Relationships: []
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          item_slug: string | null
+          item_type: string | null
+          query_text: string | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          item_slug?: string | null
+          item_type?: string | null
+          query_text?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          item_slug?: string | null
+          item_type?: string | null
+          query_text?: string | null
+          session_id?: string | null
         }
         Relationships: []
       }
