@@ -1523,38 +1523,52 @@ mcp.tool("get_role_kit", {
     const lim = Math.min(args.limit || (isAdvanced ? 10 : 5), 15);
     const roleLower = args.role.toLowerCase();
 
+    // Use ROLE_CATEGORIES for category-based filtering
+    const relevantCategories = ROLE_CATEGORIES[roleLower] || [];
+
     // Map common role names to target_roles values
     const roleMap: Record<string, string[]> = {
-      "marketer": ["marketer"],
-      "developer": ["developer", "ingeniero"],
-      "product-manager": ["product-manager", "founder"],
-      "designer": ["disenador", "designer"],
-      "sales": ["ventas", "sales"],
-      "consultant": ["consultor"],
-      "lawyer": ["abogado"],
-      "founder": ["founder"],
-      "data-analyst": ["data-analyst", "datos"],
-      "devops": ["devops", "developer"],
-      "doctor": ["medico"],
-      "teacher": ["profesor"],
-      "hr": ["rrhh"],
-      "other": ["otro"],
+      "marketer": ["marketer"], "developer": ["developer", "ingeniero"],
+      "product-manager": ["product-manager", "founder"], "designer": ["disenador", "designer"],
+      "sales": ["ventas", "sales"], "consultant": ["consultor"], "lawyer": ["abogado"],
+      "founder": ["founder"], "data-analyst": ["data-analyst", "datos"],
+      "devops": ["devops", "developer"], "doctor": ["medico"], "teacher": ["profesor"],
+      "hr": ["rrhh"], "other": ["otro"],
     };
-
     const roleFilters = roleMap[roleLower] || [roleLower];
 
-    // Fetch skills for this role
-    let skillQuery = supabase
-      .from("skills")
-      .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, target_roles")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false })
-      .limit(lim * 2);
+    // Fetch skills: prioritize by category + quality_rank
+    let roleSkills: any[] = [];
+    if (relevantCategories.length > 0) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, target_roles, quality_rank")
+        .eq("status", "approved")
+        .in("category", relevantCategories)
+        .gte("quality_rank", 0.2) // Minimum quality threshold
+        .order("quality_rank", { ascending: false })
+        .limit(lim * 3);
+      roleSkills = data || [];
+    }
 
-    // Filter by any matching role
-    skillQuery = skillQuery.overlaps("target_roles", roleFilters);
+    // Fallback: also try target_roles
+    if (roleSkills.length < lim) {
+      const { data } = await supabase
+        .from("skills")
+        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, target_roles, quality_rank")
+        .eq("status", "approved")
+        .overlaps("target_roles", roleFilters)
+        .gte("quality_rank", 0.15)
+        .order("quality_rank", { ascending: false })
+        .limit(lim);
+      const existingSlugs = new Set(roleSkills.map(s => s.slug));
+      for (const s of data || []) {
+        if (!existingSlugs.has(s.slug)) roleSkills.push(s);
+      }
+    }
 
-    const { data: roleSkills } = await skillQuery;
+    // Sort by quality_rank
+    roleSkills = roleSkills.sort((a: any, b: any) => (b.quality_rank || 0) - (a.quality_rank || 0));
 
     // If stack provided, search for stack-specific connectors
     let stackConnectors: any[] = [];
@@ -1565,13 +1579,17 @@ mcp.tool("get_role_kit", {
           .from("mcp_servers")
           .select("name, slug, description, category, github_stars, is_official, install_command, trust_score")
           .eq("status", "approved")
-          .or(`name.ilike.%${q}%,slug.ilike.%${q}%`)
+          .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%`)
           .order("github_stars", { ascending: false })
           .limit(2);
         if (data) stackConnectors.push(...data);
       }
       stackConnectors = deduplicateConnectors(stackConnectors);
     }
+
+    // Deduplicate: if a tool appears as both skill and connector, remove from skills
+    const connectorSlugs = new Set(stackConnectors.map(c => c.slug));
+    roleSkills = roleSkills.filter(s => !connectorSlugs.has(s.slug));
 
     // Fetch bundles for this role
     const { data: bundles } = await supabase
@@ -1592,7 +1610,7 @@ mcp.tool("get_role_kit", {
     }
 
     // Essential skills
-    const essential = (roleSkills || []).slice(0, lim);
+    const essential = roleSkills.slice(0, lim);
     if (essential.length > 0) {
       sections.push(`## ${isAdvanced ? "Top" : "Essential"} Skills\n`);
       sections.push(`Top ${essential.length} skills used by ${roleLabel}s:\n`);
@@ -1601,7 +1619,7 @@ mcp.tool("get_role_kit", {
         const trustBadge = (s.trust_score || 0) >= 70 ? "🟢" : (s.trust_score || 0) >= 40 ? "🟡" : "⚪";
         sections.push(`${i + 1}. **${s.display_name}** [${s.category}] ${trustBadge} Trust: ${s.trust_score || "N/A"}`);
         sections.push(`   ${s.tagline}`);
-        sections.push(`   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs`);
+        sections.push(`   ⭐ ${Number(s.avg_rating).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%`);
         sections.push(`   \`${s.install_command}\`\n`);
       }
     }
@@ -1629,20 +1647,28 @@ mcp.tool("get_role_kit", {
 
     // Advanced: cross-reference with popular plugins for this role
     if (isAdvanced) {
-      const { data: rolePlugins } = await supabase
+      let pluginCategories = relevantCategories.length > 0 ? relevantCategories : undefined;
+      let pluginQuery = supabase
         .from("plugins")
         .select("name, slug, description, category, install_count, trust_score, is_official")
-        .eq("status", "approved")
-        .order("install_count", { ascending: false })
-        .limit(5);
+        .eq("status", "approved");
+      if (pluginCategories) pluginQuery = pluginQuery.in("category", pluginCategories);
+      pluginQuery = pluginQuery.order("trust_score", { ascending: false }).limit(5);
+      const { data: rolePlugins } = await pluginQuery;
+
       if (rolePlugins && rolePlugins.length > 0) {
-        sections.push(`## Recommended Plugins ⭐\n`);
-        for (const p of rolePlugins) {
-          const tb = (p.trust_score || 0) >= 70 ? "🟢" : (p.trust_score || 0) >= 40 ? "🟡" : "⚪";
-          sections.push(`- 🧩 **${p.name}** [${p.category}] ${tb} Trust: ${p.trust_score || "N/A"} · ${p.install_count.toLocaleString()} installs`);
-          sections.push(`  ${p.description}`);
+        // Deduplicate against skills
+        const skillSlugs = new Set(essential.map(s => s.slug));
+        const uniquePlugins = rolePlugins.filter(p => !skillSlugs.has(p.slug));
+        if (uniquePlugins.length > 0) {
+          sections.push(`## Recommended Plugins ⭐\n`);
+          for (const p of uniquePlugins) {
+            const tb = (p.trust_score || 0) >= 70 ? "🟢" : (p.trust_score || 0) >= 40 ? "🟡" : "⚪";
+            sections.push(`- 🧩 **${p.name}** [${p.category}] ${tb} Trust: ${p.trust_score || "N/A"}`);
+            sections.push(`  ${p.description}`);
+          }
+          sections.push("");
         }
-        sections.push("");
       }
     }
 
