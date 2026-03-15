@@ -2595,23 +2595,87 @@ mcp.tool("get_skill_content", {
   },
   handler: async (args: { slug: string }) => {
     const apiUserId = currentApiKeyUserId;
-    let q = supabase.from("skills").select("display_name, slug, install_command, category, status, creator_id, is_public");
+    const resolvedSlug = await resolveSlug(args.slug, "skill");
+    let q = supabase.from("skills").select("display_name, slug, install_command, category, description_human, github_url, skill_md, skill_md_status, status, creator_id, is_public");
     if (apiUserId) {
       q = q.or(`and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`);
     } else {
       q = q.eq("status", "approved").eq("is_public", true);
     }
-    const { data: skill } = await q.eq("slug", args.slug).maybeSingle();
+    const { data: skill } = await q.eq("slug", resolvedSlug).maybeSingle();
 
     if (!skill) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" not found or not accessible.` }] };
-    if (!skill.install_command) return { content: [{ type: "text" as const, text: `Skill "${args.slug}" has no SKILL.md content.` }] };
 
-    return {
-      content: [{
-        type: "text" as const,
-        text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${skill.install_command}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
-      }],
-    };
+    // If we have cached SKILL.md content, return it
+    if (skill.skill_md && skill.skill_md.length > 100) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${skill.skill_md}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
+        }],
+      };
+    }
+
+    // Try to fetch from GitHub on the fly
+    if (skill.github_url) {
+      const m = skill.github_url.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/);
+      if (m) {
+        const owner = m[1];
+        const repo = m[2].replace(/\.git$/, "");
+        const githubToken = Deno.env.get("GITHUB_TOKEN");
+        
+        // Extract skill name from install_command
+        const skillMatch = (skill.install_command || "").match(/--skill\s+(\S+)/);
+        const pathMatch = (skill.install_command || "").match(/skills\/([^\/\s]+)/);
+        const skillName = skillMatch?.[1] || pathMatch?.[1] || null;
+
+        const paths = skillName
+          ? [`skills/${skillName}/SKILL.md`, `.claude/skills/${skillName}/SKILL.md`, `SKILL.md`]
+          : [`SKILL.md`, `skills/SKILL.md`];
+
+        for (const branch of ["main", "master"]) {
+          let found = false;
+          for (const path of paths) {
+            try {
+              const headers: Record<string, string> = {};
+              if (githubToken) headers.Authorization = `token ${githubToken}`;
+              const resp = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`, { headers });
+              if (resp.ok) {
+                const content = await resp.text();
+                if (content.length > 50) {
+                  // Cache it
+                  await supabase.from("skills").update({ skill_md: content, skill_md_status: "fetched" }).eq("slug", resolvedSlug);
+                  return {
+                    content: [{
+                      type: "text" as const,
+                      text: `# ${skill.display_name} (${skill.slug})\n\n## Raw SKILL.md\n\n\`\`\`markdown\n${content}\n\`\`\`\n\nYou can fork this skill by modifying the content above and importing it via \`import_skill_from_agent\`.`,
+                    }],
+                  };
+                }
+              }
+            } catch { /* try next path */ }
+          }
+          if (found) break;
+        }
+        // Mark as not_found so we don't retry
+        await supabase.from("skills").update({ skill_md_status: "not_found" }).eq("slug", resolvedSlug);
+      }
+    }
+
+    // Fallback: return available info
+    const fallback = [
+      `# ${skill.display_name}`,
+      `\nSKILL.md content is not available from the repository.`,
+      `\n## Available Information`,
+      `- **Category:** ${skill.category}`,
+      `- **Description:** ${skill.description_human || "N/A"}`,
+      skill.github_url ? `- **Repository:** ${skill.github_url}` : null,
+      `\n## Install`,
+      `\`${skill.install_command}\``,
+      skill.github_url ? `\nYou can view the source at: ${skill.github_url}` : null,
+    ].filter(Boolean).join("\n");
+
+    return { content: [{ type: "text" as const, text: fallback }] };
   },
 });
 
