@@ -3716,42 +3716,69 @@ mcp.tool("get_skill_analytics", {
   },
 });
 
-// ─── install_bundle: Install all skills in a bundle ───
+// ─── install_bundle: Install all tools in a bundle (skills + connectors + plugins) ───
 mcp.tool("install_bundle", {
-  description: "Get install commands for all skills in a pre-built bundle. Bundles are curated collections of skills for specific roles.",
+  description: "Get install commands for all tools in a pre-built bundle. Bundles are curated collections of skills, connectors, and plugins for specific roles (developer, marketer, designer, data-analyst, founder, devops, lawyer, product-manager, sales, hr).",
   inputSchema: {
     type: "object",
     properties: {
-      bundle_id: { type: "string", description: "Bundle ID or role slug to find bundles for" },
+      bundle_id: { type: "string", description: "Bundle ID or role slug (e.g., 'developer', 'marketer', 'designer')" },
     },
     required: ["bundle_id"],
   },
   handler: async (args: { bundle_id: string }) => {
-    // Try by ID first, then by role_slug
     let bundle: any = null;
     const { data: byId } = await supabase.from("skill_bundles").select("*").eq("id", args.bundle_id).eq("is_active", true).maybeSingle();
     if (byId) { bundle = byId; } else {
-      const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id).eq("is_active", true).limit(1).maybeSingle();
+      const { data: byRole } = await supabase.from("skill_bundles").select("*").eq("role_slug", args.bundle_id.toLowerCase()).eq("is_active", true).limit(1).maybeSingle();
       bundle = byRole;
     }
     if (!bundle) {
-      // List available bundles
-      const { data: available } = await supabase.from("skill_bundles").select("role_slug, title, hero_emoji").eq("is_active", true).limit(10);
-      const availableList = (available || []).map((b: any) => `- ${b.hero_emoji || "📦"} **${b.title}** (use \`install_bundle('${b.role_slug}')\`)`).join("\n");
+      const { data: available } = await supabase.from("skill_bundles").select("role_slug, title, hero_emoji, total_items").eq("is_active", true).limit(15);
+      const availableList = (available || []).map((b: any) => `- ${b.hero_emoji || "📦"} **${b.title}** (${b.total_items || 0} tools) → \`install_bundle('${b.role_slug}')\``).join("\n");
       return { content: [{ type: "text" as const, text: `Bundle "${args.bundle_id}" not found.\n\n${availableList ? `## Available Bundles\n\n${availableList}` : "No bundles are currently available."}` }] };
     }
 
-    // Get skills in bundle
-    const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs);
-
     const sections: string[] = [`# ${bundle.hero_emoji || "📦"} ${bundle.title}\n\n${bundle.description}\n`];
-    sections.push(`## Install All (${(skills || []).length} skills)\n`);
-    for (const s of skills || []) {
-      sections.push(`### ${s.display_name} [${s.category}]\n\`\`\`\n${s.install_command}\n\`\`\`\n`);
+
+    // Fetch and display connectors first
+    const connectorSlugs = bundle.connector_slugs || [];
+    if (connectorSlugs.length > 0) {
+      const { data: connectors } = await supabase.from("mcp_servers").select("name, slug, install_command, category, is_official").eq("status", "approved").in("slug", connectorSlugs);
+      if (connectors && connectors.length > 0) {
+        sections.push(`## 🔌 MCP Connectors (${connectors.length})\n`);
+        for (const c of connectors) {
+          const official = c.is_official ? " ✅" : "";
+          sections.push(`### ${c.name}${official} [${c.category}]`);
+          if (c.install_command) sections.push(`\`\`\`\n${c.install_command}\n\`\`\`\n`);
+        }
+      }
     }
 
-    const missingSlugs = bundle.skill_slugs.filter((slug: string) => !(skills || []).find((s: any) => s.slug === slug));
-    if (missingSlugs.length) sections.push(`\n⚠️ ${missingSlugs.length} skill(s) not found: ${missingSlugs.join(", ")}`);
+    // Skills
+    const { data: skills } = await supabase.from("skills").select("display_name, slug, install_command, category, avg_rating").eq("status", "approved").in("slug", bundle.skill_slugs || []);
+    if (skills && skills.length > 0) {
+      sections.push(`## 🧠 Skills (${skills.length})\n`);
+      for (const s of skills) {
+        sections.push(`### ${s.display_name} [${s.category}]\n\`\`\`\n${s.install_command}\n\`\`\`\n`);
+      }
+    }
+
+    // Plugins
+    const pluginSlugs = bundle.plugin_slugs || [];
+    if (pluginSlugs.length > 0) {
+      const { data: plugins } = await supabase.from("plugins").select("name, slug, description, category").eq("status", "approved").in("slug", pluginSlugs);
+      if (plugins && plugins.length > 0) {
+        sections.push(`## 🧩 Plugins (${plugins.length})\n`);
+        for (const p of plugins) {
+          sections.push(`- **${p.name}** [${p.category}] — ${p.description}`);
+        }
+        sections.push("");
+      }
+    }
+
+    const totalItems = (skills?.length || 0) + connectorSlugs.length + pluginSlugs.length;
+    sections.push(`\n---\n📦 **Total: ${totalItems} tools** · Estimated install time: ~${Math.max(totalItems * 2, 5)} minutes`);
 
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
