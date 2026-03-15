@@ -2621,7 +2621,30 @@ mcp.tool("validate_skill", {
         body: JSON.stringify({ action: "import_skill", skill_md: args.skill_md }),
       });
 
-      if (!resp.ok) throw new Error(`Validation failed: ${resp.status}`);
+      if (!resp.ok) {
+        // Parse error body for specific feedback instead of throwing
+        const errorText = await resp.text().catch(() => "");
+        const sections = [`# Skill Validation Report\n`, `## ❌ Validation Error\n`];
+        
+        // Provide structural feedback based on content analysis
+        const hasTitle = /^#\s+.+/m.test(args.skill_md);
+        const hasSections = (args.skill_md.match(/^##\s+/gm) || []).length;
+        const hasUsageInstructions = /usage|how to|example|instruction/i.test(args.skill_md);
+        const minLength = args.skill_md.length >= 200;
+        
+        sections.push(`### Structural Analysis`);
+        sections.push(`- ${hasTitle ? "✅" : "❌"} Has title (# heading)`);
+        sections.push(`- ${hasSections >= 2 ? "✅" : "❌"} Has sections (found ${hasSections} ## headings, need ≥ 2)`);
+        sections.push(`- ${minLength ? "✅" : "❌"} Minimum length (${args.skill_md.length} chars, need ≥ 200)`);
+        sections.push(`- ${hasUsageInstructions ? "✅" : "❌"} Has usage instructions`);
+        sections.push(`\n### Suggestions`);
+        if (!hasTitle) sections.push(`- Add a title with \`# Your Skill Name\``);
+        if (hasSections < 2) sections.push(`- Add sections like \`## Description\`, \`## Usage\`, \`## Examples\``);
+        if (!minLength) sections.push(`- Expand the content with more detail (at least 200 characters)`);
+        if (!hasUsageInstructions) sections.push(`- Add usage instructions or examples`);
+        
+        return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+      }
       const data = await resp.json();
 
       if (!data.skill) throw new Error("Could not parse skill");
