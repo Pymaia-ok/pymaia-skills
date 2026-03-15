@@ -156,14 +156,22 @@ serve(async (req) => {
       const minLen = body.min_content_length || 5000;
       const batchSize = body.batch_size || 3;
 
-      // Find truncated posts (short EN or short ES)
-      const { data: truncated } = await supabase
-        .from("blog_posts")
-        .select("id, slug, title, title_es, category, keywords, content, content_es, related_skill_slugs, related_connector_slugs")
-        .eq("status", "published")
-        .or(`content.lt.${minLen}`)
-        .order("created_at", { ascending: true })
-        .limit(batchSize);
+      let truncated: any[] = [];
+
+      if (body.slugs && Array.isArray(body.slugs) && body.slugs.length > 0) {
+        // Explicit slugs provided
+        const { data } = await supabase
+          .from("blog_posts")
+          .select("id, slug, title, title_es, category, keywords, content, content_es, related_skill_slugs, related_connector_slugs")
+          .eq("status", "published")
+          .in("slug", body.slugs)
+          .limit(batchSize);
+        truncated = data || [];
+      } else {
+        // Auto-detect: use RPC to find short posts by char length
+        const { data } = await supabase.rpc("find_truncated_blog_posts", { min_len: minLen, batch_limit: batchSize });
+        truncated = data || [];
+      }
 
       if (!truncated || truncated.length === 0) {
         return new Response(JSON.stringify({ message: "No truncated posts found" }), {
