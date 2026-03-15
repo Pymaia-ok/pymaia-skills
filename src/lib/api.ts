@@ -15,7 +15,7 @@ export async function semanticSearch(filters: {
   category?: string;
   sortBy?: string;
   page?: number;
-}): Promise<{ data: SkillFromDB[]; count: number; mode: string }> {
+}): Promise<{ data: SkillFromDB[]; count: number; mode: string; keywords?: string[] }> {
   const response = await supabase.functions.invoke("semantic-search", {
     body: {
       query: filters.query,
@@ -44,7 +44,7 @@ export async function semanticSearch(filters: {
     use_cases: r.use_cases, creator_id: r.creator_id, created_at: r.created_at, status: r.status,
   }));
 
-  return { data: skills, count: result.count || 0, mode: result.mode || "semantic" };
+  return { data: skills, count: result.count || 0, mode: result.mode || "semantic", keywords: result.keywords };
 }
 
 // Smart search using AI to interpret intent
