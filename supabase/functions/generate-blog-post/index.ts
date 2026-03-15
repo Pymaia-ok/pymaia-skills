@@ -79,6 +79,121 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    const body = await req.json().catch(() => ({}));
+
+    // ── REGENERATE MODE: fix truncated posts ──
+    if (body.mode === "regenerate") {
+      const minLen = body.min_content_length || 5000;
+      const batchSize = body.batch_size || 3;
+
+      // Find truncated posts (short EN or short ES)
+      const { data: truncated } = await supabase
+        .from("blog_posts")
+        .select("id, slug, title, title_es, category, keywords, content, content_es, related_skill_slugs, related_connector_slugs")
+        .eq("status", "published")
+        .or(`content.lt.${minLen}`)
+        .order("created_at", { ascending: true })
+        .limit(batchSize);
+
+      if (!truncated || truncated.length === 0) {
+        return new Response(JSON.stringify({ message: "No truncated posts found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let regenerated = 0;
+      for (const post of truncated) {
+        try {
+          // Check if content is actually short
+          const enShort = (post.content?.length || 0) < minLen;
+          const esShort = (post.content_es?.length || 0) < 2000;
+          if (!enShort && !esShort) continue;
+
+          const regenPrompt = `Rewrite and COMPLETE this blog article. The previous version was truncated/incomplete.
+
+Title: "${post.title}"
+Title ES: "${post.title_es || ''}"
+Category: ${post.category}
+Keywords: ${(post.keywords || []).join(", ")}
+
+The article MUST be complete with:
+- A hook/introduction
+- 3-5 detailed sections with ## headings
+- Step-by-step instructions where applicable  
+- A FAQ section with 3-5 Q&As
+- A conclusion with call-to-action linking to /explorar, /conectores, or /crear-skill
+
+Previous content (may be truncated - use as reference for topic/style but write completely new):
+${(post.content || "").slice(0, 2000)}...
+
+Return the COMPLETE article using the generate_blog_post tool. Both English and Spanish versions must be FULL articles (~1500 words each).`;
+
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              max_tokens: 16000,
+              messages: [
+                { role: "system", content: systemPromptText },
+                { role: "user", content: regenPrompt },
+              ],
+              tools: [blogToolDef],
+              tool_choice: { type: "function", function: { name: "generate_blog_post" } },
+            }),
+          });
+
+          if (!response.ok) continue;
+          const result = await response.json();
+          const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+          if (!toolCall) continue;
+
+          const article = JSON.parse(toolCall.function.arguments);
+          
+          // Only update if new content is longer
+          const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+          if (article.content_en && article.content_en.length > (post.content?.length || 0)) {
+            updateData.content = article.content_en;
+          }
+          if (article.content_es && article.content_es.length > (post.content_es?.length || 0)) {
+            updateData.content_es = article.content_es;
+          }
+          if (article.faq_items?.length > 0) {
+            updateData.faq_json = article.faq_items;
+          }
+          if (article.meta_description_en) updateData.meta_description = article.meta_description_en;
+          if (article.meta_description_es) updateData.meta_description_es = article.meta_description_es;
+          if (article.excerpt_en) updateData.excerpt = article.excerpt_en;
+          if (article.excerpt_es) updateData.excerpt_es = article.excerpt_es;
+
+          // Calculate reading time
+          const wordCount = (updateData.content || post.content || "").split(/\s+/).length;
+          updateData.reading_time_minutes = Math.max(3, Math.ceil(wordCount / 250));
+
+          await supabase.from("blog_posts").update(updateData).eq("id", post.id);
+          regenerated++;
+          console.log(`✅ Regenerated: ${post.slug} (${updateData.content?.length || 'skip'} chars EN, ${updateData.content_es?.length || 'skip'} chars ES)`);
+        } catch (e) {
+          console.error(`Error regenerating ${post.slug}:`, e);
+        }
+      }
+
+      await supabase.from("automation_logs").insert({
+        function_name: "generate-blog-post",
+        action_type: "blog_regenerated",
+        reason: `Regenerated ${regenerated} of ${truncated.length} truncated posts`,
+        metadata: { regenerated, total: truncated.length },
+      });
+
+      return new Response(JSON.stringify({ regenerated, total: truncated.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── NORMAL MODE: generate new post ──
     // Get recent posts to avoid repetition
     const { data: recentPosts } = await supabase
       .from("blog_posts")
