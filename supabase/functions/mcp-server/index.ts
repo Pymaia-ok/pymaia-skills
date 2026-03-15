@@ -3579,9 +3579,9 @@ mcp.tool("get_personalized_feed", {
   },
 });
 
-// ─── get_top_creators: Leaderboard ───
+// ─── get_top_creators: Leaderboard (powered by creators table) ───
 mcp.tool("get_top_creators", {
-  description: "Get the top skill creators leaderboard. Shows creators ranked by number of approved skills and average rating.",
+  description: "Get the top skill creators leaderboard. Shows GitHub creators ranked by skills, ratings, trust scores, and followers.",
   inputSchema: {
     type: "object",
     properties: {
@@ -3590,9 +3590,37 @@ mcp.tool("get_top_creators", {
   },
   handler: async (args: { limit?: number }) => {
     const lim = Math.min(args.limit || 10, 20);
+
+    // Try the creators table first (populated by sync-creators)
+    const { data: creators } = await supabase
+      .from("creators")
+      .select("*")
+      .gt("skill_count", 0)
+      .order("skill_count", { ascending: false })
+      .limit(lim * 2);
+
+    if (creators && creators.length > 0) {
+      // Sort by composite score
+      const scored = creators.map((c: any) => ({
+        ...c,
+        score: (c.skill_count || 0) * 0.3 + (c.avg_rating || 0) * 0.3 + Math.min(c.total_installs || 0, 10000) / 10000 * 0.2 + (c.avg_trust_score || 0) / 100 * 0.2,
+      })).sort((a: any, b: any) => b.score - a.score).slice(0, lim);
+
+      const text = scored.map((c: any, i: number) => {
+        const verified = c.verified ? " ✅" : "";
+        const orgBadge = c.is_organization ? " 🏢" : "";
+        const avatar = c.avatar_url ? `![](${c.avatar_url}&s=24) ` : "";
+        const name = c.display_name || c.github_username;
+        const topCat = c.top_category ? ` · Top: ${c.top_category}` : "";
+        return `${i + 1}. ${avatar}**${name}**${verified}${orgBadge} (@${c.github_username})\n   ${c.skill_count} skills · ${c.connector_count || 0} connectors · ⭐ ${(c.avg_rating || 0).toFixed(1)} avg · 🛡️ Trust: ${(c.avg_trust_score || 0).toFixed(0)}${topCat}\n   ${c.github_followers ? `👥 ${c.github_followers.toLocaleString()} followers` : ""}`;
+      }).join("\n\n");
+
+      return { content: [{ type: "text" as const, text: `# 🏆 Top Creators\n\n${text}` }] };
+    }
+
+    // Fallback: old logic using creator_id from skills
     const { data: skills } = await supabase.from("skills").select("creator_id, avg_rating, install_count").eq("status", "approved").not("creator_id", "is", null);
     if (!skills?.length) {
-      // Provide context about why there are no creators
       const { count: totalSkills } = await supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved");
       return { content: [{ type: "text" as const, text: `Creator profiles are being built. The catalog has ${(totalSkills || 0).toLocaleString()} skills but most were imported without creator attribution.\n\nTo appear on the leaderboard, publish skills via \`publish_skill\` or \`import_skill_from_agent\` with your API key.` }] };
     }
