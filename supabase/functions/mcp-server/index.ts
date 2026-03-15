@@ -2950,12 +2950,27 @@ mcp.tool("get_trust_report", {
       if (scanParts.length) sections.push(`- **Scan Details:** ${scanParts.join(" · ")}`);
     }
 
-    // GitHub activity
+    // GitHub activity — enriched with github_metadata
+    let ghMeta: any = null;
+    if (item.github_url) {
+      const repoMatch = item.github_url.match(/github\.com\/([^\/]+\/[^\/\?#]+)/);
+      if (repoMatch) {
+        const repoName = repoMatch[1].replace(/\.git$/, "");
+        const { data } = await supabase.from("github_metadata").select("*").eq("repo_full_name", repoName).eq("fetch_status", "success").maybeSingle();
+        ghMeta = data;
+      }
+    }
+
     sections.push(`\n## GitHub Activity`);
     if (item.github_url) sections.push(`- **Repo:** ${item.github_url}`);
-    sections.push(`- **Stars:** ${(item.github_stars || 0).toLocaleString()}`);
-    if (item.last_commit_at) {
-      const daysSince = Math.floor((Date.now() - new Date(item.last_commit_at).getTime()) / 86400000);
+    const realStars = ghMeta?.stars ?? item.github_stars ?? 0;
+    sections.push(`- **Stars:** ${realStars.toLocaleString()}${ghMeta ? " ✓ verified" : ""}`);
+    if (ghMeta?.license) sections.push(`- **License:** ${ghMeta.license}`);
+    if (ghMeta?.forks) sections.push(`- **Forks:** ${ghMeta.forks.toLocaleString()}`);
+    if (ghMeta?.archived) sections.push(`- ⚠️ **Repository is archived**`);
+    const lastCommit = ghMeta?.last_commit_at || item.last_commit_at;
+    if (lastCommit) {
+      const daysSince = Math.floor((Date.now() - new Date(lastCommit).getTime()) / 86400000);
       sections.push(`- **Last Commit:** ${daysSince} days ago${daysSince > 180 ? " ⚠️ Possibly unmaintained" : ""}`);
     }
 
