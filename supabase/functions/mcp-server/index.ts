@@ -235,6 +235,27 @@ function ensureResponse(text: string | null | undefined, fallback: string): stri
   return text;
 }
 
+// ─── USAGE EVENT LOGGING (fire-and-forget) ───
+function logUsageEvent(eventType: string, itemSlug?: string, itemType?: string, queryText?: string) {
+  supabase.from("usage_events").insert({
+    event_type: eventType,
+    item_slug: itemSlug || null,
+    item_type: itemType || null,
+    query_text: queryText || null,
+  }).then(() => {}).catch(() => {});
+}
+
+function logUsageEvents(eventType: string, items: Array<{ slug: string; type: string }>, queryText?: string) {
+  if (items.length === 0) return;
+  const rows = items.map(i => ({
+    event_type: eventType,
+    item_slug: i.slug,
+    item_type: i.type,
+    query_text: queryText || null,
+  }));
+  supabase.from("usage_events").insert(rows).then(() => {}).catch(() => {});
+}
+
 // Build word-split fallback query for multi-word searches
 async function wordSplitSearch(
   table: "skills" | "mcp_servers" | "plugins",
