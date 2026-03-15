@@ -552,7 +552,7 @@ mcp.tool("search_by_role", {
 // ─── RECOMMENDATION TOOLS ───
 
 mcp.tool("recommend_for_task", {
-  description: "Get skill recommendations based on a specific task you want to accomplish. Describe what you need to do and get the best matching skills.",
+  description: "Get skill recommendations based on a specific task you want to accomplish. Uses semantic search and multi-signal quality ranking for relevant results.",
   inputSchema: {
     type: "object",
     properties: {
@@ -562,39 +562,58 @@ mcp.tool("recommend_for_task", {
     required: ["task"],
   },
   handler: async (args: { task: string; role?: string }) => {
-    let q = supabase
-      .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, target_roles, description_human, industry")
-      .eq("status", "approved")
-      .order("install_count", { ascending: false })
-      .limit(20);
-
-    if (args.role) q = q.contains("target_roles", [args.role]);
-
-    const { data: skills, error } = await q;
-    if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
-
     const taskLower = args.task.toLowerCase();
-    const keywords = taskLower.split(/\s+/).filter(w => w.length > 3);
+    const roleLower = (args.role || "").toLowerCase();
+    const roleCategories = ROLE_CATEGORIES[roleLower] || [];
 
-    const scored = (skills || []).map((s: any) => {
-      let score = 0;
-      const searchable = `${s.display_name} ${s.tagline} ${s.description_human} ${(s.industry || []).join(" ")}`.toLowerCase();
-      for (const kw of keywords) {
-        if (searchable.includes(kw)) score += 2;
-      }
-      if (s.install_count > 100000) score += 3;
-      else if (s.install_count > 50000) score += 2;
-      else if (s.install_count > 10000) score += 1;
-      score += Number(s.avg_rating) * 0.5;
-      return { ...s, score };
+    // Step 1: Use FTS RPC as primary candidate generator
+    const { data: ftsResults } = await supabase.rpc("search_skills", {
+      search_query: args.task,
+      page_size: 20,
     });
 
-    const results = scored.sort((a: any, b: any) => b.score - a.score).slice(0, 5);
-    if (results.length === 0) return { content: [{ type: "text" as const, text: "No encontré skills relevantes para esa tarea." }] };
+    let candidates: any[] = ftsResults || [];
+
+    // Step 2: If FTS returns < 5, fallback to semantic search
+    if (candidates.length < 5) {
+      try {
+        const semanticResp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ query: args.task, limit: 20 }),
+        });
+        if (semanticResp.ok) {
+          const semanticData = await semanticResp.json();
+          const existingSlugs = new Set(candidates.map(c => c.slug));
+          for (const s of semanticData.results || []) {
+            if (!existingSlugs.has(s.slug)) {
+              candidates.push({ ...s, similarity_score: s.similarity_score || 0.5 });
+            }
+          }
+        }
+      } catch { /* skip semantic errors */ }
+    }
+
+    // Step 3: Multi-signal re-ranking
+    const scored = candidates.map((s: any) => {
+      // 70% semantic/FTS similarity
+      const semanticScore = (s.similarity_score || 0.5) * 0.70;
+      // 15% quality rank
+      const qualityScore = (s.quality_rank || 0) * 0.15;
+      // 10% role relevance
+      const roleBoost = roleCategories.includes(s.category) ? 0.10 : 0;
+      // 5% verified installs
+      const installScore = s.install_count_source === "tracked" ? Math.min(s.install_count || 0, 1000) / 1000 * 0.05 : 0;
+
+      const finalScore = semanticScore + qualityScore + roleBoost + installScore;
+      return { ...s, _finalScore: finalScore };
+    });
+
+    const results = scored.sort((a: any, b: any) => b._finalScore - a._finalScore).slice(0, 5);
+    if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré skills relevantes para "${args.task}". Probá con \`solve_goal("${args.task}")\` para una búsqueda más amplia.` }] };
 
     const text = results
-      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}]\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
+      .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}]\n   ${s.tagline}\n   ⭐ ${Number(s.avg_rating || 0).toFixed(1)} · Quality: ${((s.quality_rank || 0) * 100).toFixed(0)}%\n   \`${s.install_command}\``)
       .join("\n\n");
 
     return { content: [{ type: "text" as const, text: `# Recomendaciones para: "${args.task}"\n\n${text}` }] };
