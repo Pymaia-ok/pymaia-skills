@@ -1174,6 +1174,14 @@ mcp.tool("solve_goal", {
       if (low.length > 0) { sections.push(`**⚠️ Security:**`); for (const l of low) sections.push(`- ${l.name}: low Trust (${l.trust_score}/100)`); sections.push(""); }
     }
 
+    // Check if both options are empty
+    if (optionA.length === 0 && optionB.length === 0) {
+      sections.push(`## No matching tools found\n`);
+      sections.push(`We couldn't find tools matching "${args.goal}" in our catalog.\n`);
+      sections.push(`### Try:\n- **Broader keywords:** Use more general terms\n- **\`explore_directory('${goalWords2.slice(0, 2).join(" ")}')\`** for cross-catalog discovery\n- **\`suggest_stack('${args.role || "general"}')\`** for role-based recommendations\n- **\`browse_community_templates\`** for curated goal templates\n`);
+      return { content: [{ type: "text" as const, text: sections.join("\n") }] };
+    }
+
     formatOption("Option A", "Simple & Fast", optionA, warningsA);
     formatOption("Option B", "Flexible & Customizable", optionB, warningsB);
 
