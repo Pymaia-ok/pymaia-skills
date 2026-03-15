@@ -984,7 +984,7 @@ mcp.tool("solve_goal", {
     // 2. Collect search keywords (ML-enhanced + template + goal words)
     const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
-    const goalWords = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
+    const goalWords2 = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
     allKeywords.push(...goalWords);
     const uniqueKeywords = [...new Set(allKeywords)];
 
