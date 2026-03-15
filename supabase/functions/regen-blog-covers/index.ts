@@ -6,24 +6,48 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const stylePool = [
-  "Clean flat-lay photograph, top-down view, minimal props on a light desk",
-  "Realistic photograph of a professional workspace, natural lighting, shallow depth of field",
-  "Editorial-style photograph, candid business setting, warm tones",
-  "Minimalist product photography style, clean background, soft shadows",
-  "Photojournalistic style, real people in an office environment, natural colors",
-  "Bird's-eye view photograph of organized desk items, muted color palette",
-  "Lifestyle photograph, cozy workspace with laptop and coffee, golden hour light",
-  "Corporate photography style, modern open office, natural daylight",
+// Category-specific visual styles — each category has its own distinct look
+const categoryStyles: Record<string, string[]> = {
+  productivity: [
+    "Flat-lay photograph of a colorful organized desk with sticky notes, pens, notebook, and coffee cup, top-down view, bright natural light",
+    "Close-up photograph of hands writing in a bullet journal with colorful markers, shallow depth of field, warm tones",
+    "Lifestyle photograph of a minimalist workspace with a large monitor showing charts, succulent plant, morning sunlight streaming in",
+  ],
+  agents: [
+    "Close-up photograph of a smartphone screen showing a chat interface, blurred cozy background, warm ambient light",
+    "Over-the-shoulder photograph of a person interacting with a laptop displaying a conversational AI interface, modern room",
+    "Macro photograph of a robotic hand gently touching a human hand, soft studio lighting, warm skin tones, editorial style",
+  ],
+  industry: [
+    "Environmental portrait of a lawyer reviewing documents at a mahogany desk, natural window light, warm professional tones",
+    "Wide-angle photograph of a modern warehouse with automated systems, industrial lighting, clean lines",
+    "Candid photograph of medical professionals collaborating around a tablet in a bright hospital corridor",
+  ],
+  security: [
+    "Close-up photograph of a brass padlock on a weathered wooden door, shallow depth of field, moody blue-toned lighting",
+    "Photograph of a clean server room with blue LED lights reflecting on polished floors, symmetrical composition",
+    "Detail photograph of hands typing on a backlit keyboard in a dark room, screen glow on face, calm blue tones",
+  ],
+  mcp: [
+    "Macro photograph of colorful USB-C cables and connectors neatly arranged on a white surface, product photography style",
+    "Close-up photograph of ethernet cables plugged into a network switch with green status LEDs, shallow depth of field",
+    "Bird's-eye photograph of a developer's desk with multiple screens showing API dashboards, organized cables, warm light",
+  ],
+};
+
+const compositions = [
+  "Shot with 35mm lens, rule of thirds composition.",
+  "Tight close-up with bokeh background.",
+  "Wide establishing shot showing full environment.",
+  "Over-the-shoulder perspective, natural framing.",
+  "Symmetrical centered composition, clean lines.",
 ];
 
-const categoryHints: Record<string, string> = {
-  productivity: "showing real tools, notebooks, screens with charts, organized workspace",
-  agents: "showing a person interacting with a laptop or phone, conversational UI on screen",
-  industry: "showing professionals in their work environment, real-world business context",
-  security: "showing a lock, shield icon, or secure workspace, calm and trustworthy mood",
-  mcp: "showing connected devices, cables, dashboard screens, integration concept",
-};
+const defaultStyles = [
+  "Editorial-style photograph, warm natural lighting, real-world setting",
+  "Minimalist product photography, soft shadows, clean background",
+  "Lifestyle photograph, golden hour light, authentic moment",
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -34,7 +58,7 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get the post with oldest updated_at (cycles through all)
+    // Get posts ordered by oldest updated_at
     const { data: posts } = await supabase
       .from("blog_posts")
       .select("slug, title, category")
@@ -51,18 +75,29 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const targetSlug = body.slug;
 
-    const postsToProcess = targetSlug 
+    const postsToProcess = targetSlug
       ? posts.filter((p: any) => p.slug === targetSlug)
-      : posts.slice(0, 1); // oldest updated_at first
+      : posts.slice(0, 1);
 
     const results = [];
 
     for (const post of postsToProcess) {
-      const hint = categoryHints[post.category] || "showing a modern professional workspace";
-      const style = stylePool[Math.floor(Math.random() * stylePool.length)];
-      const imagePrompt = `${style}, ${hint}. Topic: ${post.title}. MUST be photorealistic like a stock photograph. Absolutely NO illustrations, NO digital art, NO neon glow, NO futuristic elements, NO sci-fi, NO cartoon, NO infographics, NO text overlays, NO tech diagrams. Real people, real objects, real lighting. Warm natural colors, shallow depth of field, real-world setting.`;
+      // Pick a category-specific style or fallback
+      const styles = categoryStyles[post.category] || defaultStyles;
+      const style = styles[Math.floor(Math.random() * styles.length)];
+      const composition = compositions[Math.floor(Math.random() * compositions.length)];
 
-      console.log(`Generating cover for: ${post.slug}`);
+      // Extract 2-3 keywords from title for topic specificity
+      const titleKeywords = post.title
+        .replace(/[^a-zA-Z0-9\s]/g, "")
+        .split(/\s+/)
+        .filter((w: string) => w.length > 4)
+        .slice(0, 3)
+        .join(", ");
+
+      const imagePrompt = `${style} ${composition} The scene relates to: ${titleKeywords}. MUST be photorealistic like a real stock photograph. Absolutely NO illustrations, NO digital art, NO neon glow, NO futuristic sci-fi elements, NO cartoon, NO infographics, NO text overlays, NO tech diagrams. Real objects, real lighting, warm natural colors.`;
+
+      console.log(`Generating cover for: ${post.slug} (category: ${post.category})`);
 
       const imgResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -85,7 +120,7 @@ serve(async (req) => {
 
       const imgResult = await imgResponse.json();
       const base64 = imgResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      
+
       if (!base64) {
         console.error(`No image data for ${post.slug}`);
         results.push({ slug: post.slug, status: "no_image" });
@@ -96,17 +131,28 @@ serve(async (req) => {
       const imageBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
       const imagePath = `${post.slug}.jpg`;
 
-      await supabase.storage.from("blog-covers").upload(imagePath, imageBytes, {
-        contentType: "image/jpeg",
-        upsert: true,
-      });
+      // Upload and CHECK for errors before updating DB
+      const { error: uploadError } = await supabase.storage
+        .from("blog-covers")
+        .upload(imagePath, imageBytes, {
+          contentType: "image/jpeg",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error(`Upload failed for ${post.slug}:`, uploadError.message);
+        results.push({ slug: post.slug, status: "upload_error", error: uploadError.message });
+        continue;
+      }
 
       const { data: publicUrl } = supabase.storage.from("blog-covers").getPublicUrl(imagePath);
       const coverUrl = publicUrl?.publicUrl || null;
 
       if (coverUrl) {
-        await supabase.from("blog_posts").update({ cover_image_url: coverUrl }).eq("slug", post.slug);
-        results.push({ slug: post.slug, status: "ok", url: coverUrl });
+        // Append cache-buster so browsers pick up the new image
+        const urlWithBuster = `${coverUrl}?v=${Date.now()}`;
+        await supabase.from("blog_posts").update({ cover_image_url: urlWithBuster }).eq("slug", post.slug);
+        results.push({ slug: post.slug, status: "ok", url: urlWithBuster });
       }
     }
 
