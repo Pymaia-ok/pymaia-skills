@@ -69,6 +69,7 @@ export default function BlogArticle({ post, title, content, isEs }: BlogArticleP
             src={post.cover_image_url}
             alt={title}
             className="w-full h-auto object-cover max-h-[400px]"
+            onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
           />
         </div>
       )}

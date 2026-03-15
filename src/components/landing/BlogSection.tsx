@@ -76,6 +76,7 @@ export default function BlogSection() {
                       alt={isEs ? post.title_es || post.title : post.title}
                       className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
+                      onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
                     />
                   </AspectRatio>
                 )}
