@@ -211,6 +211,7 @@ Return your response using the generate_blog_post tool.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 16000,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -227,8 +228,8 @@ Return your response using the generate_blog_post tool.`;
                 title_es: { type: "string", description: "Spanish translation of the title. Use sentence case." },
                 excerpt_en: { type: "string", description: "English excerpt/summary, 1-2 sentences, max 200 chars" },
                 excerpt_es: { type: "string", description: "Spanish excerpt" },
-                content_en: { type: "string", description: "Full article in English, markdown format, ~1500 words" },
-                content_es: { type: "string", description: "Full article in Spanish, markdown format" },
+                content_en: { type: "string", description: "Full article in English, markdown format, ~1500 words. MUST be complete with conclusion and CTA." },
+                content_es: { type: "string", description: "Full article in Spanish, markdown format. MUST be complete with conclusion and CTA." },
                 meta_description_en: { type: "string", description: "English meta description, max 155 chars" },
                 meta_description_es: { type: "string", description: "Spanish meta description, max 155 chars" },
                 faq_items: {
