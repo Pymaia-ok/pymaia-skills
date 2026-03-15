@@ -381,8 +381,8 @@ Return your response using the generate_blog_post tool.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        max_tokens: 16000,
+        model: "google/gemini-2.5-pro",
+        max_tokens: 32000,
         messages: [
           { role: "system", content: systemPromptText },
           { role: "user", content: userPrompt },
