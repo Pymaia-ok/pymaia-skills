@@ -127,7 +127,7 @@ export default function Blog() {
                           <Clock className="h-3 w-3" /> {post.reading_time_minutes} min
                         </span>
                       </div>
-                      <h2 className="text-lg font-semibold text-foreground group-hover:text-primary/80 transition-colors mb-2 line-clamp-2">
+                      <h2 className="text-lg font-semibold text-foreground group-hover:text-primary/80 transition-colors mb-2 line-clamp-3">
                         {isEs ? post.title_es || post.title : post.title}
                       </h2>
                       <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
