@@ -297,20 +297,28 @@ mcp.tool("list_popular_skills", {
     },
   },
   handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
-    const orderCol = args.sort_by === "rating" ? "avg_rating" : "install_count";
+    const lim = Math.min(args.limit || 5, 10);
+    // Composite ranking: prioritize tracked installs, then trust_score + avg_rating
     let q = supabase
       .from("skills")
-      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category")
-      .eq("status", "approved")
-      .order(orderCol, { ascending: false })
-      .limit(Math.min(args.limit || 5, 10));
+      .select("display_name, tagline, slug, avg_rating, install_count, install_command, category, trust_score, install_count_source")
+      .eq("status", "approved");
 
     if (args.category) q = q.eq("category", args.category);
 
-    const { data: skills, error } = await q;
+    // Get more results for client-side composite ranking
+    const { data: skills, error } = await q.order("install_count", { ascending: false }).limit(lim * 5);
     if (error) return { content: [{ type: "text" as const, text: `Error: ${error.message}` }] };
 
-    const text = (skills || [])
+    // Composite ranking: tracked installs first, then trust_score + rating as tiebreaker
+    const ranked = (skills || []).map((s: any) => {
+      const trackedBonus = s.install_count_source === 'tracked' ? 1000000 : 0;
+      const qualityScore = (s.trust_score || 0) + Number(s.avg_rating) * 20;
+      const compositeScore = trackedBonus + (args.sort_by === "rating" ? Number(s.avg_rating) * 100000 : s.install_count) + qualityScore;
+      return { ...s, _composite: compositeScore };
+    }).sort((a: any, b: any) => b._composite - a._composite).slice(0, lim);
+
+    const text = ranked
       .map((s: any, i: number) => `${i + 1}. **${s.display_name}** [${s.category}] — ${s.tagline}\n   ⭐ ${Number(s.avg_rating).toFixed(1)} · ${s.install_count.toLocaleString()} installs\n   \`${s.install_command}\``)
       .join("\n\n");
 
