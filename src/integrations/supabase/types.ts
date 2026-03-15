@@ -1577,6 +1577,7 @@ export type Database = {
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
+          quality_rank: number | null
           quality_score: number | null
           readme_raw: string | null
           readme_summary: string | null
@@ -1630,6 +1631,7 @@ export type Database = {
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
+          quality_rank?: number | null
           quality_score?: number | null
           readme_raw?: string | null
           readme_summary?: string | null
@@ -1683,6 +1685,7 @@ export type Database = {
           last_commit_at?: string | null
           price_amount?: number | null
           pricing_model?: string
+          quality_rank?: number | null
           quality_score?: number | null
           readme_raw?: string | null
           readme_summary?: string | null
@@ -1865,6 +1868,7 @@ export type Database = {
           last_commit_at: string | null
           price_amount: number | null
           pricing_model: string
+          quality_rank: number | null
           quality_score: number | null
           readme_raw: string | null
           readme_summary: string | null
@@ -1957,6 +1961,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_quality_ranks: { Args: never; Returns: undefined }
       refresh_directory_stats: { Args: never; Returns: undefined }
       search_skills: {
         Args: {
