@@ -1522,6 +1522,8 @@ export type Database = {
           industry: string[]
           install_command: string
           install_count: number
+          install_count_source: string
+          install_count_verified: boolean
           is_public: boolean
           is_stale: boolean | null
           last_commit_at: string | null
@@ -1571,6 +1573,8 @@ export type Database = {
           industry?: string[]
           install_command: string
           install_count?: number
+          install_count_source?: string
+          install_count_verified?: boolean
           is_public?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
@@ -1620,6 +1624,8 @@ export type Database = {
           industry?: string[]
           install_command?: string
           install_count?: number
+          install_count_source?: string
+          install_count_verified?: boolean
           is_public?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
@@ -1649,6 +1655,30 @@ export type Database = {
           use_cases?: Json
           version?: string | null
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      slug_redirects: {
+        Row: {
+          created_at: string
+          id: string
+          item_type: string
+          new_slug: string
+          old_slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          new_slug: string
+          old_slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          new_slug?: string
+          old_slug?: string
         }
         Relationships: []
       }
@@ -1732,7 +1762,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      directory_stats_mv: {
+        Row: {
+          categories_count: number | null
+          connectors_count: number | null
+          goal_templates_count: number | null
+          plugins_count: number | null
+          refreshed_at: string | null
+          skills_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_email: {
@@ -1764,6 +1804,8 @@ export type Database = {
           industry: string[]
           install_command: string
           install_count: number
+          install_count_source: string
+          install_count_verified: boolean
           is_public: boolean
           is_stale: boolean | null
           last_commit_at: string | null
@@ -1859,6 +1901,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      refresh_directory_stats: { Args: never; Returns: undefined }
       search_skills: {
         Args: {
           filter_category?: string
