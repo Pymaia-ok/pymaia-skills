@@ -70,7 +70,76 @@ const TOPIC_POOL = [
   { category: "mcp", keywords: ["AI tool ecosystem", "ecosistema herramientas IA", "plugins connectors skills"], geo: "global", topic_en: "Skills, connectors, and plugins: understanding the AI tool ecosystem", topic_es: "Skills, conectores y plugins: entendiendo el ecosistema de herramientas de IA" },
 ];
 
-serve(async (req) => {
+const systemPromptText = `You are a friendly productivity writer for Pymaia Skills (pymaiaskills.lovable.app), the #1 directory of AI tools, skills, connectors, and plugins. Your audience is non-technical business professionals who want to work smarter with AI.
+
+WRITING STYLE:
+- Conversational and practical — like a smart friend showing you shortcuts
+- No jargon unless you explain it immediately in parentheses
+- Use "you" directly — make the reader the hero
+- Include specific step-by-step instructions wherever possible
+- Add before/after comparisons (e.g., "Before: 3 hours. With AI: 10 minutes")
+
+STRUCTURE (mandatory):
+1. Hook: Start with a relatable problem or surprising stat
+2. What/Why: Brief explanation accessible to anyone
+3. How-to: Step-by-step guide with specific tools from the Pymaia catalog
+4. Real use case: A concrete scenario showing the workflow
+5. FAQ section: 3-5 questions with clear answers
+6. Call to action: Point readers to explore tools on the platform
+
+CRITICAL RULES:
+1. Write ~1500 words of genuinely useful content
+2. Use ONLY markdown syntax for formatting. Use ## and ### for headings. NEVER use HTML tags like <h1>, <h2>, <h3>, <p>, <ul>, etc. Pure markdown only.
+3. Do NOT include an H1 heading — the title is rendered separately. Start your content directly with the hook paragraph, then use ## for sections.
+4. MUST include internal links to skills, connectors, and plugins from the catalog
+5. Reference specific AI agents (Claude, Gemini, Manus, Cursor, etc.) when relevant
+6. Optimize for SEO: use keywords naturally, write definition paragraphs for featured snippets
+7. Include numbered lists, comparison tables, and actionable takeaways
+8. Every article must answer: "How can I actually DO this today?"
+9. Tone: warm, empowering, practical — never condescending
+
+TITLE FORMATTING:
+- Use sentence case for ALL titles (English and Spanish). Only capitalize the first word and proper nouns.
+- CORRECT: "How AI agents are changing project management"
+- WRONG: "How AI Agents Are Changing Project Management"
+- Spanish: "Cómo los agentes de IA están cambiando la gestión de proyectos" (correct)
+- This applies to title_en, title_es, and all headings within the content.`;
+
+const blogToolDef = {
+  type: "function" as const,
+  function: {
+    name: "generate_blog_post",
+    description: "Generate a complete blog post with all metadata",
+    parameters: {
+      type: "object",
+      properties: {
+        title_en: { type: "string", description: "SEO-optimized English title, max 60 chars. Use sentence case." },
+        title_es: { type: "string", description: "Spanish translation of the title. Use sentence case." },
+        excerpt_en: { type: "string", description: "English excerpt/summary, 1-2 sentences, max 200 chars" },
+        excerpt_es: { type: "string", description: "Spanish excerpt" },
+        content_en: { type: "string", description: "Full article in English, markdown format, ~1500 words. MUST be complete with conclusion and CTA." },
+        content_es: { type: "string", description: "Full article in Spanish, markdown format. MUST be complete with conclusion and CTA." },
+        meta_description_en: { type: "string", description: "English meta description, max 155 chars" },
+        meta_description_es: { type: "string", description: "Spanish meta description, max 155 chars" },
+        faq_items: {
+          type: "array",
+          description: "3-5 FAQ items for Google FAQ rich snippets",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              answer: { type: "string" },
+            },
+            required: ["question", "answer"],
+          },
+        },
+      },
+      required: ["title_en", "title_es", "excerpt_en", "excerpt_es", "content_en", "content_es", "meta_description_en", "meta_description_es", "faq_items"],
+      additionalProperties: false,
+    },
+  },
+};
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -79,6 +148,121 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    const body = await req.json().catch(() => ({}));
+
+    // ── REGENERATE MODE: fix truncated posts ──
+    if (body.mode === "regenerate") {
+      const minLen = body.min_content_length || 5000;
+      const batchSize = body.batch_size || 3;
+
+      // Find truncated posts (short EN or short ES)
+      const { data: truncated } = await supabase
+        .from("blog_posts")
+        .select("id, slug, title, title_es, category, keywords, content, content_es, related_skill_slugs, related_connector_slugs")
+        .eq("status", "published")
+        .or(`content.lt.${minLen}`)
+        .order("created_at", { ascending: true })
+        .limit(batchSize);
+
+      if (!truncated || truncated.length === 0) {
+        return new Response(JSON.stringify({ message: "No truncated posts found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let regenerated = 0;
+      for (const post of truncated) {
+        try {
+          // Check if content is actually short
+          const enShort = (post.content?.length || 0) < minLen;
+          const esShort = (post.content_es?.length || 0) < 2000;
+          if (!enShort && !esShort) continue;
+
+          const regenPrompt = `Rewrite and COMPLETE this blog article. The previous version was truncated/incomplete.
+
+Title: "${post.title}"
+Title ES: "${post.title_es || ''}"
+Category: ${post.category}
+Keywords: ${(post.keywords || []).join(", ")}
+
+The article MUST be complete with:
+- A hook/introduction
+- 3-5 detailed sections with ## headings
+- Step-by-step instructions where applicable  
+- A FAQ section with 3-5 Q&As
+- A conclusion with call-to-action linking to /explorar, /conectores, or /crear-skill
+
+Previous content (may be truncated - use as reference for topic/style but write completely new):
+${(post.content || "").slice(0, 2000)}...
+
+Return the COMPLETE article using the generate_blog_post tool. Both English and Spanish versions must be FULL articles (~1500 words each).`;
+
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              max_tokens: 16000,
+              messages: [
+                { role: "system", content: systemPromptText },
+                { role: "user", content: regenPrompt },
+              ],
+              tools: [blogToolDef],
+              tool_choice: { type: "function", function: { name: "generate_blog_post" } },
+            }),
+          });
+
+          if (!response.ok) continue;
+          const result = await response.json();
+          const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+          if (!toolCall) continue;
+
+          const article = JSON.parse(toolCall.function.arguments);
+          
+          // Only update if new content is longer
+          const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+          if (article.content_en && article.content_en.length > (post.content?.length || 0)) {
+            updateData.content = article.content_en;
+          }
+          if (article.content_es && article.content_es.length > (post.content_es?.length || 0)) {
+            updateData.content_es = article.content_es;
+          }
+          if (article.faq_items?.length > 0) {
+            updateData.faq_json = article.faq_items;
+          }
+          if (article.meta_description_en) updateData.meta_description = article.meta_description_en;
+          if (article.meta_description_es) updateData.meta_description_es = article.meta_description_es;
+          if (article.excerpt_en) updateData.excerpt = article.excerpt_en;
+          if (article.excerpt_es) updateData.excerpt_es = article.excerpt_es;
+
+          // Calculate reading time
+          const wordCount = (updateData.content || post.content || "").split(/\s+/).length;
+          updateData.reading_time_minutes = Math.max(3, Math.ceil(wordCount / 250));
+
+          await supabase.from("blog_posts").update(updateData).eq("id", post.id);
+          regenerated++;
+          console.log(`✅ Regenerated: ${post.slug} (${updateData.content?.length || 'skip'} chars EN, ${updateData.content_es?.length || 'skip'} chars ES)`);
+        } catch (e) {
+          console.error(`Error regenerating ${post.slug}:`, e);
+        }
+      }
+
+      await supabase.from("automation_logs").insert({
+        function_name: "generate-blog-post",
+        action_type: "blog_regenerated",
+        reason: `Regenerated ${regenerated} of ${truncated.length} truncated posts`,
+        metadata: { regenerated, total: truncated.length },
+      });
+
+      return new Response(JSON.stringify({ regenerated, total: truncated.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── NORMAL MODE: generate new post ──
     // Get recent posts to avoid repetition
     const { data: recentPosts } = await supabase
       .from("blog_posts")
@@ -144,41 +328,6 @@ serve(async (req) => {
       `- [${p.name}](/plugin/${p.slug}): ${p.description?.slice(0, 100)}`
     ).join("\n");
 
-    const systemPrompt = `You are a friendly productivity writer for Pymaia Skills (pymaiaskills.lovable.app), the #1 directory of AI tools, skills, connectors, and plugins. Your audience is non-technical business professionals who want to work smarter with AI.
-
-WRITING STYLE:
-- Conversational and practical — like a smart friend showing you shortcuts
-- No jargon unless you explain it immediately in parentheses
-- Use "you" directly — make the reader the hero
-- Include specific step-by-step instructions wherever possible
-- Add before/after comparisons (e.g., "Before: 3 hours. With AI: 10 minutes")
-
-STRUCTURE (mandatory):
-1. Hook: Start with a relatable problem or surprising stat
-2. What/Why: Brief explanation accessible to anyone
-3. How-to: Step-by-step guide with specific tools from the Pymaia catalog
-4. Real use case: A concrete scenario showing the workflow
-5. FAQ section: 3-5 questions with clear answers
-6. Call to action: Point readers to explore tools on the platform
-
-CRITICAL RULES:
-1. Write ~1500 words of genuinely useful content
-2. Use ONLY markdown syntax for formatting. Use ## and ### for headings. NEVER use HTML tags like <h1>, <h2>, <h3>, <p>, <ul>, etc. Pure markdown only.
-3. Do NOT include an H1 heading — the title is rendered separately. Start your content directly with the hook paragraph, then use ## for sections.
-4. MUST include internal links to skills, connectors, and plugins from the catalog
-5. Reference specific AI agents (Claude, Gemini, Manus, Cursor, etc.) when relevant
-6. Optimize for SEO: use keywords naturally, write definition paragraphs for featured snippets
-7. Include numbered lists, comparison tables, and actionable takeaways
-8. Every article must answer: "How can I actually DO this today?"
-9. Tone: warm, empowering, practical — never condescending
-
-TITLE FORMATTING:
-- Use sentence case for ALL titles (English and Spanish). Only capitalize the first word and proper nouns.
-- CORRECT: "How AI agents are changing project management"
-- WRONG: "How AI Agents Are Changing Project Management"
-- Spanish: "Cómo los agentes de IA están cambiando la gestión de proyectos" (correct)
-- This applies to title_en, title_es, and all headings within the content.`;
-
     const userPrompt = `Write a blog article about: "${topic.topic_en}"
 
 SEO Keywords to naturally include: ${topic.keywords.join(", ")}
@@ -211,44 +360,12 @@ Return your response using the generate_blog_post tool.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 16000,
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: systemPromptText },
           { role: "user", content: userPrompt },
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "generate_blog_post",
-            description: "Generate a complete blog post with all metadata",
-            parameters: {
-              type: "object",
-              properties: {
-                title_en: { type: "string", description: "SEO-optimized English title, max 60 chars. Use sentence case (only capitalize first word and proper nouns)." },
-                title_es: { type: "string", description: "Spanish translation of the title. Use sentence case." },
-                excerpt_en: { type: "string", description: "English excerpt/summary, 1-2 sentences, max 200 chars" },
-                excerpt_es: { type: "string", description: "Spanish excerpt" },
-                content_en: { type: "string", description: "Full article in English, markdown format, ~1500 words" },
-                content_es: { type: "string", description: "Full article in Spanish, markdown format" },
-                meta_description_en: { type: "string", description: "English meta description, max 155 chars" },
-                meta_description_es: { type: "string", description: "Spanish meta description, max 155 chars" },
-                faq_items: {
-                  type: "array",
-                  description: "3-5 FAQ items extracted from the article content for Google FAQ rich snippets",
-                  items: {
-                    type: "object",
-                    properties: {
-                      question: { type: "string", description: "A common question the article answers" },
-                      answer: { type: "string", description: "Concise answer, 1-3 sentences" },
-                    },
-                    required: ["question", "answer"],
-                  },
-                },
-              },
-              required: ["title_en", "title_es", "excerpt_en", "excerpt_es", "content_en", "content_es", "meta_description_en", "meta_description_es", "faq_items"],
-              additionalProperties: false,
-            },
-          },
-        }],
+        tools: [blogToolDef],
         tool_choice: { type: "function", function: { name: "generate_blog_post" } },
       }),
     });
