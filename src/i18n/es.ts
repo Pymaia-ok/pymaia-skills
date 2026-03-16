@@ -39,7 +39,7 @@ export default {
   landing: {
     heroBadge: "43,000+ Skills, MCPs y Plugins",
     heroTitle: "Potenciá tu trabajo con inteligencia artificial.",
-    heroSubtitle: "El único catálogo unificado de Skills, MCP Servers y Plugins — verificados y listos para usar. Encontrá la herramienta justa, activala en minutos.",
+    heroSubtitle: "Activá soluciones listas para usar en tu asistente de IA y transformá tu productividad en minutos.",
     multiAgentBadge: "Funciona con las herramientas de IA más populares",
     heroCtaExplore: "Explorar soluciones",
     heroCtaLearn: "Ver cómo funciona",
