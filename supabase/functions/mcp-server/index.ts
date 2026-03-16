@@ -1361,8 +1361,8 @@ mcp.tool("solve_goal", {
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", ms: Date.now() - solveT0, totalItems: allItems.length, uniqueKeywords: uniqueKeywords.length }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
-    // Filter out generic/meta tools that pollute results
-    const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug));
+    // Filter out generic/meta tools AND solve_goal excluded tools
+    const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug) && !SOLVE_GOAL_EXCLUDED_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
     const scored = filteredItems.map((item: any) => {
       let score = 0;
@@ -1403,11 +1403,13 @@ mcp.tool("solve_goal", {
       if (item.avg_rating >= 4.0) score += 2;
       score += (item.trust_score || 0) / 20;
 
-      // Goal-word relevance penalty: if NO goal words appear in description, penalize heavily
-      const goalWordsLong = goalWords2.filter(w => w.length > 3);
+      // Goal-word relevance penalty: if NO goal words (4+ chars) appear in description, penalize 80%
+      const goalWordsLong = goalWords2.filter(w => w.length >= 4);
       if (goalWordsLong.length > 0) {
-        const anyGoalWordInDesc = goalWordsLong.some(w => searchable.includes(w));
-        if (!anyGoalWordInDesc) score *= 0.3; // 70% penalty
+        const matchCount = goalWordsLong.filter(w => searchable.includes(w)).length;
+        if (matchCount === 0) {
+          score *= 0.2; // 80% penalty — no goal word overlap at all
+        }
       }
 
       return { ...item, relevance: score };
