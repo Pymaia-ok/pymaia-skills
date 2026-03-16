@@ -81,6 +81,18 @@ const GENERIC_TOOL_SLUGS = new Set([
   "mcp-server-management", "tool-management", "settings-manager",
 ]);
 
+// ─── SOLVE_GOAL EXCLUDED SLUGS: generic platforms that pollute every result ───
+const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
+  // Generic dev platforms that appear in everything
+  "asana", "posthog", "vercel",
+  // Meta tools about skills/plugins, not real tasks
+  "cowork-plugin-management", "claude-code-setup", "claude-md-management",
+  // Completely out of context for most goals
+  "tidal-mcp",           // Music streaming
+  "io-aerospace-mcp",    // Astrodynamics
+  "xcodebuildmcp",       // iOS/Xcode only
+]);
+
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
   const goalLower = goal.toLowerCase();
   const goalWords = goalLower.split(/\s+/).filter(w => w.length >= 3);
