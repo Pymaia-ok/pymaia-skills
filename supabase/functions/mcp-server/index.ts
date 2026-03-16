@@ -1317,8 +1317,10 @@ mcp.tool("solve_goal", {
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
+    // Filter out generic/meta tools that pollute results
+    const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
-    const scored = allItems.map((item: any) => {
+    const scored = filteredItems.map((item: any) => {
       let score = 0;
       const descLower = (item.desc || "").toLowerCase();
       const nameLower = (item.name || "").toLowerCase();
