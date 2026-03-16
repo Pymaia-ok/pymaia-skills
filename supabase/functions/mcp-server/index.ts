@@ -1570,6 +1570,7 @@ mcp.tool("get_role_kit", {
     required: ["role"],
   },
   handler: async (args: { role: string; stack?: string[]; tier?: string; limit?: number }) => {
+    logToolCall("get_role_kit", args);
     const isAdvanced = args.tier === "advanced";
     const lim = Math.min(args.limit || (isAdvanced ? 10 : 5), 15);
     const roleLower = args.role.toLowerCase();
