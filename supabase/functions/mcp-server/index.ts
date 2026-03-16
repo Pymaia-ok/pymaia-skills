@@ -3189,6 +3189,7 @@ mcp.tool("semantic_search", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    logToolCall("semantic_search", args);
     const lim = Math.min(args.limit || 5, 10);
 
     try {
