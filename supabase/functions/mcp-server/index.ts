@@ -2118,6 +2118,7 @@ mcp.tool("trending_solutions", {
     },
   },
   handler: async (args: { period?: string }) => {
+    logToolCall("trending_solutions", args);
     const days = args.period === "month" ? 30 : 7;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
