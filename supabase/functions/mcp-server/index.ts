@@ -130,6 +130,11 @@ const ROLE_CATEGORIES: Record<string, string[]> = {
 };
 
 // ─── ML INTENT CLASSIFIER ───
+function extractKeywordsFromGoal(goal: string): string[] {
+  const stopWords = new Set(["the","a","an","to","for","and","or","my","with","in","on","of","is","that","this","it","do","run","set","up","get","make","use","how","can","want","need","like","from","into","should","would","could","about"]);
+  return goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
+}
+
 async function classifyIntent(goal: string, role?: string): Promise<{
   keywords: string[];
   category: string | null;
@@ -137,18 +142,33 @@ async function classifyIntent(goal: string, role?: string): Promise<{
   domain: string;
   confidence: number;
 }> {
+  const t0 = Date.now();
   // Step 1: keyword-based domain detection (fast, reliable)
   const keywordResult = detectDomainByKeywords(goal);
+  const fallbackKeywords = extractKeywordsFromGoal(goal);
+  
+  const keywordOnlyResult = { 
+    keywords: fallbackKeywords, 
+    category: keywordResult.category, 
+    capabilities: [] as string[], 
+    domain: keywordResult.domain, 
+    confidence: keywordResult.confidence 
+  };
 
   if (!LOVABLE_API_KEY) {
-    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
+    console.log(JSON.stringify({ fn: "classifyIntent", mode: "no-api-key", ms: Date.now() - t0, keywords: fallbackKeywords, domain: keywordResult.domain }));
+    return keywordOnlyResult;
   }
 
   try {
+    // 8-second timeout for LLM call
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
         messages: [
@@ -187,11 +207,19 @@ Be precise with keywords - they should match actual tool names and descriptions.
         tool_choice: { type: "function", function: { name: "classify_intent" } },
       }),
     });
+    clearTimeout(timeout);
 
-    if (!resp.ok) throw new Error(`AI status ${resp.status}`);
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      console.error(JSON.stringify({ fn: "classifyIntent", error: "http", status: resp.status, body: body.slice(0, 200), ms: Date.now() - t0 }));
+      return keywordOnlyResult;
+    }
     const data = await resp.json();
     const call = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!call) throw new Error("No tool call");
+    if (!call) {
+      console.error(JSON.stringify({ fn: "classifyIntent", error: "no-tool-call", ms: Date.now() - t0 }));
+      return keywordOnlyResult;
+    }
     const llmResult = JSON.parse(call.function.arguments);
 
     // Override: if keyword detection has high confidence and LLM disagrees on domain, prefer keyword
@@ -202,11 +230,12 @@ Be precise with keywords - they should match actual tool names and descriptions.
       }
     }
 
+    console.log(JSON.stringify({ fn: "classifyIntent", mode: "llm", ms: Date.now() - t0, keywords: llmResult.keywords, domain: llmResult.domain, confidence: llmResult.confidence }));
     return llmResult;
-  } catch (e) {
-    console.error("Intent classifier fallback:", e);
-    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
+  } catch (e: any) {
+    const isTimeout = e?.name === "AbortError";
+    console.error(JSON.stringify({ fn: "classifyIntent", error: isTimeout ? "timeout" : "exception", message: e?.message?.slice(0, 200), ms: Date.now() - t0 }));
+    return keywordOnlyResult;
   }
 }
 
