@@ -32,6 +32,7 @@ import BlogPost from "./pages/BlogPost";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import CourseModule from "./pages/CourseModule";
+import Links from "./pages/Links";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="/getting-started" element={<Navigate to="/primeros-pasos" replace />} />
               <Route path="/courses" element={<Navigate to="/cursos" replace />} />
               <Route path="/course/:slug" element={<Navigate to="/cursos" replace />} />
+              <Route path="/links" element={<Links />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
