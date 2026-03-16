@@ -1488,20 +1488,26 @@ mcp.tool("solve_goal", {
     const sections: string[] = [];
     sections.push(`# 🎯 Pymaia Agent — Solution for: "${args.goal}"\n`);
 
-    // Fix 2: Use keyword domain for header when LLM template doesn't match
+    // Fix 2: Use keyword domain for header when LLM template doesn't match the actual goal
     const keywordDomainForDisplay = detectDomainByKeywords(args.goal);
     if (matchedTemplate) {
-      const templateDomainMatches = keywordDomainForDisplay.domain === "general" ||
-        matchedTemplate.domain === keywordDomainForDisplay.domain ||
-        DOMAIN_TO_CATEGORY[keywordDomainForDisplay.domain] === matchedTemplate.domain;
+      // Check if the template display name or triggers actually relate to the goal keywords
+      const templateText = `${matchedTemplate.display_name} ${(matchedTemplate.triggers || []).join(" ")}`.toLowerCase();
+      const goalKeywordsForMatch = goalWords2.filter((w: string) => w.length >= 4);
+      const templateMatchesGoal = goalKeywordsForMatch.some((w: string) => templateText.includes(w));
       
-      if (templateDomainMatches) {
+      if (templateMatchesGoal && (keywordDomainForDisplay.domain === "general" || keywordDomainForDisplay.confidence < 0.5)) {
+        // Template seems to match AND keyword detection is uncertain — trust the template
         sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
         if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
-      } else {
-        // Template doesn't match keyword domain — show keyword domain instead
+      } else if (keywordDomainForDisplay.domain !== "general" && keywordDomainForDisplay.confidence >= 0.5) {
+        // Keyword detection is confident — use keyword domain for display
         const displayDomain = keywordDomainForDisplay.domain.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
         sections.push(`**Domain:** ${displayDomain}`);
+      } else {
+        // Template matched but keyword detection also general — show template
+        sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
+        if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
       }
     }
 
