@@ -1,4 +1,4 @@
-// enrich-github-metadata
+// enrich-github-metadata — paginated set-difference approach
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -12,6 +12,35 @@ function extractRepoFullName(url: string): string | null {
   return m[1].replace(/\.git$/, "");
 }
 
+// Paginated fetch of all github_urls from a table
+async function getAllRepoNames(supabase: any, table: string, statusField: string): Promise<Set<string>> {
+  const repos = new Set<string>();
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select("github_url")
+      .not("github_url", "is", null)
+      .eq(statusField, "approved")
+      .range(offset, offset + pageSize - 1);
+
+    if (error) { console.error(`Error fetching ${table}:`, error.message); break; }
+    if (!data || data.length === 0) break;
+
+    for (const item of data) {
+      const repo = extractRepoFullName(item.github_url);
+      if (repo) repos.add(repo);
+    }
+
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return repos;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -21,31 +50,48 @@ Deno.serve(async (req) => {
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     if (!githubToken) throw new Error("GITHUB_TOKEN not configured");
 
-    // Collect unique repo URLs from skills, mcp_servers, plugins
-    const [{ data: skills }, { data: connectors }, { data: plugins }] = await Promise.all([
-      supabase.from("skills").select("github_url").not("github_url", "is", null).eq("status", "approved").limit(1000),
-      supabase.from("mcp_servers").select("github_url").not("github_url", "is", null).eq("status", "approved").limit(1000),
-      supabase.from("plugins").select("github_url").not("github_url", "is", null).eq("status", "approved").limit(1000),
+    // Log start
+    const { data: syncLog } = await supabase
+      .from("sync_log")
+      .insert({ source: "enrich-github-metadata", status: "running" })
+      .select("id")
+      .single();
+    const syncId = syncLog?.id;
+
+    // Collect unique repo URLs from skills, mcp_servers, plugins — paginated
+    const [skillRepos, connectorRepos, pluginRepos] = await Promise.all([
+      getAllRepoNames(supabase, "skills", "status"),
+      getAllRepoNames(supabase, "mcp_servers", "status"),
+      getAllRepoNames(supabase, "plugins", "status"),
     ]);
 
     const repoSet = new Set<string>();
-    for (const item of [...(skills || []), ...(connectors || []), ...(plugins || [])]) {
-      const repo = extractRepoFullName(item.github_url);
-      if (repo) repoSet.add(repo);
+    for (const r of skillRepos) repoSet.add(r);
+    for (const r of connectorRepos) repoSet.add(r);
+    for (const r of pluginRepos) repoSet.add(r);
+
+    console.log(`Total unique repos: ${repoSet.size}`);
+
+    // Get existing metadata repos — set difference
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const existingFresh = new Set<string>();
+    let offset = 0;
+    while (true) {
+      const { data } = await supabase
+        .from("github_metadata")
+        .select("repo_full_name")
+        .gte("fetched_at", sevenDaysAgo)
+        .range(offset, offset + 999);
+      if (!data || data.length === 0) break;
+      for (const e of data) existingFresh.add(e.repo_full_name);
+      if (data.length < 1000) break;
+      offset += 1000;
     }
 
-    // Filter to repos that need refresh (not fetched or older than 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-    const { data: existing } = await supabase
-      .from("github_metadata")
-      .select("repo_full_name, fetched_at")
-      .in("repo_full_name", [...repoSet].slice(0, 1000));
+    // Set difference: repos that need fetching
+    const toFetch = [...repoSet].filter(repo => !existingFresh.has(repo)).slice(0, batchSize);
 
-    const existingMap = new Map((existing || []).map(e => [e.repo_full_name, e.fetched_at]));
-    const toFetch = [...repoSet].filter(repo => {
-      const fetched = existingMap.get(repo);
-      return !fetched || fetched < sevenDaysAgo;
-    }).slice(0, batchSize);
+    console.log(`Repos to fetch: ${toFetch.length} (fresh: ${existingFresh.size})`);
 
     let processed = 0, errors = 0, rateLimited = false;
 
@@ -71,7 +117,11 @@ Deno.serve(async (req) => {
           break;
         }
 
-        if (!resp.ok) { errors++; continue; }
+        if (!resp.ok) {
+          await resp.text().catch(() => {}); // consume body
+          errors++;
+          continue;
+        }
 
         const data = await resp.json();
         await supabase.from("github_metadata").upsert({
@@ -91,20 +141,19 @@ Deno.serve(async (req) => {
 
         processed++;
 
-        // Pause every 50 requests to stay well under rate limit
+        // Pause every 50 requests
         if (processed % 50 === 0) await new Promise(r => setTimeout(r, 1000));
       } catch (e) {
-        console.error(`Error fetching ${repo}:`, e);
+        console.error(`Error fetching ${repo}:`, e instanceof Error ? e.message : e);
         errors++;
       }
     }
 
-    // Cross-validate: update skills/connectors/plugins stars from github_metadata
+    // Cross-validate: update skills stars from github_metadata
     const { data: meta } = await supabase.from("github_metadata").select("repo_full_name, stars").eq("fetch_status", "success");
     if (meta && meta.length > 0) {
-      const starMap = new Map(meta.map(m => [m.repo_full_name, m.stars]));
+      const starMap = new Map(meta.map((m: any) => [m.repo_full_name, m.stars]));
       
-      // Update skills with significantly different star counts
       const { data: skillsToUpdate } = await supabase.from("skills").select("id, github_url, github_stars").not("github_url", "is", null).eq("status", "approved").limit(1000);
       for (const s of skillsToUpdate || []) {
         const repo = extractRepoFullName(s.github_url);
@@ -115,6 +164,16 @@ Deno.serve(async (req) => {
           await supabase.from("skills").update({ github_stars: realStars }).eq("id", s.id);
         }
       }
+    }
+
+    // Update sync_log
+    if (syncId) {
+      await supabase.from("sync_log").update({
+        status: rateLimited ? "rate_limited" : (errors > processed ? "failed" : "completed"),
+        completed_at: new Date().toISOString(),
+        new_count: processed,
+        error_count: errors,
+      }).eq("id", syncId);
     }
 
     return new Response(JSON.stringify({ success: true, processed, errors, rateLimited, total: toFetch.length }), {

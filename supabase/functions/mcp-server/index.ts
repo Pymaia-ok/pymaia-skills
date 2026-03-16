@@ -242,7 +242,7 @@ function logUsageEvent(eventType: string, itemSlug?: string, itemType?: string, 
     item_slug: itemSlug || null,
     item_type: itemType || null,
     query_text: queryText || null,
-  }).then(() => {}).catch(() => {});
+  }).then(() => {}).catch((e: any) => console.error("usage_event insert error:", e?.message || e));
 }
 
 function logUsageEvents(eventType: string, items: Array<{ slug: string; type: string }>, queryText?: string) {
@@ -253,7 +253,16 @@ function logUsageEvents(eventType: string, items: Array<{ slug: string; type: st
     item_type: i.type,
     query_text: queryText || null,
   }));
-  supabase.from("usage_events").insert(rows).then(() => {}).catch(() => {});
+  supabase.from("usage_events").insert(rows).then(() => {}).catch((e: any) => console.error("usage_events insert error:", e?.message || e));
+}
+
+// ─── TOOL CALL LOGGING (fire-and-forget) ───
+function logToolCall(toolName: string, args?: any) {
+  supabase.from("agent_analytics").insert({
+    event_type: "tool_call",
+    tool_name: toolName,
+    event_data: { args_keys: args ? Object.keys(args) : [] },
+  }).then(() => {}).catch((e: any) => console.error("tool_call log error:", e?.message || e));
 }
 
 // Build word-split fallback query for multi-word searches
@@ -304,6 +313,7 @@ mcp.tool("search_skills", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    logToolCall("search_skills", args);
     const lim = Math.min(args.limit || 5, 10);
     const apiUserId = currentApiKeyUserId;
 
