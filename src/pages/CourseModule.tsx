@@ -61,12 +61,12 @@ const CourseModule = () => {
   const completeMutation = useMutation({
     mutationFn: async (quizScore?: number) => {
       if (!user || !currentModule || !course) return;
-      await supabase.from("course_progress").upsert({
+        await supabase.from("course_progress").upsert({
         user_id: user.id,
         course_id: course.id,
         module_id: currentModule.id,
         quiz_score: quizScore ?? null,
-      }, { onConflict: "user_id,module_id" });
+      } as any, { onConflict: "user_id,module_id" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["module-completed"] });
