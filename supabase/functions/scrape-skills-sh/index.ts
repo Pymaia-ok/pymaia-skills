@@ -124,8 +124,28 @@ Deno.serve(async (req) => {
 async function scrapeFromSitemap(supabase: any, maxEntries: number) {
   console.log("[scrape] Fetching skills.sh sitemap...");
 
-  const sitemapRes = await fetch("https://skills.sh/sitemap.xml");
-  if (!sitemapRes.ok) throw new Error(`Sitemap fetch failed: ${sitemapRes.status}`);
+  // Try sitemap.xml first, fallback to sitemap-skills.xml, then API
+  let sitemapText: string | null = null;
+  for (const url of [
+    "https://skills.sh/sitemap.xml",
+    "https://skills.sh/sitemap-skills.xml",
+    "https://skills.sh/sitemap-0.xml",
+  ]) {
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": "pymaia-skills-bot/1.0" } });
+      if (res.ok) {
+        sitemapText = await res.text();
+        console.log(`[scrape] Loaded sitemap from ${url} (${sitemapText.length} chars)`);
+        break;
+      }
+      await res.text().catch(() => {}); // consume body
+      console.warn(`[scrape] ${url} returned ${res.status}`);
+    } catch (e) {
+      console.warn(`[scrape] Failed to fetch ${url}: ${(e as Error).message}`);
+    }
+  }
+
+  if (!sitemapText) throw new Error("All sitemap URLs failed — skills.sh may be down or restructured");
 
   const sitemapText = await sitemapRes.text();
 
