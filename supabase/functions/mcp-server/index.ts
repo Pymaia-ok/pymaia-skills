@@ -3884,6 +3884,7 @@ mcp.tool("scan_skill", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string }) => {
+    logToolCall("scan_skill", args);
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/scan-security`, {
         method: "POST",
