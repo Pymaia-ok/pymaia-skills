@@ -1235,10 +1235,13 @@ mcp.tool("solve_goal", {
       };
     }
 
+    const solveT0 = Date.now();
+
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
+    const classifyMs = Date.now() - solveT0;
 
-    console.log(JSON.stringify({ tool: "solve_goal", goal: args.goal, role: args.role || null, intent: { keywords: intent.keywords, category: intent.category, capabilities: intent.capabilities, domain: intent.domain, confidence: intent.confidence } }));
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "classified", ms: classifyMs, goal: args.goal, keywords: intent.keywords, category: intent.category, domain: intent.domain, confidence: intent.confidence }));
 
     // 0b. A/B variant assignment
     const variant: ABVariant = assignVariant(args.goal, args.user_id);
