@@ -55,12 +55,51 @@ const insightLabel: Record<string, string> = {
 
 export default function AdminOverviewTab({
   translatedCount, translationTotal, translationPercent, translationStats,
-  securityPercent, securityStats, connectorStats, recentLogs, qualityInsights,
+  securityPercent, securityStats, connectorStats, recentLogs, qualityInsights, pipelineHealth,
 }: AdminOverviewTabProps) {
   const pendingInsights = qualityInsights?.filter(i => i.status === "pending") || [];
+  const embPct = pipelineHealth ? (pipelineHealth.embeddings.total > 0 ? (pipelineHealth.embeddings.done / pipelineHealth.embeddings.total) * 100 : 0) : 0;
 
   return (
     <>
+      {/* Pipeline Health */}
+      {pipelineHealth && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="p-4 rounded-2xl bg-secondary">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">Embeddings</span>
+            </div>
+            <p className="text-lg font-bold">{pipelineHealth.embeddings.done.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">/ {pipelineHealth.embeddings.total.toLocaleString()}</span></p>
+            <Progress value={embPct} className="h-1.5 mt-1" />
+            <p className="text-[10px] text-muted-foreground mt-1">{embPct.toFixed(1)}%</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-secondary">
+            <div className="flex items-center gap-2 mb-2">
+              <Code className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">SKILL.md</span>
+            </div>
+            <p className="text-2xl font-bold">{pipelineHealth.skillMd.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">fetched</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-secondary">
+            <div className="flex items-center gap-2 mb-2">
+              <Database className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">GitHub Metadata</span>
+            </div>
+            <p className="text-2xl font-bold">{pipelineHealth.ghMetadata.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">repos enriquecidos</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-secondary">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">Usage 24h</span>
+            </div>
+            <p className="text-2xl font-bold">{pipelineHealth.usage24h.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">eventos MCP Agent</p>
+          </div>
+        </div>
+      )}
       <div className="grid md:grid-cols-3 gap-4 mb-8">
         <div className="p-5 rounded-2xl bg-secondary">
           <div className="flex items-center gap-2 mb-3">
