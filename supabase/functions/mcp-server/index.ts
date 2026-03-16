@@ -36,7 +36,7 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
 
 // ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
 const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
-  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads"],
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic"],
   "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
   "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
   "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
@@ -1246,20 +1246,41 @@ mcp.tool("solve_goal", {
       console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", goal: args.goal, results: allItems.length }));
     }
 
-    // 3d. FALLBACK: category-based browse
+    // 3d. FALLBACK: category-based browse (skills + connectors + plugins)
     if (allItems.length === 0 && intent.category) {
-      const { data: catSkills } = await supabase
-        .from("skills")
-        .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, quality_rank, github_stars")
-        .eq("status", "approved")
-        .eq("category", intent.category)
-        .order("quality_rank", { ascending: false })
-        .limit(8);
-      if (catSkills) {
-        for (const s of catSkills) {
-          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
-        }
+      const [{ data: catSkills }, { data: catConnectors }, { data: catPlugins }] = await Promise.all([
+        supabase.from("skills")
+          .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, quality_rank, github_stars")
+          .eq("status", "approved").eq("category", intent.category)
+          .order("quality_rank", { ascending: false }).limit(8),
+        supabase.from("mcp_servers")
+          .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage")
+          .eq("status", "approved").eq("category", intent.category)
+          .order("trust_score", { ascending: false }).limit(5),
+        supabase.from("plugins")
+          .select("name, slug, description, category, platform, install_count, is_official, trust_score, github_stars")
+          .eq("status", "approved").eq("category", intent.category)
+          .order("install_count", { ascending: false }).limit(5),
+      ]);
+      if (catSkills) for (const s of catSkills) allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
+      if (catConnectors) for (const c of catConnectors) allItems.push({ ...c, type: "connector", desc: c.description });
+      if (catPlugins) for (const p of catPlugins) allItems.push({ ...p, type: "plugin", desc: p.description });
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "category_fallback", category: intent.category, results: allItems.length }));
+    }
+
+    // 3e. FALLBACK: broad keyword search with expanded synonyms
+    if (allItems.length === 0) {
+      const domainKeywords = KEYWORD_DOMAIN_MAP[intent.domain] || [];
+      const extraKeywords = domainKeywords.slice(0, 5).map(k => k.split(/\s+/)[0]);
+      if (extraKeywords.length > 0) {
+        const broadResults = await crossCatalogSearch(extraKeywords, 6, apiUserId);
+        allItems.push(
+          ...broadResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
+          ...broadResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
+          ...broadResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
+        );
       }
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "domain_keyword_fallback", domain: intent.domain, results: allItems.length }));
     }
 
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
