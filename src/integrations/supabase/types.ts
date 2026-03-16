@@ -1952,6 +1952,7 @@ export type Database = {
           dedup_reason: string | null
           dedup_status: string
           description: string | null
+          error_message: string | null
           id: string
           import_status: string
           imported_at: string | null
@@ -1972,6 +1973,7 @@ export type Database = {
           dedup_reason?: string | null
           dedup_status?: string
           description?: string | null
+          error_message?: string | null
           id?: string
           import_status?: string
           imported_at?: string | null
@@ -1992,6 +1994,7 @@ export type Database = {
           dedup_reason?: string | null
           dedup_status?: string
           description?: string | null
+          error_message?: string | null
           id?: string
           import_status?: string
           imported_at?: string | null
