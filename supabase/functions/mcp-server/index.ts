@@ -91,7 +91,25 @@ const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
   "io-github-ibeal-tidal-mcp",  // Music streaming
   "io-aerospace-software-community-mcp-server",  // Astrodynamics
   "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
+  // Fix 4: additional noise tools
+  "firebase", "neverinfamous-memory-journal-mcp", "frago",
 ]);
+
+// ─── DOMAIN → EXPECTED CATEGORIES MAP: penalize off-domain tools ───
+const DOMAIN_CATEGORY_MAP: Record<string, Set<string>> = {
+  advertising: new Set(["marketing", "social-media", "analytics", "advertising"]),
+  finance: new Set(["finance", "productivity", "data-analysis", "analytics"]),
+  design: new Set(["design", "media", "creativity", "productivity"]),
+  devops: new Set(["development", "devops", "cloud", "infrastructure", "monitoring"]),
+  sales: new Set(["sales", "crm", "marketing", "communication"]),
+  legal: new Set(["legal", "compliance", "documentation", "productivity"]),
+  hr: new Set(["hr", "recruitment", "communication", "productivity"]),
+  education: new Set(["education", "documentation", "productivity", "research"]),
+  healthcare: new Set(["healthcare", "data-analysis", "compliance", "research"]),
+  ecommerce: new Set(["ecommerce", "marketing", "analytics", "productivity"]),
+  security: new Set(["security", "development", "devops", "compliance"]),
+  "data-science": new Set(["data-analysis", "development", "research", "analytics"]),
+};
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
   const goalLower = goal.toLowerCase();
