@@ -3347,6 +3347,7 @@ mcp.tool("whats_new", {
     },
   },
   handler: async (args: { days?: number; type?: string; limit?: number }) => {
+    logToolCall("whats_new", args);
     const days = Math.min(args.days || 7, 30);
     const lim = Math.min(args.limit || 5, 10);
     const since = new Date(Date.now() - days * 86400000).toISOString();
