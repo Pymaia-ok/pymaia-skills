@@ -1148,6 +1148,7 @@ mcp.tool("solve_goal", {
   },
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     logToolCall("solve_goal", args);
+    logUsageEvent("solve_goal", undefined, undefined, args.goal);
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
