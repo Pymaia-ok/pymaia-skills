@@ -183,10 +183,6 @@ export default function Links() {
           ))}
         </motion.div>
 
-        {/* Footer */}
-        <p className="text-[11px] text-muted-foreground/60 tracking-wide">
-          pymaiaskills.lovable.app
-        </p>
       </div>
 
       {/* Email Gate Overlay */}
