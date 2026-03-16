@@ -1,38 +1,79 @@
-## Plan: solve_goal Latency & Never-Empty Fix — Estado: ✅ Implementado
 
-### Diagnóstico
-- solve_goal SÍ encontraba resultados (5-6 por opción) pero tardaba 150s
-- El cliente MCP cortaba antes → usuario veía "vacío"
-- Causa raíz: LLM call sin timeout + búsquedas secuenciales + analytics bloqueantes
 
-### Cambios implementados
+# Plan: PRD Final Polish — 7 Fixes
 
-#### 1. LLM Timeout (5s) + Keyword Fallback ✅
-- `classifyIntent()` ahora tiene AbortController con 5s timeout
-- Si LLM falla/timeout: usa `detectDomainByKeywords()` + `extractKeywordsFromGoal()`
-- Logging detallado de errores (HTTP status, body, timeout vs exception)
+## Current State (verified)
+- **33 cron jobs** active — confirmed duplicates: sync-skills (4), sync-connectors (3), discover-trending-skills (3), refresh-catalog-data (3)
+- **No crons** for generate-embeddings, bulk-fetch-skill-content, enrich-github-metadata
+- Pipeline coverage: embeddings 12.3%, skill_md 2.9%, github_meta 4.7%
+- 963 zero-signal skills, quality_rank distribution: 93% low, 4.3% medium, 2.6% high
+- enrich-github-metadata already has timeout/rate-limit handling but no graceful 50s cutoff
 
-#### 2. crossCatalogSearch Paralelo ✅
-- Antes: N keywords × 3 queries = secuencial
-- Ahora: todas las keywords en parallel via `Promise.all()`
-- Keywords limitadas a 6 (antes hasta 10+)
-- Resultado: 2.5s vs ~30s+
+---
 
-#### 3. Time-budgeted Fallbacks ✅
-- Cada fallback (semantic, FTS, category, domain) solo ejecuta si quedan segundos
-- Limites: 15s, 20s, 25s, 28s respectivamente
-- Compatibility analysis skipped si >20s
+## Fix 1: Add 3 Pipeline Crons [P0]
 
-#### 4. Analytics Fire-and-Forget ✅
-- `agent_analytics.insert()` → `.then(() => {})` (no await)
-- `goal_templates.update()` → `.then(() => {})` (no await)
+**DB migration** to schedule:
+- `generate-embeddings-auto`: every 5 min, batch 100
+- `bulk-fetch-skill-content-auto`: every 10 min, batch 50
+- `enrich-github-metadata-auto`: every 15 min, batch 400
 
-#### 5. Observabilidad Estructurada ✅
-- Logs con `ms` en cada fase: classified, cross_catalog, fallbacks, done
-- classifyIntent logea modo (llm/timeout/no-api-key), error details
+Uses `net.http_post()` with service role key from `current_setting('supabase.service_role_key')` (no hardcoded keys).
 
-### Resultados de test
-- "run Meta Ads campaigns" → 5 tools (Option A) + 6 tools (Option B) ✅
-- "manage personal finances" → 5 tools (Option A) + 6 tools (Option B) ✅
-- Tiempo total: ~13s (antes 150s) → ~10s con timeout de 5s
-- LLM actualmente timeout-eando, pero keyword fallback funciona perfecto
+## Fix 2: Clean Duplicate Crons [P1]
+
+**DB migration** to unschedule duplicates:
+- sync-skills: keep jobid 58 (7 AM), drop 1, 55, 56
+- sync-connectors: keep 29 (7 AM), drop 13, 14
+- discover-trending-skills: keep 59 (daily 4 AM), drop 72, 22
+- refresh-catalog-data: keep 74 (daily 7 AM), drop 75, 76
+
+**Result**: 33 → ~24 crons
+
+## Fix 3: Reduce Timeout Rate [P1]
+
+**DB migration** to reschedule high-frequency crons:
+- auto-approve: `*/3` → `*/10`
+- verify-security: `*/10` → `*/30`
+- scan-security: `*/15` → `*/30`
+- calculate-trust-score: `*/15` → `*/30`
+- enrich-skills-ai: `*/30` → `0 */2 * * *`
+- translate-skills: `*/30` → `0 */3 * * *`
+
+Also stagger daily crons (sync-skills→6AM, sync-connectors→7AM, mcp-quality→8AM, blog→9AM — most already aligned).
+
+**Edge function timeout guards**: Add 50s `MAX_RUNTIME` break to `enrich-github-metadata` and `bulk-fetch-skill-content` processing loops (generate-embeddings already has parallel batching).
+
+## Fix 4: Filter Irrelevant Tools in solve_goal [P2]
+
+In `supabase/functions/mcp-server/index.ts`:
+1. Add to `SOLVE_GOAL_EXCLUDED_SLUGS`: `firebase`, `neverinfamous-memory-journal-mcp`, `frago`
+2. Add `DOMAIN_CATEGORY_MAP` for domain→expected categories penalty (50% if category doesn't match detected domain)
+
+## Fix 5: Mark Zero-Signal Skills [P2]
+
+**DB migration**: Set `quality_rank = 0.01` for 963 approved skills with 0 rating, 0 installs, 0 trust score.
+
+No search filter change needed — the existing scoring already penalizes zero-signal items by -8 points.
+
+## Fix 6: Quality Rank Distribution [P3]
+
+No action now. Resolves automatically once Fix 1 crons run and github_metadata covers >50% of skills, feeding `recompute_quality_ranks()`.
+
+## Fix 7: scrape-skills-sh Diagnostic [P3]
+
+Invoke the function manually via curl to check logs, then verify `skills_import_staging` and `sync_log` for results. If it's failing silently, add error logging. Low priority — existing sync-skills covers the same sources.
+
+---
+
+## Files to Edit
+
+| File | Fixes |
+|---|---|
+| DB migrations (3) | Fix 1 (add crons), Fix 2 (remove dupes) + Fix 3 (reschedule), Fix 5 (quality_rank) |
+| `supabase/functions/mcp-server/index.ts` | Fix 4 (excluded slugs + domain penalty) |
+| `supabase/functions/enrich-github-metadata/index.ts` | Fix 3 (50s timeout guard) |
+| `supabase/functions/bulk-fetch-skill-content/index.ts` | Fix 3 (50s timeout guard) |
+
+Fix 6 = auto, Fix 7 = manual diagnostic after deployment.
+
