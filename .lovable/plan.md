@@ -1,57 +1,31 @@
-## Plan: 11 Fixes Post-Audit — Estado: ✅ Implementado
 
-### Fix 1: generate-embeddings ✅
-- batch_size default: 20 → 100
-- Retry con backoff (2 intentos, 5s delay)
-- sync_log al inicio y final
-- Error logging mejorado
 
-### Fix 2: bulk-fetch-skill-content ✅
-- batch_size default: 100 → 50
-- Delay 1s cada 10 requests
-- Manejo de 403/429 con break + rateLimited flag
-- sync_log integrado
+# Revisión de los 3 puntos de Claude
 
-### Fix 3: enrich-github-metadata ✅
-- Paginación completa (eliminado limit(1000))
-- Set-difference: solo fetch repos sin metadata fresca (<7 días)
-- sync_log integrado
+## 1. GITHUB_TOKEN — Ya existe
 
-### Fix 4: Install counts inflados ✅
-- Migración SQL: reset install_count=0 donde source != 'tracked'
+El secret `GITHUB_TOKEN` **ya está configurado** en tu proyecto. Aparece en la lista de secrets. Los pipelines de GitHub metadata, stars y SKILL.md ya lo usan con autenticación (5,000 req/hora). No hay acción pendiente aquí.
 
-### Fix 5: Slug collisions ✅
-- Migración SQL con DO block: 55 colisiones resueltas
-- Slugs renombrados a formato org-repo con suffix dedup
-- Redirects insertados en slug_redirects
+## 2. Dashboard de pipelines — Ya tenés visibilidad parcial
 
-### Fix 6: Usage events + MCP instrumentation ✅
-- RLS ya existía (INSERT para anon+authenticated)
-- logUsageEvent/logUsageEvents: .catch(() => {}) → .catch(e => console.error(...))
-- Nuevo helper logToolCall() para agent_analytics
-- search_skills instrumentado con logToolCall
+Tu `/admin` ya tiene la pestaña "Automatización" con estado de crons y progress bars. Pero el dato concreto que Claude pide (contadores exactos de pipelines) no está consolidado en un solo lugar. Números actuales:
 
-### Fix 7: scrape-skills-sh ✅
-- Fallback multi-URL: sitemap.xml → sitemap-skills.xml → sitemap-0.xml
-- Error handling mejorado con consume body
+- **Embeddings**: 5,118 / 36,812 (13.9%)
+- **SKILL.md**: 1,150 fetched
+- **GitHub metadata**: 1,606 entries
+- **Usage events 24h**: 0
 
-### Fix 8: Bundles incompletos ✅
-- 10 nuevos roles agregados a ROLE_CONFIG: teacher, doctor, consultant, accountant, writer, researcher, customer-support, ecommerce-manager, content-creator, project-manager
-- Total: 20 roles (de 10 a 20)
+Propongo agregar una sección "Pipeline Health" en la pestaña Overview del admin con estos 4 contadores en tiempo real. Es un cambio pequeño en `AdminOverviewTab.tsx`.
 
-### Fix 9: Quality rank sin GitHub data ✅
-- recompute_quality_ranks() con fórmula adaptativa
-- Con github_metadata: pesos originales (25% stars, 10% recency)
-- Sin github_metadata: redistribuye a rating (30%), trust (25%), docs (20%), installs (15%), engagement (10%)
+## 3. Scraper de skills.sh — Cambiarlo a diario
 
-### Fix 10: sync_log en pipelines ✅
-- Agregado a: generate-embeddings, bulk-fetch-skill-content, enrich-github-metadata
-- scrape-skills-sh ya lo tenía
+El cron `sync-skills-sh-weekly` corre `0 2 * * 0` (solo domingos a las 2 AM UTC). Claude tiene razón: el pipeline tiene dedup, no hay riesgo de duplicados. Lo cambio a `0 2 * * *` (todos los días).
 
-### Fix 11: Crons duplicados ✅
-- Eliminados: generate-embeddings-6h, recompute-quality-ranks, refresh-directory-stats, bulk-fetch-skill-content-daily, bulk-skillmd-imports, enrich-github-metadata-daily
-- Actualizado generate-embeddings-auto con batch_size=100
+---
 
-### Fix 6 completado: logToolCall en todos los tools ✅
-- 48 tools instrumentados con logToolCall() en agent_analytics
-- Todos los handlers ahora registran tool_name y args_keys
+## Cambios concretos
+
+1. **SQL (insert tool)**: Actualizar el cron `sync-skills-sh-weekly` de `0 2 * * 0` a `0 2 * * *`
+2. **`AdminOverviewTab.tsx`**: Agregar sección "Pipeline Health" con 4 métricas (embeddings, SKILL.md, github_metadata, usage_events 24h)
+3. **`Admin.tsx`**: Agregar query para pipeline health data y pasarla al componente
+
