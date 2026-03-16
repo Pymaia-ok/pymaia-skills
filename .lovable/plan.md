@@ -1,38 +1,34 @@
-## Plan: solve_goal Latency & Never-Empty Fix — Estado: ✅ Implementado
+## Plan: PRD Final Polish — Estado: ✅ Implementado
 
-### Diagnóstico
-- solve_goal SÍ encontraba resultados (5-6 por opción) pero tardaba 150s
-- El cliente MCP cortaba antes → usuario veía "vacío"
-- Causa raíz: LLM call sin timeout + búsquedas secuenciales + analytics bloqueantes
+### Fixes implementados
 
-### Cambios implementados
+#### Fix 1: 3 Pipeline Crons ✅
+- `generate-embeddings-auto`: cada 5 min, batch 100
+- `bulk-fetch-skill-content-auto`: cada 10 min, batch 50
+- `enrich-github-metadata-auto`: cada 15 min, batch 400
 
-#### 1. LLM Timeout (5s) + Keyword Fallback ✅
-- `classifyIntent()` ahora tiene AbortController con 5s timeout
-- Si LLM falla/timeout: usa `detectDomainByKeywords()` + `extractKeywordsFromGoal()`
-- Logging detallado de errores (HTTP status, body, timeout vs exception)
+#### Fix 2: Limpieza de duplicados ✅
+- Eliminados 6 crons duplicados: sync-skills (3), sync-connectors (2), discover-trending (1)
+- 33 → ~27 crons activos
 
-#### 2. crossCatalogSearch Paralelo ✅
-- Antes: N keywords × 3 queries = secuencial
-- Ahora: todas las keywords en parallel via `Promise.all()`
-- Keywords limitadas a 6 (antes hasta 10+)
-- Resultado: 2.5s vs ~30s+
+#### Fix 3: Reducción de timeouts ✅
+- auto-approve: 3min → 10min
+- verify-security: 10min → 30min
+- scan-security: 15min → 30min
+- calculate-trust: 15min → 30min
+- enrich-skills-ai: 30min → 2h
+- translate-skills: 30min → 3h
+- MAX_RUNTIME 50s guard en enrich-github-metadata y bulk-fetch-skill-content
 
-#### 3. Time-budgeted Fallbacks ✅
-- Cada fallback (semantic, FTS, category, domain) solo ejecuta si quedan segundos
-- Limites: 15s, 20s, 25s, 28s respectivamente
-- Compatibility analysis skipped si >20s
+#### Fix 4: Filtrado de tools irrelevantes ✅
+- Añadidos a SOLVE_GOAL_EXCLUDED_SLUGS: firebase, neverinfamous-memory-journal-mcp, frago
+- DOMAIN_CATEGORY_MAP: penalización -5 puntos para tools de categorías no relacionadas al dominio detectado
 
-#### 4. Analytics Fire-and-Forget ✅
-- `agent_analytics.insert()` → `.then(() => {})` (no await)
-- `goal_templates.update()` → `.then(() => {})` (no await)
+#### Fix 5: Zero-signal skills marcados ✅
+- quality_rank = 0.01 para skills con 0 rating, 0 installs, 0 trust score
 
-#### 5. Observabilidad Estructurada ✅
-- Logs con `ms` en cada fase: classified, cross_catalog, fallbacks, done
-- classifyIntent logea modo (llm/timeout/no-api-key), error details
+#### Fix 6: Quality Rank Distribution
+- Se resuelve automáticamente cuando los crons de Fix 1 pueblen github_metadata y ejecuten recompute_quality_ranks()
 
-### Resultados de test
-- "run Meta Ads campaigns" → 5 tools (Option A) + 6 tools (Option B) ✅
-- "manage personal finances" → 5 tools (Option A) + 6 tools (Option B) ✅
-- Tiempo total: ~13s (antes 150s) → ~10s con timeout de 5s
-- LLM actualmente timeout-eando, pero keyword fallback funciona perfecto
+#### Fix 7: scrape-skills-sh Diagnostic
+- Pendiente diagnóstico manual post-deployment
