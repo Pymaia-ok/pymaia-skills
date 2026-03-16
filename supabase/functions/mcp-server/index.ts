@@ -3674,6 +3674,7 @@ mcp.tool("get_top_creators", {
     },
   },
   handler: async (args: { limit?: number }) => {
+    logToolCall("get_top_creators", args);
     const lim = Math.min(args.limit || 10, 20);
 
     // Try the creators table first (populated by sync-creators)
