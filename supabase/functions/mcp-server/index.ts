@@ -3748,6 +3748,7 @@ mcp.tool("get_skill_analytics", {
     },
   },
   handler: async (args: { skill_slug?: string }) => {
+    logToolCall("get_skill_analytics", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
