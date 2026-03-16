@@ -1264,23 +1264,26 @@ mcp.tool("solve_goal", {
     const capabilities = matchedTemplate?.capabilities || [];
     const templateDomain = matchedTemplate?.domain || intent.domain || "general";
 
-    // 2. Collect search keywords (ML-enhanced + template + goal words)
+    // 2. Collect search keywords (ML-enhanced + template + goal words) — cap at 6
     const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
     const goalWords2 = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
     allKeywords.push(...goalWords2);
-    const uniqueKeywords = [...new Set(allKeywords)];
+    const uniqueKeywords = [...new Set(allKeywords)].slice(0, 6);
 
-    // 3. Cross-catalog search (with category hint from classifier)
+    // 3. Cross-catalog search (parallel per keyword now)
+    const searchT0 = Date.now();
     const searchResults = await crossCatalogSearch(uniqueKeywords, 8, apiUserId);
     let allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "cross_catalog", ms: Date.now() - searchT0, results: allItems.length }));
 
-    // 3b. FALLBACK: If cross-catalog search returned nothing, try semantic search
-    if (allItems.length === 0) {
+    // 3b-3e: Fallbacks only if cross-catalog returned nothing (each with time budget)
+    if (allItems.length === 0 && (Date.now() - solveT0) < 15000) {
+      // 3b. Semantic search
       try {
         const semanticResp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
           method: "POST",
@@ -1294,25 +1297,20 @@ mcp.tool("solve_goal", {
           }
         }
       } catch { /* skip */ }
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "semantic_fallback", goal: args.goal, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "semantic_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    // 3c. FALLBACK: If still nothing, try FTS RPC
-    if (allItems.length === 0) {
-      const { data: ftsResults } = await supabase.rpc("search_skills", {
-        search_query: args.goal,
-        page_size: 12,
-      });
+    if (allItems.length === 0 && (Date.now() - solveT0) < 20000) {
+      // 3c. FTS RPC
+      const { data: ftsResults } = await supabase.rpc("search_skills", { search_query: args.goal, page_size: 12 });
       if (ftsResults && ftsResults.length > 0) {
-        for (const s of ftsResults) {
-          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
-        }
+        for (const s of ftsResults) allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
       }
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", goal: args.goal, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    // 3d. FALLBACK: category-based browse (skills + connectors + plugins)
-    if (allItems.length === 0 && intent.category) {
+    if (allItems.length === 0 && intent.category && (Date.now() - solveT0) < 25000) {
+      // 3d. Category-based browse
       const [{ data: catSkills }, { data: catConnectors }, { data: catPlugins }] = await Promise.all([
         supabase.from("skills")
           .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, quality_rank, github_stars")
@@ -1330,13 +1328,13 @@ mcp.tool("solve_goal", {
       if (catSkills) for (const s of catSkills) allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
       if (catConnectors) for (const c of catConnectors) allItems.push({ ...c, type: "connector", desc: c.description });
       if (catPlugins) for (const p of catPlugins) allItems.push({ ...p, type: "plugin", desc: p.description });
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "category_fallback", category: intent.category, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "category_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    // 3e. FALLBACK: broad keyword search with expanded synonyms
-    if (allItems.length === 0) {
+    if (allItems.length === 0 && (Date.now() - solveT0) < 28000) {
+      // 3e. Domain keyword fallback
       const domainKeywords = KEYWORD_DOMAIN_MAP[intent.domain] || [];
-      const extraKeywords = domainKeywords.slice(0, 5).map(k => k.split(/\s+/)[0]);
+      const extraKeywords = domainKeywords.slice(0, 4).map(k => k.split(/\s+/)[0]);
       if (extraKeywords.length > 0) {
         const broadResults = await crossCatalogSearch(extraKeywords, 6, apiUserId);
         allItems.push(
@@ -1345,10 +1343,10 @@ mcp.tool("solve_goal", {
           ...broadResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
         );
       }
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "domain_keyword_fallback", domain: intent.domain, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "domain_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", ms: Date.now() - solveT0, totalItems: allItems.length, uniqueKeywords: uniqueKeywords.length }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
     // Filter out generic/meta tools that pollute results
