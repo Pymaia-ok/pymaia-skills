@@ -83,19 +83,31 @@ const GENERIC_TOOL_SLUGS = new Set([
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
   const goalLower = goal.toLowerCase();
+  const goalWords = goalLower.split(/\s+/).filter(w => w.length >= 3);
   let bestDomain = "general";
   let bestScore = 0;
 
   for (const [domain, keywords] of Object.entries(KEYWORD_DOMAIN_MAP)) {
     let score = 0;
     for (const kw of keywords) {
-      if (goalLower.includes(kw)) score += kw.split(/\s+/).length; // multi-word matches score higher
+      // Exact substring match (original)
+      if (goalLower.includes(kw)) { score += kw.split(/\s+/).length; continue; }
+      // Fuzzy prefix match: check if any goal word shares a prefix (≥5 chars) with any keyword word
+      const kwWords = kw.split(/\s+/);
+      for (const kwWord of kwWords) {
+        if (kwWord.length < 4) continue;
+        for (const gw of goalWords) {
+          if (gw.length < 4) continue;
+          const prefixLen = Math.min(5, Math.min(gw.length, kwWord.length));
+          if (gw.substring(0, prefixLen) === kwWord.substring(0, prefixLen)) { score += 0.5; break; }
+        }
+      }
     }
     if (score > bestScore) { bestScore = score; bestDomain = domain; }
   }
 
-  if (bestScore >= 2) {
-    return { domain: bestDomain, category: DOMAIN_TO_CATEGORY[bestDomain] || null, confidence: Math.min(bestScore / 4, 1.0) };
+  if (bestScore >= 1) {
+    return { domain: bestDomain, category: DOMAIN_TO_CATEGORY[bestDomain] || null, confidence: Math.min(bestScore / 3, 1.0) };
   }
   return { domain: "general", category: null, confidence: 0 };
 }
