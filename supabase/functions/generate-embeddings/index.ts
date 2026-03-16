@@ -204,12 +204,14 @@ serve(async (req) => {
     // Update sync_log
     if (syncId) {
       await supabase.from("sync_log").update({
-        status: errors > processed ? "failed" : "completed",
+        status: rateLimited ? "rate_limited" : (errors > processed ? "failed" : "completed"),
         completed_at: new Date().toISOString(),
         new_count: processed,
         error_count: errors,
       }).eq("id", syncId);
     }
+
+    console.log(JSON.stringify({ fn: "generate-embeddings", table, processed, errors, rateLimited, batchSize: records.length }));
 
     return new Response(
       JSON.stringify({ table, processed, errors, remaining: records.length - processed - errors }),
