@@ -161,9 +161,9 @@ async function classifyIntent(goal: string, role?: string): Promise<{
   }
 
   try {
-    // 8-second timeout for LLM call
+    // 5-second timeout for LLM call
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 5000);
     
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
