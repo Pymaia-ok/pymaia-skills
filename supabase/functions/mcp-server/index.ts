@@ -372,6 +372,7 @@ mcp.tool("get_skill_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_skill_details", args);
     // Log usage event
     logUsageEvent("view", args.slug, "skill");
     const resolvedSlug = await resolveSlug(args.slug, "skill");
