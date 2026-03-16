@@ -2801,6 +2801,7 @@ mcp.tool("get_setup_guide", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("get_setup_guide", args);
     // Fetch all items across tables
     const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
       supabase.from("skills").select("display_name, slug, install_command, required_mcps, category").eq("status", "approved").in("slug", args.slugs),
