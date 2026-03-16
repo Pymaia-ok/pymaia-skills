@@ -2705,6 +2705,7 @@ mcp.tool("suggest_stack", {
     required: ["project_description"],
   },
   handler: async (args: { project_description: string; max_items?: number }) => {
+    logToolCall("suggest_stack", args);
     const max = Math.min(args.max_items || 5, 8);
     const intent = await classifyIntent(args.project_description);
     const keywords = intent.keywords.length ? intent.keywords : args.project_description.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
