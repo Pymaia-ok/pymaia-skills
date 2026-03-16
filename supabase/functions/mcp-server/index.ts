@@ -1358,6 +1358,14 @@ mcp.tool("solve_goal", {
       if (item.is_anthropic_verified) score += 2;
       if (item.avg_rating >= 4.0) score += 2;
       score += (item.trust_score || 0) / 20;
+
+      // Goal-word relevance penalty: if NO goal words appear in description, penalize heavily
+      const goalWordsLong = goalWords2.filter(w => w.length > 3);
+      if (goalWordsLong.length > 0) {
+        const anyGoalWordInDesc = goalWordsLong.some(w => searchable.includes(w));
+        if (!anyGoalWordInDesc) score *= 0.3; // 70% penalty
+      }
+
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
 
