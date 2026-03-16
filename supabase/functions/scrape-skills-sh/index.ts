@@ -147,7 +147,7 @@ async function scrapeFromSitemap(supabase: any, maxEntries: number) {
 
   if (!sitemapText) throw new Error("All sitemap URLs failed — skills.sh may be down or restructured");
 
-  const sitemapText = await sitemapRes.text();
+  // sitemapText already populated above
 
   // Parse URLs from sitemap XML
   // Format: <loc>https://skills.sh/{owner}/{repo}/{skill}</loc>
