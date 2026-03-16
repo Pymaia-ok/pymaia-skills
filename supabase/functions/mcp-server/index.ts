@@ -812,6 +812,7 @@ mcp.tool("get_connector_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_connector_details", args);
     const { data: c, error } = await supabase
       .from("mcp_servers").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
 
