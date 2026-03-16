@@ -3929,6 +3929,7 @@ mcp.tool("run_skill_evals", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string }) => {
+    logToolCall("run_skill_evals", args);
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/test-skill`, {
         method: "POST",
