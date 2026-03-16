@@ -672,6 +672,7 @@ mcp.tool("compare_skills", {
   },
   handler: async (args: { slugs: string[] }) => {
     logToolCall("compare_skills", args);
+    logUsageEvents("compared", args.slugs.map(s => ({ slug: s, type: "skill" })));
     // Resolve slugs through redirects
     const resolvedSlugs = await Promise.all(args.slugs.map(s => resolveSlug(s, "skill")));
     const { data: skills, error } = await supabase
