@@ -2463,6 +2463,7 @@ mcp.tool("a2a_query", {
     required: ["action"],
   },
   handler: async (args: { action: string; query?: string; filters?: any; format?: string }) => {
+    logToolCall("a2a_query", args);
     const structured = args.format !== "natural";
 
     // Log A2A interaction
