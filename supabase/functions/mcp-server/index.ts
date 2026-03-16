@@ -36,11 +36,11 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
 
 // ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
 const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
-  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic", "run campaigns", "paid advertising", "media buying", "campaigns", "publicidad", "anuncios", "campañas"],
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic", "run campaigns", "paid advertising", "media buying", "campaigns", "publicidad", "anuncios", "campañas", "facebook campaign", "instagram campaign"],
   "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
   "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
-  "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
-  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad", "finances", "personal finances", "money", "savings", "income", "debt", "loans", "banking", "investments", "net worth", "cash flow", "gastos", "ahorro", "dinero", "deudas", "presupuesto", "impuestos"],
+  "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops", "helm", "cloud", "monitoring", "alerting"],
+  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad", "finances", "personal finances", "personal finance", "money", "money management", "savings", "savings account", "income", "debt", "loans", "banking", "investments", "net worth", "cash flow", "gastos", "ahorro", "dinero", "deudas", "presupuesto", "impuestos"],
   "legal": ["contract", "legal", "compliance", "patent", "trademark", "litigation", "contrato", "abogado"],
   "data": ["data pipeline", "etl", "analytics", "dashboard", "visualization", "sql", "warehouse", "datos"],
   "security": ["vulnerability", "penetration test", "security audit", "firewall", "encryption", "seguridad"],
