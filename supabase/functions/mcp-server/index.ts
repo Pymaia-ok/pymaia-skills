@@ -3563,6 +3563,7 @@ mcp.tool("report_goal_outcome", {
     required: ["goal", "outcome"],
   },
   handler: async (args: { goal: string; outcome: string; feedback?: string; time_spent?: string; would_recommend?: boolean }) => {
+    logToolCall("report_goal_outcome", args);
     const ratingMap: Record<string, number> = { success: 5, partial: 3, failed: 1 };
     await supabase.from("recommendation_feedback").insert({
       goal: args.goal,
