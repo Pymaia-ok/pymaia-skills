@@ -3814,6 +3814,7 @@ mcp.tool("install_bundle", {
     required: ["bundle_id"],
   },
   handler: async (args: { bundle_id: string }) => {
+    logToolCall("install_bundle", args);
     let bundle: any = null;
     const { data: byId } = await supabase.from("skill_bundles").select("*").eq("id", args.bundle_id).eq("is_active", true).maybeSingle();
     if (byId) { bundle = byId; } else {
