@@ -3594,6 +3594,7 @@ mcp.tool("rate_skill", {
     required: ["skill_slug", "rating"],
   },
   handler: async (args: { skill_slug: string; rating: number; comment?: string }) => {
+    logToolCall("rate_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
