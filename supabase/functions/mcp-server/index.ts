@@ -1545,6 +1545,7 @@ mcp.tool("rate_recommendation", {
     required: ["goal", "rating"],
   },
   handler: async (args: { goal: string; chosen_option?: string; rating: number; comment?: string }) => {
+    logToolCall("rate_recommendation", args);
     await supabase.from("recommendation_feedback").insert({
       goal: args.goal,
       chosen_option: args.chosen_option || null,
