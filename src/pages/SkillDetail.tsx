@@ -192,7 +192,7 @@ const SkillDetail = () => {
           {/* 2-column grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-10">
             {/* ─── Main Column ─── */}
-            <div className="min-w-0 order-2 lg:order-none">
+            <div className="min-w-0 order-1 lg:order-none">
               <SkillHero displayName={displayName} tagline={tagline} industry={skill.industry} />
 
               {/* Version + Changelog */}
