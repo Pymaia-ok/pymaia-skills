@@ -4111,6 +4111,7 @@ mcp.tool("report_skill", {
     required: ["skill_slug", "report_type", "description"],
   },
   handler: async (args: { skill_slug: string; report_type: string; description: string; reporter_email?: string }) => {
+    logToolCall("report_skill", args);
     const { data: skill } = await supabase.from("skills").select("id, display_name").eq("slug", args.skill_slug).maybeSingle();
     if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
 

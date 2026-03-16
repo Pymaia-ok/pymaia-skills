@@ -52,5 +52,6 @@
 - Eliminados: generate-embeddings-6h, recompute-quality-ranks, refresh-directory-stats, bulk-fetch-skill-content-daily, bulk-skillmd-imports, enrich-github-metadata-daily
 - Actualizado generate-embeddings-auto con batch_size=100
 
-### Pendiente para siguiente mensaje:
-- Instrumentar logToolCall() en los ~40 tools restantes del MCP server (Fix 6 parcial)
+### Fix 6 completado: logToolCall en todos los tools ✅
+- 48 tools instrumentados con logToolCall() en agent_analytics
+- Todos los handlers ahora registran tool_name y args_keys
