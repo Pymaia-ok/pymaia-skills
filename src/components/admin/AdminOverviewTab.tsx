@@ -1,4 +1,4 @@
-import { Languages, ShieldCheck, ShieldAlert, Shield, RefreshCw, CheckCircle2, XCircle, Clock, Activity, AlertTriangle, FileWarning, Lightbulb, TrendingDown, Search, Sparkles } from "lucide-react";
+import { Languages, ShieldCheck, ShieldAlert, Shield, RefreshCw, CheckCircle2, XCircle, Clock, Activity, AlertTriangle, FileWarning, Lightbulb, TrendingDown, Search, Sparkles, Database, Code, Brain, BarChart3 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
@@ -12,6 +12,13 @@ interface QualityInsight {
   status: string;
 }
 
+interface PipelineHealth {
+  embeddings: { done: number; total: number };
+  skillMd: number;
+  ghMetadata: number;
+  usage24h: number;
+}
+
 interface AdminOverviewTabProps {
   translatedCount: number;
   translationTotal: number;
@@ -22,6 +29,7 @@ interface AdminOverviewTabProps {
   connectorStats: { total: number; untranslated: number } | undefined;
   recentLogs: any[] | undefined;
   qualityInsights?: QualityInsight[];
+  pipelineHealth?: PipelineHealth;
 }
 
 const insightIcon: Record<string, typeof Lightbulb> = {
