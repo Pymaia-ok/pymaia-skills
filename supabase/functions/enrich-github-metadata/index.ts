@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { batchSize = 400 } = await req.json().catch(() => ({}));
+    const { batchSize = 150 } = await req.json().catch(() => ({}));
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     if (!githubToken) throw new Error("GITHUB_TOKEN not configured");
