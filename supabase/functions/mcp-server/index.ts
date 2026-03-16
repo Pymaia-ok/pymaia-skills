@@ -1461,19 +1461,20 @@ mcp.tool("solve_goal", {
       }
     }
 
-    // 5. Compose Option A (simple — fewer tools, prefer plugins/bundles)
+    // 5. Compose Option A (simple — type-balanced: max 1 plugin, 2 connectors, 2 skills)
     const optionA: any[] = [];
     const usedA = new Set<string>();
-    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionA.length >= 3 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
-    for (const item of scored.filter((i: any) => i.type === "connector")) { if (optionA.length >= 4 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionA.filter((x: any) => x.type === "plugin").length >= 1 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "connector")) { if (optionA.filter((x: any) => x.type === "connector").length >= 2 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
     for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionA.length >= 5 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
 
-    // 6. Compose Option B (flexible — connectors first, then skills)
+    // 6. Compose Option B (flexible — max 3 connectors, 2 skills, 1 plugin)
     const optionB: any[] = [];
     const usedB = new Set<string>();
-    for (const item of scored.filter((i: any) => i.type === "connector" && i.is_official)) { if (optionB.length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "connector" && i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
     for (const item of scored.filter((i: any) => i.type === "connector" && !i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 3 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
-    for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.filter((x: any) => x.type === "skill").length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
 
     // 7. Compatibility analysis (skip if over time budget)
     let warningsA: string[] = [], warningsB: string[] = [];
