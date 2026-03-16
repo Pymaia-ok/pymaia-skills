@@ -1408,6 +1408,13 @@ mcp.tool("solve_goal", {
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
       if (intent.category && item.category === intent.category) score += 4;
 
+      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories
+      const detectedDomain = keywordDomain?.domain || intent.domain;
+      const expectedCategories = DOMAIN_CATEGORY_MAP[detectedDomain];
+      if (expectedCategories && item.category && !expectedCategories.has(item.category.toLowerCase())) {
+        score -= 5; // 50% effective penalty for off-domain tools
+      }
+
       // Quality signals (with inflated-stars guard)
       const stars = item.github_stars || 0;
       const installs = item.install_count || 0;
