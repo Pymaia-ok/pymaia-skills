@@ -1858,6 +1858,7 @@ mcp.tool("generate_custom_skill", {
     required: ["goal", "tools"],
   },
   handler: async (args: { goal: string; tools: string[]; output_format?: string; custom_name?: string }) => {
+    logToolCall("generate_custom_skill", args);
     const format = args.output_format || "skill";
 
     // 1. Fetch details for all referenced tools
