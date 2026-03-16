@@ -2624,6 +2624,7 @@ mcp.tool("get_install_command", {
     required: ["name"],
   },
   handler: async (args: { name: string }) => {
+    logToolCall("get_install_command", args);
     const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
 
     // Resolve slug redirects first
