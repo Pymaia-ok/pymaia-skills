@@ -73,7 +73,7 @@ export default {
     statsSkills: "soluciones",
     statsConnectors: "integraciones",
     statsPlugins: "plugins",
-    statsBundles: "bundles por rol",
+    statsSecurityScanned: "auditados",
 
     whyTitle: "¿Por qué Pymaia?",
     whySubtitle: "La única plataforma que unifica descubrimiento, seguridad y automatización para herramientas de IA.",
