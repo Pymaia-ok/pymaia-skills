@@ -92,7 +92,7 @@ const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
   "io-aerospace-software-community-mcp-server",  // Astrodynamics
   "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
   // Fix 4: additional noise tools
-  "firebase", "neverinfamous-memory-journal-mcp", "frago",
+  "firebase", "neverinfamous-memory-journal-mcp", "frago", "tsaijamey-frago",
 ]);
 
 // ─── DOMAIN → EXPECTED CATEGORIES MAP: penalize off-domain tools ───
