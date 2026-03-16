@@ -2326,6 +2326,7 @@ mcp.tool("agent_analytics", {
     },
   },
   handler: async (args: { period?: string; metric?: string }) => {
+    logToolCall("agent_analytics", args);
     const days = args.period === "day" ? 1 : args.period === "month" ? 30 : 7;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const metric = args.metric || "overview";
