@@ -127,3 +127,6 @@ verify_jwt = false
 [functions.sync-antigravity-skills]
 verify_jwt = false
 
+[functions.discover-trending-repos]
+verify_jwt = false
+
