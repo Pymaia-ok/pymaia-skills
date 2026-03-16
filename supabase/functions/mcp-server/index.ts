@@ -935,6 +935,7 @@ mcp.tool("get_plugin_details", {
   },
   handler: async (args: { slug: string }) => {
     logToolCall("get_plugin_details", args);
+    logUsageEvent("view", args.slug, "plugin");
     const { data: p, error } = await supabase
       .from("plugins").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
 
