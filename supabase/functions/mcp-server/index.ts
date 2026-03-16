@@ -84,13 +84,13 @@ const GENERIC_TOOL_SLUGS = new Set([
 // ─── SOLVE_GOAL EXCLUDED SLUGS: generic platforms that pollute every result ───
 const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
   // Generic dev platforms that appear in everything
-  "asana", "posthog", "vercel",
+  "asana-plugin", "posthog", "vercel-plugin",
   // Meta tools about skills/plugins, not real tasks
   "cowork-plugin-management", "claude-code-setup", "claude-md-management",
   // Completely out of context for most goals
-  "tidal-mcp",           // Music streaming
-  "io-aerospace-mcp",    // Astrodynamics
-  "xcodebuildmcp",       // iOS/Xcode only
+  "io-github-ibeal-tidal-mcp",  // Music streaming
+  "io-aerospace-software-community-mcp-server",  // Astrodynamics
+  "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
 ]);
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
