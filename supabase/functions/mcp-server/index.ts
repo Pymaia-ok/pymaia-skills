@@ -1143,6 +1143,7 @@ mcp.tool("solve_goal", {
     required: ["goal"],
   },
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
+    logToolCall("solve_goal", args);
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
