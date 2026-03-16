@@ -3981,6 +3981,7 @@ mcp.tool("publish_skill", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string; visibility?: string; category?: string; pricing?: string; price_usd?: number; changelog?: string }) => {
+    logToolCall("publish_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to publish skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
