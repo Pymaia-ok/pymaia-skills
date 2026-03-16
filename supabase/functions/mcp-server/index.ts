@@ -1105,9 +1105,10 @@ mcp.tool("explore_directory", {
 // ─── HELPERS: Cross-catalog search & compatibility ───
 
 async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: string | null) {
+  const t0 = Date.now();
   const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
   
-  // Expand multi-word keywords into individual words for broader ILIKE matching
+  // Expand multi-word keywords but cap at 6 to reduce latency
   const expandedKeywords = new Set<string>();
   for (const kw of keywords) {
     expandedKeywords.add(kw);
@@ -1116,13 +1117,13 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       for (const part of parts) expandedKeywords.add(part);
     }
   }
-  const uniqueExpanded = [...expandedKeywords].slice(0, 10);
+  const uniqueExpanded = [...expandedKeywords].slice(0, 6);
 
-  for (const kw of uniqueExpanded) {
+  // Run ALL keyword searches in parallel instead of sequential
+  const searchPromises = uniqueExpanded.map(kw => {
     const q = sanitizeForPostgrest(kw);
-    if (!q || q.length < 2) continue;
+    if (!q || q.length < 2) return Promise.resolve({ kw, sk: null, mc: null, pl: null });
 
-    // Skills query: include private skills for authenticated API key users
     let skillQuery = supabase.from("skills")
       .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars, is_public, creator_id")
       .or(
@@ -1133,7 +1134,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       .or(`display_name.ilike.%${q}%,display_name_es.ilike.%${q}%,tagline.ilike.%${q}%,tagline_es.ilike.%${q}%,description_human.ilike.%${q}%,description_human_es.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
       .order("install_count", { ascending: false }).limit(limit);
     
-    const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
+    return Promise.all([
       skillQuery,
       supabase.from("mcp_servers")
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
@@ -1147,10 +1148,11 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
         .eq("status", "approved")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
         .order("install_count", { ascending: false }).limit(limit),
-    ]);
-    
-    console.log(JSON.stringify({ fn: "crossCatalogSearch", keyword: kw, sanitized: q, skills: sk?.length || 0, connectors: mc?.length || 0, plugins: pl?.length || 0 }));
+    ]).then(([{ data: sk }, { data: mc }, { data: pl }]) => ({ kw, sk, mc, pl }));
+  });
 
+  const allResults = await Promise.all(searchPromises);
+  for (const { kw, sk, mc, pl } of allResults) {
     if (sk) results.skills.push(...sk);
     if (mc) results.connectors.push(...mc);
     if (pl) results.plugins.push(...pl);
@@ -1161,7 +1163,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
   results.connectors = sortByTrust(deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; })));
   results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
 
-  console.log(JSON.stringify({ fn: "crossCatalogSearch", totalKeywords: uniqueExpanded.length, originalKeywords: keywords.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
+  console.log(JSON.stringify({ fn: "crossCatalogSearch", ms: Date.now() - t0, totalKeywords: uniqueExpanded.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
   
   return results;
 }
