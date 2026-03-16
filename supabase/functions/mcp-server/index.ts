@@ -36,20 +36,22 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
 
 // ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
 const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
-  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic"],
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic", "run campaigns", "paid advertising", "media buying", "campaigns", "publicidad", "anuncios", "campañas"],
   "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
   "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
   "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
-  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad"],
+  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad", "finances", "personal finances", "money", "savings", "income", "debt", "loans", "banking", "investments", "net worth", "cash flow", "gastos", "ahorro", "dinero", "deudas", "presupuesto", "impuestos"],
   "legal": ["contract", "legal", "compliance", "patent", "trademark", "litigation", "contrato", "abogado"],
   "data": ["data pipeline", "etl", "analytics", "dashboard", "visualization", "sql", "warehouse", "datos"],
   "security": ["vulnerability", "penetration test", "security audit", "firewall", "encryption", "seguridad"],
   "design": ["ui/ux", "figma", "wireframe", "prototype", "design system", "accessibility", "diseño"],
   "sales": ["crm", "prospecting", "cold email", "lead generation", "outbound", "pipeline", "ventas"],
-  "hr": ["recruiting", "hiring", "onboarding", "employee", "payroll", "performance review", "rrhh"],
+  "hr": ["recruiting", "hiring", "onboarding", "employee", "payroll", "performance review", "rrhh", "talent", "workforce", "benefits", "compensation", "recursos humanos"],
   "support": ["customer support", "ticket", "helpdesk", "chatbot", "faq", "knowledge base", "soporte"],
   "development": ["code review", "pull request", "testing", "refactoring", "debugging", "api", "desarrollo", "programación"],
   "marketing": ["seo", "copywriting", "content marketing", "branding", "growth", "marketing"],
+  "healthcare": ["patient", "medical", "clinical", "health", "diagnosis", "ehr", "hipaa", "telemedicine", "salud", "paciente", "médico"],
+  "personal-finance": ["personal budget", "track spending", "expense tracker", "save money", "financial planning", "retirement", "invest", "portfolio", "crypto", "stock", "trading"],
 };
 
 // Map domain IDs to catalog categories
@@ -59,32 +61,53 @@ const DOMAIN_TO_CATEGORY: Record<string, string> = {
   "social-media": "marketing",
   "devops": "desarrollo",
   "finance": "negocios",
+  "personal-finance": "negocios",
   "legal": "legal",
   "data": "datos",
   "security": "desarrollo",
   "design": "diseño",
   "sales": "negocios",
   "hr": "negocios",
+  "healthcare": "negocios",
   "support": "productividad",
   "development": "desarrollo",
   "marketing": "marketing",
 };
 
+// ─── GENERIC TOOL SLUGS BLACKLIST ───
+const GENERIC_TOOL_SLUGS = new Set([
+  "cowork-plugin-management", "claude-code-setup", "claude-code-plugins-plus-skills",
+  "claude-md-management", "plugin-management", "skill-management", "agent-management",
+  "mcp-server-management", "tool-management", "settings-manager",
+]);
+
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
   const goalLower = goal.toLowerCase();
+  const goalWords = goalLower.split(/\s+/).filter(w => w.length >= 3);
   let bestDomain = "general";
   let bestScore = 0;
 
   for (const [domain, keywords] of Object.entries(KEYWORD_DOMAIN_MAP)) {
     let score = 0;
     for (const kw of keywords) {
-      if (goalLower.includes(kw)) score += kw.split(/\s+/).length; // multi-word matches score higher
+      // Exact substring match (original)
+      if (goalLower.includes(kw)) { score += kw.split(/\s+/).length; continue; }
+      // Fuzzy prefix match: check if any goal word shares a prefix (≥5 chars) with any keyword word
+      const kwWords = kw.split(/\s+/);
+      for (const kwWord of kwWords) {
+        if (kwWord.length < 4) continue;
+        for (const gw of goalWords) {
+          if (gw.length < 4) continue;
+          const prefixLen = Math.min(5, Math.min(gw.length, kwWord.length));
+          if (gw.substring(0, prefixLen) === kwWord.substring(0, prefixLen)) { score += 0.5; break; }
+        }
+      }
     }
     if (score > bestScore) { bestScore = score; bestDomain = domain; }
   }
 
-  if (bestScore >= 2) {
-    return { domain: bestDomain, category: DOMAIN_TO_CATEGORY[bestDomain] || null, confidence: Math.min(bestScore / 4, 1.0) };
+  if (bestScore >= 1) {
+    return { domain: bestDomain, category: DOMAIN_TO_CATEGORY[bestDomain] || null, confidence: Math.min(bestScore / 3, 1.0) };
   }
   return { domain: "general", category: null, confidence: 0 };
 }
@@ -172,8 +195,8 @@ Be precise with keywords - they should match actual tool names and descriptions.
     const llmResult = JSON.parse(call.function.arguments);
 
     // Override: if keyword detection has high confidence and LLM disagrees on domain, prefer keyword
-    if (keywordResult.confidence >= 0.75 && keywordResult.domain !== "general") {
-      if (llmResult.domain !== keywordResult.domain && llmResult.confidence < 0.9) {
+    if (keywordResult.confidence >= 0.5 && keywordResult.domain !== "general") {
+      if (llmResult.domain !== keywordResult.domain && llmResult.confidence < 0.85) {
         llmResult.domain = keywordResult.domain;
         llmResult.category = keywordResult.category || llmResult.category;
       }
@@ -1294,8 +1317,10 @@ mcp.tool("solve_goal", {
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
+    // Filter out generic/meta tools that pollute results
+    const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
-    const scored = allItems.map((item: any) => {
+    const scored = filteredItems.map((item: any) => {
       let score = 0;
       const descLower = (item.desc || "").toLowerCase();
       const nameLower = (item.name || "").toLowerCase();
@@ -1333,6 +1358,14 @@ mcp.tool("solve_goal", {
       if (item.is_anthropic_verified) score += 2;
       if (item.avg_rating >= 4.0) score += 2;
       score += (item.trust_score || 0) / 20;
+
+      // Goal-word relevance penalty: if NO goal words appear in description, penalize heavily
+      const goalWordsLong = goalWords2.filter(w => w.length > 3);
+      if (goalWordsLong.length > 0) {
+        const anyGoalWordInDesc = goalWordsLong.some(w => searchable.includes(w));
+        if (!anyGoalWordInDesc) score *= 0.3; // 70% penalty
+      }
+
       return { ...item, relevance: score };
     }).sort((a: any, b: any) => b.relevance - a.relevance);
 
