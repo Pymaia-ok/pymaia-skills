@@ -537,6 +537,7 @@ mcp.tool("search_by_role", {
     required: ["role"],
   },
   handler: async (args: { role: string; limit?: number }) => {
+    logToolCall("search_by_role", args);
     const roleLower = args.role.toLowerCase();
     const relevantCategories = ROLE_CATEGORIES[roleLower] || [];
     const lim = Math.min(args.limit || 5, 10);
