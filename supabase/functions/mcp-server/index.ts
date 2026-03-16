@@ -93,6 +93,8 @@ const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
   "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
   // Fix 4: additional noise tools
   "firebase", "neverinfamous-memory-journal-mcp", "frago", "tsaijamey-frago",
+  // Fix V2: more noise tools
+  "claude-code-cwd-tracker", "avisangle-calculator-server", "multi-mcp", "ui-ticket-mcp",
 ]);
 
 // ─── DOMAIN → EXPECTED CATEGORIES MAP: penalize off-domain tools ───
