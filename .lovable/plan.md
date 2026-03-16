@@ -1,70 +1,57 @@
+## Plan: 11 Fixes Post-Audit — Estado: ✅ Implementado
 
+### Fix 1: generate-embeddings ✅
+- batch_size default: 20 → 100
+- Retry con backoff (2 intentos, 5s delay)
+- sync_log al inicio y final
+- Error logging mejorado
 
-# Plan: Comunicar diferenciales en la Landing Page
+### Fix 2: bulk-fetch-skill-content ✅
+- batch_size default: 100 → 50
+- Delay 1s cada 10 requests
+- Manejo de 403/429 con break + rateLimited flag
+- sync_log integrado
 
-El PRD propone 8 cambios. Analicé cada uno contra el estado actual del código. Mi recomendación: **implementar 5 de los 8** — los que tienen mayor impacto con menor riesgo de sobrecargar la landing.
+### Fix 3: enrich-github-metadata ✅
+- Paginación completa (eliminado limit(1000))
+- Set-difference: solo fetch repos sin metadata fresca (<7 días)
+- sync_log integrado
 
----
+### Fix 4: Install counts inflados ✅
+- Migración SQL: reset install_count=0 donde source != 'tracked'
 
-## Cambios que SÍ vale la pena hacer
+### Fix 5: Slug collisions ✅
+- Migración SQL con DO block: 55 colisiones resueltas
+- Slugs renombrados a formato org-repo con suffix dedup
+- Redirects insertados en slug_redirects
 
-### 1. Actualizar Hero badge y subtítulo (Cambio 1 + 8)
-El badge dice "35,000+ professional solutions" pero la DB tiene 36,812 skills + 6,360 connectors + 480 plugins = **43,652 tools**. Está subvaluando el catálogo y no comunica que son 3 tipos unificados.
+### Fix 6: Usage events + MCP instrumentation ✅
+- RLS ya existía (INSERT para anon+authenticated)
+- logUsageEvent/logUsageEvents: .catch(() => {}) → .catch(e => console.error(...))
+- Nuevo helper logToolCall() para agent_analytics
+- search_skills instrumentado con logToolCall
 
-- Cambiar `heroBadge` a usar el total dinámico sumando las 3 queries que ya hace StatsBar, o hardcodear "43,000+" con mención de "Skills, MCPs & Plugins"
-- Actualizar `heroSubtitle` para mencionar catálogo unificado y seguridad
+### Fix 7: scrape-skills-sh ✅
+- Fallback multi-URL: sitemap.xml → sitemap-skills.xml → sitemap-0.xml
+- Error handling mejorado con consume body
 
-**Archivos**: `src/i18n/en.ts`, `src/i18n/es.ts`, posiblemente `HeroSection.tsx` si se hace dinámico
+### Fix 8: Bundles incompletos ✅
+- 10 nuevos roles agregados a ROLE_CONFIG: teacher, doctor, consultant, accountant, writer, researcher, customer-support, ecommerce-manager, content-creator, project-manager
+- Total: 20 roles (de 10 a 20)
 
-### 2. Agregar sección "Why Pymaia" (Cambio 2)
-Es el cambio de mayor impacto. Actualmente no hay ningún lugar que explique por qué Pymaia vs la competencia. 3 columnas: catálogo unificado, goal solver, security-first.
+### Fix 9: Quality rank sin GitHub data ✅
+- recompute_quality_ranks() con fórmula adaptativa
+- Con github_metadata: pesos originales (25% stars, 10% recency)
+- Sin github_metadata: redistribuye a rating (30%), trust (25%), docs (20%), installs (15%), engagement (10%)
 
-- Nuevo componente `WhyPymaiaSection.tsx`
-- Insertar en `Index.tsx` después de StatsBar, antes de MarqueeSection
-- Strings en ambos idiomas
+### Fix 10: sync_log en pipelines ✅
+- Agregado a: generate-embeddings, bulk-fetch-skill-content, enrich-github-metadata
+- scrape-skills-sh ya lo tenía
 
-**Archivos**: nuevo `src/components/landing/WhyPymaiaSection.tsx`, `src/pages/Index.tsx`, `src/i18n/en.ts`, `src/i18n/es.ts`
+### Fix 11: Crons duplicados ✅
+- Eliminados: generate-embeddings-6h, recompute-quality-ranks, refresh-directory-stats, bulk-fetch-skill-content-daily, bulk-skillmd-imports, enrich-github-metadata-daily
+- Actualizado generate-embeddings-auto con batch_size=100
 
-### 3. Actualizar StatsBar (Cambio 3)
-Reemplazar "15 áreas de negocio" (hardcodeado) por un stat de seguridad o bundles. El PRD sugiere "Security-scanned — Every tool verified".
-
-- Cambiar el 4to stat de `{ value: 15, label: "industries" }` a un conteo dinámico de bundles activos, o un indicador de seguridad
-- Opción: agregar 5to stat
-
-**Archivos**: `src/components/landing/StatsBar.tsx`, `src/i18n/en.ts`, `src/i18n/es.ts`
-
-### 4. Actualizar copy de "How It Works" (Cambio 4)
-El copy actual es genérico ("Pick a solution" → "Activate" → "You're productive"). El nuevo copy comunica los diferenciales: goal-solving en paso 1, seguridad en paso 2.
-
-- Actualizar strings y iconos (Search → Target, Copy → ShieldCheck)
-- No cambia la estructura del componente
-
-**Archivos**: `src/i18n/en.ts`, `src/i18n/es.ts`, `src/components/landing/HowItWorks.tsx` (iconos)
-
-### 5. TrustBadge en SkillCards (Cambio 5)
-**Ya está implementado.** El `SkillCard.tsx` ya usa `<TrustBadgeCompact>` en línea 40. No hay nada que hacer.
-
----
-
-## Cambios que NO recomiendo (por ahora)
-
-### Cambio 6 — Banner AI Solutions Architect
-Ya existe `WizardSection` que hace exactamente esto. Agregar otro banner sería redundante y alargaría la landing innecesariamente.
-
-### Cambio 7 — Before/After nuevo escenario
-Agregar un 4to escenario rompería el grid de 3 columnas (`md:grid-cols-3`). No justifica el cambio de layout.
-
----
-
-## Resumen de implementación
-
-| # | Cambio | Esfuerzo |
-|---|---|---|
-| 1+8 | Hero badge + subtítulo dinámico | Bajo — copy i18n + posible query |
-| 2 | Nueva sección "Why Pymaia" | Medio — nuevo componente |
-| 3 | StatsBar actualizado | Bajo — 1 stat |
-| 4 | How It Works nuevo copy | Bajo — copy i18n + iconos |
-| 5 | TrustBadge en cards | Ya hecho |
-
-Total: ~4 archivos editados, 1 nuevo componente. Impacto alto en comunicar diferenciales sin sobrecargar la landing.
-
+### Fix 6 completado: logToolCall en todos los tools ✅
+- 48 tools instrumentados con logToolCall() en agent_analytics
+- Todos los handlers ahora registran tool_name y args_keys

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import HeroSection from "@/components/landing/HeroSection";
 import HowItWorks from "@/components/landing/HowItWorks";
 import StatsBar from "@/components/landing/StatsBar";
+import WhyPymaiaSection from "@/components/landing/WhyPymaiaSection";
 import MarqueeSection from "@/components/landing/MarqueeSection";
 import TwoPathsSection from "@/components/landing/TwoPathsSection";
 import SkillCreatorSection from "@/components/landing/SkillCreatorSection";
@@ -89,6 +90,8 @@ const Index = () => {
         <HeroSection />
         {/* 2. Stats — credibility */}
         <StatsBar />
+        {/* 2b. Why Pymaia — differentiators */}
+        <WhyPymaiaSection />
         {/* 3. Marquee — breadth */}
         <MarqueeSection />
         {/* 4. How it works — clarity */}
