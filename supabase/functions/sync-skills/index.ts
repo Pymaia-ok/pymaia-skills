@@ -1335,6 +1335,11 @@ Deno.serve(async (req) => {
           '"prompt engineering" stars:>500',
           '"ai automation" stars:>500',
           '"llm tools" stars:>500',
+          '"claude code" stars:>500',
+          '"AI native" stars:>500',
+          '"agent native" stars:>500',
+          '"AI stack" stars:>500',
+          '"dev tools AI" stars:>500',
         ];
         const queries = topic ? [topic] : defaultQueries;
         for (const q of queries) {
