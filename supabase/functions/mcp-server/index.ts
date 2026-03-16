@@ -490,6 +490,7 @@ mcp.tool("list_categories", {
   description: "List all available skill categories with the number of skills in each.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
+    logToolCall("list_categories");
     const { data: skills, error } = await supabase
       .from("skills")
       .select("category")
