@@ -220,6 +220,27 @@ const Admin = () => {
     refetchInterval: 10000,
   });
 
+  const { data: pipelineHealth } = useQuery({
+    queryKey: ["pipeline-health"],
+    queryFn: async () => {
+      const [embeddingsTotal, embeddingsDone, skillMdDone, ghMetadata, usageEvents24h] = await Promise.all([
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").not("embedding", "is", null),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").not("skill_md", "is", null),
+        supabase.from("github_metadata").select("repo_full_name", { count: "exact", head: true }).eq("fetch_status", "success"),
+        supabase.from("agent_analytics").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 86400000).toISOString()),
+      ]);
+      return {
+        embeddings: { done: embeddingsDone.count ?? 0, total: embeddingsTotal.count ?? 0 },
+        skillMd: skillMdDone.count ?? 0,
+        ghMetadata: ghMetadata.count ?? 0,
+        usage24h: usageEvents24h.count ?? 0,
+      };
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
   const { data: pipelineProgress } = useQuery({
     queryKey: ["pipeline-progress"],
     queryFn: async () => {
@@ -371,6 +392,7 @@ const Admin = () => {
                 connectorStats={connectorStats}
                 recentLogs={recentLogs}
                 qualityInsights={qualityInsights as any}
+                pipelineHealth={pipelineHealth}
               />
             </TabsContent>
 
