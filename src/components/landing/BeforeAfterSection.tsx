@@ -20,7 +20,7 @@ const BeforeAfterSection = () => {
           <p className="text-muted-foreground text-lg">{t("landing.beforeAfterSubtitle")}</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {examples.map((ex, i) => (
             <motion.div
               key={ex}

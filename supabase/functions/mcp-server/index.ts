@@ -603,6 +603,7 @@ mcp.tool("recommend_for_task", {
   },
   handler: async (args: { task: string; role?: string }) => {
     logToolCall("recommend_for_task", args);
+    logUsageEvent("search_result", undefined, undefined, args.task);
     const taskLower = args.task.toLowerCase();
     const roleLower = (args.role || "").toLowerCase();
     const roleCategories = ROLE_CATEGORIES[roleLower] || [];
@@ -672,6 +673,7 @@ mcp.tool("compare_skills", {
   },
   handler: async (args: { slugs: string[] }) => {
     logToolCall("compare_skills", args);
+    logUsageEvents("compared", args.slugs.map(s => ({ slug: s, type: "skill" })));
     // Resolve slugs through redirects
     const resolvedSlugs = await Promise.all(args.slugs.map(s => resolveSlug(s, "skill")));
     const { data: skills, error } = await supabase
@@ -774,6 +776,7 @@ mcp.tool("search_connectors", {
     let results = sortByTrust(deduplicateConnectors(merged)).slice(0, lim);
     let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
+    logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "connector" })), args.query);
     console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré conectores para "${args.query}". Intenta con otros términos o usa \`solve_goal\` para una búsqueda más amplia.` }] };
@@ -813,6 +816,7 @@ mcp.tool("get_connector_details", {
   },
   handler: async (args: { slug: string }) => {
     logToolCall("get_connector_details", args);
+    logUsageEvent("view", args.slug, "connector");
     const { data: c, error } = await supabase
       .from("mcp_servers").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
 
@@ -912,6 +916,7 @@ mcp.tool("search_plugins", {
     let results = merged.slice(0, lim);
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré plugins para "${args.query}". Intenta con otros términos o usa \`solve_goal\`.` }] };
+    logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "plugin" })), args.query);
 
     const text = results
       .map((p: any) => {
@@ -933,6 +938,7 @@ mcp.tool("get_plugin_details", {
   },
   handler: async (args: { slug: string }) => {
     logToolCall("get_plugin_details", args);
+    logUsageEvent("view", args.slug, "plugin");
     const { data: p, error } = await supabase
       .from("plugins").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
 
@@ -996,6 +1002,7 @@ mcp.tool("explore_directory", {
   },
   handler: async (args: { query: string; limit?: number }) => {
     logToolCall("explore_directory", args);
+    logUsageEvent("search_result", undefined, undefined, args.query);
     const lim = Math.min(args.limit || 3, 5);
     const q = sanitizeForPostgrest(args.query);
     const words = q.split(/\s+/).filter(w => w.length >= 2);
@@ -1144,6 +1151,7 @@ mcp.tool("solve_goal", {
   },
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
     logToolCall("solve_goal", args);
+    logUsageEvent("solve_goal", undefined, undefined, args.goal);
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
