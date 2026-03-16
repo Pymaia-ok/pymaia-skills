@@ -776,6 +776,7 @@ mcp.tool("search_connectors", {
     let results = sortByTrust(deduplicateConnectors(merged)).slice(0, lim);
     let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
+    logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "connector" })), args.query);
     console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré conectores para "${args.query}". Intenta con otros términos o usa \`solve_goal\` para una búsqueda más amplia.` }] };
