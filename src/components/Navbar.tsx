@@ -34,8 +34,6 @@ const Navbar = () => {
   const isDark = theme === "dark";
 
   // Hide navbar on /links page (linktree-style)
-  if (location.pathname === "/links") return null;
-
   // Listen for skill status changes for notification badge
   useEffect(() => {
     if (!user) return;
@@ -54,6 +52,9 @@ const Navbar = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
+
+  // Hide navbar on /links page (linktree-style)
+  if (location.pathname === "/links") return null;
 
   const links = [
     { to: "/explorar", label: t("nav.explore") },
