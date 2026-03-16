@@ -2043,6 +2043,7 @@ mcp.tool("suggest_for_skill_creation", {
     required: ["skill_idea"],
   },
   handler: async (args: { skill_idea: string; skill_category?: string }) => {
+    logToolCall("suggest_for_skill_creation", args);
     const goalWords = args.skill_idea.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
     const searchResults = await crossCatalogSearch(goalWords, 6);
 
