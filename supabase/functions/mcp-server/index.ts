@@ -1488,9 +1488,21 @@ mcp.tool("solve_goal", {
     const sections: string[] = [];
     sections.push(`# 🎯 Pymaia Agent — Solution for: "${args.goal}"\n`);
 
+    // Fix 2: Use keyword domain for header when LLM template doesn't match
+    const keywordDomainForDisplay = detectDomainByKeywords(args.goal);
     if (matchedTemplate) {
-      sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
-      if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
+      const templateDomainMatches = keywordDomainForDisplay.domain === "general" ||
+        matchedTemplate.domain === keywordDomainForDisplay.domain ||
+        DOMAIN_TO_CATEGORY[keywordDomainForDisplay.domain] === matchedTemplate.domain;
+      
+      if (templateDomainMatches) {
+        sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
+        if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
+      } else {
+        // Template doesn't match keyword domain — show keyword domain instead
+        const displayDomain = keywordDomainForDisplay.domain.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        sections.push(`**Domain:** ${displayDomain}`);
+      }
     }
 
     if (capabilities.length > 0) {
