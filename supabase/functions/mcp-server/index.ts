@@ -3461,6 +3461,7 @@ mcp.tool("update_skill", {
     required: ["skill_slug", "skill_md"],
   },
   handler: async (args: { skill_slug: string; skill_md: string; changelog?: string; version_bump?: string }) => {
+    logToolCall("update_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to update skills." }] };
     }
