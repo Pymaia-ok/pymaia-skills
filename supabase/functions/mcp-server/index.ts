@@ -61,16 +61,25 @@ const DOMAIN_TO_CATEGORY: Record<string, string> = {
   "social-media": "marketing",
   "devops": "desarrollo",
   "finance": "negocios",
+  "personal-finance": "negocios",
   "legal": "legal",
   "data": "datos",
   "security": "desarrollo",
   "design": "diseño",
   "sales": "negocios",
   "hr": "negocios",
+  "healthcare": "negocios",
   "support": "productividad",
   "development": "desarrollo",
   "marketing": "marketing",
 };
+
+// ─── GENERIC TOOL SLUGS BLACKLIST ───
+const GENERIC_TOOL_SLUGS = new Set([
+  "cowork-plugin-management", "claude-code-setup", "claude-code-plugins-plus-skills",
+  "claude-md-management", "plugin-management", "skill-management", "agent-management",
+  "mcp-server-management", "tool-management", "settings-manager",
+]);
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
   const goalLower = goal.toLowerCase();
