@@ -2289,6 +2289,7 @@ mcp.tool("browse_community_templates", {
     },
   },
   handler: async (args: { domain?: string; status?: string; limit?: number }) => {
+    logToolCall("browse_community_templates", args);
     const lim = Math.min(args.limit || 10, 20);
     let q = supabase.from("community_goal_templates")
       .select("slug, display_name, domain, description, triggers, upvotes, status, created_at")
