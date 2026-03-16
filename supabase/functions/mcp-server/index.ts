@@ -130,6 +130,11 @@ const ROLE_CATEGORIES: Record<string, string[]> = {
 };
 
 // ─── ML INTENT CLASSIFIER ───
+function extractKeywordsFromGoal(goal: string): string[] {
+  const stopWords = new Set(["the","a","an","to","for","and","or","my","with","in","on","of","is","that","this","it","do","run","set","up","get","make","use","how","can","want","need","like","from","into","should","would","could","about"]);
+  return goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
+}
+
 async function classifyIntent(goal: string, role?: string): Promise<{
   keywords: string[];
   category: string | null;
@@ -137,18 +142,33 @@ async function classifyIntent(goal: string, role?: string): Promise<{
   domain: string;
   confidence: number;
 }> {
+  const t0 = Date.now();
   // Step 1: keyword-based domain detection (fast, reliable)
   const keywordResult = detectDomainByKeywords(goal);
+  const fallbackKeywords = extractKeywordsFromGoal(goal);
+  
+  const keywordOnlyResult = { 
+    keywords: fallbackKeywords, 
+    category: keywordResult.category, 
+    capabilities: [] as string[], 
+    domain: keywordResult.domain, 
+    confidence: keywordResult.confidence 
+  };
 
   if (!LOVABLE_API_KEY) {
-    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
+    console.log(JSON.stringify({ fn: "classifyIntent", mode: "no-api-key", ms: Date.now() - t0, keywords: fallbackKeywords, domain: keywordResult.domain }));
+    return keywordOnlyResult;
   }
 
   try {
+    // 5-second timeout for LLM call
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
         messages: [
@@ -187,11 +207,19 @@ Be precise with keywords - they should match actual tool names and descriptions.
         tool_choice: { type: "function", function: { name: "classify_intent" } },
       }),
     });
+    clearTimeout(timeout);
 
-    if (!resp.ok) throw new Error(`AI status ${resp.status}`);
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      console.error(JSON.stringify({ fn: "classifyIntent", error: "http", status: resp.status, body: body.slice(0, 200), ms: Date.now() - t0 }));
+      return keywordOnlyResult;
+    }
     const data = await resp.json();
     const call = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!call) throw new Error("No tool call");
+    if (!call) {
+      console.error(JSON.stringify({ fn: "classifyIntent", error: "no-tool-call", ms: Date.now() - t0 }));
+      return keywordOnlyResult;
+    }
     const llmResult = JSON.parse(call.function.arguments);
 
     // Override: if keyword detection has high confidence and LLM disagrees on domain, prefer keyword
@@ -202,11 +230,12 @@ Be precise with keywords - they should match actual tool names and descriptions.
       }
     }
 
+    console.log(JSON.stringify({ fn: "classifyIntent", mode: "llm", ms: Date.now() - t0, keywords: llmResult.keywords, domain: llmResult.domain, confidence: llmResult.confidence }));
     return llmResult;
-  } catch (e) {
-    console.error("Intent classifier fallback:", e);
-    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
-    return { keywords: words, category: keywordResult.category, capabilities: [], domain: keywordResult.domain, confidence: keywordResult.confidence };
+  } catch (e: any) {
+    const isTimeout = e?.name === "AbortError";
+    console.error(JSON.stringify({ fn: "classifyIntent", error: isTimeout ? "timeout" : "exception", message: e?.message?.slice(0, 200), ms: Date.now() - t0 }));
+    return keywordOnlyResult;
   }
 }
 
@@ -1076,9 +1105,10 @@ mcp.tool("explore_directory", {
 // ─── HELPERS: Cross-catalog search & compatibility ───
 
 async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: string | null) {
+  const t0 = Date.now();
   const results: { skills: any[]; connectors: any[]; plugins: any[] } = { skills: [], connectors: [], plugins: [] };
   
-  // Expand multi-word keywords into individual words for broader ILIKE matching
+  // Expand multi-word keywords but cap at 6 to reduce latency
   const expandedKeywords = new Set<string>();
   for (const kw of keywords) {
     expandedKeywords.add(kw);
@@ -1087,13 +1117,13 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       for (const part of parts) expandedKeywords.add(part);
     }
   }
-  const uniqueExpanded = [...expandedKeywords].slice(0, 10);
+  const uniqueExpanded = [...expandedKeywords].slice(0, 6);
 
-  for (const kw of uniqueExpanded) {
+  // Run ALL keyword searches in parallel instead of sequential
+  const searchPromises = uniqueExpanded.map(kw => {
     const q = sanitizeForPostgrest(kw);
-    if (!q || q.length < 2) continue;
+    if (!q || q.length < 2) return Promise.resolve({ kw, sk: null, mc: null, pl: null });
 
-    // Skills query: include private skills for authenticated API key users
     let skillQuery = supabase.from("skills")
       .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, security_status, github_stars, is_public, creator_id")
       .or(
@@ -1104,7 +1134,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       .or(`display_name.ilike.%${q}%,display_name_es.ilike.%${q}%,tagline.ilike.%${q}%,tagline_es.ilike.%${q}%,description_human.ilike.%${q}%,description_human_es.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
       .order("install_count", { ascending: false }).limit(limit);
     
-    const [{ data: sk }, { data: mc }, { data: pl }] = await Promise.all([
+    return Promise.all([
       skillQuery,
       supabase.from("mcp_servers")
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
@@ -1118,10 +1148,11 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
         .eq("status", "approved")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
         .order("install_count", { ascending: false }).limit(limit),
-    ]);
-    
-    console.log(JSON.stringify({ fn: "crossCatalogSearch", keyword: kw, sanitized: q, skills: sk?.length || 0, connectors: mc?.length || 0, plugins: pl?.length || 0 }));
+    ]).then(([{ data: sk }, { data: mc }, { data: pl }]) => ({ kw, sk, mc, pl }));
+  });
 
+  const allResults = await Promise.all(searchPromises);
+  for (const { kw, sk, mc, pl } of allResults) {
     if (sk) results.skills.push(...sk);
     if (mc) results.connectors.push(...mc);
     if (pl) results.plugins.push(...pl);
@@ -1132,7 +1163,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
   results.connectors = sortByTrust(deduplicateConnectors(results.connectors.filter(c => { if (seenSlugs.has(c.slug)) return false; seenSlugs.add(c.slug); return true; })));
   results.plugins = results.plugins.filter(p => { if (seenSlugs.has(p.slug)) return false; seenSlugs.add(p.slug); return true; });
 
-  console.log(JSON.stringify({ fn: "crossCatalogSearch", totalKeywords: uniqueExpanded.length, originalKeywords: keywords.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
+  console.log(JSON.stringify({ fn: "crossCatalogSearch", ms: Date.now() - t0, totalKeywords: uniqueExpanded.length, deduped: { skills: results.skills.length, connectors: results.connectors.length, plugins: results.plugins.length } }));
   
   return results;
 }
@@ -1204,10 +1235,13 @@ mcp.tool("solve_goal", {
       };
     }
 
+    const solveT0 = Date.now();
+
     // 0. ML Intent Classification (replaces pure keyword matching)
     const intent = await classifyIntent(args.goal, args.role);
+    const classifyMs = Date.now() - solveT0;
 
-    console.log(JSON.stringify({ tool: "solve_goal", goal: args.goal, role: args.role || null, intent: { keywords: intent.keywords, category: intent.category, capabilities: intent.capabilities, domain: intent.domain, confidence: intent.confidence } }));
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "classified", ms: classifyMs, goal: args.goal, keywords: intent.keywords, category: intent.category, domain: intent.domain, confidence: intent.confidence }));
 
     // 0b. A/B variant assignment
     const variant: ABVariant = assignVariant(args.goal, args.user_id);
@@ -1230,23 +1264,26 @@ mcp.tool("solve_goal", {
     const capabilities = matchedTemplate?.capabilities || [];
     const templateDomain = matchedTemplate?.domain || intent.domain || "general";
 
-    // 2. Collect search keywords (ML-enhanced + template + goal words)
+    // 2. Collect search keywords (ML-enhanced + template + goal words) — cap at 6
     const allKeywords: string[] = [...intent.keywords];
     for (const cap of capabilities) { if (cap.keywords) allKeywords.push(...cap.keywords); }
     const goalWords2 = goalLower.split(/\s+/).filter((w: string) => w.length >= 3);
     allKeywords.push(...goalWords2);
-    const uniqueKeywords = [...new Set(allKeywords)];
+    const uniqueKeywords = [...new Set(allKeywords)].slice(0, 6);
 
-    // 3. Cross-catalog search (with category hint from classifier)
+    // 3. Cross-catalog search (parallel per keyword now)
+    const searchT0 = Date.now();
     const searchResults = await crossCatalogSearch(uniqueKeywords, 8, apiUserId);
     let allItems = [
       ...searchResults.skills.map((s: any) => ({ ...s, type: "skill", name: s.display_name, desc: s.tagline })),
       ...searchResults.connectors.map((c: any) => ({ ...c, type: "connector", desc: c.description })),
       ...searchResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
     ];
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "cross_catalog", ms: Date.now() - searchT0, results: allItems.length }));
 
-    // 3b. FALLBACK: If cross-catalog search returned nothing, try semantic search
-    if (allItems.length === 0) {
+    // 3b-3e: Fallbacks only if cross-catalog returned nothing (each with time budget)
+    if (allItems.length === 0 && (Date.now() - solveT0) < 15000) {
+      // 3b. Semantic search
       try {
         const semanticResp = await fetch(`${supabaseUrl}/functions/v1/semantic-search`, {
           method: "POST",
@@ -1260,25 +1297,20 @@ mcp.tool("solve_goal", {
           }
         }
       } catch { /* skip */ }
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "semantic_fallback", goal: args.goal, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "semantic_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    // 3c. FALLBACK: If still nothing, try FTS RPC
-    if (allItems.length === 0) {
-      const { data: ftsResults } = await supabase.rpc("search_skills", {
-        search_query: args.goal,
-        page_size: 12,
-      });
+    if (allItems.length === 0 && (Date.now() - solveT0) < 20000) {
+      // 3c. FTS RPC
+      const { data: ftsResults } = await supabase.rpc("search_skills", { search_query: args.goal, page_size: 12 });
       if (ftsResults && ftsResults.length > 0) {
-        for (const s of ftsResults) {
-          allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
-        }
+        for (const s of ftsResults) allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
       }
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", goal: args.goal, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "fts_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    // 3d. FALLBACK: category-based browse (skills + connectors + plugins)
-    if (allItems.length === 0 && intent.category) {
+    if (allItems.length === 0 && intent.category && (Date.now() - solveT0) < 25000) {
+      // 3d. Category-based browse
       const [{ data: catSkills }, { data: catConnectors }, { data: catPlugins }] = await Promise.all([
         supabase.from("skills")
           .select("display_name, slug, tagline, category, avg_rating, install_count, install_command, trust_score, quality_rank, github_stars")
@@ -1296,13 +1328,13 @@ mcp.tool("solve_goal", {
       if (catSkills) for (const s of catSkills) allItems.push({ ...s, type: "skill", name: s.display_name, desc: s.tagline });
       if (catConnectors) for (const c of catConnectors) allItems.push({ ...c, type: "connector", desc: c.description });
       if (catPlugins) for (const p of catPlugins) allItems.push({ ...p, type: "plugin", desc: p.description });
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "category_fallback", category: intent.category, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "category_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    // 3e. FALLBACK: broad keyword search with expanded synonyms
-    if (allItems.length === 0) {
+    if (allItems.length === 0 && (Date.now() - solveT0) < 28000) {
+      // 3e. Domain keyword fallback
       const domainKeywords = KEYWORD_DOMAIN_MAP[intent.domain] || [];
-      const extraKeywords = domainKeywords.slice(0, 5).map(k => k.split(/\s+/)[0]);
+      const extraKeywords = domainKeywords.slice(0, 4).map(k => k.split(/\s+/)[0]);
       if (extraKeywords.length > 0) {
         const broadResults = await crossCatalogSearch(extraKeywords, 6, apiUserId);
         allItems.push(
@@ -1311,10 +1343,10 @@ mcp.tool("solve_goal", {
           ...broadResults.plugins.map((p: any) => ({ ...p, type: "plugin", desc: p.description })),
         );
       }
-      console.log(JSON.stringify({ tool: "solve_goal", phase: "domain_keyword_fallback", domain: intent.domain, results: allItems.length }));
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "domain_fallback", ms: Date.now() - solveT0, results: allItems.length }));
     }
 
-    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", goal: args.goal, template: matchedTemplate?.slug || null, variant, uniqueKeywords: uniqueKeywords.length, results: { total: allItems.length } }));
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", ms: Date.now() - solveT0, totalItems: allItems.length, uniqueKeywords: uniqueKeywords.length }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
     // Filter out generic/meta tools that pollute results
@@ -1429,8 +1461,13 @@ mcp.tool("solve_goal", {
     for (const item of scored.filter((i: any) => i.type === "connector" && !i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 3 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
     for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
 
-    // 7. Compatibility analysis
-    const [warningsA, warningsB] = await Promise.all([getCompatibilityWarnings(optionA), getCompatibilityWarnings(optionB)]);
+    // 7. Compatibility analysis (skip if over time budget)
+    let warningsA: string[] = [], warningsB: string[] = [];
+    if ((Date.now() - solveT0) < 20000) {
+      [warningsA, warningsB] = await Promise.all([getCompatibilityWarnings(optionA), getCompatibilityWarnings(optionB)]);
+    } else {
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "skip_compat", ms: Date.now() - solveT0 }));
+    }
 
     // 8. Build response
     const sections: string[] = [];
@@ -1563,12 +1600,12 @@ mcp.tool("solve_goal", {
     sections.push(`\n<sub>experiment: ${variant} · classifier: ${intent.confidence > 0 ? "ml" : "keyword"}</sub>`);
 
     if (matchedTemplate) {
-      await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
+      supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id).then(() => {});
     }
 
-    // Track A/B experiment in analytics
+    // Track analytics (fire-and-forget — don't block response)
     const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
-    await supabase.from("agent_analytics").insert({
+    supabase.from("agent_analytics").insert({
       event_type: "solve_goal",
       tool_name: "solve_goal",
       goal: args.goal,
@@ -1586,10 +1623,11 @@ mcp.tool("solve_goal", {
         connectors_count: [...optionA, ...optionB].filter((i: any) => i.type === "connector").length,
         plugins_count: [...optionA, ...optionB].filter((i: any) => i.type === "plugin").length,
         keywords: intent.keywords || [],
-        template_slug: matchedTemplate?.slug || null,
+        total_ms: Date.now() - solveT0,
       },
-    });
+    }).then(() => {});
 
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "done", ms: Date.now() - solveT0, optionA: optionA.length, optionB: optionB.length }));
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
 });
