@@ -431,6 +431,7 @@ mcp.tool("list_popular_skills", {
     },
   },
   handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
+    logToolCall("list_popular_skills", args);
     const lim = Math.min(args.limit || 5, 10);
     let q = supabase
       .from("skills")
