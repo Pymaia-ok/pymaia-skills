@@ -365,33 +365,30 @@ async function runImport(supabase: any, batchSize: number) {
 
   for (let i = 0; i < toImport.length; i += 200) {
     const batch = toImport.slice(i, i + 200);
-    const skillRows: any[] = [];
-    const stagingUpdates: string[] = [];
 
     for (const entry of batch) {
       try {
-        // Generate slug
-        let slug = slugify(entry.skill_folder);
+        // Always use prefixed slug to avoid collisions
+        let slug = `${slugify(entry.repo_owner)}-${slugify(entry.repo_name)}-${slugify(entry.skill_folder)}`;
 
-        // Use prefixed slug if it's a reserved/common word or already exists
-        if (RESERVED_SLUGS.has(slug) || connectorSlugSet.has(slug) || existingSlugs.has(slug)) {
-          slug = `${slugify(entry.repo_owner)}-${slugify(entry.repo_name)}-${slugify(entry.skill_folder)}`;
-        }
-
-        // Final collision check
+        // Final collision check — add timestamp suffix if still colliding
         if (existingSlugs.has(slug)) {
-          slug = `${slugify(entry.repo_owner)}-${slug}-${Date.now().toString(36).slice(-4)}`;
+          slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
         }
 
         if (existingSlugs.has(slug)) {
           skipped++;
+          await supabase.from("skills_import_staging").update({
+            import_status: "skipped",
+            error_message: `Slug collision: ${slug}`,
+          }).eq("id", entry.id);
           continue;
         }
 
         const category = entry.category || detectCategory(entry.name, entry.description || "");
         const displayName = entry.name || entry.skill_folder.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-        skillRows.push({
+        const { error: insertError } = await supabase.from("skills").insert({
           slug,
           display_name: displayName,
           description_human: entry.description || `${displayName} — AI agent skill from ${entry.repo_owner}/${entry.repo_name}`,
@@ -415,29 +412,28 @@ async function runImport(supabase: any, batchSize: number) {
           use_cases: [],
         });
 
-        existingSlugs.add(slug); // Prevent in-batch collisions
-        stagingUpdates.push(entry.id);
-      } catch (e) {
-        console.error(`Import error for ${entry.source_slug}:`, (e as Error).message);
-        errors++;
-      }
-    }
-
-    // Bulk insert skills
-    if (skillRows.length > 0) {
-      const { error } = await supabase.from("skills").insert(skillRows);
-      if (error) {
-        console.error(`[import] Batch insert error:`, error.message);
-        errors += skillRows.length;
-      } else {
-        imported += skillRows.length;
-        // Mark staging as imported
-        for (const id of stagingUpdates) {
+        if (insertError) {
+          console.error(`[import] Insert error for ${entry.source_slug}:`, insertError.message);
+          await supabase.from("skills_import_staging").update({
+            import_status: "error",
+            error_message: insertError.message.slice(0, 500),
+          }).eq("id", entry.id);
+          errors++;
+        } else {
+          imported++;
+          existingSlugs.add(slug);
           await supabase.from("skills_import_staging").update({
             import_status: "imported",
             imported_at: new Date().toISOString(),
-          }).eq("id", id);
+          }).eq("id", entry.id);
         }
+      } catch (e) {
+        console.error(`Import error for ${entry.source_slug}:`, (e as Error).message);
+        await supabase.from("skills_import_staging").update({
+          import_status: "error",
+          error_message: (e as Error).message?.slice(0, 500),
+        }).eq("id", entry.id);
+        errors++;
       }
     }
   }

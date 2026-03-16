@@ -93,22 +93,30 @@ const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
   "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
   // Fix 4: additional noise tools
   "firebase", "neverinfamous-memory-journal-mcp", "frago", "tsaijamey-frago",
+  // Fix V2: more noise tools
+  "claude-code-cwd-tracker", "avisangle-calculator-server", "multi-mcp", "ui-ticket-mcp",
 ]);
 
 // ─── DOMAIN → EXPECTED CATEGORIES MAP: penalize off-domain tools ───
 const DOMAIN_CATEGORY_MAP: Record<string, Set<string>> = {
-  advertising: new Set(["marketing", "social-media", "analytics", "advertising"]),
-  finance: new Set(["finance", "productivity", "data-analysis", "analytics"]),
-  design: new Set(["design", "media", "creativity", "productivity"]),
-  devops: new Set(["development", "devops", "cloud", "infrastructure", "monitoring"]),
-  sales: new Set(["sales", "crm", "marketing", "communication"]),
-  legal: new Set(["legal", "compliance", "documentation", "productivity"]),
-  hr: new Set(["hr", "recruitment", "communication", "productivity"]),
-  education: new Set(["education", "documentation", "productivity", "research"]),
-  healthcare: new Set(["healthcare", "data-analysis", "compliance", "research"]),
-  ecommerce: new Set(["ecommerce", "marketing", "analytics", "productivity"]),
-  security: new Set(["security", "development", "devops", "compliance"]),
-  "data-science": new Set(["data-analysis", "development", "research", "analytics"]),
+  // Use Spanish category names that match the actual catalog + English fallbacks
+  advertising: new Set(["marketing", "ventas", "datos", "social-media", "analytics", "advertising"]),
+  "email-marketing": new Set(["marketing", "automatizacion", "productividad"]),
+  "social-media": new Set(["marketing", "creatividad", "productividad"]),
+  finance: new Set(["finanzas", "negocios", "datos", "productividad", "finance", "productivity"]),
+  "personal-finance": new Set(["finanzas", "negocios", "productividad"]),
+  design: new Set(["diseno", "creatividad", "productividad", "design", "media"]),
+  devops: new Set(["operaciones", "desarrollo", "datos", "development", "devops"]),
+  sales: new Set(["ventas", "negocios", "marketing", "sales", "crm"]),
+  legal: new Set(["legal", "negocios", "productividad", "compliance"]),
+  hr: new Set(["rrhh", "negocios", "productividad", "hr"]),
+  education: new Set(["educacion", "productividad", "education"]),
+  healthcare: new Set(["salud", "datos", "negocios", "healthcare"]),
+  ecommerce: new Set(["ecommerce", "marketing", "ventas", "negocios"]),
+  security: new Set(["operaciones", "desarrollo", "security", "development"]),
+  "data-science": new Set(["datos", "desarrollo", "ia", "data-analysis"]),
+  development: new Set(["desarrollo", "ia", "operaciones", "productividad"]),
+  support: new Set(["soporte", "productividad", "automatizacion"]),
 };
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
@@ -1409,11 +1417,22 @@ mcp.tool("solve_goal", {
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
       if (intent.category && item.category === intent.category) score += 4;
 
-      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories
+      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories (80% penalty)
       const detectedDomain = keywordDomain?.domain || intent.domain;
       const expectedCategories = DOMAIN_CATEGORY_MAP[detectedDomain];
       if (expectedCategories && item.category && !expectedCategories.has(item.category.toLowerCase())) {
-        score -= 5; // 50% effective penalty for off-domain tools
+        score *= 0.2; // 80% penalty for off-domain tools
+      }
+
+      // CONNECTOR DESCRIPTION-OVERLAP CHECK: connectors without goal-word overlap get 90% penalty
+      if (item.item_type === "connector") {
+        const connGoalWords = goalWords2.filter((w: string) => w.length >= 4);
+        if (connGoalWords.length > 0) {
+          const connMatch = connGoalWords.filter((w: string) => searchable.includes(w)).length;
+          if (connMatch === 0) {
+            score *= 0.1; // 90% penalty — connector has zero goal-word overlap
+          }
+        }
       }
 
       // Quality signals (with inflated-stars guard)
@@ -1430,9 +1449,9 @@ mcp.tool("solve_goal", {
       score += (item.trust_score || 0) / 20;
 
       // Goal-word relevance penalty: if NO goal words (4+ chars) appear in description, penalize 80%
-      const goalWordsLong = goalWords2.filter(w => w.length >= 4);
+      const goalWordsLong = goalWords2.filter((w: string) => w.length >= 4);
       if (goalWordsLong.length > 0) {
-        const matchCount = goalWordsLong.filter(w => searchable.includes(w)).length;
+        const matchCount = goalWordsLong.filter((w: string) => searchable.includes(w)).length;
         if (matchCount === 0) {
           score *= 0.2; // 80% penalty — no goal word overlap at all
         }

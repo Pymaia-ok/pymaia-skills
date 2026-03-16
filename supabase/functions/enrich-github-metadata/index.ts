@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { batchSize = 400 } = await req.json().catch(() => ({}));
+    const { batchSize = 150 } = await req.json().catch(() => ({}));
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     if (!githubToken) throw new Error("GITHUB_TOKEN not configured");
@@ -97,14 +97,17 @@ Deno.serve(async (req) => {
     const MAX_RUNTIME_MS = 50_000; // 50s guard — leave 10s for cleanup
     const startTime = Date.now();
 
-    for (const repo of toFetch) {
+    // Process in parallel batches of 5
+    for (let i = 0; i < toFetch.length; i += 5) {
       if (rateLimited) break;
       if (Date.now() - startTime > MAX_RUNTIME_MS) {
         console.log(`MAX_RUNTIME reached at ${processed} repos (${Date.now() - startTime}ms)`);
         break;
       }
 
-      try {
+      const batch = toFetch.slice(i, i + 5);
+      const results = await Promise.allSettled(batch.map(async (repo) => {
+        if (rateLimited) return;
         const resp = await fetch(`https://api.github.com/repos/${repo}`, {
           headers: { Authorization: `token ${githubToken}`, Accept: "application/vnd.github.v3+json" },
         });
@@ -113,20 +116,17 @@ Deno.serve(async (req) => {
           await supabase.from("github_metadata").upsert({
             repo_full_name: repo, fetch_status: "not_found", fetched_at: new Date().toISOString(),
           }, { onConflict: "repo_full_name" });
-          processed++;
-          continue;
+          return "ok";
         }
 
         if (resp.status === 403 || resp.status === 429) {
-          console.log(`Rate limited at ${processed} repos`);
           rateLimited = true;
-          break;
+          return "rate_limited";
         }
 
         if (!resp.ok) {
-          await resp.text().catch(() => {}); // consume body
-          errors++;
-          continue;
+          await resp.text().catch(() => {});
+          throw new Error(`HTTP ${resp.status}`);
         }
 
         const data = await resp.json();
@@ -144,15 +144,16 @@ Deno.serve(async (req) => {
           fetched_at: new Date().toISOString(),
           fetch_status: "success",
         }, { onConflict: "repo_full_name" });
+        return "ok";
+      }));
 
-        processed++;
-
-        // Pause every 50 requests
-        if (processed % 50 === 0) await new Promise(r => setTimeout(r, 1000));
-      } catch (e) {
-        console.error(`Error fetching ${repo}:`, e instanceof Error ? e.message : e);
-        errors++;
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value === "ok") processed++;
+        else if (r.status === "rejected") errors++;
       }
+
+      // Brief delay between parallel batches
+      if (!rateLimited && i + 5 < toFetch.length) await new Promise(r => setTimeout(r, 200));
     }
 
     // Cross-validate: update skills stars from github_metadata

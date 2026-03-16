@@ -95,7 +95,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    const { table = "skills", batch_size = 100 } = await req.json().catch(() => ({}));
+    const { table = "skills", batch_size = 25 } = await req.json().catch(() => ({}));
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -225,6 +225,15 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("generate-embeddings error:", e);
+    // Try to update sync_log with error details
+    try {
+      const supabase2 = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await supabase2.from("sync_log").update({
+        status: "failed",
+        completed_at: new Date().toISOString(),
+        error_count: 1,
+      }).eq("source", `generate-embeddings-${(await req.clone().json().catch(() => ({}))).table || "skills"}`).eq("status", "running").order("created_at", { ascending: false }).limit(1);
+    } catch {}
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
