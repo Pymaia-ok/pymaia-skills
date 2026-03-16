@@ -71,6 +71,9 @@ const App = () => (
               <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/cursos" element={<Courses />} />
+              <Route path="/curso/:slug" element={<CourseDetail />} />
+              <Route path="/curso/:slug/:moduleOrder" element={<CourseModule />} />
               <Route path="/security" element={<Navigate to="/seguridad" replace />} />
               <Route path="/terminos" element={<Terms />} />
               <Route path="/privacidad" element={<Privacy />} />
