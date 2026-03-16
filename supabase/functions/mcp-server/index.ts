@@ -603,6 +603,7 @@ mcp.tool("recommend_for_task", {
   },
   handler: async (args: { task: string; role?: string }) => {
     logToolCall("recommend_for_task", args);
+    logUsageEvent("search_result", undefined, undefined, args.task);
     const taskLower = args.task.toLowerCase();
     const roleLower = (args.role || "").toLowerCase();
     const roleCategories = ROLE_CATEGORIES[roleLower] || [];
