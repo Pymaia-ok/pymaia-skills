@@ -195,8 +195,8 @@ Be precise with keywords - they should match actual tool names and descriptions.
     const llmResult = JSON.parse(call.function.arguments);
 
     // Override: if keyword detection has high confidence and LLM disagrees on domain, prefer keyword
-    if (keywordResult.confidence >= 0.75 && keywordResult.domain !== "general") {
-      if (llmResult.domain !== keywordResult.domain && llmResult.confidence < 0.9) {
+    if (keywordResult.confidence >= 0.5 && keywordResult.domain !== "general") {
+      if (llmResult.domain !== keywordResult.domain && llmResult.confidence < 0.85) {
         llmResult.domain = keywordResult.domain;
         llmResult.category = keywordResult.category || llmResult.category;
       }
