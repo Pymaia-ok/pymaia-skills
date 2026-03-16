@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Clock, ArrowRight } from "lucide-react";
 
-const examples = ["marketer", "abogado", "founder"] as const;
+const examples = ["marketer", "abogado", "founder", "toolseeker"] as const;
 
 const BeforeAfterSection = () => {
   const { t } = useTranslation();
