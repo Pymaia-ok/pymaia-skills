@@ -1,92 +1,80 @@
-## Plan: Mejoras Best-in-Class del PRD — Estado: ✅ 100% Completado
 
-### Bloque 1: MCP Tools (P0) ✅
-- `update_skill` — actualizar skill existente con changelog
-- `unpublish_skill` — remover skill del directorio (soft delete)
-- `report_goal_outcome` — feedback post-implementación
-- `rate_skill` — rating desde el agente
-- `get_personalized_feed` — feed basado en historial de instalaciones
-- `get_top_creators` — leaderboard de creadores
 
-### Bloque 2: Quality Score compuesto (P1) ✅
-- Cálculo en `calculate-trust-score`: Trust(25%) + Evals(25%) + Satisfaction(20%) + Docs(15%) + Freshness(15%)
-- UI: Quality Score badge en `SkillCard.tsx` y `SkillSidebar.tsx`
+# Plan: 11 Fixes Post-Audit — Pymaia Skills Pipelines
 
-### Bloque 3: Decay Detection (P1) ✅
-- Lógica en `quality-maintenance/index.ts` — flag `is_stale` para >90 días sin commit
-- UI: Warning "Not updated in over 90 days" en `TrustBadge.tsx`
+Este PRD tiene 11 fixes. Voy a agruparlos en bloques implementables. Algunos requieren migraciones SQL, otros son cambios en edge functions, y otros son consolidación de crons.
 
-### Bloque 4: Verified Publisher badge (P1) ✅
-- Campo `is_verified_publisher` en `profiles`
-- Badge ✅ en `SkillSidebar.tsx` y `CreatorLeaderboard.tsx`
+---
 
-### Bloque 5: Duplicate Detection (P0) ✅
-- Similarity check en `import_skill_from_agent` — busca nombres/slugs similares antes de insertar
+## Bloque A: Migraciones SQL (Fixes 4, 5, 6, 9, 11)
 
-### Bloque 6: Conversational Goal Refinement (P2) ✅
-- `solve_goal` retorna `needs_clarification` si el goal tiene <3 palabras
+### Fix 4 — Cleanup install counts inflados
+- Migración SQL: UPDATE skills que tienen install_count compartido por >1 skill, resetear a 0 con `install_count_source = 'imported'`
 
-### Bloque 7: Creator Leaderboard (P1) ✅
-- Componente `CreatorLeaderboard.tsx` en landing
-- MCP tool `get_top_creators`
+### Fix 5 — Resolver 765 slug collisions
+- Migración SQL: Generar nuevos slugs para skills que colisionan con mcp_servers, insertar redirects en `slug_redirects`, renombrar skills
+- La tabla `slug_redirects` ya existe y el MCP server ya tiene `resolveSlug()` que la consulta
 
-### Bloque 8: Weekly Digest (P1) ✅
-- Edge function `weekly-digest` — recopila nuevos skills, connectors, trending goals
-- Registrado en `supabase/config.toml`
+### Fix 6 — Usage events RLS
+- Verificar/agregar policy de INSERT para `anon` y `authenticated` en `usage_events`
+- El MCP server usa `service_role` key, así que debería funcionar sin RLS issues — pero agregar la policy igual por seguridad
 
-### Bloque 9: Sprint 2 — PRD Best-in-Class v9.1.0 ✅
+### Fix 9 — Quality rank formula sin GitHub data
+- Migración SQL: Reemplazar `recompute_quality_ranks()` con fórmula adaptativa que redistribuye pesos cuando no hay github_metadata
 
-#### 9.1 `publish_skill` MCP Tool (P0) ✅
-- Full publish flow: visibility (public/unlisted/private), pricing (free/paid/freemium), auto security scan
-- Auto-approve si trust_score >= 70, pending_review si 40-69, rejected si < 40
-- Duplicate detection, changelog, version 1.0.0 automático
+### Fix 11 — Limpiar cron duplicados
+- Migración SQL: Consultar `cron.job` y eliminar duplicados, dejar solo 1 cron por pipeline con las frecuencias recomendadas del PRD
 
-#### 9.2 `report_skill` MCP Tool (P1) ✅
-- Reportar skill malicioso/broken/policy_violation desde el agente
-- Inserta en `security_reports` para revisión manual
+---
 
-#### 9.3 Semantic Versioning en `update_skill` ✅
-- Bumps major/minor/patch con changelog acumulativo
+## Bloque B: Edge Functions (Fixes 1, 2, 3, 6, 10)
 
-#### 9.4 `get_skill_analytics` MCP Tool (P1) ✅
-- Métricas de instalaciones, ratings, eval results
-- Creator Tiers: Starter / Builder / Expert
+### Fix 1 — generate-embeddings
+- Aumentar batch_size default de 20 a 100
+- Agregar retry con backoff (1 intento, 5s delay)
+- Agregar inserción a `sync_log` al final
+- Mejorar error logging (console.error ya existe, agregar sync_log)
 
-#### 9.5 `install_bundle` MCP Tool (P1) ✅
-- Obtener install commands de todos los skills en un bundle
+### Fix 2 — bulk-fetch-skill-content
+- Reducir batch default a 50 (actualmente 100)
+- Agregar delay de 1s entre requests (ya tiene cada 20, mejorar)
+- Manejar 403/429 con break
+- Agregar sync_log
 
-#### 9.6 `scan_skill` MCP Tool (P0) ✅
-- Auditoría de seguridad pre-publicación sin publicar
+### Fix 3 — enrich-github-metadata paginación
+- Eliminar `limit(1000)` en las queries de skills/connectors/plugins
+- Usar estrategia de set difference: obtener todos los repo_full_names de github_metadata, filtrar los que faltan
+- Paginar en batches para no exceder memoria
 
-#### 9.7 `run_skill_evals` MCP Tool (P1) ✅
-- Ejecutar 5 test cases automatizados contra SKILL.md
+### Fix 6 — Instrumentar 38+ tools en MCP server
+- Agregar `logUsageEvent()` en cada tool handler que no lo tiene
+- Cambiar `.catch(() => {})` a `.catch((e) => console.error(...))`
 
-#### 9.8 Eval-Verified Badge ✅
-- Badge en `SkillCard.tsx` y `SkillSidebar.tsx` para skills con 100% pass rate
+### Fix 10 — sync_log en todos los pipelines
+- Agregar INSERT sync_log al inicio (status=running) y UPDATE al final (completed/failed) en: sync-skills, sync-connectors, sync-plugins, sync-creators, enrich-github-metadata, bulk-fetch-skill-content, generate-embeddings, calculate-trust-score, discover-trending-skills
 
-#### 9.9 Rising Stars ✅
-- Componente `RisingStars.tsx` en Explore — skills nuevos (<30 días) con tracción rápida
+---
 
-#### 9.10 Version + Changelog en SkillDetail ✅
-- Badge de versión y desplegable de changelog en la página de detalle
+## Bloque C: Diagnóstico (Fixes 7, 8)
 
-#### 9.11 Enhanced Goal Templates ✅
-- `recommended_skills`, `difficulty`, `estimated_time_minutes` en `goal_templates`
+### Fix 7 — scrape-skills-sh
+- Revisar la función, agregar fallback si sitemap no existe, mejorar logging
 
-#### 9.12 Structured Clarification en `solve_goal` ✅
-- Opciones tipificadas (dominio, nivel, presupuesto) para refinamiento
+### Fix 8 — Bundles incompletos
+- El `generate-bundles` ya tiene 10 roles con connector/plugin keywords. Los 15 bundles vacíos son roles que no están en `ROLE_CONFIG`
+- Agregar los roles faltantes: profesor, medico, consultor, contador, etc.
 
-#### 9.13 Visibility Control en `import_skill_from_agent` ✅
-- Parámetro `is_public` para skills privados
+---
 
-#### 9.14 Security Dashboard ✅
-- Métricas de advisories, críticos, resueltos en `/security-advisories`
+## Orden de ejecución
 
-### MCP Server v9.1.0 — 48 tools totales
-Nuevos tools: `publish_skill`, `report_skill`, `get_skill_analytics`, `install_bundle`, `scan_skill`, `run_skill_evals`
+1. **Bloque A** — Migraciones SQL (5 migraciones)
+2. **Bloque B** — Edge functions (5 funciones + MCP server)
+3. **Bloque C** — Diagnóstico y bundles
 
-### Pendiente (requiere infra externa):
-- Stripe Connect para monetización (P2)
-- Behavioral Sandbox (P2)
-- SSO / Enterprise Policy Engine (P2)
-- Compatibility CI multi-agente (P2)
+## Limitación importante
+
+El MCP server tiene **4,133 líneas**. Instrumentar 38 tools con `logUsageEvent()` es un cambio masivo en un solo archivo. Lo haré en un paso dedicado, agrupando las tools por sección.
+
+Los cambios totales son ~15 archivos editados. Estimo 3-4 mensajes de implementación para cubrir todo.
+
