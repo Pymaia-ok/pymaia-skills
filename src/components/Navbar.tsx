@@ -20,9 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
   const location = useLocation();
-
-  // Hide navbar on /links page (linktree-style)
-  if (location.pathname === "/links") return null;
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,6 +32,9 @@ const Navbar = () => {
   };
 
   const isDark = theme === "dark";
+
+  // Hide navbar on /links page (linktree-style)
+  if (location.pathname === "/links") return null;
 
   // Listen for skill status changes for notification badge
   useEffect(() => {
