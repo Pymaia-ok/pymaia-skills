@@ -29,6 +29,9 @@ import SecurityAdvisories from "./pages/SecurityAdvisories";
 import ApiDocs from "./pages/ApiDocs";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import Courses from "./pages/Courses";
+import CourseDetail from "./pages/CourseDetail";
+import CourseModule from "./pages/CourseModule";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 
