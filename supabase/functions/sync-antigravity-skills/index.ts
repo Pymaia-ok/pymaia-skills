@@ -218,17 +218,19 @@ Deno.serve(async (req) => {
       .eq("repo_full_name", REPO);
 
     // 9. Log to sync_log
-    await supabase.from("sync_log").insert({
-      source: "antigravity",
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-      status: "completed",
-      total_scraped: entries.length,
-      new_count: toInsert.length,
-      duplicate_count: entries.length - toInsert.length,
-      imported_count: imported,
-      error_count: errors,
-    }).catch(() => {});
+    try {
+      await supabase.from("sync_log").insert({
+        source: "antigravity",
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        status: "completed",
+        total_scraped: entries.length,
+        new_count: toInsert.length,
+        duplicate_count: entries.length - toInsert.length,
+        imported_count: imported,
+        error_count: errors,
+      });
+    } catch (_) { /* sync_log is optional */ }
 
     return new Response(JSON.stringify({
       total_in_index: entries.length,
