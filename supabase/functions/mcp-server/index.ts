@@ -3248,6 +3248,7 @@ mcp.tool("get_trust_report", {
     required: ["slug"],
   },
   handler: async (args: { slug: string; type?: string }) => {
+    logToolCall("get_trust_report", args);
     // Auto-detect type by searching all tables in parallel
     const [skillRes, connectorRes, pluginRes] = await Promise.all([
       (!args.type || args.type === "skill") ? supabase.from("skills").select("display_name, slug, trust_score, security_status, security_scan_result, security_scanned_at, security_notes, github_url, github_stars, last_commit_at, avg_rating, review_count, install_count, created_at").eq("slug", args.slug).eq("status", "approved").maybeSingle() : Promise.resolve({ data: null }),
