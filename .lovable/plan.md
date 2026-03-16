@@ -1,34 +1,41 @@
-## Plan: PRD Final Polish — Estado: ✅ Implementado
+## Plan: PRD Final V2 — Estado: ✅ Implementado
 
 ### Fixes implementados
 
-#### Fix 1: 3 Pipeline Crons ✅
-- `generate-embeddings-auto`: cada 5 min, batch 100
-- `bulk-fetch-skill-content-auto`: cada 10 min, batch 50
-- `enrich-github-metadata-auto`: cada 15 min, batch 400
+#### Fix 1: generate-embeddings batch 25 + error logging ✅
+- Default `batch_size` reducido de 100 a **25**
+- Error logging agregado al sync_log en caso de fallo
+- Cron rescheduled a `*/3` (offset +1)
 
-#### Fix 2: Limpieza de duplicados ✅
-- Eliminados 6 crons duplicados: sync-skills (3), sync-connectors (2), discover-trending (1)
-- 33 → ~27 crons activos
+#### Fix 2: scrape-skills-sh slug collisions ✅
+- Import cambiado de batch insert a **individual upserts** con error handling por fila
+- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
+- Columna `error_message` agregada a `skills_import_staging`
 
-#### Fix 3: Reducción de timeouts ✅
-- auto-approve: 3min → 10min
-- verify-security: 10min → 30min
-- scan-security: 15min → 30min
-- calculate-trust: 15min → 30min
-- enrich-skills-ai: 30min → 2h
-- translate-skills: 30min → 3h
-- MAX_RUNTIME 50s guard en enrich-github-metadata y bulk-fetch-skill-content
+#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
+- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
+- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
+- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
+- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
 
-#### Fix 4: Filtrado de tools irrelevantes ✅
-- Añadidos a SOLVE_GOAL_EXCLUDED_SLUGS: firebase, neverinfamous-memory-journal-mcp, frago
-- DOMAIN_CATEGORY_MAP: penalización -5 puntos para tools de categorías no relacionadas al dominio detectado
+#### Fix 4: Limpieza de crons duplicados ✅
+- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
+- 30 → 29 crons
 
-#### Fix 5: Zero-signal skills marcados ✅
-- quality_rank = 0.01 para skills con 0 rating, 0 installs, 0 trust score
+#### Fix 5: enrich-github-metadata parallelizado ✅
+- Batch reducido de 400 a **150**
+- Procesamiento en paralelo (batches de 5)
+- Cron: `*/10` (staggered a offset +2)
 
-#### Fix 6: Quality Rank Distribution
-- Se resuelve automáticamente cuando los crons de Fix 1 pueblen github_metadata y ejecuten recompute_quality_ranks()
+#### Fix 6: bulk-fetch-skill-content acelerado ✅
+- Cron: `*/10` → `*/5` (staggered a offset +3)
 
-#### Fix 7: scrape-skills-sh Diagnostic
-- Pendiente diagnóstico manual post-deployment
+#### Fix 7: Crons staggered ✅
+- `calculate-trust-score`: `5,35 * * * *`
+- `scan-security`: `10,40 * * * *`
+- `verify-security`: `15,45 * * * *`
+- `generate-embeddings`: offset +1 cada 3 min
+- `bulk-fetch-skill-content`: offset +3 cada 5 min
+- `enrich-github-metadata`: offset +2 cada 10 min
+
+### Estado final: 29 crons activos, todos staggered
