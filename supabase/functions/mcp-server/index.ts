@@ -3532,6 +3532,7 @@ mcp.tool("unpublish_skill", {
     required: ["skill_slug"],
   },
   handler: async (args: { skill_slug: string; reason?: string }) => {
+    logToolCall("unpublish_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
