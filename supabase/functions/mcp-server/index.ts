@@ -957,6 +957,7 @@ mcp.tool("list_popular_plugins", {
     },
   },
   handler: async (args: { category?: string; platform?: string; limit?: number }) => {
+    logToolCall("list_popular_plugins", args);
     let q = supabase
       .from("plugins")
       .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified")
