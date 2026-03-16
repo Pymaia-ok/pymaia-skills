@@ -86,63 +86,68 @@ Deno.serve(async (req) => {
     let fetched = 0, notFound = 0, errors = 0;
     let rateLimited = false;
 
-    for (const skill of skills) {
+    // Process in parallel batches of 5
+    for (let i = 0; i < skills.length; i += 5) {
       if (rateLimited) break;
+      const batch = skills.slice(i, i + 5);
 
-      try {
-        const info = extractRepoAndSkill(skill.github_url!, skill.install_command || "");
-        if (!info) {
-          await supabase.from("skills").update({ skill_md_status: "not_found" }).eq("id", skill.id);
-          notFound++;
-          continue;
-        }
+      await Promise.all(batch.map(async (skill) => {
+        if (rateLimited) return;
+        try {
+          const info = extractRepoAndSkill(skill.github_url!, skill.install_command || "");
+          if (!info) {
+            await supabase.from("skills").update({ skill_md_status: "not_found" }).eq("id", skill.id);
+            notFound++;
+            return;
+          }
 
-        const { owner, repo, skillName } = info;
-        const basePaths = skillName
-          ? [
-              `skills/${skillName}/SKILL.md`,
-              `.claude/skills/${skillName}/SKILL.md`,
-              `SKILL.md`,
-            ]
-          : [`SKILL.md`, `skills/SKILL.md`];
+          const { owner, repo, skillName } = info;
+          const basePaths = skillName
+            ? [
+                `skills/${skillName}/SKILL.md`,
+                `.claude/skills/${skillName}/SKILL.md`,
+                `SKILL.md`,
+              ]
+            : [`SKILL.md`, `skills/SKILL.md`];
 
-        const branches = ["main", "master"];
-        let content: string | null = null;
+          const branches = ["main", "master"];
+          let content: string | null = null;
 
-        for (const branch of branches) {
-          if (content || rateLimited) break;
-          for (const path of basePaths) {
-            const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-            const result = await tryFetchContent(url, githubToken || undefined);
-            if (result === "RATE_LIMITED") {
-              rateLimited = true;
-              console.warn(`Rate limited at ${fetched + notFound} skills processed`);
-              break;
-            }
-            if (result) {
-              content = result;
-              break;
+          for (const branch of branches) {
+            if (content || rateLimited) break;
+            for (const path of basePaths) {
+              const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+              const result = await tryFetchContent(url, githubToken || undefined);
+              if (result === "RATE_LIMITED") {
+                rateLimited = true;
+                console.warn(`Rate limited at ${fetched + notFound} skills processed`);
+                break;
+              }
+              if (result) {
+                content = result;
+                break;
+              }
             }
           }
+
+          if (rateLimited) return;
+
+          if (content) {
+            await supabase.from("skills").update({ skill_md: content, skill_md_status: "fetched" }).eq("id", skill.id);
+            fetched++;
+          } else {
+            await supabase.from("skills").update({ skill_md_status: "not_found" }).eq("id", skill.id);
+            notFound++;
+          }
+        } catch (e) {
+          console.error(`Error fetching skill_md for ${skill.slug}:`, e instanceof Error ? e.message : e);
+          await supabase.from("skills").update({ skill_md_status: "error" }).eq("id", skill.id);
+          errors++;
         }
+      }));
 
-        if (rateLimited) break;
-
-        if (content) {
-          await supabase.from("skills").update({ skill_md: content, skill_md_status: "fetched" }).eq("id", skill.id);
-          fetched++;
-        } else {
-          await supabase.from("skills").update({ skill_md_status: "not_found" }).eq("id", skill.id);
-          notFound++;
-        }
-
-        // Rate limiting: 1s delay every 10 requests
-        if ((fetched + notFound) % 10 === 0) await new Promise(r => setTimeout(r, 1000));
-      } catch (e) {
-        console.error(`Error fetching skill_md for ${skill.slug}:`, e instanceof Error ? e.message : e);
-        await supabase.from("skills").update({ skill_md_status: "error" }).eq("id", skill.id);
-        errors++;
-      }
+      // Brief delay between parallel batches to avoid rate limits
+      if (!rateLimited && i + 5 < skills.length) await new Promise(r => setTimeout(r, 500));
     }
 
     // Update sync_log

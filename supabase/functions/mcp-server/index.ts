@@ -36,11 +36,11 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
 
 // ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
 const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
-  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic", "run campaigns", "paid advertising", "media buying", "campaigns", "publicidad", "anuncios", "campañas"],
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic", "run campaigns", "paid advertising", "media buying", "campaigns", "publicidad", "anuncios", "campañas", "facebook campaign", "instagram campaign"],
   "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
   "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
-  "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
-  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad", "finances", "personal finances", "money", "savings", "income", "debt", "loans", "banking", "investments", "net worth", "cash flow", "gastos", "ahorro", "dinero", "deudas", "presupuesto", "impuestos"],
+  "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops", "helm", "cloud", "monitoring", "alerting"],
+  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad", "finances", "personal finances", "personal finance", "money", "money management", "savings", "savings account", "income", "debt", "loans", "banking", "investments", "net worth", "cash flow", "gastos", "ahorro", "dinero", "deudas", "presupuesto", "impuestos"],
   "legal": ["contract", "legal", "compliance", "patent", "trademark", "litigation", "contrato", "abogado"],
   "data": ["data pipeline", "etl", "analytics", "dashboard", "visualization", "sql", "warehouse", "datos"],
   "security": ["vulnerability", "penetration test", "security audit", "firewall", "encryption", "seguridad"],
@@ -79,6 +79,18 @@ const GENERIC_TOOL_SLUGS = new Set([
   "cowork-plugin-management", "claude-code-setup", "claude-code-plugins-plus-skills",
   "claude-md-management", "plugin-management", "skill-management", "agent-management",
   "mcp-server-management", "tool-management", "settings-manager",
+]);
+
+// ─── SOLVE_GOAL EXCLUDED SLUGS: generic platforms that pollute every result ───
+const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
+  // Generic dev platforms that appear in everything
+  "asana-plugin", "posthog", "vercel-plugin",
+  // Meta tools about skills/plugins, not real tasks
+  "cowork-plugin-management", "claude-code-setup", "claude-md-management",
+  // Completely out of context for most goals
+  "io-github-ibeal-tidal-mcp",  // Music streaming
+  "io-aerospace-software-community-mcp-server",  // Astrodynamics
+  "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
 ]);
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
@@ -1349,8 +1361,8 @@ mcp.tool("solve_goal", {
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", ms: Date.now() - solveT0, totalItems: allItems.length, uniqueKeywords: uniqueKeywords.length }));
 
     // 4. Score by relevance (ML-enhanced with quality guards)
-    // Filter out generic/meta tools that pollute results
-    const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug));
+    // Filter out generic/meta tools AND solve_goal excluded tools
+    const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug) && !SOLVE_GOAL_EXCLUDED_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
     const scored = filteredItems.map((item: any) => {
       let score = 0;
@@ -1391,11 +1403,13 @@ mcp.tool("solve_goal", {
       if (item.avg_rating >= 4.0) score += 2;
       score += (item.trust_score || 0) / 20;
 
-      // Goal-word relevance penalty: if NO goal words appear in description, penalize heavily
-      const goalWordsLong = goalWords2.filter(w => w.length > 3);
+      // Goal-word relevance penalty: if NO goal words (4+ chars) appear in description, penalize 80%
+      const goalWordsLong = goalWords2.filter(w => w.length >= 4);
       if (goalWordsLong.length > 0) {
-        const anyGoalWordInDesc = goalWordsLong.some(w => searchable.includes(w));
-        if (!anyGoalWordInDesc) score *= 0.3; // 70% penalty
+        const matchCount = goalWordsLong.filter(w => searchable.includes(w)).length;
+        if (matchCount === 0) {
+          score *= 0.2; // 80% penalty — no goal word overlap at all
+        }
       }
 
       return { ...item, relevance: score };
@@ -1447,19 +1461,20 @@ mcp.tool("solve_goal", {
       }
     }
 
-    // 5. Compose Option A (simple — fewer tools, prefer plugins/bundles)
+    // 5. Compose Option A (simple — type-balanced: max 1 plugin, 2 connectors, 2 skills)
     const optionA: any[] = [];
     const usedA = new Set<string>();
-    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionA.length >= 3 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
-    for (const item of scored.filter((i: any) => i.type === "connector")) { if (optionA.length >= 4 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionA.filter((x: any) => x.type === "plugin").length >= 1 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "connector")) { if (optionA.filter((x: any) => x.type === "connector").length >= 2 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
     for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionA.length >= 5 || usedA.has(item.slug)) continue; optionA.push(item); usedA.add(item.slug); }
 
-    // 6. Compose Option B (flexible — connectors first, then skills)
+    // 6. Compose Option B (flexible — max 3 connectors, 2 skills, 1 plugin)
     const optionB: any[] = [];
     const usedB = new Set<string>();
-    for (const item of scored.filter((i: any) => i.type === "connector" && i.is_official)) { if (optionB.length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "connector" && i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
     for (const item of scored.filter((i: any) => i.type === "connector" && !i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 3 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
-    for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.filter((x: any) => x.type === "skill").length >= 2 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
+    for (const item of scored.filter((i: any) => i.type === "plugin")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
 
     // 7. Compatibility analysis (skip if over time budget)
     let warningsA: string[] = [], warningsB: string[] = [];
@@ -1473,9 +1488,27 @@ mcp.tool("solve_goal", {
     const sections: string[] = [];
     sections.push(`# 🎯 Pymaia Agent — Solution for: "${args.goal}"\n`);
 
+    // Fix 2: Use keyword domain for header when LLM template doesn't match the actual goal
+    const keywordDomainForDisplay = detectDomainByKeywords(args.goal);
     if (matchedTemplate) {
-      sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
-      if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
+      // Check if the template display name or triggers actually relate to the goal keywords
+      const templateText = `${matchedTemplate.display_name} ${(matchedTemplate.triggers || []).join(" ")}`.toLowerCase();
+      const goalKeywordsForMatch = goalWords2.filter((w: string) => w.length >= 4);
+      const templateMatchesGoal = goalKeywordsForMatch.some((w: string) => templateText.includes(w));
+      
+      if (templateMatchesGoal && (keywordDomainForDisplay.domain === "general" || keywordDomainForDisplay.confidence < 0.5)) {
+        // Template seems to match AND keyword detection is uncertain — trust the template
+        sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
+        if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
+      } else if (keywordDomainForDisplay.domain !== "general" && keywordDomainForDisplay.confidence >= 0.5) {
+        // Keyword detection is confident — use keyword domain for display
+        const displayDomain = keywordDomainForDisplay.domain.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        sections.push(`**Domain:** ${displayDomain}`);
+      } else {
+        // Template matched but keyword detection also general — show template
+        sections.push(`**Goal detected:** ${matchedTemplate.display_name} (${templateDomain})`);
+        if (matchedTemplate.description) sections.push(`*${matchedTemplate.description}*\n`);
+      }
     }
 
     if (capabilities.length > 0) {
