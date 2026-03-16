@@ -143,6 +143,11 @@ export default {
     bafounderBefore: "Horas navegando sitios, comparando features, armando spreadsheets.",
     bafounderAfter: "Análisis competitivo estructurado con pricing, features y gaps en 10 min.",
     bafounderTime: "Ahorra ~3hs por análisis",
+    batoolseekerRole: "Cualquier profesional",
+    batoolseekerTask: "Encontrar las herramientas de IA correctas",
+    batoolseekerBefore: "2+ horas buscando en 5 directorios, comparando features, leyendo docs.",
+    batoolseekerAfter: "Describí tu objetivo, recibí una solución curada con comandos de instalación en 30 segundos.",
+    batoolseekerTime: "Ahorra ~2hs por búsqueda",
 
     mcpTitle: "Tu arquitecto de soluciones AI",
     mcpSubtitle: "Instalá Pymaia Agent y decile qué necesitás. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",

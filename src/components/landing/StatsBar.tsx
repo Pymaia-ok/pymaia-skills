@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRef, useEffect, useState } from "react";
+import { Shield } from "lucide-react";
 
 const AnimatedNumber = ({ target }: { target: number }) => {
   const ref = useRef<HTMLSpanElement>(null);
@@ -32,27 +33,29 @@ const StatsBar = () => {
   const { data } = useQuery({
     queryKey: ["landing-stats-counts"],
     queryFn: async () => {
-      const [skills, connectors, plugins, bundles] = await Promise.all([
+      const [skills, connectors, plugins, scannedSkills, scannedConnectors, scannedPlugins] = await Promise.all([
         supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
-        supabase.from("skill_bundles").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved").neq("security_status", "unverified"),
+        supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved").neq("security_status", "unverified"),
+        supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved").neq("security_status", "unverified"),
       ]);
       return {
         skills: skills.count ?? 0,
         connectors: connectors.count ?? 0,
         plugins: plugins.count ?? 0,
-        bundles: bundles.count ?? 0,
+        scanned: (scannedSkills.count ?? 0) + (scannedConnectors.count ?? 0) + (scannedPlugins.count ?? 0),
       };
     },
     staleTime: 1000 * 60 * 10,
   });
 
   const stats = [
-    { value: data?.skills ?? 0, label: t("landing.statsSkills") },
-    { value: data?.connectors ?? 0, label: t("landing.statsConnectors") },
-    { value: data?.plugins ?? 0, label: t("landing.statsPlugins") },
-    { value: data?.bundles ?? 0, label: t("landing.statsBundles") },
+    { value: data?.skills ?? 0, label: t("landing.statsSkills"), icon: null },
+    { value: data?.connectors ?? 0, label: t("landing.statsConnectors"), icon: null },
+    { value: data?.plugins ?? 0, label: t("landing.statsPlugins"), icon: null },
+    { value: data?.scanned ?? 0, label: t("landing.statsSecurityScanned"), icon: <Shield className="w-4 h-4 text-primary inline-block mr-1" /> },
   ];
 
   return (
@@ -69,7 +72,9 @@ const StatsBar = () => {
               <div className="text-3xl md:text-5xl font-bold tracking-tight mb-1">
                 <AnimatedNumber target={stat.value} />
               </div>
-              <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
+              <div className="text-sm text-muted-foreground font-medium">
+                {stat.icon}{stat.label}
+              </div>
             </div>
           ))}
         </motion.div>
