@@ -37,9 +37,9 @@ export default {
 
   // Landing sections
   landing: {
-    heroBadge: "35,000+ soluciones profesionales",
+    heroBadge: "43,000+ Skills, MCPs y Plugins",
     heroTitle: "Potenciá tu trabajo con inteligencia artificial.",
-    heroSubtitle: "Activá soluciones listas para usar en tu asistente de IA y transformá tu productividad en minutos.",
+    heroSubtitle: "El único catálogo unificado de Skills, MCP Servers y Plugins — verificados y listos para usar. Encontrá la herramienta justa, activala en minutos.",
     multiAgentBadge: "Funciona con las herramientas de IA más populares",
     heroCtaExplore: "Explorar soluciones",
     heroCtaLearn: "Ver cómo funciona",
@@ -62,17 +62,26 @@ export default {
     howStep1Label: "Paso 1",
     howStep2Label: "Paso 2",
     howStep3Label: "Paso 3",
-    howstep1Title: "Elegí una solución",
-    howstep1Desc: "Explorá el catálogo y encontrá la solución perfecta para tu desafío.",
-    howstep2Title: "Activala en tu asistente",
-    howstep2Desc: "Un solo paso. Copiá, pegá y tu asistente de IA ya tiene el conocimiento.",
+    howstep1Title: "Contanos tu objetivo",
+    howstep1Desc: "Describí lo que necesitás — nuestra IA recomienda la mejor combinación de Skills, MCPs y Plugins.",
+    howstep2Title: "Verificado y seguro para activar",
+    howstep2Desc: "Cada herramienta está escaneada con puntaje de confianza. Copiá, pegá y tu asistente está listo.",
     howstep3Title: "Sos más productivo",
     howstep3Desc: "Tu asistente de IA ahora tiene conocimiento experto. Solo pedile la tarea y la ejecuta automáticamente.",
 
     statsSkills: "soluciones",
     statsConnectors: "integraciones",
     statsPlugins: "plugins",
-    statsIndustries: "áreas de negocio",
+    statsBundles: "bundles por rol",
+
+    whyTitle: "¿Por qué Pymaia?",
+    whySubtitle: "La única plataforma que unifica descubrimiento, seguridad y automatización para herramientas de IA.",
+    whyCatalogTitle: "Catálogo unificado",
+    whyCatalogDesc: "Skills, MCP Servers y Plugins en un solo lugar. No más saltar entre directorios.",
+    whyGoalTitle: "Búsqueda por objetivo",
+    whyGoalDesc: "Describí lo que necesitás, no qué herramienta buscás. Nuestra IA encuentra la solución correcta.",
+    whySecurityTitle: "Seguridad primero",
+    whySecurityDesc: "Cada herramienta está escaneada, puntuada y monitoreada. Trust scores y advisories te protegen.",
 
     pathsTitle: "¿Qué necesitás hoy?",
     pathsSubtitle: "Tenemos un camino para cada necesidad.",

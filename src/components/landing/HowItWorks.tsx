@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Target, ShieldCheck, Zap } from "lucide-react";
 
 const steps = [
-  { icon: Search, key: "step1" },
-  { icon: Copy, key: "step2" },
+  { icon: Target, key: "step1" },
+  { icon: ShieldCheck, key: "step2" },
   { icon: Zap, key: "step3" },
 ];
 

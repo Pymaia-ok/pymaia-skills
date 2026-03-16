@@ -90,6 +90,8 @@ const Index = () => {
         <HeroSection />
         {/* 2. Stats — credibility */}
         <StatsBar />
+        {/* 2b. Why Pymaia — differentiators */}
+        <WhyPymaiaSection />
         {/* 3. Marquee — breadth */}
         <MarqueeSection />
         {/* 4. How it works — clarity */}

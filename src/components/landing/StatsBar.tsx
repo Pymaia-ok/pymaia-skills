@@ -52,7 +52,7 @@ const StatsBar = () => {
     { value: data?.skills ?? 0, label: t("landing.statsSkills") },
     { value: data?.connectors ?? 0, label: t("landing.statsConnectors") },
     { value: data?.plugins ?? 0, label: t("landing.statsPlugins") },
-    { value: 15, label: t("landing.statsIndustries") },
+    { value: data?.bundles ?? 0, label: t("landing.statsBundles") },
   ];
 
   return (
