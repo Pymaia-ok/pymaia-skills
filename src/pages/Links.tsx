@@ -192,7 +192,7 @@ export default function Links() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm px-4 pt-[15vh] sm:pt-0 sm:items-center overflow-y-auto"
             onClick={() => setPendingHref(null)}
           >
             <motion.div
@@ -201,7 +201,7 @@ export default function Links() {
               exit={{ y: 80, opacity: 0 }}
               transition={{ type: "spring" as const, stiffness: 400, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-card rounded-2xl sm:rounded-2xl border border-border shadow-2xl overflow-hidden"
+              className="w-full max-w-sm bg-card rounded-2xl border border-border shadow-2xl overflow-hidden my-4"
             >
               <div className="p-6 flex flex-col items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
