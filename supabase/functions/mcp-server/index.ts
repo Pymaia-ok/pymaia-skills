@@ -1600,12 +1600,12 @@ mcp.tool("solve_goal", {
     sections.push(`\n<sub>experiment: ${variant} · classifier: ${intent.confidence > 0 ? "ml" : "keyword"}</sub>`);
 
     if (matchedTemplate) {
-      await supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id);
+      supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id).then(() => {});
     }
 
-    // Track A/B experiment in analytics
+    // Track analytics (fire-and-forget — don't block response)
     const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
-    await supabase.from("agent_analytics").insert({
+    supabase.from("agent_analytics").insert({
       event_type: "solve_goal",
       tool_name: "solve_goal",
       goal: args.goal,
@@ -1623,10 +1623,11 @@ mcp.tool("solve_goal", {
         connectors_count: [...optionA, ...optionB].filter((i: any) => i.type === "connector").length,
         plugins_count: [...optionA, ...optionB].filter((i: any) => i.type === "plugin").length,
         keywords: intent.keywords || [],
-        template_slug: matchedTemplate?.slug || null,
+        total_ms: Date.now() - solveT0,
       },
-    });
+    }).then(() => {});
 
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "done", ms: Date.now() - solveT0, optionA: optionA.length, optionB: optionB.length }));
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
 });
