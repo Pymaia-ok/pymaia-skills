@@ -1417,11 +1417,22 @@ mcp.tool("solve_goal", {
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
       if (intent.category && item.category === intent.category) score += 4;
 
-      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories
+      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories (80% penalty)
       const detectedDomain = keywordDomain?.domain || intent.domain;
       const expectedCategories = DOMAIN_CATEGORY_MAP[detectedDomain];
       if (expectedCategories && item.category && !expectedCategories.has(item.category.toLowerCase())) {
-        score -= 5; // 50% effective penalty for off-domain tools
+        score *= 0.2; // 80% penalty for off-domain tools
+      }
+
+      // CONNECTOR DESCRIPTION-OVERLAP CHECK: connectors without goal-word overlap get 90% penalty
+      if (item.item_type === "connector") {
+        const connGoalWords = goalWords2.filter((w: string) => w.length >= 4);
+        if (connGoalWords.length > 0) {
+          const connMatch = connGoalWords.filter((w: string) => searchable.includes(w)).length;
+          if (connMatch === 0) {
+            score *= 0.1; // 90% penalty — connector has zero goal-word overlap
+          }
+        }
       }
 
       // Quality signals (with inflated-stars guard)
@@ -1438,9 +1449,9 @@ mcp.tool("solve_goal", {
       score += (item.trust_score || 0) / 20;
 
       // Goal-word relevance penalty: if NO goal words (4+ chars) appear in description, penalize 80%
-      const goalWordsLong = goalWords2.filter(w => w.length >= 4);
+      const goalWordsLong = goalWords2.filter((w: string) => w.length >= 4);
       if (goalWordsLong.length > 0) {
-        const matchCount = goalWordsLong.filter(w => searchable.includes(w)).length;
+        const matchCount = goalWordsLong.filter((w: string) => searchable.includes(w)).length;
         if (matchCount === 0) {
           score *= 0.2; // 80% penalty — no goal word overlap at all
         }
