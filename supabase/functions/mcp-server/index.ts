@@ -1382,6 +1382,7 @@ mcp.tool("solve_goal", {
     // Filter out generic/meta tools AND solve_goal excluded tools
     const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug) && !SOLVE_GOAL_EXCLUDED_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
+    const keywordDomain = detectDomainByKeywords(args.goal);
     const scored = filteredItems.map((item: any) => {
       let score = 0;
       const descLower = (item.desc || "").toLowerCase();
