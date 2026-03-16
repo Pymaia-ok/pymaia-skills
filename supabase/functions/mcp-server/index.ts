@@ -2247,6 +2247,7 @@ mcp.tool("submit_goal_template", {
     required: ["slug", "display_name", "domain", "description", "triggers"],
   },
   handler: async (args: { slug: string; display_name: string; domain: string; description: string; triggers: string[]; capabilities?: any[] }) => {
+    logToolCall("submit_goal_template", args);
     const slug = args.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 64);
     if (!slug || slug.length < 3) return { content: [{ type: "text" as const, text: "❌ Slug must be at least 3 characters (kebab-case)." }] };
     if (args.triggers.length < 2) return { content: [{ type: "text" as const, text: "❌ At least 2 trigger keywords required." }] };
