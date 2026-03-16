@@ -160,38 +160,44 @@ serve(async (req) => {
 
     let processed = 0;
     let errors = 0;
+    let rateLimited = false;
 
-    for (const record of records) {
-      try {
-        // Build text for embedding
+    // Process in parallel batches of 5
+    for (let i = 0; i < records.length; i += 5) {
+      if (rateLimited) break;
+      const batch = records.slice(i, i + 5);
+
+      const results = await Promise.allSettled(batch.map(async (record) => {
         const textParts = table === "skills"
           ? [record.display_name, record.tagline, record.description_human, record.category]
           : [record.name, record.description, record.category];
         const text = textParts.filter(Boolean).join(" | ");
 
         const vector = await generateEmbedding(text, LOVABLE_API_KEY);
-
-        // Store embedding
         const vectorStr = `[${vector.join(",")}]`;
         const { error: updateError } = await supabase
           .from(table as any)
           .update({ embedding: vectorStr } as any)
           .eq("id", record.id);
 
-        if (updateError) {
-          console.error(`Update error for ${record.id}:`, updateError);
-          errors++;
-        } else {
-          processed++;
-        }
+        if (updateError) throw updateError;
+        return true;
+      }));
 
-        // Small delay to avoid rate limiting
-        if (processed < records.length) {
-          await new Promise(r => setTimeout(r, 200));
+      for (const r of results) {
+        if (r.status === "fulfilled") {
+          processed++;
+        } else {
+          errors++;
+          const errMsg = r.reason?.message || String(r.reason);
+          if (errMsg.includes("429") || errMsg.includes("rate")) rateLimited = true;
+          console.error(`Embedding error: ${errMsg.slice(0, 200)}`);
         }
-      } catch (e) {
-        console.error(`Error processing ${record.id}:`, e instanceof Error ? e.message : e);
-        errors++;
+      }
+
+      // Brief delay between batches
+      if (!rateLimited && i + 5 < records.length) {
+        await new Promise(r => setTimeout(r, 300));
       }
     }
 
