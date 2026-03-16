@@ -1461,8 +1461,13 @@ mcp.tool("solve_goal", {
     for (const item of scored.filter((i: any) => i.type === "connector" && !i.is_official)) { if (optionB.filter((x: any) => x.type === "connector").length >= 3 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
     for (const item of scored.filter((i: any) => i.type === "skill")) { if (optionB.length >= 6 || usedB.has(item.slug)) continue; optionB.push(item); usedB.add(item.slug); }
 
-    // 7. Compatibility analysis
-    const [warningsA, warningsB] = await Promise.all([getCompatibilityWarnings(optionA), getCompatibilityWarnings(optionB)]);
+    // 7. Compatibility analysis (skip if over time budget)
+    let warningsA: string[] = [], warningsB: string[] = [];
+    if ((Date.now() - solveT0) < 20000) {
+      [warningsA, warningsB] = await Promise.all([getCompatibilityWarnings(optionA), getCompatibilityWarnings(optionB)]);
+    } else {
+      console.log(JSON.stringify({ tool: "solve_goal", phase: "skip_compat", ms: Date.now() - solveT0 }));
+    }
 
     // 8. Build response
     const sections: string[] = [];
