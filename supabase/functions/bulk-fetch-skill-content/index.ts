@@ -85,10 +85,16 @@ Deno.serve(async (req) => {
 
     let fetched = 0, notFound = 0, errors = 0;
     let rateLimited = false;
+    const MAX_RUNTIME_MS = 50_000; // 50s guard
+    const startTime = Date.now();
 
     // Process in parallel batches of 5
     for (let i = 0; i < skills.length; i += 5) {
       if (rateLimited) break;
+      if (Date.now() - startTime > MAX_RUNTIME_MS) {
+        console.log(`MAX_RUNTIME reached at ${fetched + notFound} skills (${Date.now() - startTime}ms)`);
+        break;
+      }
       const batch = skills.slice(i, i + 5);
 
       await Promise.all(batch.map(async (skill) => {

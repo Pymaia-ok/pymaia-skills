@@ -91,7 +91,25 @@ const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
   "io-github-ibeal-tidal-mcp",  // Music streaming
   "io-aerospace-software-community-mcp-server",  // Astrodynamics
   "xcodebuildmcp", "com-xcodebuildmcp-xcodebuildmcp", "xcodebuild", "xcodebuildmcp-cli",  // iOS/Xcode only
+  // Fix 4: additional noise tools
+  "firebase", "neverinfamous-memory-journal-mcp", "frago",
 ]);
+
+// ─── DOMAIN → EXPECTED CATEGORIES MAP: penalize off-domain tools ───
+const DOMAIN_CATEGORY_MAP: Record<string, Set<string>> = {
+  advertising: new Set(["marketing", "social-media", "analytics", "advertising"]),
+  finance: new Set(["finance", "productivity", "data-analysis", "analytics"]),
+  design: new Set(["design", "media", "creativity", "productivity"]),
+  devops: new Set(["development", "devops", "cloud", "infrastructure", "monitoring"]),
+  sales: new Set(["sales", "crm", "marketing", "communication"]),
+  legal: new Set(["legal", "compliance", "documentation", "productivity"]),
+  hr: new Set(["hr", "recruitment", "communication", "productivity"]),
+  education: new Set(["education", "documentation", "productivity", "research"]),
+  healthcare: new Set(["healthcare", "data-analysis", "compliance", "research"]),
+  ecommerce: new Set(["ecommerce", "marketing", "analytics", "productivity"]),
+  security: new Set(["security", "development", "devops", "compliance"]),
+  "data-science": new Set(["data-analysis", "development", "research", "analytics"]),
+};
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
   const goalLower = goal.toLowerCase();
@@ -1364,6 +1382,7 @@ mcp.tool("solve_goal", {
     // Filter out generic/meta tools AND solve_goal excluded tools
     const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug) && !SOLVE_GOAL_EXCLUDED_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
+    const keywordDomain = detectDomainByKeywords(args.goal);
     const scored = filteredItems.map((item: any) => {
       let score = 0;
       const descLower = (item.desc || "").toLowerCase();
@@ -1389,6 +1408,13 @@ mcp.tool("solve_goal", {
       for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
       if (intent.category && item.category === intent.category) score += 4;
+
+      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories
+      const detectedDomain = keywordDomain?.domain || intent.domain;
+      const expectedCategories = DOMAIN_CATEGORY_MAP[detectedDomain];
+      if (expectedCategories && item.category && !expectedCategories.has(item.category.toLowerCase())) {
+        score -= 5; // 50% effective penalty for off-domain tools
+      }
 
       // Quality signals (with inflated-stars guard)
       const stars = item.github_stars || 0;

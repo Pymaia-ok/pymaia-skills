@@ -94,9 +94,15 @@ Deno.serve(async (req) => {
     console.log(`Repos to fetch: ${toFetch.length} (fresh: ${existingFresh.size})`);
 
     let processed = 0, errors = 0, rateLimited = false;
+    const MAX_RUNTIME_MS = 50_000; // 50s guard — leave 10s for cleanup
+    const startTime = Date.now();
 
     for (const repo of toFetch) {
       if (rateLimited) break;
+      if (Date.now() - startTime > MAX_RUNTIME_MS) {
+        console.log(`MAX_RUNTIME reached at ${processed} repos (${Date.now() - startTime}ms)`);
+        break;
+      }
 
       try {
         const resp = await fetch(`https://api.github.com/repos/${repo}`, {
