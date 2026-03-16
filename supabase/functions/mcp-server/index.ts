@@ -837,6 +837,7 @@ mcp.tool("list_popular_connectors", {
     },
   },
   handler: async (args: { category?: string; limit?: number }) => {
+    logToolCall("list_popular_connectors", args);
     let q = supabase
       .from("mcp_servers")
       .select("name, slug, description, category, github_stars, is_official, install_command")
