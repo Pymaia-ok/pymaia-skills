@@ -1,65 +1,57 @@
+## Plan: 11 Fixes Post-Audit — Estado: ✅ Implementado
 
+### Fix 1: generate-embeddings ✅
+- batch_size default: 20 → 100
+- Retry con backoff (2 intentos, 5s delay)
+- sync_log al inicio y final
+- Error logging mejorado
 
-# Revisión: Skills de Antigravity Awesome Skills
+### Fix 2: bulk-fetch-skill-content ✅
+- batch_size default: 100 → 50
+- Delay 1s cada 10 requests
+- Manejo de 403/429 con break + rateLimited flag
+- sync_log integrado
 
-## Estado actual del catálogo
+### Fix 3: enrich-github-metadata ✅
+- Paginación completa (eliminado limit(1000))
+- Set-difference: solo fetch repos sin metadata fresca (<7 días)
+- sync_log integrado
 
-| Métrica | Valor |
-|---------|-------|
-| Skills en el repo Antigravity | **1,259+** |
-| Skills en nuestro DB con `github_url` apuntando a Antigravity | **562** |
-| Skills con `install_command` de Antigravity (sin github_url match) | **442** |
-| **Total cobertura directa** | **~1,004** |
-| **Gap estimado** | **~255 skills** |
-| Repo registrado en `monorepo_registry` | **No** |
+### Fix 4: Install counts inflados ✅
+- Migración SQL: reset install_count=0 donde source != 'tracked'
 
-## Top Starter Skills — Todas presentes
+### Fix 5: Slug collisions ✅
+- Migración SQL con DO block: 55 colisiones resueltas
+- Slugs renombrados a formato org-repo con suffix dedup
+- Redirects insertados en slug_redirects
 
-| Skill | Estado |
-|-------|--------|
-| `brainstorming` | ✅ |
-| `architecture` | ✅ |
-| `test-driven-development` | ✅ |
-| `doc-coauthoring` | ✅ |
-| `lint-and-validate` | ✅ |
-| `create-pr` | ✅ |
-| `debugging-strategies` | ✅ |
-| `api-design-principles` | ✅ (como variante) |
-| `frontend-design` | ✅ |
-| `security-auditor` | ✅ |
-| `copywriting` | ✅ |
-| `python-patterns` | ❌ (tenemos `python-typing-patterns`, `python-async-patterns`, etc. pero no el slug exacto) |
+### Fix 6: Usage events + MCP instrumentation ✅
+- RLS ya existía (INSERT para anon+authenticated)
+- logUsageEvent/logUsageEvents: .catch(() => {}) → .catch(e => console.error(...))
+- Nuevo helper logToolCall() para agent_analytics
+- search_skills instrumentado con logToolCall
 
-Todas las categorías principales están cubiertas: Architecture, Business, Data & AI, Development, General, Infrastructure, Security, Testing, Workflow.
+### Fix 7: scrape-skills-sh ✅
+- Fallback multi-URL: sitemap.xml → sitemap-skills.xml → sitemap-0.xml
+- Error handling mejorado con consume body
 
-## Gap: ~255 skills faltantes
+### Fix 8: Bundles incompletos ✅
+- 10 nuevos roles agregados a ROLE_CONFIG: teacher, doctor, consultant, accountant, writer, researcher, customer-support, ecommerce-manager, content-creator, project-manager
+- Total: 20 roles (de 10 a 20)
 
-Antigravity es un agregador que recopila skills de muchas fuentes (Anthropic, Vercel, Obra, Remotion, zebbern, VoltAgent, rmyndharis, etc.). La mayoría de las 1,259 skills ya las tenemos, ya sea atribuidas a Antigravity directamente o a su fuente original. El gap real es de ~255 skills que no están en nuestro catálogo bajo ningún slug.
+### Fix 9: Quality rank sin GitHub data ✅
+- recompute_quality_ranks() con fórmula adaptativa
+- Con github_metadata: pesos originales (25% stars, 10% recency)
+- Sin github_metadata: redistribuye a rating (30%), trust (25%), docs (20%), installs (15%), engagement (10%)
 
-Además, el repo **no está registrado en `monorepo_registry`**, por lo que no se sincroniza automáticamente cuando agregan nuevas skills.
+### Fix 10: sync_log en pipelines ✅
+- Agregado a: generate-embeddings, bulk-fetch-skill-content, enrich-github-metadata
+- scrape-skills-sh ya lo tenía
 
-## Plan para cerrar el gap
+### Fix 11: Crons duplicados ✅
+- Eliminados: generate-embeddings-6h, recompute-quality-ranks, refresh-directory-stats, bulk-fetch-skill-content-daily, bulk-skillmd-imports, enrich-github-metadata-daily
+- Actualizado generate-embeddings-auto con batch_size=100
 
-### 1. Registrar en monorepo_registry
-Insertar `sickn33/antigravity-awesome-skills` en `monorepo_registry` para que el sistema de sincronización automática (monorepo-sync-daily) capture nuevas adiciones.
-
-### 2. Crear edge function `sync-antigravity-skills`
-- Fetch `skills_index.json` desde GitHub raw (12,592 líneas, ~1,259 entries con id, path, category, description)
-- Comparar cada entry por slug normalizado contra la tabla `skills`
-- Insertar las faltantes en `skills_import_staging` con:
-  - `github_url` → `https://github.com/sickn33/antigravity-awesome-skills`
-  - `install_command` → `npx antigravity-awesome-skills` (global) 
-  - Categoría mapeada desde su campo `category`
-- Auto-aprobar por trust (24.7k stars, fuente verificada)
-- Programar ejecución mensual via cron
-
-### 3. Cambios necesarios
-
-| Tipo | Detalle |
-|------|---------|
-| DB (insert) | Agregar registro en `monorepo_registry` |
-| Edge Function | `sync-antigravity-skills/index.ts` — fetch index + dedup + insert |
-| Cron | Mensual para capturar nuevas skills del repo |
-
-Esto cerraría el gap del ~20% faltante y aseguraría sincronización continua.
-
+### Fix 6 completado: logToolCall en todos los tools ✅
+- 48 tools instrumentados con logToolCall() en agent_analytics
+- Todos los handlers ahora registran tool_name y args_keys
