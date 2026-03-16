@@ -19,6 +19,7 @@ export default {
     mySkills: "Mis soluciones",
     notifications: "Notificaciones",
     enterprise: "Enterprise",
+    academy: "Academy",
   },
 
   // Index / Home

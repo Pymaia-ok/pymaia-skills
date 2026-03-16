@@ -18,6 +18,7 @@ export default {
     mySkills: "My solutions",
     notifications: "Notifications",
     enterprise: "Enterprise",
+    academy: "Academy",
   },
 
   home: {
