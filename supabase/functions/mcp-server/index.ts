@@ -36,20 +36,22 @@ async function resolveApiKeyUser(authHeader: string | null): Promise<string | nu
 
 // ─── KEYWORD-TO-DOMAIN MAPPING (runs BEFORE LLM) ───
 const KEYWORD_DOMAIN_MAP: Record<string, string[]> = {
-  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic"],
+  "advertising": ["meta ads", "facebook ads", "google ads", "tiktok ads", "linkedin ads", "ppc", "ad campaign", "roas", "cpc", "paid media", "display ads", "ads campaign", "run ads", "track conversions", "conversion tracking", "ad spend", "meta campaign", "instagram ads", "amazon ads", "retargeting", "programmatic", "run campaigns", "paid advertising", "media buying", "campaigns", "publicidad", "anuncios", "campañas"],
   "email-marketing": ["email marketing", "newsletter", "drip campaign", "email sequence", "mailchimp", "sendgrid", "email automation"],
   "social-media": ["social media", "instagram post", "twitter", "tweet", "linkedin post", "tiktok content", "social scheduling", "redes sociales", "contenido social"],
   "devops": ["kubernetes", "docker", "ci/cd", "deploy", "pipeline", "infrastructure", "terraform", "ansible", "devops"],
-  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad"],
+  "finance": ["expenses", "budget", "accounting", "invoicing", "financial", "bookkeeping", "tax", "finanzas", "contabilidad", "finances", "personal finances", "money", "savings", "income", "debt", "loans", "banking", "investments", "net worth", "cash flow", "gastos", "ahorro", "dinero", "deudas", "presupuesto", "impuestos"],
   "legal": ["contract", "legal", "compliance", "patent", "trademark", "litigation", "contrato", "abogado"],
   "data": ["data pipeline", "etl", "analytics", "dashboard", "visualization", "sql", "warehouse", "datos"],
   "security": ["vulnerability", "penetration test", "security audit", "firewall", "encryption", "seguridad"],
   "design": ["ui/ux", "figma", "wireframe", "prototype", "design system", "accessibility", "diseño"],
   "sales": ["crm", "prospecting", "cold email", "lead generation", "outbound", "pipeline", "ventas"],
-  "hr": ["recruiting", "hiring", "onboarding", "employee", "payroll", "performance review", "rrhh"],
+  "hr": ["recruiting", "hiring", "onboarding", "employee", "payroll", "performance review", "rrhh", "talent", "workforce", "benefits", "compensation", "recursos humanos"],
   "support": ["customer support", "ticket", "helpdesk", "chatbot", "faq", "knowledge base", "soporte"],
   "development": ["code review", "pull request", "testing", "refactoring", "debugging", "api", "desarrollo", "programación"],
   "marketing": ["seo", "copywriting", "content marketing", "branding", "growth", "marketing"],
+  "healthcare": ["patient", "medical", "clinical", "health", "diagnosis", "ehr", "hipaa", "telemedicine", "salud", "paciente", "médico"],
+  "personal-finance": ["personal budget", "track spending", "expense tracker", "save money", "financial planning", "retirement", "invest", "portfolio", "crypto", "stock", "trading"],
 };
 
 // Map domain IDs to catalog categories
