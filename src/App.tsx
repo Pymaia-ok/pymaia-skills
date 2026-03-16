@@ -85,6 +85,7 @@ const App = () => (
               <Route path="/getting-started" element={<Navigate to="/primeros-pasos" replace />} />
               <Route path="/courses" element={<Navigate to="/cursos" replace />} />
               <Route path="/course/:slug" element={<Navigate to="/cursos" replace />} />
+              <Route path="/links" element={<Links />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
