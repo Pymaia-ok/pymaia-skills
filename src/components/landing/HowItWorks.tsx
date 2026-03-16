@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Search, Copy, Zap } from "lucide-react";
+import { Target, ShieldCheck, Zap } from "lucide-react";
 
 const steps = [
   { icon: Search, key: "step1" },
