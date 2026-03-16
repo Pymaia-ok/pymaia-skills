@@ -99,18 +99,24 @@ const SOLVE_GOAL_EXCLUDED_SLUGS = new Set([
 
 // ─── DOMAIN → EXPECTED CATEGORIES MAP: penalize off-domain tools ───
 const DOMAIN_CATEGORY_MAP: Record<string, Set<string>> = {
-  advertising: new Set(["marketing", "social-media", "analytics", "advertising"]),
-  finance: new Set(["finance", "productivity", "data-analysis", "analytics"]),
-  design: new Set(["design", "media", "creativity", "productivity"]),
-  devops: new Set(["development", "devops", "cloud", "infrastructure", "monitoring"]),
-  sales: new Set(["sales", "crm", "marketing", "communication"]),
-  legal: new Set(["legal", "compliance", "documentation", "productivity"]),
-  hr: new Set(["hr", "recruitment", "communication", "productivity"]),
-  education: new Set(["education", "documentation", "productivity", "research"]),
-  healthcare: new Set(["healthcare", "data-analysis", "compliance", "research"]),
-  ecommerce: new Set(["ecommerce", "marketing", "analytics", "productivity"]),
-  security: new Set(["security", "development", "devops", "compliance"]),
-  "data-science": new Set(["data-analysis", "development", "research", "analytics"]),
+  // Use Spanish category names that match the actual catalog + English fallbacks
+  advertising: new Set(["marketing", "ventas", "datos", "social-media", "analytics", "advertising"]),
+  "email-marketing": new Set(["marketing", "automatizacion", "productividad"]),
+  "social-media": new Set(["marketing", "creatividad", "productividad"]),
+  finance: new Set(["finanzas", "negocios", "datos", "productividad", "finance", "productivity"]),
+  "personal-finance": new Set(["finanzas", "negocios", "productividad"]),
+  design: new Set(["diseno", "creatividad", "productividad", "design", "media"]),
+  devops: new Set(["operaciones", "desarrollo", "datos", "development", "devops"]),
+  sales: new Set(["ventas", "negocios", "marketing", "sales", "crm"]),
+  legal: new Set(["legal", "negocios", "productividad", "compliance"]),
+  hr: new Set(["rrhh", "negocios", "productividad", "hr"]),
+  education: new Set(["educacion", "productividad", "education"]),
+  healthcare: new Set(["salud", "datos", "negocios", "healthcare"]),
+  ecommerce: new Set(["ecommerce", "marketing", "ventas", "negocios"]),
+  security: new Set(["operaciones", "desarrollo", "security", "development"]),
+  "data-science": new Set(["datos", "desarrollo", "ia", "data-analysis"]),
+  development: new Set(["desarrollo", "ia", "operaciones", "productividad"]),
+  support: new Set(["soporte", "productividad", "automatizacion"]),
 };
 
 function detectDomainByKeywords(goal: string): { domain: string; category: string | null; confidence: number } {
