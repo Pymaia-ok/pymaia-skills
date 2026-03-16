@@ -372,6 +372,7 @@ mcp.tool("get_skill_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_skill_details", args);
     // Log usage event
     logUsageEvent("view", args.slug, "skill");
     const resolvedSlug = await resolveSlug(args.slug, "skill");
@@ -430,6 +431,7 @@ mcp.tool("list_popular_skills", {
     },
   },
   handler: async (args: { sort_by?: string; category?: string; limit?: number }) => {
+    logToolCall("list_popular_skills", args);
     const lim = Math.min(args.limit || 5, 10);
     let q = supabase
       .from("skills")
@@ -461,6 +463,7 @@ mcp.tool("list_new_skills", {
     },
   },
   handler: async (args: { limit?: number }) => {
+    logToolCall("list_new_skills", args);
     const { data: skills, error } = await supabase
       .from("skills")
       .select("display_name, tagline, slug, install_count, install_command, category, created_at")
@@ -487,6 +490,7 @@ mcp.tool("list_categories", {
   description: "List all available skill categories with the number of skills in each.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
+    logToolCall("list_categories");
     const { data: skills, error } = await supabase
       .from("skills")
       .select("category")
@@ -533,6 +537,7 @@ mcp.tool("search_by_role", {
     required: ["role"],
   },
   handler: async (args: { role: string; limit?: number }) => {
+    logToolCall("search_by_role", args);
     const roleLower = args.role.toLowerCase();
     const relevantCategories = ROLE_CATEGORIES[roleLower] || [];
     const lim = Math.min(args.limit || 5, 10);
@@ -597,6 +602,7 @@ mcp.tool("recommend_for_task", {
     required: ["task"],
   },
   handler: async (args: { task: string; role?: string }) => {
+    logToolCall("recommend_for_task", args);
     const taskLower = args.task.toLowerCase();
     const roleLower = (args.role || "").toLowerCase();
     const roleCategories = ROLE_CATEGORIES[roleLower] || [];
@@ -665,6 +671,7 @@ mcp.tool("compare_skills", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("compare_skills", args);
     // Resolve slugs through redirects
     const resolvedSlugs = await Promise.all(args.slugs.map(s => resolveSlug(s, "skill")));
     const { data: skills, error } = await supabase
@@ -730,6 +737,7 @@ mcp.tool("search_connectors", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    logToolCall("search_connectors", args);
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
     const selectCols = "name, slug, description, description_es, category, github_stars, github_url, install_command, is_official, icon_url, homepage, docs_url, trust_score";
@@ -804,6 +812,7 @@ mcp.tool("get_connector_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_connector_details", args);
     const { data: c, error } = await supabase
       .from("mcp_servers").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
 
@@ -828,6 +837,7 @@ mcp.tool("list_popular_connectors", {
     },
   },
   handler: async (args: { category?: string; limit?: number }) => {
+    logToolCall("list_popular_connectors", args);
     let q = supabase
       .from("mcp_servers")
       .select("name, slug, description, category, github_stars, is_official, install_command")
@@ -863,6 +873,7 @@ mcp.tool("search_plugins", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; platform?: string; limit?: number }) => {
+    logToolCall("search_plugins", args);
     const lim = Math.min(args.limit || 5, 10);
     const queryLower = sanitizeForPostgrest(args.query);
     const selectCols = "name, slug, description, category, platform, github_stars, github_url, is_official, is_anthropic_verified, install_count, homepage";
@@ -921,6 +932,7 @@ mcp.tool("get_plugin_details", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_plugin_details", args);
     const { data: p, error } = await supabase
       .from("plugins").select("*").eq("slug", args.slug).eq("status", "approved").maybeSingle();
 
@@ -945,6 +957,7 @@ mcp.tool("list_popular_plugins", {
     },
   },
   handler: async (args: { category?: string; platform?: string; limit?: number }) => {
+    logToolCall("list_popular_plugins", args);
     let q = supabase
       .from("plugins")
       .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified")
@@ -982,6 +995,7 @@ mcp.tool("explore_directory", {
     required: ["query"],
   },
   handler: async (args: { query: string; limit?: number }) => {
+    logToolCall("explore_directory", args);
     const lim = Math.min(args.limit || 3, 5);
     const q = sanitizeForPostgrest(args.query);
     const words = q.split(/\s+/).filter(w => w.length >= 2);
@@ -1129,6 +1143,7 @@ mcp.tool("solve_goal", {
     required: ["goal"],
   },
   handler: async (args: { goal: string; role?: string; technical_level?: string; budget?: string; user_id?: string }) => {
+    logToolCall("solve_goal", args);
     const goalLower = args.goal.toLowerCase();
     const apiUserId = currentApiKeyUserId;
 
@@ -1530,6 +1545,7 @@ mcp.tool("rate_recommendation", {
     required: ["goal", "rating"],
   },
   handler: async (args: { goal: string; chosen_option?: string; rating: number; comment?: string }) => {
+    logToolCall("rate_recommendation", args);
     await supabase.from("recommendation_feedback").insert({
       goal: args.goal,
       chosen_option: args.chosen_option || null,
@@ -1554,6 +1570,7 @@ mcp.tool("get_role_kit", {
     required: ["role"],
   },
   handler: async (args: { role: string; stack?: string[]; tier?: string; limit?: number }) => {
+    logToolCall("get_role_kit", args);
     const isAdvanced = args.tier === "advanced";
     const lim = Math.min(args.limit || (isAdvanced ? 10 : 5), 15);
     const roleLower = args.role.toLowerCase();
@@ -1738,6 +1755,7 @@ mcp.tool("explain_combination", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("explain_combination", args);
     // Resolve slugs through redirects
     const resolvedSlugs = await Promise.all(args.slugs.map(async s => {
       const r = await resolveSlug(s, "skill");
@@ -1840,6 +1858,7 @@ mcp.tool("generate_custom_skill", {
     required: ["goal", "tools"],
   },
   handler: async (args: { goal: string; tools: string[]; output_format?: string; custom_name?: string }) => {
+    logToolCall("generate_custom_skill", args);
     const format = args.output_format || "skill";
 
     // 1. Fetch details for all referenced tools
@@ -2024,6 +2043,7 @@ mcp.tool("suggest_for_skill_creation", {
     required: ["skill_idea"],
   },
   handler: async (args: { skill_idea: string; skill_category?: string }) => {
+    logToolCall("suggest_for_skill_creation", args);
     const goalWords = args.skill_idea.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
     const searchResults = await crossCatalogSearch(goalWords, 6);
 
@@ -2098,6 +2118,7 @@ mcp.tool("trending_solutions", {
     },
   },
   handler: async (args: { period?: string }) => {
+    logToolCall("trending_solutions", args);
     const days = args.period === "month" ? 30 : 7;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
@@ -2226,6 +2247,7 @@ mcp.tool("submit_goal_template", {
     required: ["slug", "display_name", "domain", "description", "triggers"],
   },
   handler: async (args: { slug: string; display_name: string; domain: string; description: string; triggers: string[]; capabilities?: any[] }) => {
+    logToolCall("submit_goal_template", args);
     const slug = args.slug.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 64);
     if (!slug || slug.length < 3) return { content: [{ type: "text" as const, text: "❌ Slug must be at least 3 characters (kebab-case)." }] };
     if (args.triggers.length < 2) return { content: [{ type: "text" as const, text: "❌ At least 2 trigger keywords required." }] };
@@ -2267,6 +2289,7 @@ mcp.tool("browse_community_templates", {
     },
   },
   handler: async (args: { domain?: string; status?: string; limit?: number }) => {
+    logToolCall("browse_community_templates", args);
     const lim = Math.min(args.limit || 10, 20);
     let q = supabase.from("community_goal_templates")
       .select("slug, display_name, domain, description, triggers, upvotes, status, created_at")
@@ -2304,6 +2327,7 @@ mcp.tool("agent_analytics", {
     },
   },
   handler: async (args: { period?: string; metric?: string }) => {
+    logToolCall("agent_analytics", args);
     const days = args.period === "day" ? 1 : args.period === "month" ? 30 : 7;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const metric = args.metric || "overview";
@@ -2440,6 +2464,7 @@ mcp.tool("a2a_query", {
     required: ["action"],
   },
   handler: async (args: { action: string; query?: string; filters?: any; format?: string }) => {
+    logToolCall("a2a_query", args);
     const structured = args.format !== "natural";
 
     // Log A2A interaction
@@ -2556,6 +2581,7 @@ mcp.tool("get_directory_stats", {
   description: "Get overall statistics about the SkillHub directory: total skills, connectors, plugins, categories, and highlights.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
+    logToolCall("get_directory_stats");
     // Use materialized view for accurate counts (avoids 1000-row limit)
     const { data: stats, error: statsError } = await supabase
       .from("directory_stats_mv")
@@ -2598,6 +2624,7 @@ mcp.tool("get_install_command", {
     required: ["name"],
   },
   handler: async (args: { name: string }) => {
+    logToolCall("get_install_command", args);
     const nameLower = args.name.toLowerCase().replace(/\s+/g, "-");
 
     // Resolve slug redirects first
@@ -2678,6 +2705,7 @@ mcp.tool("suggest_stack", {
     required: ["project_description"],
   },
   handler: async (args: { project_description: string; max_items?: number }) => {
+    logToolCall("suggest_stack", args);
     const max = Math.min(args.max_items || 5, 8);
     const intent = await classifyIntent(args.project_description);
     const keywords = intent.keywords.length ? intent.keywords : args.project_description.toLowerCase().split(/\s+/).filter((w: string) => w.length >= 3);
@@ -2724,6 +2752,7 @@ mcp.tool("check_compatibility", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("check_compatibility", args);
     if (args.slugs.length < 2 || args.slugs.length > 4) {
       return { content: [{ type: "text" as const, text: "Please provide 2-4 tool slugs." }] };
     }
@@ -2772,6 +2801,7 @@ mcp.tool("get_setup_guide", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("get_setup_guide", args);
     // Fetch all items across tables
     const [skillsRes, connectorsRes, pluginsRes] = await Promise.all([
       supabase.from("skills").select("display_name, slug, install_command, required_mcps, category").eq("status", "approved").in("slug", args.slugs),
@@ -2842,6 +2872,7 @@ mcp.tool("import_skill_from_agent", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string; author_name?: string; is_public?: boolean }) => {
+    logToolCall("import_skill_from_agent", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to import skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
@@ -2920,6 +2951,7 @@ mcp.tool("get_skill_content", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_skill_content", args);
     const apiUserId = currentApiKeyUserId;
     const resolvedSlug = await resolveSlug(args.slug, "skill");
     let q = supabase.from("skills").select("display_name, slug, install_command, category, description_human, github_url, skill_md, skill_md_status, status, creator_id, is_public");
@@ -3016,6 +3048,7 @@ mcp.tool("validate_skill", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string }) => {
+    logToolCall("validate_skill", args);
     if (!args.skill_md || args.skill_md.length < 50) {
       return { content: [{ type: "text" as const, text: "❌ SKILL.md content is too short (minimum 50 characters)." }] };
     }
@@ -3094,6 +3127,7 @@ mcp.tool("my_skills", {
     },
   },
   handler: async (args: { status_filter?: string }) => {
+    logToolCall("my_skills", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to list your skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
@@ -3155,6 +3189,7 @@ mcp.tool("semantic_search", {
     required: ["query"],
   },
   handler: async (args: { query: string; category?: string; limit?: number }) => {
+    logToolCall("semantic_search", args);
     const lim = Math.min(args.limit || 5, 10);
 
     try {
@@ -3213,6 +3248,7 @@ mcp.tool("get_trust_report", {
     required: ["slug"],
   },
   handler: async (args: { slug: string; type?: string }) => {
+    logToolCall("get_trust_report", args);
     // Auto-detect type by searching all tables in parallel
     const [skillRes, connectorRes, pluginRes] = await Promise.all([
       (!args.type || args.type === "skill") ? supabase.from("skills").select("display_name, slug, trust_score, security_status, security_scan_result, security_scanned_at, security_notes, github_url, github_stars, last_commit_at, avg_rating, review_count, install_count, created_at").eq("slug", args.slug).eq("status", "approved").maybeSingle() : Promise.resolve({ data: null }),
@@ -3311,6 +3347,7 @@ mcp.tool("whats_new", {
     },
   },
   handler: async (args: { days?: number; type?: string; limit?: number }) => {
+    logToolCall("whats_new", args);
     const days = Math.min(args.days || 7, 30);
     const lim = Math.min(args.limit || 5, 10);
     const since = new Date(Date.now() - days * 86400000).toISOString();
@@ -3424,6 +3461,7 @@ mcp.tool("update_skill", {
     required: ["skill_slug", "skill_md"],
   },
   handler: async (args: { skill_slug: string; skill_md: string; changelog?: string; version_bump?: string }) => {
+    logToolCall("update_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to update skills." }] };
     }
@@ -3494,6 +3532,7 @@ mcp.tool("unpublish_skill", {
     required: ["skill_slug"],
   },
   handler: async (args: { skill_slug: string; reason?: string }) => {
+    logToolCall("unpublish_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
@@ -3524,6 +3563,7 @@ mcp.tool("report_goal_outcome", {
     required: ["goal", "outcome"],
   },
   handler: async (args: { goal: string; outcome: string; feedback?: string; time_spent?: string; would_recommend?: boolean }) => {
+    logToolCall("report_goal_outcome", args);
     const ratingMap: Record<string, number> = { success: 5, partial: 3, failed: 1 };
     await supabase.from("recommendation_feedback").insert({
       goal: args.goal,
@@ -3554,6 +3594,7 @@ mcp.tool("rate_skill", {
     required: ["skill_slug", "rating"],
   },
   handler: async (args: { skill_slug: string; rating: number; comment?: string }) => {
+    logToolCall("rate_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
@@ -3583,6 +3624,7 @@ mcp.tool("get_personalized_feed", {
     },
   },
   handler: async (args: { limit?: number }) => {
+    logToolCall("get_personalized_feed", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
@@ -3633,6 +3675,7 @@ mcp.tool("get_top_creators", {
     },
   },
   handler: async (args: { limit?: number }) => {
+    logToolCall("get_top_creators", args);
     const lim = Math.min(args.limit || 10, 20);
 
     // Try the creators table first (populated by sync-creators)
@@ -3706,6 +3749,7 @@ mcp.tool("get_skill_analytics", {
     },
   },
   handler: async (args: { skill_slug?: string }) => {
+    logToolCall("get_skill_analytics", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
@@ -3771,6 +3815,7 @@ mcp.tool("install_bundle", {
     required: ["bundle_id"],
   },
   handler: async (args: { bundle_id: string }) => {
+    logToolCall("install_bundle", args);
     let bundle: any = null;
     const { data: byId } = await supabase.from("skill_bundles").select("*").eq("id", args.bundle_id).eq("is_active", true).maybeSingle();
     if (byId) { bundle = byId; } else {
@@ -3839,6 +3884,7 @@ mcp.tool("scan_skill", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string }) => {
+    logToolCall("scan_skill", args);
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/scan-security`, {
         method: "POST",
@@ -3883,6 +3929,7 @@ mcp.tool("run_skill_evals", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string }) => {
+    logToolCall("run_skill_evals", args);
     try {
       const resp = await fetch(`${supabaseUrl}/functions/v1/test-skill`, {
         method: "POST",
@@ -3934,6 +3981,7 @@ mcp.tool("publish_skill", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string; visibility?: string; category?: string; pricing?: string; price_usd?: number; changelog?: string }) => {
+    logToolCall("publish_skill", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to publish skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
@@ -4063,6 +4111,7 @@ mcp.tool("report_skill", {
     required: ["skill_slug", "report_type", "description"],
   },
   handler: async (args: { skill_slug: string; report_type: string; description: string; reporter_email?: string }) => {
+    logToolCall("report_skill", args);
     const { data: skill } = await supabase.from("skills").select("id, display_name").eq("slug", args.skill_slug).maybeSingle();
     if (!skill) return { content: [{ type: "text" as const, text: `❌ Skill "${args.skill_slug}" not found.` }] };
 
