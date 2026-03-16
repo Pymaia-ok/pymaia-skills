@@ -133,7 +133,7 @@ const CourseModule = () => {
         {/* Mark complete (if no quiz) */}
         {quizQuestions.length === 0 && !isCompleted && user && (
           <div className="mb-8">
-            <Button onClick={() => completeMutation.mutate()} className="gap-2">
+            <Button onClick={() => completeMutation.mutate(undefined)} className="gap-2">
               <CheckCircle2 className="w-4 h-4" />
               {t("courses.markComplete")}
             </Button>
