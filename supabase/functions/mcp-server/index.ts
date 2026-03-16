@@ -463,6 +463,7 @@ mcp.tool("list_new_skills", {
     },
   },
   handler: async (args: { limit?: number }) => {
+    logToolCall("list_new_skills", args);
     const { data: skills, error } = await supabase
       .from("skills")
       .select("display_name, tagline, slug, install_count, install_command, category, created_at")
