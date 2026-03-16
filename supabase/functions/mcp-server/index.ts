@@ -2581,6 +2581,7 @@ mcp.tool("get_directory_stats", {
   description: "Get overall statistics about the SkillHub directory: total skills, connectors, plugins, categories, and highlights.",
   inputSchema: { type: "object", properties: {} },
   handler: async () => {
+    logToolCall("get_directory_stats");
     // Use materialized view for accurate counts (avoids 1000-row limit)
     const { data: stats, error: statsError } = await supabase
       .from("directory_stats_mv")
