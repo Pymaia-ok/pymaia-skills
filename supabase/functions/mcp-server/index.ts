@@ -1755,6 +1755,7 @@ mcp.tool("explain_combination", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("explain_combination", args);
     // Resolve slugs through redirects
     const resolvedSlugs = await Promise.all(args.slugs.map(async s => {
       const r = await resolveSlug(s, "skill");
