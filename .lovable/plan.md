@@ -1,57 +1,26 @@
-## Plan: 11 Fixes Post-Audit — Estado: ✅ Implementado
+## Plan: PRD Round 2 Fixes — Estado: ✅ Implementado
 
-### Fix 1: generate-embeddings ✅
-- batch_size default: 20 → 100
-- Retry con backoff (2 intentos, 5s delay)
-- sync_log al inicio y final
-- Error logging mejorado
+### Fix 1: solve_goal Classification (P0) ✅
+- Expandido KEYWORD_DOMAIN_MAP: +2 dominios nuevos (healthcare, personal-finance), +30 keywords en finance/advertising/hr
+- Fuzzy prefix matching en detectDomainByKeywords() (prefijos ≥5 chars)
+- Threshold de keyword override bajado de 0.75 → 0.5
+- Threshold de LLM override bajado de 0.9 → 0.85
+- Score mínimo bajado de 2 → 1
 
-### Fix 2: bulk-fetch-skill-content ✅
-- batch_size default: 100 → 50
-- Delay 1s cada 10 requests
-- Manejo de 403/429 con break + rateLimited flag
-- sync_log integrado
-
-### Fix 3: enrich-github-metadata ✅
-- Paginación completa (eliminado limit(1000))
-- Set-difference: solo fetch repos sin metadata fresca (<7 días)
-- sync_log integrado
-
-### Fix 4: Install counts inflados ✅
-- Migración SQL: reset install_count=0 donde source != 'tracked'
-
-### Fix 5: Slug collisions ✅
-- Migración SQL con DO block: 55 colisiones resueltas
-- Slugs renombrados a formato org-repo con suffix dedup
+### Fix 2: 36 Slug Collisions skills↔mcp_servers ✅
+- 36 skills renombrados a formato {owner}-{repo} con suffix dedup
 - Redirects insertados en slug_redirects
+- 0 colisiones restantes verificado
 
-### Fix 6: Usage events + MCP instrumentation ✅
-- RLS ya existía (INSERT para anon+authenticated)
-- logUsageEvent/logUsageEvents: .catch(() => {}) → .catch(e => console.error(...))
-- Nuevo helper logToolCall() para agent_analytics
-- search_skills instrumentado con logToolCall
+### Fix 3: Install Count Clusters ✅
+- Reset install_count=0, install_count_source='imported' para todos los clusters >100 con duplicados
 
-### Fix 7: scrape-skills-sh ✅
-- Fallback multi-URL: sitemap.xml → sitemap-skills.xml → sitemap-0.xml
-- Error handling mejorado con consume body
+### Fix 4: solve_goal Relevance ✅
+- GENERIC_TOOL_SLUGS blacklist: 10 meta-tools filtrados antes del scoring
+- Goal-word relevance penalty: 70% penalización si ninguna palabra del goal aparece en la descripción
 
-### Fix 8: Bundles incompletos ✅
-- 10 nuevos roles agregados a ROLE_CONFIG: teacher, doctor, consultant, accountant, writer, researcher, customer-support, ecommerce-manager, content-creator, project-manager
-- Total: 20 roles (de 10 a 20)
+### Fix 5: Hero Subtitle ✅
+- EN: "The only directory that unifies AI skills, MCP connectors, and plugins. Security-scanned and ready to use."
+- ES: "El único directorio que unifica skills de IA, conectores MCP y plugins. Escaneados por seguridad y listos para usar."
 
-### Fix 9: Quality rank sin GitHub data ✅
-- recompute_quality_ranks() con fórmula adaptativa
-- Con github_metadata: pesos originales (25% stars, 10% recency)
-- Sin github_metadata: redistribuye a rating (30%), trust (25%), docs (20%), installs (15%), engagement (10%)
-
-### Fix 10: sync_log en pipelines ✅
-- Agregado a: generate-embeddings, bulk-fetch-skill-content, enrich-github-metadata
-- scrape-skills-sh ya lo tenía
-
-### Fix 11: Crons duplicados ✅
-- Eliminados: generate-embeddings-6h, recompute-quality-ranks, refresh-directory-stats, bulk-fetch-skill-content-daily, bulk-skillmd-imports, enrich-github-metadata-daily
-- Actualizado generate-embeddings-auto con batch_size=100
-
-### Fix 6 completado: logToolCall en todos los tools ✅
-- 48 tools instrumentados con logToolCall() en agent_analytics
-- Todos los handlers ahora registran tool_name y args_keys
+### Fix 6: StatsBar ✅ (ya estaba implementado)
