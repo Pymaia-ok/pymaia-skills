@@ -2951,6 +2951,7 @@ mcp.tool("get_skill_content", {
     required: ["slug"],
   },
   handler: async (args: { slug: string }) => {
+    logToolCall("get_skill_content", args);
     const apiUserId = currentApiKeyUserId;
     const resolvedSlug = await resolveSlug(args.slug, "skill");
     let q = supabase.from("skills").select("display_name, slug, install_command, category, description_human, github_url, skill_md, skill_md_status, status, creator_id, is_public");
