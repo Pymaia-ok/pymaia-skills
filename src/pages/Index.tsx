@@ -16,6 +16,7 @@ import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import McpBannerSection from "@/components/landing/McpBannerSection";
 import BlogSection from "@/components/landing/BlogSection";
 import CreatorLeaderboard from "@/components/landing/CreatorLeaderboard";
+import CoursesSection from "@/components/landing/CoursesSection";
 
 import FinalCTA from "@/components/landing/FinalCTA";
 import Footer from "@/components/landing/Footer";
@@ -108,6 +109,8 @@ const Index = () => {
         <WizardSection allSkills={allSkills} />
         {/* 10. Bundles by profession */}
         <BundlesSection />
+        {/* 10b. Academy courses */}
+        <CoursesSection />
         {/* 11. Two paths — meet user where they are */}
         <TwoPathsSection />
         {/* 12. Skill Creator */}

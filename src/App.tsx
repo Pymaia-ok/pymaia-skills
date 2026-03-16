@@ -29,6 +29,9 @@ import SecurityAdvisories from "./pages/SecurityAdvisories";
 import ApiDocs from "./pages/ApiDocs";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import Courses from "./pages/Courses";
+import CourseDetail from "./pages/CourseDetail";
+import CourseModule from "./pages/CourseModule";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 
@@ -68,6 +71,9 @@ const App = () => (
               <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/cursos" element={<Courses />} />
+              <Route path="/curso/:slug" element={<CourseDetail />} />
+              <Route path="/curso/:slug/:moduleOrder" element={<CourseModule />} />
               <Route path="/security" element={<Navigate to="/seguridad" replace />} />
               <Route path="/terminos" element={<Terms />} />
               <Route path="/privacidad" element={<Privacy />} />
@@ -76,6 +82,8 @@ const App = () => (
               <Route path="/connectors" element={<Navigate to="/conectores" replace />} />
               <Route path="/explore" element={<Navigate to="/explorar" replace />} />
               <Route path="/getting-started" element={<Navigate to="/primeros-pasos" replace />} />
+              <Route path="/courses" element={<Navigate to="/cursos" replace />} />
+              <Route path="/course/:slug" element={<Navigate to="/cursos" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>

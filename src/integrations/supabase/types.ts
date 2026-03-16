@@ -292,6 +292,155 @@ export type Database = {
         }
         Relationships: []
       }
+      course_modules: {
+        Row: {
+          content_md: string
+          content_md_es: string | null
+          course_id: string
+          created_at: string
+          estimated_minutes: number
+          id: string
+          quiz_json: Json
+          recommended_connector_slugs: string[]
+          recommended_skill_slugs: string[]
+          sort_order: number
+          title: string
+          title_es: string | null
+        }
+        Insert: {
+          content_md?: string
+          content_md_es?: string | null
+          course_id: string
+          created_at?: string
+          estimated_minutes?: number
+          id?: string
+          quiz_json?: Json
+          recommended_connector_slugs?: string[]
+          recommended_skill_slugs?: string[]
+          sort_order?: number
+          title: string
+          title_es?: string | null
+        }
+        Update: {
+          content_md?: string
+          content_md_es?: string | null
+          course_id?: string
+          created_at?: string
+          estimated_minutes?: number
+          id?: string
+          quiz_json?: Json
+          recommended_connector_slugs?: string[]
+          recommended_skill_slugs?: string[]
+          sort_order?: number
+          title?: string
+          title_es?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_progress: {
+        Row: {
+          completed_at: string
+          course_id: string
+          id: string
+          module_id: string
+          quiz_score: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          course_id: string
+          id?: string
+          module_id: string
+          quiz_score?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          course_id?: string
+          id?: string
+          module_id?: string
+          quiz_score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string
+          description_es: string | null
+          difficulty: string
+          emoji: string | null
+          estimated_minutes: number
+          id: string
+          is_active: boolean
+          module_count: number
+          role_slug: string
+          slug: string
+          title: string
+          title_es: string | null
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string
+          description_es?: string | null
+          difficulty?: string
+          emoji?: string | null
+          estimated_minutes?: number
+          id?: string
+          is_active?: boolean
+          module_count?: number
+          role_slug?: string
+          slug: string
+          title: string
+          title_es?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string
+          description_es?: string | null
+          difficulty?: string
+          emoji?: string | null
+          estimated_minutes?: number
+          id?: string
+          is_active?: boolean
+          module_count?: number
+          role_slug?: string
+          slug?: string
+          title?: string
+          title_es?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creators: {
         Row: {
           avatar_url: string | null
