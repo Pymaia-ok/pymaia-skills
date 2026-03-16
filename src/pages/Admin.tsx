@@ -392,6 +392,7 @@ const Admin = () => {
                 connectorStats={connectorStats}
                 recentLogs={recentLogs}
                 qualityInsights={qualityInsights as any}
+                pipelineHealth={pipelineHealth}
               />
             </TabsContent>
 
