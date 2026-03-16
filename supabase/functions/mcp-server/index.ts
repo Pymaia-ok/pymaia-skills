@@ -3127,6 +3127,7 @@ mcp.tool("my_skills", {
     },
   },
   handler: async (args: { status_filter?: string }) => {
+    logToolCall("my_skills", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to list your skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
