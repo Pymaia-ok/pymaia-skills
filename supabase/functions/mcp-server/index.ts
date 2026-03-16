@@ -2752,6 +2752,7 @@ mcp.tool("check_compatibility", {
     required: ["slugs"],
   },
   handler: async (args: { slugs: string[] }) => {
+    logToolCall("check_compatibility", args);
     if (args.slugs.length < 2 || args.slugs.length > 4) {
       return { content: [{ type: "text" as const, text: "Please provide 2-4 tool slugs." }] };
     }
