@@ -916,6 +916,7 @@ mcp.tool("search_plugins", {
     let results = merged.slice(0, lim);
 
     if (results.length === 0) return { content: [{ type: "text" as const, text: `No encontré plugins para "${args.query}". Intenta con otros términos o usa \`solve_goal\`.` }] };
+    logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "plugin" })), args.query);
 
     const text = results
       .map((p: any) => {
