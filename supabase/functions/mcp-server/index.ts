@@ -3624,6 +3624,7 @@ mcp.tool("get_personalized_feed", {
     },
   },
   handler: async (args: { limit?: number }) => {
+    logToolCall("get_personalized_feed", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required." }] };
     }
