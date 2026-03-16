@@ -2872,6 +2872,7 @@ mcp.tool("import_skill_from_agent", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string; author_name?: string; is_public?: boolean }) => {
+    logToolCall("import_skill_from_agent", args);
     if (!currentApiKeyUserId) {
       return { content: [{ type: "text" as const, text: "❌ Authentication required. Use an API key (pymsk_...) to import skills. Get one at https://pymaiaskills.lovable.app/mis-skills" }] };
     }
