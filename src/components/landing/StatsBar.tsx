@@ -32,15 +32,17 @@ const StatsBar = () => {
   const { data } = useQuery({
     queryKey: ["landing-stats-counts"],
     queryFn: async () => {
-      const [skills, connectors, plugins] = await Promise.all([
+      const [skills, connectors, plugins, bundles] = await Promise.all([
         supabase.from("skills").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("mcp_servers").select("id", { count: "exact", head: true }).eq("status", "approved"),
         supabase.from("plugins").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("skill_bundles").select("id", { count: "exact", head: true }).eq("is_active", true),
       ]);
       return {
         skills: skills.count ?? 0,
         connectors: connectors.count ?? 0,
         plugins: plugins.count ?? 0,
+        bundles: bundles.count ?? 0,
       };
     },
     staleTime: 1000 * 60 * 10,
