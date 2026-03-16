@@ -3048,6 +3048,7 @@ mcp.tool("validate_skill", {
     required: ["skill_md"],
   },
   handler: async (args: { skill_md: string }) => {
+    logToolCall("validate_skill", args);
     if (!args.skill_md || args.skill_md.length < 50) {
       return { content: [{ type: "text" as const, text: "❌ SKILL.md content is too short (minimum 50 characters)." }] };
     }
