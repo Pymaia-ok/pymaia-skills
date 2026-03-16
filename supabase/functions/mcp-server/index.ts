@@ -999,6 +999,7 @@ mcp.tool("explore_directory", {
   },
   handler: async (args: { query: string; limit?: number }) => {
     logToolCall("explore_directory", args);
+    logUsageEvent("search_result", undefined, undefined, args.query);
     const lim = Math.min(args.limit || 3, 5);
     const q = sanitizeForPostgrest(args.query);
     const words = q.split(/\s+/).filter(w => w.length >= 2);
