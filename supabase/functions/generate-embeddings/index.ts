@@ -161,10 +161,16 @@ serve(async (req) => {
     let processed = 0;
     let errors = 0;
     let rateLimited = false;
+    const MAX_RUNTIME_MS = 50_000; // 50s guard
+    const startTime = Date.now();
 
     // Process in parallel batches of 5
     for (let i = 0; i < records.length; i += 5) {
       if (rateLimited) break;
+      if (Date.now() - startTime > MAX_RUNTIME_MS) {
+        console.log(`MAX_RUNTIME reached at ${processed} records (${Date.now() - startTime}ms)`);
+        break;
+      }
       const batch = records.slice(i, i + 5);
 
       const results = await Promise.allSettled(batch.map(async (record) => {
