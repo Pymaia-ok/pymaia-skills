@@ -293,7 +293,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   }, [isRecording]);
 
   // Debug: log attachments on every render
-  console.log("[SkillChat] render, attachments:", attachments.length, attachments.map(a => a.name));
+  if (import.meta.env.DEV) console.log("[SkillChat] render, attachments:", attachments.length, attachments.map(a => a.name));
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
@@ -329,7 +329,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           ...dest.stream.getAudioTracks(),
         ]);
       } catch {
-        console.log("[ScreenRec] Mic not available, recording screen only");
+        if (import.meta.env.DEV) console.log("[ScreenRec] Mic not available, recording screen only");
       }
 
       const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
@@ -342,12 +342,12 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
       recorder.ondataavailable = (e) => {
-        console.log("[ScreenRec] data chunk:", e.data.size);
+        if (import.meta.env.DEV) console.log("[ScreenRec] data chunk:", e.data.size);
         if (e.data.size > 0) chunks.push(e.data);
       };
 
       recorder.onstop = () => {
-        console.log("[ScreenRec] stopped, chunks:", chunks.length);
+        if (import.meta.env.DEV) console.log("[ScreenRec] stopped, chunks:", chunks.length);
         
         // Cleanup streams
         try {
@@ -366,7 +366,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         }
 
         const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
-        console.log("[ScreenRec] blob:", blob.size);
+        if (import.meta.env.DEV) console.log("[ScreenRec] blob:", blob.size);
 
         if (blob.size === 0) {
           toast.error("La grabación salió vacía");
@@ -384,11 +384,9 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           processing: false,
           previewUrl,
         };
-        console.log("[ScreenRec] about to setAttachments with:", newAtt.name);
+        if (import.meta.env.DEV) console.log("[ScreenRec] about to setAttachments with:", newAtt.name);
         setAttachments((prev) => {
-          console.log("[ScreenRec] setAttachments prev:", prev.length);
           const next = [...prev, newAtt];
-          console.log("[ScreenRec] setAttachments next:", next.length);
           return next;
         });
         toast.success("Grabación lista — tocá para previsualizarla");
@@ -401,14 +399,14 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       };
 
       screenStream.getVideoTracks()[0].addEventListener("ended", () => {
-        console.log("[ScreenRec] share ended by user");
+        if (import.meta.env.DEV) console.log("[ScreenRec] share ended by user");
         if (recorder.state === "recording") recorder.stop();
       });
 
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
       setIsScreenRecording(true);
-      console.log("[ScreenRec] started");
+      if (import.meta.env.DEV) console.log("[ScreenRec] started");
     } catch (e: any) {
       if (e.name !== "NotAllowedError") {
         console.error("[ScreenRec] error:", e);

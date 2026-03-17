@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || "",
               },
             }),
-          }).catch(() => {});
+          }).catch(e => console.error("[useAuth] enroll-sequence:", e));
         }
       }
     );

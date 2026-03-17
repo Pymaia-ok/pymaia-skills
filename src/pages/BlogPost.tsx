@@ -40,7 +40,7 @@ export default function BlogPost() {
   useQuery({
     queryKey: ["blog-view", slug],
     queryFn: async () => {
-      await (supabase as any).rpc("increment_blog_view", { _slug: slug }).catch(() => {});
+      await (supabase as any).rpc("increment_blog_view", { _slug: slug }).catch((e: any) => console.error("[BlogPost] increment view:", e));
       return true;
     },
     enabled: !!slug && !!post,

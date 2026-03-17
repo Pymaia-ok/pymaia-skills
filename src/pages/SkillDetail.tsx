@@ -101,14 +101,14 @@ const SkillDetail = () => {
   const handleCopy = async () => {
     if (user) {
       performCopy();
-      trackInstallation(skill.id, user.id).catch(() => {});
+      trackInstallation(skill.id, user.id).catch(e => console.error("[SkillDetail] track install:", e));
       const userEmail = user.email;
       if (userEmail) {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: userEmail, sequence_name: "post_install", metadata: { skill_name: skill.display_name, skill_slug: skill.slug } }),
-        }).catch(() => {});
+        }).catch(e => console.error("[SkillDetail] enroll-sequence:", e));
       }
     } else {
       setShowEmailGate(true);
@@ -136,14 +136,14 @@ const SkillDetail = () => {
   const handleDownloadZip = async () => {
     if (user) {
       await performZipDownload();
-      trackInstallation(skill.id, user.id).catch(() => {});
+      trackInstallation(skill.id, user.id).catch(e => console.error("[SkillDetail] track install:", e));
       const userEmail = user.email;
       if (userEmail) {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: userEmail, sequence_name: "post_install", metadata: { skill_name: skill.display_name, skill_slug: skill.slug } }),
-        }).catch(() => {});
+        }).catch(e => console.error("[SkillDetail] enroll-sequence:", e));
       }
     } else {
       setPendingAction("zip");
@@ -196,20 +196,20 @@ const SkillDetail = () => {
               <SkillHero displayName={displayName} tagline={tagline} industry={skill.industry} />
 
               {/* Version + Changelog */}
-              {((skill as any).version || (skill as any).changelog) && (
+              {(skill.version || skill.changelog) && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-wrap items-center gap-3">
-                  {(skill as any).version && (
+                  {skill.version && (
                     <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-secondary text-muted-foreground border border-border">
-                      v{(skill as any).version}
+                      v{skill.version}
                     </span>
                   )}
-                  {(skill as any).changelog && (
+                  {skill.changelog && (
                     <details className="text-sm">
                       <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors">
                         {isEs ? "Ver changelog" : "View changelog"}
                       </summary>
                       <pre className="mt-2 p-3 rounded-xl bg-secondary text-xs text-muted-foreground whitespace-pre-wrap max-h-40 overflow-y-auto">
-                        {(skill as any).changelog}
+                        {skill.changelog}
                       </pre>
                     </details>
                   )}
@@ -225,7 +225,7 @@ const SkillDetail = () => {
                   githubUrl={skill.github_url}
                   onInstallAction={(agent, method) => {
                     if (user) {
-                      trackInstallation(skill.id, user.id).catch(() => {});
+                      trackInstallation(skill.id, user.id).catch(e => console.error("[SkillDetail] track install:", e));
                     }
                   }}
                 />
@@ -244,8 +244,8 @@ const SkillDetail = () => {
 
                 {/* AI summary */}
                 {(() => {
-                  const summaryEs = (skill as any).readme_summary_es as string | null;
-                  const summaryEn = (skill as any).readme_summary as string | null;
+                  const summaryEs = skill.readme_summary_es;
+                  const summaryEn = skill.readme_summary;
                   let summary = (isEs && summaryEs) ? summaryEs : summaryEn;
                   if (!summary) return null;
                   // Remove "What it does" section (already shown above as descriptionHuman)
@@ -339,7 +339,7 @@ const SkillDetail = () => {
 
               {/* Required MCPs */}
               {(() => {
-                const requiredMcps = (skill as any).required_mcps;
+                const requiredMcps = skill.required_mcps;
                 if (!requiredMcps || !Array.isArray(requiredMcps) || requiredMcps.length === 0) return null;
                 return (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-10">
@@ -390,7 +390,7 @@ const SkillDetail = () => {
               )}
 
               {/* Full README */}
-              {(skill as any).readme_raw && (skill as any).readme_raw.length > 10 && (
+              {skill.readme_raw && skill.readme_raw.length > 10 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
                   <button onClick={() => setShowFullReadme(!showFullReadme)} className="flex items-center gap-2 text-lg font-semibold mb-4 hover:text-muted-foreground transition-colors">
                     <BookOpen className="w-5 h-5" />
@@ -399,7 +399,7 @@ const SkillDetail = () => {
                   </button>
                   {showFullReadme && (
                     <div className="p-6 rounded-2xl bg-secondary prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background overflow-x-auto">
-                      <ReactMarkdown>{(skill as any).readme_raw}</ReactMarkdown>
+                      <ReactMarkdown>{skill.readme_raw}</ReactMarkdown>
                     </div>
                   )}
                 </motion.div>
@@ -465,7 +465,7 @@ const SkillDetail = () => {
                 itemName={displayName}
                 description={descriptionHuman}
                 category={skill.category}
-                securityStatus={(skill as any).security_status}
+                securityStatus={skill.security_status}
               />
             </div>
 

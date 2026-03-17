@@ -50,6 +50,11 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("refresh-catalog-data error:", (e as Error).message);
+    // Log top-level error to automation_logs
+    try {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await sb.from("automation_logs").insert({ function_name: "refresh-catalog-data", action_type: "error", reason: (e as Error).message.slice(0, 500) });
+    } catch { /* fire-and-forget */ }
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -153,7 +158,7 @@ async function refreshReadmes(
             const aiData = await aiRes.json();
             summary = aiData.choices?.[0]?.message?.content?.trim() || null;
           }
-        } catch { /* skip AI errors */ }
+        } catch (aiErr) { console.error(`AI summary error for ${item.slug}:`, aiErr); }
       }
 
       const updateData: any = { readme_raw: readme, updated_at: new Date().toISOString() };
@@ -161,7 +166,7 @@ async function refreshReadmes(
 
       await supabase.from(item.table).update(updateData).eq("id", item.id);
       refreshed++;
-    } catch { continue; }
+    } catch (itemErr) { console.error(`README refresh error for ${item.slug}:`, itemErr); continue; }
   }
 
   await log("readme_refresh", `Refreshed ${refreshed}/${items.length} READMEs`);
@@ -219,7 +224,7 @@ async function detectDeadRepos(
           await supabase.from(table).update({ updated_at: new Date().toISOString() }).eq("id", item.id);
         }
         totalChecked++;
-      } catch { continue; }
+      } catch (repoErr) { console.error(`Dead repo check error for ${item.slug}:`, repoErr); continue; }
     }
   }
 
@@ -302,7 +307,7 @@ async function scrapeDocs(
             const aiData = await aiRes.json();
             summary = aiData.choices?.[0]?.message?.content?.trim() || null;
           }
-        } catch { /* skip */ }
+        } catch (aiErr) { console.error(`AI summary error for connector ${c.slug}:`, aiErr); }
       }
 
       const updateData: any = { readme_raw: raw, updated_at: new Date().toISOString() };

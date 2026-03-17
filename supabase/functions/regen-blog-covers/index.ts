@@ -58,6 +58,19 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Rate limit: max 5 regenerations per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentRuns } = await supabase
+      .from("automation_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "regen-blog-covers")
+      .gte("created_at", oneHourAgo);
+    if ((recentRuns ?? 0) >= 5) {
+      return new Response(JSON.stringify({ error: "Rate limit: max 5 cover regenerations/hour" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get posts ordered by oldest updated_at
     const { data: posts } = await supabase
       .from("blog_posts")

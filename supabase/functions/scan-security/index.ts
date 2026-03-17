@@ -779,6 +779,19 @@ Deno.serve(async (req) => {
     );
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
+    // Rate limit: max 60 scans per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentScans } = await supabase
+      .from("automation_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "scan-security")
+      .gte("created_at", oneHourAgo);
+    if ((recentScans ?? 0) >= 60) {
+      return new Response(JSON.stringify({ error: "Rate limit: max 60 scans/hour" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json().catch(() => ({}));
     const { 
       item_id, 

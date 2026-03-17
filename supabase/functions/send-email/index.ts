@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { errorResponse } from "../_shared/error-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,12 +14,12 @@ serve(async (req) => {
 
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+    if (!RESEND_API_KEY) return errorResponse("RESEND_API_KEY not configured", 500, corsHeaders);
 
     const { to, subject, html, from, reply_to } = await req.json();
 
     if (!to || !subject || !html) {
-      throw new Error("Missing required fields: to, subject, html");
+      return errorResponse("Missing required fields: to, subject, html", 400, corsHeaders);
     }
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -40,7 +41,7 @@ serve(async (req) => {
 
     if (!res.ok) {
       console.error("Resend error:", data);
-      throw new Error(`Resend API error: ${JSON.stringify(data)}`);
+      return errorResponse(`Resend API error: ${JSON.stringify(data)}`, 502, corsHeaders);
     }
 
     return new Response(JSON.stringify({ success: true, id: data.id }), {
@@ -48,9 +49,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("send-email error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(error.message, 500, corsHeaders);
   }
 });
