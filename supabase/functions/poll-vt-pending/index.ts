@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
             function_name: "poll-vt-pending",
             action_type: "error",
             reason: `VT poll failed for ${table.type} "${(item as any).slug}": ${(e as Error).message}`.slice(0, 500),
-          }).catch(() => {});
+          }).catch((err) => logFailure(supabase, "poll-vt-pending", (err as Error).message, { step: "automation_log_insert" }));
         }
       }
     }
