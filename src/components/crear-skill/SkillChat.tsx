@@ -329,7 +329,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           ...dest.stream.getAudioTracks(),
         ]);
       } catch {
-        console.log("[ScreenRec] Mic not available, recording screen only");
+        if (import.meta.env.DEV) console.log("[ScreenRec] Mic not available, recording screen only");
       }
 
       const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
