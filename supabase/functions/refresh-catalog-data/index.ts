@@ -1,6 +1,7 @@
 // refresh-catalog-data v1 — Unified catalog freshness pipeline
 // Modes: refresh_readmes | detect_dead_repos | scrape_docs
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logFailure } from "../_shared/error-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
