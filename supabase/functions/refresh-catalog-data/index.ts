@@ -323,7 +323,7 @@ async function scrapeDocs(
       scraped++;
       console.log(`✅ Scraped docs for ${c.slug}: ${raw.length} chars`);
     } catch (e) {
-      console.error(`Error scraping ${c.slug}:`, e);
+      await log("docs_scrape_error", `Error scraping ${c.slug}: ${(e as Error).message}`);
       continue;
     }
   }

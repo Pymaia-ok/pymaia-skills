@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
         category: s.category as string,
         install_command: s.install_command as string,
         github_url: GITHUB_URL,
-        status: "approved",
+        status: "pending",
         install_count: 0,
         install_count_source: "imported",
         install_count_verified: false,

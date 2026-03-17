@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         github_url: githubUrl,
         github_stars: parseInt(stars || "0") || 0,
         install_count: parseInt(installs || "0") || 0,
-        status: "approved",
+        status: "pending",
         use_cases: [],
         time_to_install_minutes: 2,
         avg_rating: 0,

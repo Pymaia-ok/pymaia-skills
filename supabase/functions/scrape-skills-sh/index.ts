@@ -396,7 +396,7 @@ async function runImport(supabase: any, batchSize: number) {
           category,
           github_url: entry.repo_url,
           install_command: entry.install_command || "",
-          status: "approved",
+          status: "pending",
           install_count: 0,
           install_count_source: "imported",
           install_count_verified: false,
