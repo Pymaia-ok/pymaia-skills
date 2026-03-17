@@ -1,6 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/** Sanitize AI-generated article text before persisting */
+function sanitizeArticle(text: string | undefined | null): string {
+  if (!text) return "";
+  let t = text;
+  t = t.replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "");
+  t = t.replace(/^```(?:markdown|md)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  t = t.replace(/,?\s*(?:content_es|content_en|meta_description_en|meta_description_es|title_es|excerpt_es)\s*=\s*["']?.*$/s, "");
+  t = t.replace(/^#\s+[^\n]+\n+/, "");
+  return t.trim();
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
