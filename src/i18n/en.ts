@@ -797,6 +797,7 @@ export default {
     modules: "modules",
     completed: "completed",
     allLevels: "All levels",
+    allRoles: "All roles",
     noCourses: "No courses available yet.",
     notFound: "Course not found.",
     moduleNotFound: "Module not found.",
