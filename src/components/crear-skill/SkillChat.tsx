@@ -347,7 +347,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       };
 
       recorder.onstop = () => {
-        console.log("[ScreenRec] stopped, chunks:", chunks.length);
+        if (import.meta.env.DEV) console.log("[ScreenRec] stopped, chunks:", chunks.length);
         
         // Cleanup streams
         try {
