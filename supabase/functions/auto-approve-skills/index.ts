@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     // Fetch pending skills
     const { data: pending, error } = await supabase
       .from("skills")
-      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id")
+      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(batchSize);
@@ -86,6 +86,12 @@ Deno.serve(async (req) => {
       }
 
       // ── AUTO-APPROVE rules ──
+
+      // Require security scan before auto-approving
+      if (!skill.security_scan_result) {
+        skipped++;
+        continue;
+      }
 
       // Rule 1: Trusted source
       if (ghOrg && TRUSTED_SOURCES.includes(ghOrg)) {

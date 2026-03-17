@@ -817,13 +817,25 @@ Deno.serve(async (req) => {
     if (batch_mode) {
       const tableName = item_type === "connector" ? "mcp_servers" : item_type === "plugin" ? "plugins" : "skills";
       
-      const { data: items, error } = await supabase
+      // Prioritize pending items without scans (new imports waiting for approval)
+      let { data: items, error } = await supabase
         .from(tableName)
         .select("*")
-        .eq("status", "approved")
+        .eq("status", "pending")
         .is("security_scanned_at", null)
         .order("created_at", { ascending: true })
         .limit(batch_size);
+
+      // If no pending items, fall back to approved items without scans
+      if (!error && (!items || items.length === 0)) {
+        ({ data: items, error } = await supabase
+          .from(tableName)
+          .select("*")
+          .eq("status", "approved")
+          .is("security_scanned_at", null)
+          .order("created_at", { ascending: true })
+          .limit(batch_size));
+      }
 
       if (error || !items) {
         return new Response(JSON.stringify({ error: error?.message || "no data" }), {

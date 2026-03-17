@@ -228,7 +228,7 @@ export async function fetchSkills(filters?: {
   const to = from + PAGE_SIZE - 1;
 
   const selectCols = "id,slug,display_name,display_name_es,tagline,tagline_es,description_human,description_human_es,category,industry,target_roles,install_command,github_url,video_url,time_to_install_minutes,install_count,avg_rating,review_count,github_stars,use_cases,creator_id,created_at,status,security_status,trust_score,last_commit_at";
-  let query = supabase.from("skills").select(selectCols, { count: "estimated" }).eq("status", "approved");
+  let query = supabase.from("skills").select(selectCols, { count: "estimated" }).eq("status", "approved").or("security_scan_result.not.is.null,trust_score.gte.60");
   if (filters?.category) {
     // Industries added as categories — search both columns
     const industryKeys = ["arquitectura", "ingeniería", "salud", "educación", "tecnologia"];
@@ -249,7 +249,7 @@ export async function fetchSkills(filters?: {
 }
 
 export async function fetchAllSkills() {
-  const { data, error } = await supabase.from("skills").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("skills").select("*").eq("status", "approved").or("security_scan_result.not.is.null,trust_score.gte.60").order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as SkillFromDB[];
 }
