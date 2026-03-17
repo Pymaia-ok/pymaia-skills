@@ -1,7 +1,7 @@
 // rescan-security v2.0 — Full catalog rotation re-scanning
 // Rotates through ALL approved items weekly, not just stale ones
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse } from "../_shared/error-helpers.ts";
+import { errorResponse, logFailure } from "../_shared/error-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
             function_name: "rescan-security",
             action_type: "error",
             reason: `Failed to rescan ${table.type} ${(item as any).slug}: ${(e as Error).message}`.slice(0, 500),
-          }).catch(() => {});
+          }).catch((err) => logFailure(supabase, "rescan-security", (err as Error).message, { step: "automation_log_insert" }));
         }
       }
     }
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ batch_size: 50 }),
       });
-    } catch { /* non-critical */ }
+    } catch (err) { await logFailure(supabase, "rescan-security", (err as Error).message, { step: "trust_score_recalc" }); }
 
     return new Response(JSON.stringify({ rescanned, newFlags }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     try {
       const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await sb.from("automation_logs").insert({ function_name: "rescan-security", action_type: "error", reason: (e as Error).message.slice(0, 500) });
-    } catch { /* fire-and-forget */ }
+    } catch (err) { await logFailure(sb, "rescan-security", (err as Error).message, { step: "main_catch" }); }
     return errorResponse((e as Error).message);
   }
 });

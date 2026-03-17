@@ -1,7 +1,7 @@
 // poll-vt-pending v1.0 — Polls VirusTotal for items with "pending" scan results
 // Runs every 10 minutes via pg_cron to retrieve final verdicts after upload
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse } from "../_shared/error-helpers.ts";
+import { errorResponse, logFailure } from "../_shared/error-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
             function_name: "poll-vt-pending",
             action_type: "error",
             reason: `VT poll failed for ${table.type} "${(item as any).slug}": ${(e as Error).message}`.slice(0, 500),
-          }).catch(() => {});
+          }).catch((err) => logFailure(supabase, "poll-vt-pending", (err as Error).message, { step: "automation_log_insert" }));
         }
       }
     }
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     try {
       const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await sb.from("automation_logs").insert({ function_name: "poll-vt-pending", action_type: "error", reason: (e as Error).message.slice(0, 500) });
-    } catch { /* fire-and-forget */ }
+    } catch (err) { await logFailure(sb, "poll-vt-pending", (err as Error).message, { step: "main_catch" }); }
     return errorResponse((e as Error).message);
   }
 });

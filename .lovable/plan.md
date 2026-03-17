@@ -1,37 +1,78 @@
+## Plan: PRD Final V2 — Estado: ✅ Implementado
 
+### Fixes implementados
 
-# PRD logFailure Final — Verificación
+#### Fix 1: generate-embeddings batch 25 + error logging ✅
+- Default `batch_size` reducido de 100 a **25**
+- Error logging agregado al sync_log en caso de fallo
+- Cron rescheduled a `*/3` (offset +1)
 
-Claude tiene razón. Los 6 catches vacíos siguen exactamente como describe el PRD:
+#### Fix 2: scrape-skills-sh slug collisions ✅
+- Import cambiado de batch insert a **individual upserts** con error handling por fila
+- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
+- Columna `error_message` agregada a `skills_import_staging`
 
-| Función | Catches vacíos encontrados |
-|---|---|
-| `poll-vt-pending` | L158: `.catch(() => {})`, L171: `catch { /* fire-and-forget */ }` |
-| `rescan-security` | L92: `.catch(() => {})`, L104: `catch { /* non-critical */ }`, L114: `catch { /* fire-and-forget */ }` |
-| `refresh-catalog-data` | L57: `catch { /* fire-and-forget */ }` |
+#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
+- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
+- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
+- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
+- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
 
-Ninguna importa `logFailure` del helper existente.
+#### Fix 4: Limpieza de crons duplicados ✅
+- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
+- 30 → 29 crons
 
-## Plan: 3 archivos, 6 catches
+#### Fix 5: enrich-github-metadata parallelizado ✅
+- Batch reducido de 400 a **150**
+- Procesamiento en paralelo (batches de 5)
+- Cron: `*/10` (staggered a offset +2)
 
-### 1. `supabase/functions/poll-vt-pending/index.ts`
-- Agregar `import { logFailure } from "../_shared/error-helpers.ts";`
-- L158: `.catch(() => {})` → `.catch((err) => logFailure(supabase, "poll-vt-pending", (err as Error).message, { step: "automation_log_insert" }))`
-- L171: `catch { /* fire-and-forget */ }` → `catch (err) { await logFailure(supabase, "poll-vt-pending", (err as Error).message, { step: "main_catch" }); }`
+#### Fix 6: bulk-fetch-skill-content acelerado ✅
+- Cron: `*/10` → `*/5` (staggered a offset +3)
 
-### 2. `supabase/functions/refresh-catalog-data/index.ts`
-- Agregar import de `logFailure`
-- L57: `catch { /* fire-and-forget */ }` → `catch (err) { await logFailure(sb, "refresh-catalog-data", (err as Error).message, { step: "top_level_log" }); }`
+#### Fix 7: Crons staggered ✅
+- `calculate-trust-score`: `5,35 * * * *`
+- `scan-security`: `10,40 * * * *`
+- `verify-security`: `15,45 * * * *`
+- `generate-embeddings`: offset +1 cada 3 min
+- `bulk-fetch-skill-content`: offset +3 cada 5 min
+- `enrich-github-metadata`: offset +2 cada 10 min
 
-### 3. `supabase/functions/rescan-security/index.ts`
-- Agregar `import { logFailure } from "../_shared/error-helpers.ts";`
-- L92: `.catch(() => {})` → `.catch((err) => logFailure(supabase, "rescan-security", (err as Error).message, { step: "automation_log_insert" }))`
-- L104: `catch { /* non-critical */ }` → `catch (err) { await logFailure(supabase, "rescan-security", (err as Error).message, { step: "trust_score_recalc" }); }`
-- L114: `catch { /* fire-and-forget */ }` → `catch (err) { await logFailure(supabase, "rescan-security", (err as Error).message, { step: "main_catch" }); }`
+### Estado final: 29 crons activos, todos staggered
 
-### Nota sobre la firma de `logFailure`
-El helper actual acepta `(supabase, functionName, reason: string, metadata?)`. El PRD pasa `err as Error` pero la firma espera un string. Usaremos `(err as Error).message` para que coincida con la firma existente.
+---
 
-### Deploy
-Redesplegar las 3 funciones después de editar.
+## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
 
+### Fix 2 (P0): Filtrar items sin scan en queries ✅
+- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
+
+### Fix 3 (P0): Plugins importados como "pending" ✅
+- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
+- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+
+### Fix 4 (P1): Auto-rechazar repos archivados ✅
+- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+
+### Fix 6 (P1): Scan requerido para auto-approve ✅
+- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
+- También selecciona `security_scan_result` en la query inicial
+
+### Fix 7 (P2): Priorizar scan de items nuevos ✅
+- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
+
+---
+
+## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
+
+### Fix 1 (P0): Imports como "pending" ✅
+- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
+
+### Fix 2 (P0): MCP server filtra por scan ✅
+- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+
+### Fix 3 (P1): refresh-catalog-data error logging ✅
+- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
