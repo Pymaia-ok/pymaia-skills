@@ -1,41 +1,59 @@
-## Plan: PRD Final V2 — Estado: ✅ Implementado
 
-### Fixes implementados
 
-#### Fix 1: generate-embeddings batch 25 + error logging ✅
-- Default `batch_size` reducido de 100 a **25**
-- Error logging agregado al sync_log en caso de fallo
-- Cron rescheduled a `*/3` (offset +1)
+# PRD Audit Pendientes — 5 Fixes Incompletos
 
-#### Fix 2: scrape-skills-sh slug collisions ✅
-- Import cambiado de batch insert a **individual upserts** con error handling por fila
-- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
-- Columna `error_message` agregada a `skills_import_staging`
+Confirmé contra el código actual que los 5 fixes están efectivamente pendientes:
 
-#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
-- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
-- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
-- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
-- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
+| # | Fix | Estado actual verificado |
+|---|---|---|
+| 1 | error-helpers import | ✅ Pendiente — `error-helpers.ts` existe pero ninguna función lo importa. `poll-vt-pending` ya logea manualmente pero no usa el helper. `send-email`, `refresh-catalog-data` tienen catches silenciosos. |
+| 2 | CORS restringido | ✅ Pendiente — `manage-api-keys` y `enroll-sequence` usan `"*"` |
+| 3 | Rate limiting | ✅ Pendiente — `scan-security` y `regen-blog-covers` no tienen rate limit |
+| 4 | SkillFromDB campos | ✅ Pendiente — Faltan `readme_raw`, `readme_summary`, `readme_summary_es`, `changelog`, `required_mcps`. Hay 11+ `as any` en SkillDetail.tsx |
+| 5 | Console.logs + catches vacíos | ✅ Pendiente — 10 `[ScreenRec]` console.logs en SkillChat.tsx, 8 `.catch(() => {})` en SkillDetail, RoleLanding, useAuth, BlogPost |
 
-#### Fix 4: Limpieza de crons duplicados ✅
-- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
-- 30 → 29 crons
+---
 
-#### Fix 5: enrich-github-metadata parallelizado ✅
-- Batch reducido de 400 a **150**
-- Procesamiento en paralelo (batches de 5)
-- Cron: `*/10` (staggered a offset +2)
+## Implementación
 
-#### Fix 6: bulk-fetch-skill-content acelerado ✅
-- Cron: `*/10` → `*/5` (staggered a offset +3)
+### Fix 1: Import error-helpers en 4 funciones
+- **`send-email/index.ts`**: Import `errorResponse` from shared helpers, use for error responses
+- **`refresh-catalog-data/index.ts`**: Replace 3 silent catches (lines 156, 164, 222) with `console.error` (no supabase client in those scopes, so just log to console — the function already has its own `log()` helper for automation_logs)
+- **`rescan-security/index.ts`**: Already logs to automation_logs manually — just import and use `errorResponse` for the final catch
+- **`poll-vt-pending/index.ts`**: Already logs errors — import `errorResponse` for standardized response format
 
-#### Fix 7: Crons staggered ✅
-- `calculate-trust-score`: `5,35 * * * *`
-- `scan-security`: `10,40 * * * *`
-- `verify-security`: `15,45 * * * *`
-- `generate-embeddings`: offset +1 cada 3 min
-- `bulk-fetch-skill-content`: offset +3 cada 5 min
-- `enrich-github-metadata`: offset +2 cada 10 min
+### Fix 2: CORS restringido en manage-api-keys y enroll-sequence
+- Add `getRestrictedCorsHeaders(req)` helper inline in both files
+- Allowed origins: `pymaiaskills.lovable.app`, preview URL, `localhost:5173`, `localhost:8080`
+- Replace all `corsHeaders` references with the restricted version
 
-### Estado final: 29 crons activos, todos staggered
+### Fix 3: Rate limiting en scan-security y regen-blog-covers
+- **`scan-security/index.ts`**: Add 60/hour limit check at handler start using `automation_logs` count
+- **`regen-blog-covers/index.ts`**: Add 5/hour limit check at handler start
+
+### Fix 4: SkillFromDB + remove `as any`
+- Add 5 fields to `SkillFromDB` interface in `src/lib/api.ts`: `readme_raw`, `readme_summary`, `readme_summary_es`, `changelog`, `required_mcps`
+- Remove all `(skill as any).` casts in `SkillDetail.tsx` for these fields
+
+### Fix 5: Frontend cleanup
+- **`SkillChat.tsx`**: Wrap all `[ScreenRec]` console.logs with `import.meta.env.DEV` guard
+- **`SkillDetail.tsx`** (5 catches), **`RoleLanding.tsx`** (1), **`useAuth.tsx`** (1), **`BlogPost.tsx`** (1): Replace `.catch(() => {})` with `.catch(e => console.error("[Component]", e))`
+
+### Files to edit (8 total)
+| File | Fixes |
+|---|---|
+| `supabase/functions/send-email/index.ts` | Fix 1 |
+| `supabase/functions/refresh-catalog-data/index.ts` | Fix 1 |
+| `supabase/functions/manage-api-keys/index.ts` | Fix 2 |
+| `supabase/functions/enroll-sequence/index.ts` | Fix 2 |
+| `supabase/functions/scan-security/index.ts` | Fix 3 |
+| `supabase/functions/regen-blog-covers/index.ts` | Fix 3 |
+| `src/lib/api.ts` | Fix 4 |
+| `src/pages/SkillDetail.tsx` | Fix 4 |
+| `src/components/crear-skill/SkillChat.tsx` | Fix 5 |
+| `src/pages/RoleLanding.tsx` | Fix 5 |
+| `src/hooks/useAuth.tsx` | Fix 5 |
+| `src/pages/BlogPost.tsx` | Fix 5 |
+
+No SQL migrations needed.
+
