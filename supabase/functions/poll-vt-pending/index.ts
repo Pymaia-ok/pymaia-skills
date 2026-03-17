@@ -1,6 +1,7 @@
 // poll-vt-pending v1.0 — Polls VirusTotal for items with "pending" scan results
 // Runs every 10 minutes via pg_cron to retrieve final verdicts after upload
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { errorResponse } from "../_shared/error-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
