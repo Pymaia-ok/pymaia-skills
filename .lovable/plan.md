@@ -1,78 +1,50 @@
-## Plan: PRD Final V2 — Estado: ✅ Implementado
 
-### Fixes implementados
 
-#### Fix 1: generate-embeddings batch 25 + error logging ✅
-- Default `batch_size` reducido de 100 a **25**
-- Error logging agregado al sync_log en caso de fallo
-- Cron rescheduled a `*/3` (offset +1)
+# Problema: Los comandos `npx skillsadd` están rotos
 
-#### Fix 2: scrape-skills-sh slug collisions ✅
-- Import cambiado de batch insert a **individual upserts** con error handling por fila
-- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
-- Columna `error_message` agregada a `skills_import_staging`
+## Diagnóstico
 
-#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
-- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
-- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
-- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
-- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
+El error que ves tiene **dos causas**:
 
-#### Fix 4: Limpieza de crons duplicados ✅
-- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
-- 30 → 29 crons
+1. **`skillsadd` es un paquete npm deprecado** — el log dice: `npm warn deprecated skillsadd@1.0.0: Package no longer supported`
+2. **El servicio skills.ws devuelve 500** — `Failed to fetch skills list from skills.ws` → el backend externo está caído
 
-#### Fix 5: enrich-github-metadata parallelizado ✅
-- Batch reducido de 400 a **150**
-- Procesamiento en paralelo (batches de 5)
-- Cron: `*/10` (staggered a offset +2)
+Esto NO es un bug de Pymaia ni de tu máquina. El paquete `skillsadd` de terceros (skills.ws) dejó de funcionar.
 
-#### Fix 6: bulk-fetch-skill-content acelerado ✅
-- Cron: `*/10` → `*/5` (staggered a offset +3)
+## El problema en nuestro catálogo
 
-#### Fix 7: Crons staggered ✅
-- `calculate-trust-score`: `5,35 * * * *`
-- `scan-security`: `10,40 * * * *`
-- `verify-security`: `15,45 * * * *`
-- `generate-embeddings`: offset +1 cada 3 min
-- `bulk-fetch-skill-content`: offset +3 cada 5 min
-- `enrich-github-metadata`: offset +2 cada 10 min
+Muchos skills importados tienen `install_command` con el formato viejo:
+```
+npx skillsadd tradermonty/claude-trading-skills/skills/portfolio-manager
+```
 
-### Estado final: 29 crons activos, todos staggered
+Este formato depende de un servicio externo muerto. Deberíamos migrarlos al formato nativo de Claude Code:
+```
+claude skill add --from-url https://raw.githubusercontent.com/tradermonty/claude-trading-skills/main/skills/portfolio-manager/SKILL.md
+```
 
----
+## Plan de implementación
 
-## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
+### 1. Migrar install_commands en la base de datos
+Crear una migración SQL que convierta todos los `install_command` que usen `npx skillsadd <owner>/<repo>/skills/<path>` al formato `claude skill add --from-url https://raw.githubusercontent.com/<owner>/<repo>/main/skills/<path>/SKILL.md`.
 
-### Fix 2 (P0): Filtrar items sin scan en queries ✅
-- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
-- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
+Habrá ~200-500 skills afectados. La migración será un UPDATE con regexp_replace.
 
-### Fix 3 (P0): Plugins importados como "pending" ✅
-- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
-- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+### 2. Migrar `npx skills add` con URL de GitHub
+Algunos usan `npx skills add https://github.com/...` — estos también deben convertirse al formato `claude skill add <github_url>`.
 
-### Fix 4 (P1): Auto-rechazar repos archivados ✅
-- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+### 3. Actualizar el edge function de sync
+En `sync-antigravity-skills` y cualquier función de importación, asegurar que los nuevos skills se generen con el formato `claude skill add --from-url` en vez de `npx skillsadd`.
 
-### Fix 6 (P1): Scan requerido para auto-approve ✅
-- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
-- También selecciona `security_scan_result` en la query inicial
+### 4. Actualizar MultiAgentInstall.tsx
+El componente ya usa `claude skill add ${githubUrl || itemSlug}` — está correcto. Solo verificar que el fallback a `itemSlug` no produzca un comando roto cuando el slug no es una URL de GitHub.
 
-### Fix 7 (P2): Priorizar scan de items nuevos ✅
-- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
+## Archivos a modificar
 
----
+| Archivo | Cambio |
+|---|---|
+| Migración SQL | UPDATE masivo de `install_command` en tabla `skills` |
+| `supabase/functions/sync-antigravity-skills/index.ts` | Ya usa formato correcto ✅ |
+| `supabase/functions/sync-skills/index.ts` | Verificar formato de generación |
+| `supabase/functions/generate-install-commands/index.ts` | Verificar que genere formato nuevo |
 
-## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
-
-### Fix 1 (P0): Imports como "pending" ✅
-- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
-
-### Fix 2 (P0): MCP server filtra por scan ✅
-- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
-
-### Fix 3 (P1): refresh-catalog-data error logging ✅
-- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
