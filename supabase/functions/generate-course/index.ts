@@ -271,7 +271,7 @@ serve(async (req) => {
     const skillList = (skills || []).map((s: any) => `${s.slug}: ${s.display_name} (${s.category}) - ${s.tagline}`).join("\n");
     const connectorList = (connectors || []).map((c: any) => `${c.slug}: ${c.name} (${c.category})`).join("\n");
 
-    const prompt = buildModulePrompt(role_slug, title, description, difficulty || "beginner", skillList, connectorList);
+    const prompt = buildModulePrompt(role_slug, title, description, difficulty || "beginner", skillList, connectorList, tool_name);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
