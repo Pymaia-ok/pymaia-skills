@@ -39,3 +39,25 @@
 - `enrich-github-metadata`: offset +2 cada 10 min
 
 ### Estado final: 29 crons activos, todos staggered
+
+---
+
+## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
+
+### Fix 2 (P0): Filtrar items sin scan en queries ✅
+- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
+
+### Fix 3 (P0): Plugins importados como "pending" ✅
+- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
+- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+
+### Fix 4 (P1): Auto-rechazar repos archivados ✅
+- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+
+### Fix 6 (P1): Scan requerido para auto-approve ✅
+- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
+- También selecciona `security_scan_result` en la query inicial
+
+### Fix 7 (P2): Priorizar scan de items nuevos ✅
+- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
