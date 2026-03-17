@@ -1178,6 +1178,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       supabase.from("mcp_servers")
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
         .eq("status", "approved")
+        .or("security_scan_result.not.is.null,trust_score.gte.60")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
         .order("is_official", { ascending: false })
         .order("trust_score", { ascending: false })
