@@ -152,7 +152,7 @@ Each module should have 3 quiz questions. Only recommend skills/connectors that 
     const modules = JSON.parse(content);
 
     // ── Quality gate: validate & fix Spanish translations ──
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+    const lovableKey = LOVABLE_API_KEY!;
     for (let i = 0; i < modules.length; i++) {
       const m = modules[i];
       // Sanitize content
