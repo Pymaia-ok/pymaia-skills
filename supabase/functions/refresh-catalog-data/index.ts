@@ -224,7 +224,7 @@ async function detectDeadRepos(
           await supabase.from(table).update({ updated_at: new Date().toISOString() }).eq("id", item.id);
         }
         totalChecked++;
-      } catch { continue; }
+      } catch (repoErr) { console.error(`Dead repo check error for ${item.slug}:`, repoErr); continue; }
     }
   }
 
