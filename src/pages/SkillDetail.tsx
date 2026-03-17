@@ -101,7 +101,7 @@ const SkillDetail = () => {
   const handleCopy = async () => {
     if (user) {
       performCopy();
-      trackInstallation(skill.id, user.id).catch(() => {});
+      trackInstallation(skill.id, user.id).catch(e => console.error("[SkillDetail] track install:", e));
       const userEmail = user.email;
       if (userEmail) {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
