@@ -30,17 +30,46 @@ function sanitizeContent(text: string): string {
     .trim();
 }
 
+// ── Tool descriptions for prompt context ──
+const TOOL_CONTEXT: Record<string, string> = {
+  claude: "Claude AI by Anthropic — an advanced conversational AI assistant that excels at analysis, writing, coding, and reasoning tasks",
+  manus: "Manus AI — an autonomous AI agent that can browse the web, execute code, manage files, and complete complex multi-step tasks independently",
+  openclaw: "OpenClaw — an open-source AI agent framework that lets developers build, customize, and deploy autonomous AI agents with full control over the code",
+  lovable: "Lovable — an AI-powered app builder that lets anyone create full-stack web applications by describing what they want in natural language, no coding required",
+};
+
 // ── Build the course generation prompt ──
-function buildModulePrompt(role_slug: string, title: string, description: string, difficulty: string, skillList: string, connectorList: string) {
-  return `You are creating an interactive course for Pymaia Academy about mastering Claude AI, tailored for the "${role_slug}" professional role.
+function buildModulePrompt(role_slug: string, title: string, description: string, difficulty: string, skillList: string, connectorList: string, tool_name?: string) {
+  const toolCtx = TOOL_CONTEXT[tool_name || "claude"] || TOOL_CONTEXT.claude;
+  const toolLabel = tool_name ? tool_name.charAt(0).toUpperCase() + tool_name.slice(1) : "Claude";
+
+  return `You are creating an interactive course for Pymaia Academy about mastering ${toolLabel} (${toolCtx}), tailored for the "${role_slug}" professional role.
 
 Course: "${title}" (${difficulty} level)
 Description: ${description}
 
+IMPORTANT: This course is specifically about ${toolLabel}, NOT about other AI tools. Every example, exercise, and tip must be about using ${toolLabel} in the context of the "${role_slug}" role.
+
+${difficulty === "beginner" ? `Since this is a BEGINNER course, focus on:
+- What ${toolLabel} is and how it works (specific to this tool)
+- Basic setup and first steps
+- Simple, practical use cases for the ${role_slug} role
+- Building confidence with hands-on exercises` : ""}
+${difficulty === "intermediate" ? `Since this is an INTERMEDIATE course, focus on:
+- Advanced prompting techniques and workflows specific to ${toolLabel}
+- Real-world professional scenarios for the ${role_slug} role
+- Combining ${toolLabel} with other tools in the workflow
+- Optimization and efficiency tips` : ""}
+${difficulty === "advanced" ? `Since this is an ADVANCED course, focus on:
+- Expert-level strategies and automation with ${toolLabel}
+- Complex multi-step workflows for the ${role_slug} role
+- Integration patterns, API usage, and scaling
+- Edge cases, limitations, and how to work around them` : ""}
+
 Generate exactly 5 modules. Each module MUST follow this structure:
 1. **Introduction paragraph** (3-4 sentences explaining WHAT you'll learn and WHY it matters for this role)
 2. **Core concepts** with ### headings, explanations with examples (NOT just prompts)
-3. **Practical exercise** using :::tryit block with a real-world prompt
+3. **Practical exercise** using :::tryit block with a real-world prompt specific to ${toolLabel}
 4. **Pro tip** using :::tip block with expert advice
 5. **Quiz** with exactly 3 questions testing comprehension
 
@@ -50,6 +79,7 @@ CRITICAL FORMATTING RULES:
 - Include at least 2 interactive blocks (:::tryit, :::step, :::tip, :::warning)
 - NEVER just wrap a single prompt in :::tryit — explain the concepts FIRST
 - Content must be pedagogical: explain WHY, WHEN, and HOW to adapt techniques
+- All examples must be SPECIFIC to ${toolLabel} and the ${role_slug} role — no generic AI advice
 
 Interactive block syntax:
 :::tryit{title="Exercise title"}
