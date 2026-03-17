@@ -1159,8 +1159,8 @@ async function upsertSkills(supabase: ReturnType<typeof createClient>, discovere
         tagline: ns.description || `Skill del ecosistema: ${displayName}`,
         description_human: description,
         install_command: ns.owner && ns.repo
-          ? `npx skills add https://github.com/${ns.owner}/${ns.repo} --skill ${ns.name}`
-          : `npx skills add ${ns.name}`,
+          ? `claude skill add --from-url https://raw.githubusercontent.com/${ns.owner}/${ns.repo}/main/skills/${ns.name}/SKILL.md`
+          : `claude skill add ${ns.name}`,
         github_url: ns.owner && ns.repo ? `https://github.com/${ns.owner}/${ns.repo}` : null,
         github_stars: ns.stars,
         install_count: 0,
