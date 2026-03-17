@@ -10,7 +10,56 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { role_slug, title, title_es, description, description_es, difficulty, emoji } = await req.json();
+    const body = await req.json();
+    const { role_slug, title, title_es, description, description_es, difficulty, emoji, mode } = body;
+
+    // ── FIX-TRANSLATIONS MODE ──
+    if (mode === "fix-translations") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const { data: modules } = await supabase
+        .from("course_modules")
+        .select("id, sort_order, content_md, content_md_es, title, title_es")
+        .order("sort_order");
+
+      let fixed = 0;
+      for (const m of (modules || [])) {
+        const enLen = (m.content_md || "").length;
+        const esLen = (m.content_md_es || "").length;
+        if (enLen > 0 && esLen < enLen * 0.5) {
+          try {
+            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "Translate the following lesson content to Spanish. Return ONLY the translated markdown." },
+                  { role: "user", content: m.content_md },
+                ],
+              }),
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              const translated = (data.choices?.[0]?.message?.content || "")
+                .replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "")
+                .replace(/^```(?:markdown|md)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+              if (translated.length >= enLen * 0.5) {
+                await supabase.from("course_modules").update({ content_md_es: translated }).eq("id", m.id);
+                fixed++;
+              }
+            }
+          } catch (e) { console.error(`Fix translation error module ${m.id}:`, e); }
+        }
+      }
+      return new Response(JSON.stringify({ success: true, fixed, total: (modules || []).length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
