@@ -38,10 +38,25 @@ const TOOL_CONTEXT: Record<string, string> = {
   lovable: "Lovable — an AI-powered app builder that lets anyone create full-stack web applications by describing what they want in natural language, no coding required",
 };
 
+// ── Role-specific tool recommendations for better relevance ──
+const ROLE_TOOL_HINTS: Record<string, string> = {
+  marketer: "Prioritize skills/connectors for: social media management, content creation, SEO analysis, email campaigns, audience research, analytics dashboards. Look for slugs related to: social-media, seo, content, marketing, analytics, copywriting.",
+  abogado: "Prioritize skills/connectors for: contract review, legal research, document drafting, compliance checking, case analysis. Look for slugs related to: legal, document, contract, compliance, research, writing.",
+  founder: "Prioritize skills/connectors for: market research, pitch decks, financial modeling, product strategy, competitor analysis, fundraising. Look for slugs related to: startup, business, strategy, pitch, market, product.",
+  consultor: "Prioritize skills/connectors for: data analysis, report generation, presentation creation, client communication, project management. Look for slugs related to: analysis, report, presentation, consulting, project, data.",
+  disenador: "Prioritize skills/connectors for: image generation, UI/UX prototyping, design systems, color palettes, asset creation, design critique. Look for slugs related to: image, design, ui, ux, figma, creative, visual, prototype.",
+  rrhh: "Prioritize skills/connectors for: job descriptions, candidate screening, onboarding docs, performance reviews, scheduling, employee communications. Look for slugs related to: hr, hiring, recruitment, scheduling, communication, document, people.",
+  contabilidad: "Prioritize skills/connectors for: spreadsheet automation, financial reporting, invoice processing, tax calculations, data entry automation, reconciliation. Look for slugs related to: spreadsheet, excel, finance, accounting, data, calculation, automation.",
+  finanzas: "Prioritize skills/connectors for: financial modeling, investment analysis, risk assessment, portfolio tracking, market data, forecasting. Look for slugs related to: finance, investment, market, data, analysis, forecast, trading, portfolio.",
+  operaciones: "Prioritize skills/connectors for: process automation, workflow optimization, inventory management, supply chain, project tracking, SOP documentation. Look for slugs related to: automation, workflow, process, operations, project, inventory, documentation.",
+  ventas: "Prioritize skills/connectors for: CRM management, email outreach, lead scoring, proposal generation, pipeline tracking, follow-up automation. Look for slugs related to: crm, sales, email, lead, outreach, pipeline, proposal, customer.",
+};
+
 // ── Build the course generation prompt ──
 function buildModulePrompt(role_slug: string, title: string, description: string, difficulty: string, skillList: string, connectorList: string, tool_name?: string) {
   const toolCtx = TOOL_CONTEXT[tool_name || "claude"] || TOOL_CONTEXT.claude;
   const toolLabel = tool_name ? tool_name.charAt(0).toUpperCase() + tool_name.slice(1) : "Claude";
+  const roleHints = ROLE_TOOL_HINTS[role_slug] || "";
 
   return `You are creating an interactive course for Pymaia Academy about mastering ${toolLabel} (${toolCtx}), tailored for the "${role_slug}" professional role.
 
@@ -93,6 +108,10 @@ Useful advice
 :::step{n=1 title="Step title"}
 Step content
 :::
+
+SKILL & CONNECTOR RECOMMENDATIONS:
+${roleHints}
+When choosing recommended_skill_slugs and recommended_connector_slugs, pick ONLY items that a "${role_slug}" professional would actually use in their daily work. Do NOT recommend generic developer tools unless the role is technical.
 
 Available skills from our catalog (use relevant slugs in recommendations):
 ${skillList.slice(0, 3000)}
