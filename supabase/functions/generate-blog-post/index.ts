@@ -149,6 +149,20 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Rate limiting: max 5 blog posts per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabase
+      .from("automation_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("function_name", "generate-blog-post")
+      .eq("action_type", "blog_generated")
+      .gte("created_at", oneHourAgo);
+    if ((recentCount || 0) >= 5) {
+      return new Response(JSON.stringify({ error: "Rate limit: max 5 blog posts per hour" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json().catch(() => ({}));
 
     // ── REGENERATE MODE: fix truncated posts ──
