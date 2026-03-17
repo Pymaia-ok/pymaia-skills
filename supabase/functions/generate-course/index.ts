@@ -260,7 +260,127 @@ serve(async (req) => {
       });
     }
 
-    // ── FULL GENERATION MODE ──
+    // ── BATCH-ROLES MODE: generate courses for a tool across all roles × levels ──
+    if (mode === "batch-roles" && tool_name) {
+      const ROLES = [
+        { slug: "marketer", label: "Marketing", label_es: "Marketing", emoji: "📣" },
+        { slug: "abogado", label: "Legal / Lawyers", label_es: "Abogados / Legal", emoji: "⚖️" },
+        { slug: "founder", label: "Founders / Entrepreneurs", label_es: "Founders / Emprendedores", emoji: "🚀" },
+        { slug: "consultor", label: "Consultants", label_es: "Consultores", emoji: "💼" },
+      ];
+      const LEVELS = [
+        { slug: "beginner", label: "Getting Started", label_es: "Primeros Pasos", mins: 45 },
+        { slug: "intermediate", label: "Level Up", label_es: "Nivel Intermedio", mins: 55 },
+        { slug: "advanced", label: "Expert Mode", label_es: "Modo Experto", mins: 60 },
+      ];
+      const toolLabel = tool_name.charAt(0).toUpperCase() + tool_name.slice(1);
+      const toolCtx = TOOL_CONTEXT[tool_name] || tool_name;
+
+      const { data: skills } = await supabase
+        .from("skills").select("slug, display_name, category, tagline")
+        .eq("status", "approved").limit(200);
+      const { data: connectors } = await supabase
+        .from("mcp_servers").select("slug, name, category")
+        .eq("status", "approved").limit(100);
+      const skillList = (skills || []).map((s: any) => `${s.slug}: ${s.display_name} (${s.category}) - ${s.tagline}`).join("\n");
+      const connList = (connectors || []).map((c: any) => `${c.slug}: ${c.name} (${c.category})`).join("\n");
+
+      const results: any[] = [];
+      for (const role of ROLES) {
+        for (const level of LEVELS) {
+          const slug = `${tool_name}-${role.slug}-${level.slug}`;
+          const courseTitle = `${toolLabel} for ${role.label}: ${level.label}`;
+          const courseTitleEs = `${toolLabel} para ${role.label_es}: ${level.label_es}`;
+          const desc = `Learn to use ${toolLabel} (${toolCtx}) as a ${role.label} professional — ${level.label} level`;
+          const descEs = `Aprende a usar ${toolLabel} como profesional de ${role.label_es} — nivel ${level.label_es}`;
+
+          console.log(`🔄 Generating ${slug}...`);
+          try {
+            const prompt = buildModulePrompt(role.slug, courseTitle, desc, level.slug, skillList, connList, tool_name);
+            const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "You generate structured course content. Return only valid JSON arrays." },
+                  { role: "user", content: prompt },
+                ],
+              }),
+            });
+
+            if (!aiResp.ok) {
+              console.error(`❌ AI error for ${slug}: ${aiResp.status}`);
+              results.push({ slug, status: "error", error: `AI ${aiResp.status}` });
+              continue;
+            }
+
+            const aiData = await aiResp.json();
+            let raw = (aiData.choices?.[0]?.message?.content || "")
+              .replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+            raw = sanitizeContent(raw);
+            const modules = JSON.parse(raw);
+
+            // Sanitize & quality gate each module
+            for (let i = 0; i < modules.length; i++) {
+              modules[i].content_md = sanitizeContent(modules[i].content_md);
+              modules[i].content_md_es = sanitizeContent(modules[i].content_md_es);
+              const gate = passesQualityGate(modules[i]);
+              if (!gate.pass) {
+                const fixed = await regenerateSingleModule(modules[i], gate.reasons, role.slug, level.slug, LOVABLE_API_KEY);
+                if (fixed) {
+                  if (fixed.content_md && fixed.content_md.length >= 1200) modules[i].content_md = sanitizeContent(fixed.content_md);
+                  if (fixed.content_md_es) modules[i].content_md_es = sanitizeContent(fixed.content_md_es);
+                  if (fixed.quiz_json?.length >= 2) modules[i].quiz_json = fixed.quiz_json;
+                }
+              }
+            }
+
+            // Upsert course
+            const { data: course, error: cErr } = await supabase.from("courses").upsert({
+              slug,
+              title: courseTitle,
+              title_es: courseTitleEs,
+              description: desc,
+              description_es: descEs,
+              role_slug: role.slug,
+              difficulty: level.slug,
+              emoji: role.emoji,
+              estimated_minutes: modules.reduce((a: number, m: any) => a + (m.estimated_minutes || 10), 0),
+              module_count: modules.length,
+              is_active: true,
+            }, { onConflict: "slug" }).select().single();
+
+            if (cErr) { results.push({ slug, status: "error", error: cErr.message }); continue; }
+
+            await supabase.from("course_modules").delete().eq("course_id", course.id);
+            const rows = modules.map((m: any) => ({
+              course_id: course.id,
+              sort_order: m.sort_order,
+              title: m.title,
+              title_es: m.title_es || null,
+              content_md: m.content_md,
+              content_md_es: m.content_md_es || null,
+              quiz_json: m.quiz_json || [],
+              recommended_skill_slugs: m.recommended_skill_slugs || [],
+              recommended_connector_slugs: m.recommended_connector_slugs || [],
+              estimated_minutes: m.estimated_minutes || 10,
+            }));
+            await supabase.from("course_modules").insert(rows);
+            results.push({ slug, status: "ok", modules: modules.length });
+            console.log(`✅ ${slug} done (${modules.length} modules)`);
+          } catch (e) {
+            console.error(`❌ Error generating ${slug}:`, e);
+            results.push({ slug, status: "error", error: e instanceof Error ? e.message : "unknown" });
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, tool_name, courses_generated: results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: skills } = await supabase
       .from("skills").select("slug, display_name, category, tagline")
       .eq("status", "approved").limit(200);
