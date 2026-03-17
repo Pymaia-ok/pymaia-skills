@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ batch_size: 50 }),
       });
-    } catch { /* non-critical */ }
+    } catch (err) { await logFailure(supabase, "rescan-security", (err as Error).message, { step: "trust_score_recalc" }); }
 
     return new Response(JSON.stringify({ rescanned, newFlags }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
