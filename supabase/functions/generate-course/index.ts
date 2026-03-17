@@ -165,7 +165,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { role_slug, title, title_es, description, description_es, difficulty, emoji, mode, course_slug } = body;
+    const { role_slug, title, title_es, description, description_es, difficulty, emoji, mode, course_slug, tool_name } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
