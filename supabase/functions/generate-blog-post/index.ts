@@ -1,6 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/** Sanitize AI-generated article text before persisting */
+function sanitizeArticle(text: string | undefined | null): string {
+  if (!text) return "";
+  let t = text;
+  t = t.replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "");
+  t = t.replace(/^```(?:markdown|md)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  t = t.replace(/,?\s*(?:content_es|content_en|meta_description_en|meta_description_es|title_es|excerpt_es)\s*=\s*["']?.*$/s, "");
+  t = t.replace(/^#\s+[^\n]+\n+/, "");
+  return t.trim();
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -260,11 +271,11 @@ Return the COMPLETE article using the generate_blog_post tool.`;
           const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
           // Update EN if new is longer OR old was truncated (< minLen)
           if (article.content_en && (newEnLen > (post.content?.length || 0) || (post.content?.length || 0) < minLen)) {
-            updateData.content = article.content_en;
+            updateData.content = sanitizeArticle(article.content_en);
           }
           // Update ES if new is longer OR old was too short
           if (article.content_es && (newEsLen > (post.content_es?.length || 0) || (post.content_es?.length || 0) < 2000)) {
-            updateData.content_es = article.content_es;
+            updateData.content_es = sanitizeArticle(article.content_es);
           }
           if (article.faq_items?.length > 0) {
             updateData.faq_json = article.faq_items;
@@ -517,14 +528,17 @@ Return your response using the generate_blog_post tool.`;
       console.error("Cover image generation failed (non-blocking):", imgErr);
     }
 
+    const sanitizedContentEn = sanitizeArticle(article.content_en);
+    const sanitizedContentEs = sanitizeArticle(article.content_es);
+
     const { error: insertError } = await supabase.from("blog_posts").insert({
       slug,
       title: article.title_en,
       title_es: article.title_es,
       excerpt: article.excerpt_en,
       excerpt_es: article.excerpt_es,
-      content: article.content_en,
-      content_es: article.content_es,
+      content: sanitizedContentEn,
+      content_es: sanitizedContentEs,
       meta_description: article.meta_description_en,
       meta_description_es: article.meta_description_es,
       keywords: topic.keywords,
@@ -548,8 +562,8 @@ Return your response using the generate_blog_post tool.`;
           title_es: article.title_es,
           excerpt: article.excerpt_en,
           excerpt_es: article.excerpt_es,
-          content: article.content_en,
-          content_es: article.content_es,
+          content: sanitizedContentEn,
+          content_es: sanitizedContentEs,
           meta_description: article.meta_description_en,
           meta_description_es: article.meta_description_es,
           keywords: topic.keywords,
