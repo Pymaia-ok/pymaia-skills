@@ -174,7 +174,7 @@ Each module should have 3 quiz questions. Only recommend skills/connectors that 
         try {
           const fixResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
-            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
               messages: [
