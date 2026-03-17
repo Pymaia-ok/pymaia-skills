@@ -150,6 +150,11 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           console.error(`VT poll failed for ${(item as any).slug}:`, (e as Error).message);
+          await supabase.from("automation_logs").insert({
+            function_name: "poll-vt-pending",
+            action_type: "error",
+            reason: `VT poll failed for ${table.type} "${(item as any).slug}": ${(e as Error).message}`.slice(0, 500),
+          }).catch(() => {});
         }
       }
     }
@@ -159,6 +164,10 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("poll-vt-pending error:", (e as Error).message);
+    try {
+      const sb = createClient("https://esm.sh/@supabase/supabase-js@2" ? Deno.env.get("SUPABASE_URL")! : "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await sb.from("automation_logs").insert({ function_name: "poll-vt-pending", action_type: "error", reason: (e as Error).message.slice(0, 500) });
+    } catch {}
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
