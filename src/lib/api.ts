@@ -249,7 +249,7 @@ export async function fetchSkills(filters?: {
 }
 
 export async function fetchAllSkills() {
-  const { data, error } = await supabase.from("skills").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("skills").select("*").eq("status", "approved").or("security_scan_result.not.is.null,trust_score.gte.60").order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as SkillFromDB[];
 }

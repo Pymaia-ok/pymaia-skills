@@ -216,8 +216,14 @@ async function detectDeadRepos(
         } else if (res.ok) {
           const data = await res.json();
           if (data.archived) {
-            // Repo archived — keep but log
-            await log("archived_repo_detected", `${table}/${item.slug}: repo archived`, { repo });
+            // Repo archived — reject and flag
+            await supabase.from(table).update({
+              status: "rejected",
+              security_status: "flagged",
+              security_notes: "Repository archived on GitHub",
+              updated_at: new Date().toISOString(),
+            }).eq("id", item.id);
+            await log("archived_repo_rejected", `${table}/${item.slug}: repo archived — auto-rejected`, { repo });
             totalArchived++;
           }
           // Touch updated_at so we don't recheck soon

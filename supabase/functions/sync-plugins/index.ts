@@ -169,7 +169,7 @@ async function syncFromCodeSearch(supabase: any, ghHeaders: Record<string, strin
           is_anthropic_verified: false,
           is_official: false,
           source: "community",
-          status: "approved",
+          status: "pending",
           github_url: repo.html_url,
           github_stars: repo.stargazers_count || 0,
           install_count: 0,
