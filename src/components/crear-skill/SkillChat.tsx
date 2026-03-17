@@ -366,7 +366,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         }
 
         const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
-        console.log("[ScreenRec] blob:", blob.size);
+        if (import.meta.env.DEV) console.log("[ScreenRec] blob:", blob.size);
 
         if (blob.size === 0) {
           toast.error("La grabación salió vacía");
