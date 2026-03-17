@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
             function_name: "rescan-security",
             action_type: "error",
             reason: `Failed to rescan ${table.type} ${(item as any).slug}: ${(e as Error).message}`.slice(0, 500),
-          }).catch(() => {});
+          }).catch((err) => logFailure(supabase, "rescan-security", (err as Error).message, { step: "automation_log_insert" }));
         }
       }
     }
