@@ -465,7 +465,7 @@ const SkillDetail = () => {
                 itemName={displayName}
                 description={descriptionHuman}
                 category={skill.category}
-                securityStatus={(skill as any).security_status}
+                securityStatus={skill.security_status}
               />
             </div>
 
