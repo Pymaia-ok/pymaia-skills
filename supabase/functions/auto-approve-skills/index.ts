@@ -87,6 +87,12 @@ Deno.serve(async (req) => {
 
       // ── AUTO-APPROVE rules ──
 
+      // Require security scan before auto-approving
+      if (!skill.security_scan_result) {
+        skipped++;
+        continue;
+      }
+
       // Rule 1: Trusted source
       if (ghOrg && TRUSTED_SOURCES.includes(ghOrg)) {
         reasons.push(`trusted_source:${ghOrg}`);
