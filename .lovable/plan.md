@@ -1,78 +1,78 @@
-## Plan: PRD Final V2 — Estado: ✅ Implementado
 
-### Fixes implementados
 
-#### Fix 1: generate-embeddings batch 25 + error logging ✅
-- Default `batch_size` reducido de 100 a **25**
-- Error logging agregado al sync_log en caso de fallo
-- Cron rescheduled a `*/3` (offset +1)
+# Diagnóstico de Calidad: Blog Posts y Cursos
 
-#### Fix 2: scrape-skills-sh slug collisions ✅
-- Import cambiado de batch insert a **individual upserts** con error handling por fila
-- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
-- Columna `error_message` agregada a `skills_import_staging`
+## Problemas encontrados
 
-#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
-- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
-- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
-- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
-- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
+### Blog Posts — 3 tipos de defectos
 
-#### Fix 4: Limpieza de crons duplicados ✅
-- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
-- 30 → 29 crons
+| Defecto | Posts afectados | Ejemplo |
+|---|---|---|
+| **Triple quotes** `'''` al inicio/final del contenido | 9 posts | `claude-in-2026`, `ai-agents-for-beginners`, `skills-connectors-and-plugins` |
+| **JSON keys filtradas** (`content_es=`, `meta_description_en=`) al final del contenido | 4 posts | `skills-connectors-and-plugins`, `automate-invoice`, `automate-seo`, `connect-like-a-pro` |
+| **Contenido truncado** (< 7000 chars, corte abrupto sin conclusión) | 2 posts | `the-15-most-useful-ai-integrations` (5316 chars, corta a mitad de frase), `clawbot` (5683 chars) |
 
-#### Fix 5: enrich-github-metadata parallelizado ✅
-- Batch reducido de 400 a **150**
-- Procesamiento en paralelo (batches de 5)
-- Cron: `*/10` (staggered a offset +2)
+**Causa raíz**: El modelo devuelve `'''content'''` como wrapper de Python strings, y a veces incluye keys del JSON schema en el texto. La función no sanitiza estas anomalías antes de guardar.
 
-#### Fix 6: bulk-fetch-skill-content acelerado ✅
-- Cron: `*/10` → `*/5` (staggered a offset +3)
+### Cursos — 1 defecto
 
-#### Fix 7: Crons staggered ✅
-- `calculate-trust-score`: `5,35 * * * *`
-- `scan-security`: `10,40 * * * *`
-- `verify-security`: `15,45 * * * *`
-- `generate-embeddings`: offset +1 cada 3 min
-- `bulk-fetch-skill-content`: offset +3 cada 5 min
-- `enrich-github-metadata`: offset +2 cada 10 min
+| Defecto | Módulos afectados |
+|---|---|
+| **Spanish content < 50% del inglés** (no traducciones completas, solo resúmenes) | 13 de 60 módulos (todos en consulting courses) |
 
-### Estado final: 29 crons activos, todos staggered
+**Causa raíz**: `generate-course` usa `gemini-2.5-flash` sin tool calling. El modelo trunca el español cuando el prompt es muy largo. Sin validación post-generación.
 
 ---
 
-## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
+## Plan: Quality Gate + Cleanup
 
-### Fix 2 (P0): Filtrar items sin scan en queries ✅
-- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
-- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
+### 1. Quality gate en `generate-blog-post` (antes de INSERT)
+Agregar función `sanitizeArticle()` justo antes de insertar/actualizar que:
+- Strip `'''` del inicio y final del contenido (EN y ES)
+- Elimine trailing JSON keys (`content_es=`, `meta_description_en=`, etc.) con regex
+- Strip H1 headings (`# Title\n`) del inicio del contenido (ya renderizado como título)
+- Valide que el contenido no termine abruptamente (mid-sentence sin punto final)
 
-### Fix 3 (P0): Plugins importados como "pending" ✅
-- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
-- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+Aplicar en ambas rutas: generación normal (L520) y regeneración (L260).
 
-### Fix 4 (P1): Auto-rechazar repos archivados ✅
-- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+### 2. Quality gate en `generate-course` (antes de INSERT módulos)
+Agregar validación post-AI:
+- Si `content_md_es` < 50% de `content_md`, regenerar solo el español con una llamada adicional
+- Strip `'''` y code fences del contenido de módulos
+- Validar que `quiz_json` tenga al menos 2 preguntas por módulo
 
-### Fix 6 (P1): Scan requerido para auto-approve ✅
-- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
-- También selecciona `security_scan_result` en la query inicial
+### 3. Cleanup de datos existentes (one-time SQL fix)
+Ejecutar una migración que limpie los posts y módulos existentes:
+- Quitar `'''` de inicio/final de `content` y `content_es` en blog_posts
+- Quitar trailing JSON keys filtradas
+- Marcar posts truncados (< 5500 chars) para re-generación
 
-### Fix 7 (P2): Priorizar scan de items nuevos ✅
-- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
+### 4. Endpoint de quality-check para cursos
+Agregar un modo `mode: "fix-translations"` en `generate-course` que:
+- Detecte módulos con español incompleto
+- Regenere solo `content_md_es` usando el contenido inglés como referencia
 
 ---
 
-## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
+## Archivos a editar
 
-### Fix 1 (P0): Imports como "pending" ✅
-- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
+| Archivo | Cambio |
+|---|---|
+| `supabase/functions/generate-blog-post/index.ts` | Agregar `sanitizeArticle()`, aplicar antes de insert y update |
+| `supabase/functions/generate-course/index.ts` | Agregar validación de calidad, regeneración de español, sanitización |
+| SQL migration | Cleanup one-time de datos existentes (9 posts con `'''`, 4 con JSON keys, 13 módulos con español corto) |
 
-### Fix 2 (P0): MCP server filtra por scan ✅
-- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+### Detalle técnico de `sanitizeArticle()`
 
-### Fix 3 (P1): refresh-catalog-data error logging ✅
-- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
+```text
+function sanitizeArticle(text: string): string {
+  1. Strip leading/trailing ''' (triple single quotes)
+  2. Strip trailing ", content_es=" or ", meta_description_en=" patterns
+  3. Strip leading "# Title\n" (H1 heading)
+  4. Trim whitespace
+  return cleaned text
+}
+```
+
+No se requiere lógica de retry adicional — el blog ya tiene retry para contenido corto. Solo falta la sanitización post-AI.
+
