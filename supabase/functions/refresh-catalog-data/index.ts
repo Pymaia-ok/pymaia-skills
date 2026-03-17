@@ -158,7 +158,7 @@ async function refreshReadmes(
             const aiData = await aiRes.json();
             summary = aiData.choices?.[0]?.message?.content?.trim() || null;
           }
-        } catch { /* skip AI errors */ }
+        } catch (aiErr) { console.error(`AI summary error for ${item.slug}:`, aiErr); }
       }
 
       const updateData: any = { readme_raw: readme, updated_at: new Date().toISOString() };
