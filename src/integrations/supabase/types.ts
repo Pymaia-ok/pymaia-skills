@@ -2395,6 +2395,7 @@ export type Database = {
         }[]
       }
       validate_api_key: { Args: { _key_hash: string }; Returns: string }
+      validate_api_key_salted: { Args: { _plain_key: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
