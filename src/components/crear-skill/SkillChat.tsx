@@ -293,7 +293,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
   }, [isRecording]);
 
   // Debug: log attachments on every render
-  console.log("[SkillChat] render, attachments:", attachments.length, attachments.map(a => a.name));
+  if (import.meta.env.DEV) console.log("[SkillChat] render, attachments:", attachments.length, attachments.map(a => a.name));
 
   const toggleScreenRecording = useCallback(async () => {
     if (isScreenRecording && mediaRecorderRef.current) {
