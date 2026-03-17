@@ -262,12 +262,20 @@ serve(async (req) => {
 
     // ── BATCH-ROLES MODE: generate courses for a tool across all roles × levels ──
     if (mode === "batch-roles" && tool_name) {
-      const ROLES = [
+      const ALL_ROLES = [
         { slug: "marketer", label: "Marketing", label_es: "Marketing", emoji: "📣" },
         { slug: "abogado", label: "Legal / Lawyers", label_es: "Abogados / Legal", emoji: "⚖️" },
         { slug: "founder", label: "Founders / Entrepreneurs", label_es: "Founders / Emprendedores", emoji: "🚀" },
         { slug: "consultor", label: "Consultants", label_es: "Consultores", emoji: "💼" },
+        { slug: "disenador", label: "Designers / UX", label_es: "Diseñadores / UX", emoji: "🎨" },
+        { slug: "rrhh", label: "HR / People Ops", label_es: "RRHH / Talento", emoji: "👥" },
+        { slug: "contabilidad", label: "Accountants / Bookkeepers", label_es: "Contadores / Contabilidad", emoji: "📊" },
+        { slug: "finanzas", label: "Finance / CFOs", label_es: "Finanzas / CFOs", emoji: "💰" },
+        { slug: "operaciones", label: "Operations / COOs", label_es: "Operaciones / COOs", emoji: "⚙️" },
+        { slug: "ventas", label: "Sales / Business Development", label_es: "Ventas / Desarrollo de Negocios", emoji: "🤝" },
       ];
+      // Filter roles if role_slug is provided, otherwise use all
+      const ROLES = role_slug ? ALL_ROLES.filter(r => r.slug === role_slug) : ALL_ROLES;
       const LEVELS = [
         { slug: "beginner", label: "Getting Started", label_es: "Primeros Pasos", mins: 45 },
         { slug: "intermediate", label: "Level Up", label_es: "Nivel Intermedio", mins: 55 },
