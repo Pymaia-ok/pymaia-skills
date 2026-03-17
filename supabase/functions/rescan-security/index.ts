@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     try {
       const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await sb.from("automation_logs").insert({ function_name: "rescan-security", action_type: "error", reason: (e as Error).message.slice(0, 500) });
-    } catch { /* fire-and-forget */ }
+    } catch (err) { await logFailure(sb, "rescan-security", (err as Error).message, { step: "main_catch" }); }
     return errorResponse((e as Error).message);
   }
 });

@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     try {
       const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await sb.from("automation_logs").insert({ function_name: "refresh-catalog-data", action_type: "error", reason: (e as Error).message.slice(0, 500) });
-    } catch { /* fire-and-forget */ }
+    } catch (err) { await logFailure(sb, "refresh-catalog-data", (err as Error).message, { step: "top_level_log" }); }
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
