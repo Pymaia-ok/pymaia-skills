@@ -517,14 +517,17 @@ Return your response using the generate_blog_post tool.`;
       console.error("Cover image generation failed (non-blocking):", imgErr);
     }
 
+    const sanitizedContentEn = sanitizeArticle(article.content_en);
+    const sanitizedContentEs = sanitizeArticle(article.content_es);
+
     const { error: insertError } = await supabase.from("blog_posts").insert({
       slug,
       title: article.title_en,
       title_es: article.title_es,
       excerpt: article.excerpt_en,
       excerpt_es: article.excerpt_es,
-      content: article.content_en,
-      content_es: article.content_es,
+      content: sanitizedContentEn,
+      content_es: sanitizedContentEs,
       meta_description: article.meta_description_en,
       meta_description_es: article.meta_description_es,
       keywords: topic.keywords,
