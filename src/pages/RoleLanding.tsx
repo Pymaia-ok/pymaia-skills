@@ -90,7 +90,7 @@ const RoleLanding = () => {
       toast.success(t("roleLanding.zipReady"));
       // Track installations
       if (user) {
-        skills.forEach((s) => trackInstallation(s.id, user.id).catch(() => {}));
+        skills.forEach((s) => trackInstallation(s.id, user.id).catch(e => console.error("[RoleLanding] track install:", e)));
       }
     } catch {
       toast.error("Error generating ZIP");

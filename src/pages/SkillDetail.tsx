@@ -225,7 +225,7 @@ const SkillDetail = () => {
                   githubUrl={skill.github_url}
                   onInstallAction={(agent, method) => {
                     if (user) {
-                      trackInstallation(skill.id, user.id).catch(() => {});
+                      trackInstallation(skill.id, user.id).catch(e => console.error("[SkillDetail] track install:", e));
                     }
                   }}
                 />

@@ -307,7 +307,7 @@ async function scrapeDocs(
             const aiData = await aiRes.json();
             summary = aiData.choices?.[0]?.message?.content?.trim() || null;
           }
-        } catch { /* skip */ }
+        } catch (aiErr) { console.error(`AI summary error for connector ${c.slug}:`, aiErr); }
       }
 
       const updateData: any = { readme_raw: raw, updated_at: new Date().toISOString() };

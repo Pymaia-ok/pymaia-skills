@@ -406,7 +406,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
       setIsScreenRecording(true);
-      console.log("[ScreenRec] started");
+      if (import.meta.env.DEV) console.log("[ScreenRec] started");
     } catch (e: any) {
       if (e.name !== "NotAllowedError") {
         console.error("[ScreenRec] error:", e);
