@@ -342,7 +342,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
       recorder.ondataavailable = (e) => {
-        console.log("[ScreenRec] data chunk:", e.data.size);
+        if (import.meta.env.DEV) console.log("[ScreenRec] data chunk:", e.data.size);
         if (e.data.size > 0) chunks.push(e.data);
       };
 
