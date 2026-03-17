@@ -97,8 +97,56 @@ Each module should have 3 quiz questions. Only recommend skills/connectors that 
     
     // Clean markdown code fences if present
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    // Strip triple single-quotes wrapper
+    content = content.replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "").trim();
     
     const modules = JSON.parse(content);
+
+    // ── Quality gate: validate & fix Spanish translations ──
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+    for (let i = 0; i < modules.length; i++) {
+      const m = modules[i];
+      // Sanitize content
+      if (m.content_md) {
+        m.content_md = m.content_md.replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "").replace(/^```(?:markdown|md)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+      }
+      if (m.content_md_es) {
+        m.content_md_es = m.content_md_es.replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "").replace(/^```(?:markdown|md)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+      }
+      // Validate quiz has at least 2 questions
+      if (!m.quiz_json || m.quiz_json.length < 2) {
+        m.quiz_json = m.quiz_json || [];
+      }
+      // Check Spanish translation quality
+      const enLen = (m.content_md || "").length;
+      const esLen = (m.content_md_es || "").length;
+      if (enLen > 0 && esLen < enLen * 0.5) {
+        console.log(`⚠️ Module ${m.sort_order}: Spanish too short (${esLen} vs ${enLen}). Regenerating...`);
+        try {
+          const fixResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: "Translate the following lesson content to Spanish. Return ONLY the translated markdown, no wrappers." },
+                { role: "user", content: m.content_md },
+              ],
+            }),
+          });
+          if (fixResp.ok) {
+            const fixData = await fixResp.json();
+            const fixed = (fixData.choices?.[0]?.message?.content || "").replace(/^'{3,}\s*/, "").replace(/\s*'{3,}$/, "").replace(/^```(?:markdown|md)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+            if (fixed.length >= enLen * 0.5) {
+              m.content_md_es = fixed;
+              console.log(`✅ Module ${m.sort_order}: Spanish fixed (${fixed.length} chars)`);
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fix Spanish for module ${m.sort_order}:`, e);
+        }
+      }
+    }
 
     // Create course
     const slug = `claude-para-${role_slug}`;
