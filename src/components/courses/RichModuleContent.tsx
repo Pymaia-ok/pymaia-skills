@@ -198,6 +198,12 @@ function parseAttrs(raw?: string): Record<string, string> {
 function proseToHtml(md: string): string {
   let html = md;
 
+  // Fallback: if content has no double newlines but is long, insert paragraph breaks
+  if (!html.includes("\n\n") && html.length > 500) {
+    // Split at sentence boundaries (". " followed by uppercase letter)
+    html = html.replace(/(\.\s)([A-ZÁÉÍÓÚÑÜa])/g, "$1\n\n$2");
+  }
+
   // Headers
   html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
   html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");

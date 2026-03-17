@@ -1,76 +1,78 @@
+## Plan: PRD Final V2 — Estado: ✅ Implementado
 
-# Diagnóstico Completo de Cursos + Plan de Mejora
+### Fixes implementados
 
-## Estado Actual: 4 cursos buenos, 8 muy deficientes
+#### Fix 1: generate-embeddings batch 25 + error logging ✅
+- Default `batch_size` reducido de 100 a **25**
+- Error logging agregado al sync_log en caso de fallo
+- Cron rescheduled a `*/3` (offset +1)
 
-| Grupo | Cursos | Avg chars/módulo | Quizzes | Párrafos | Calidad |
-|---|---|---|---|---|---|
-| **Marketing** (3) | beginner, intermediate, advanced | 1700-2100 | ✅ Sí | ✅ Sí | Buena |
-| **Consulting** (3) | beginner, intermediate, advanced | 1500-2000 | ✅ Sí | ✅ Sí | Buena |
-| **Legal beginner** (1) | beginner | 1540 | ✅ 4/5 | ✅ Sí | OK |
-| **Legal int/adv** (2) | intermediate, advanced | 950-1070 | ❌ 0 | ❌ No | Mala |
-| **Founders** (3) | beginner, intermediate, advanced | 830-950 | ❌ 0-1 | ❌ No | Mala |
+#### Fix 2: scrape-skills-sh slug collisions ✅
+- Import cambiado de batch insert a **individual upserts** con error handling por fila
+- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
+- Columna `error_message` agregada a `skills_import_staging`
 
-### Problemas específicos en los 8 cursos malos:
-1. **Contenido muy corto** (650-1050 chars vs 1700-2100 en los buenos) — solo un prompt envuelto en `:::tryit`, sin explicación pedagógica
-2. **Sin párrafos** (`\n\n`) — todo se renderiza como bloque compacto
-3. **Sin quizzes** — 30 de 60 módulos tienen 0 preguntas
-4. **Sin contexto educativo** — saltan directo a "copia este prompt" sin explicar por qué, cuándo, ni cómo adaptar
+#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
+- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
+- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
+- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
+- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
 
-### Problemas de UX/Formato:
-- Los módulos sin `\n\n` se renderizan como una pared de texto dentro de los bloques interactivos
-- No hay filtro por rol en `/cursos` (solo por dificultad)
-- No hay agrupación visual por rol — los 12 cursos aparecen en grid plano
+#### Fix 4: Limpieza de crons duplicados ✅
+- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
+- 30 → 29 crons
 
----
+#### Fix 5: enrich-github-metadata parallelizado ✅
+- Batch reducido de 400 a **150**
+- Procesamiento en paralelo (batches de 5)
+- Cron: `*/10` (staggered a offset +2)
 
-## Plan de Implementación
+#### Fix 6: bulk-fetch-skill-content acelerado ✅
+- Cron: `*/10` → `*/5` (staggered a offset +3)
 
-### 1. Regenerar los 8 cursos deficientes
-Usar `generate-course` con un **prompt mejorado** que exija:
-- 400-600 palabras REALES por módulo (no solo prompts)
-- Estructura: Intro → Conceptos → Ejemplo práctico → `:::tryit` → `:::tip` → Quiz (3 preguntas)
-- Párrafos dobles obligatorios entre secciones
-- Al menos 2 bloques interactivos (`:::tryit`, `:::step`, `:::tip`) por módulo
+#### Fix 7: Crons staggered ✅
+- `calculate-trust-score`: `5,35 * * * *`
+- `scan-security`: `10,40 * * * *`
+- `verify-security`: `15,45 * * * *`
+- `generate-embeddings`: offset +1 cada 3 min
+- `bulk-fetch-skill-content`: offset +3 cada 5 min
+- `enrich-github-metadata`: offset +2 cada 10 min
 
-**Cursos a regenerar:**
-- `claude-founders-beginner`, `claude-founders-intermediate`, `claude-founders-advanced`
-- `claude-legal-intermediate`, `claude-legal-advanced`
-- Y validar `claude-legal-beginner` (1 módulo sin quiz)
-- `claude-marketing-advanced` (tiene 0 quizzes en los 5 módulos)
-
-### 2. Quality Gate mejorado en `generate-course`
-Antes de guardar los módulos, validar:
-- `content_md.length >= 1200` chars (mínimo para contenido útil)
-- `content_md` contiene al menos 3 `\n\n` (párrafos)
-- `quiz_json.length >= 2` preguntas por módulo
-- Al menos 1 bloque interactivo (`:::tryit` o `:::step`)
-- Si falla → regenerar ese módulo individual con prompt más específico
-
-Agregar un `mode: "regenerate-course"` que:
-- Tome un `course_slug` existente
-- Regenere solo los módulos que no pasan el quality gate
-- Preserve los módulos que ya son buenos
-
-### 3. Mejoras UX en la página `/cursos`
-- **Agrupar por rol** con secciones colapsables (Marketing, Legal, Founders, Consultores)
-- Dentro de cada rol, mostrar los 3 niveles (beginner → intermediate → advanced) como path visual
-- **Agregar filtro por rol** además del filtro de dificultad existente
-- Indicar "learning path" visual (flechas entre niveles)
-
-### 4. Fix de formato en `RichModuleContent`
-- El parser `proseToHtml` no maneja bien contenido sin `\n\n` — agregar fallback que divida párrafos largos (>500 chars sin break) insertando breaks antes de frases que empiecen con mayúscula tras punto
+### Estado final: 29 crons activos, todos staggered
 
 ---
 
-## Archivos a editar
+## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
 
-| Archivo | Cambio |
-|---|---|
-| `supabase/functions/generate-course/index.ts` | Prompt mejorado, quality gate reforzado, modo `regenerate-course` |
-| `src/pages/Courses.tsx` | Agrupar por rol, filtro dual (rol + dificultad), learning path visual |
-| `src/components/courses/RichModuleContent.tsx` | Fallback para contenido sin párrafos dobles |
-| `src/components/courses/CourseCard.tsx` | Indicador de nivel en path (beginner→intermediate→advanced) |
+### Fix 2 (P0): Filtrar items sin scan en queries ✅
+- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
 
-### Ejecución post-código
-Llamar `generate-course` con `mode: "regenerate-course"` para los 8 cursos deficientes para regenerar contenido de calidad.
+### Fix 3 (P0): Plugins importados como "pending" ✅
+- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
+- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+
+### Fix 4 (P1): Auto-rechazar repos archivados ✅
+- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+
+### Fix 6 (P1): Scan requerido para auto-approve ✅
+- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
+- También selecciona `security_scan_result` en la query inicial
+
+### Fix 7 (P2): Priorizar scan de items nuevos ✅
+- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
+
+---
+
+## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
+
+### Fix 1 (P0): Imports como "pending" ✅
+- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
+
+### Fix 2 (P0): MCP server filtra por scan ✅
+- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+
+### Fix 3 (P1): refresh-catalog-data error logging ✅
+- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
