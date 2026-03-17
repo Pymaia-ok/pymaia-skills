@@ -1,7 +1,7 @@
 // rescan-security v2.0 — Full catalog rotation re-scanning
 // Rotates through ALL approved items weekly, not just stale ones
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse } from "../_shared/error-helpers.ts";
+import { errorResponse, logFailure } from "../_shared/error-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
