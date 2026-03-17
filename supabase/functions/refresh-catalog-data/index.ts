@@ -50,6 +50,11 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("refresh-catalog-data error:", (e as Error).message);
+    // Log top-level error to automation_logs
+    try {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await sb.from("automation_logs").insert({ function_name: "refresh-catalog-data", action_type: "error", reason: (e as Error).message.slice(0, 500) });
+    } catch { /* fire-and-forget */ }
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
