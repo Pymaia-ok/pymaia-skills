@@ -384,11 +384,9 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
           processing: false,
           previewUrl,
         };
-        console.log("[ScreenRec] about to setAttachments with:", newAtt.name);
+        if (import.meta.env.DEV) console.log("[ScreenRec] about to setAttachments with:", newAtt.name);
         setAttachments((prev) => {
-          console.log("[ScreenRec] setAttachments prev:", prev.length);
           const next = [...prev, newAtt];
-          console.log("[ScreenRec] setAttachments next:", next.length);
           return next;
         });
         toast.success("Grabación lista — tocá para previsualizarla");
