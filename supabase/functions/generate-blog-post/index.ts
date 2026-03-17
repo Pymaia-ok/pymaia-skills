@@ -260,11 +260,11 @@ Return the COMPLETE article using the generate_blog_post tool.`;
           const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
           // Update EN if new is longer OR old was truncated (< minLen)
           if (article.content_en && (newEnLen > (post.content?.length || 0) || (post.content?.length || 0) < minLen)) {
-            updateData.content = article.content_en;
+            updateData.content = sanitizeArticle(article.content_en);
           }
           // Update ES if new is longer OR old was too short
           if (article.content_es && (newEsLen > (post.content_es?.length || 0) || (post.content_es?.length || 0) < 2000)) {
-            updateData.content_es = article.content_es;
+            updateData.content_es = sanitizeArticle(article.content_es);
           }
           if (article.faq_items?.length > 0) {
             updateData.faq_json = article.faq_items;
