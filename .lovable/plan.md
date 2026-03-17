@@ -1,42 +1,78 @@
+## Plan: PRD Final V2 — Estado: ✅ Implementado
 
+### Fixes implementados
 
-# PRD Pendientes Finales — Verificación contra código actual
+#### Fix 1: generate-embeddings batch 25 + error logging ✅
+- Default `batch_size` reducido de 100 a **25**
+- Error logging agregado al sync_log en caso de fallo
+- Cron rescheduled a `*/3` (offset +1)
 
-## Resultado: 2 de 3 fixes son reales
+#### Fix 2: scrape-skills-sh slug collisions ✅
+- Import cambiado de batch insert a **individual upserts** con error handling por fila
+- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
+- Columna `error_message` agregada a `skills_import_staging`
 
-| # | Fix | ¿Real? | Evidencia |
-|---|---|---|---|
-| 1 | Imports auto-aprueban sin scan | ✅ **Confirmado** | `scrape-skills-sh` línea 399, `sync-antigravity` línea 182, `import-skills-csv` línea 154 — todos usan `status: "approved"` |
-| 2 | MCP server sin filtro de scan | ✅ **Confirmado** | `crossCatalogSearch()` líneas 1165-1188: queries de skills, connectors y plugins solo filtran `status.eq.approved` sin `.or("security_scan_result.not.is.null,trust_score.gte.60")` |
-| 3 | logFailure no se usa | ⚠️ **Parcialmente falso** | `poll-vt-pending` y `rescan-security` YA importan `errorResponse` y logean a `automation_logs` manualmente con catches detallados. Solo `refresh-catalog-data` no importa nada de error-helpers. Los "catches vacíos" del PRD son `.catch(() => {})` internos para fire-and-forget de automation_logs, lo cual es aceptable |
+#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
+- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
+- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
+- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
+- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
+
+#### Fix 4: Limpieza de crons duplicados ✅
+- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
+- 30 → 29 crons
+
+#### Fix 5: enrich-github-metadata parallelizado ✅
+- Batch reducido de 400 a **150**
+- Procesamiento en paralelo (batches de 5)
+- Cron: `*/10` (staggered a offset +2)
+
+#### Fix 6: bulk-fetch-skill-content acelerado ✅
+- Cron: `*/10` → `*/5` (staggered a offset +3)
+
+#### Fix 7: Crons staggered ✅
+- `calculate-trust-score`: `5,35 * * * *`
+- `scan-security`: `10,40 * * * *`
+- `verify-security`: `15,45 * * * *`
+- `generate-embeddings`: offset +1 cada 3 min
+- `bulk-fetch-skill-content`: offset +3 cada 5 min
+- `enrich-github-metadata`: offset +2 cada 10 min
+
+### Estado final: 29 crons activos, todos staggered
 
 ---
 
-## Plan: 2 fixes reales + 1 menor
+## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
 
-### Fix 1: Imports como "pending" (P0)
-3 cambios de una línea:
-- **`scrape-skills-sh/index.ts`** línea 399: `status: "approved"` → `status: "pending"`
-- **`sync-antigravity-skills/index.ts`** línea 182: `status: "approved"` → `status: "pending"`
-- **`import-skills-csv/index.ts`** línea 154: `status: "approved"` → `status: "pending"`
+### Fix 2 (P0): Filtrar items sin scan en queries ✅
+- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
 
-### Fix 2: MCP server filtra por scan (P0)
-En `crossCatalogSearch()` (líneas 1165-1188), agregar `.or("security_scan_result.not.is.null,trust_score.gte.60")` a las 3 queries:
-- Skills query (línea 1172)
-- MCP servers query (línea 1179)
-- Plugins query (línea 1186)
+### Fix 3 (P0): Plugins importados como "pending" ✅
+- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
+- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
 
-### Fix 3: refresh-catalog-data error logging (P1 — menor)
-Solo `refresh-catalog-data` carece de `logFailure`. Agregar import y reemplazar los `console.error` catches con `logFailure`. Las otras 2 funciones ya logean correctamente.
+### Fix 4 (P1): Auto-rechazar repos archivados ✅
+- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
 
-### Archivos a editar (5)
-| Archivo | Fix |
-|---|---|
-| `supabase/functions/scrape-skills-sh/index.ts` | Fix 1 |
-| `supabase/functions/sync-antigravity-skills/index.ts` | Fix 1 |
-| `supabase/functions/import-skills-csv/index.ts` | Fix 1 |
-| `supabase/functions/mcp-server/index.ts` | Fix 2 |
-| `supabase/functions/refresh-catalog-data/index.ts` | Fix 3 |
+### Fix 6 (P1): Scan requerido para auto-approve ✅
+- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
+- También selecciona `security_scan_result` en la query inicial
 
-No requiere migraciones SQL.
+### Fix 7 (P2): Priorizar scan de items nuevos ✅
+- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
 
+---
+
+## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
+
+### Fix 1 (P0): Imports como "pending" ✅
+- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
+
+### Fix 2 (P0): MCP server filtra por scan ✅
+- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+
+### Fix 3 (P1): refresh-catalog-data error logging ✅
+- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`

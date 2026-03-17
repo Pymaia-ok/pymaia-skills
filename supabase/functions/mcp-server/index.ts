@@ -1169,6 +1169,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
           ? `and(status.eq.approved,is_public.eq.true),creator_id.eq.${apiUserId}`
           : `and(status.eq.approved,is_public.eq.true)`
       )
+      .or("security_scan_result.not.is.null,trust_score.gte.60")
       .or(`display_name.ilike.%${q}%,display_name_es.ilike.%${q}%,tagline.ilike.%${q}%,tagline_es.ilike.%${q}%,description_human.ilike.%${q}%,description_human_es.ilike.%${q}%,slug.ilike.%${q}%,category.ilike.%${q}%`)
       .order("install_count", { ascending: false }).limit(limit);
     
@@ -1177,6 +1178,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       supabase.from("mcp_servers")
         .select("name, slug, description, category, github_stars, is_official, install_command, trust_score, security_status, homepage, docs_url")
         .eq("status", "approved")
+        .or("security_scan_result.not.is.null,trust_score.gte.60")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
         .order("is_official", { ascending: false })
         .order("trust_score", { ascending: false })
@@ -1184,6 +1186,7 @@ async function crossCatalogSearch(keywords: string[], limit = 5, apiUserId?: str
       supabase.from("plugins")
         .select("name, slug, description, category, platform, install_count, is_official, is_anthropic_verified, trust_score, security_status, github_stars")
         .eq("status", "approved")
+        .or("security_scan_result.not.is.null,trust_score.gte.60")
         .or(`name.ilike.%${q}%,slug.ilike.%${q}%,description.ilike.%${q}%,description_es.ilike.%${q}%,category.ilike.%${q}%`)
         .order("install_count", { ascending: false }).limit(limit),
     ]).then(([{ data: sk }, { data: mc }, { data: pl }]) => ({ kw, sk, mc, pl }));
