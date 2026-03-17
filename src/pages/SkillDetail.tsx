@@ -108,7 +108,7 @@ const SkillDetail = () => {
         fetch(`https://${projectId}.supabase.co/functions/v1/enroll-sequence`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: userEmail, sequence_name: "post_install", metadata: { skill_name: skill.display_name, skill_slug: skill.slug } }),
-        }).catch(() => {});
+        }).catch(e => console.error("[SkillDetail] enroll-sequence:", e));
       }
     } else {
       setShowEmailGate(true);
