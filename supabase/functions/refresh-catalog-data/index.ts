@@ -166,7 +166,7 @@ async function refreshReadmes(
 
       await supabase.from(item.table).update(updateData).eq("id", item.id);
       refreshed++;
-    } catch { continue; }
+    } catch (itemErr) { console.error(`README refresh error for ${item.slug}:`, itemErr); continue; }
   }
 
   await log("readme_refresh", `Refreshed ${refreshed}/${items.length} READMEs`);
