@@ -339,7 +339,7 @@ const SkillDetail = () => {
 
               {/* Required MCPs */}
               {(() => {
-                const requiredMcps = (skill as any).required_mcps;
+                const requiredMcps = skill.required_mcps;
                 if (!requiredMcps || !Array.isArray(requiredMcps) || requiredMcps.length === 0) return null;
                 return (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-10">
