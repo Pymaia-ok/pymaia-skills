@@ -61,3 +61,18 @@
 
 ### Fix 7 (P2): Priorizar scan de items nuevos ✅
 - `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
+
+---
+
+## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
+
+### Fix 1 (P0): Imports como "pending" ✅
+- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
+- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
+
+### Fix 2 (P0): MCP server filtra por scan ✅
+- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+
+### Fix 3 (P1): refresh-catalog-data error logging ✅
+- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
