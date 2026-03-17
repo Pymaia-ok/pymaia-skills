@@ -8,15 +8,38 @@ import { useSEO } from "@/hooks/useSEO";
 import CourseCard from "@/components/courses/CourseCard";
 import Footer from "@/components/landing/Footer";
 
-const ROLE_ORDER = ["marketer", "abogado", "founder", "consultor", "multiagent"];
+const ROLE_ORDER = ["marketer", "abogado", "founder", "consultor"];
 const ROLE_EMOJIS: Record<string, string> = {
   marketer: "📣",
   abogado: "⚖️",
   founder: "🚀",
   consultor: "💼",
-  multiagent: "🤖",
 };
+
+const TOOL_ORDER = ["claude", "manus", "openclaw", "lovable"];
+const TOOL_LABELS: Record<string, string> = {
+  claude: "Claude AI",
+  manus: "Manus AI",
+  openclaw: "OpenClaw",
+  lovable: "Lovable",
+};
+const TOOL_EMOJIS: Record<string, string> = {
+  claude: "🧠",
+  manus: "🤖",
+  openclaw: "🐙",
+  lovable: "💜",
+};
+
 const DIFFICULTY_ORDER = ["beginner", "intermediate", "advanced"];
+
+/** Detect tool from course slug */
+function detectTool(slug: string): string {
+  for (const t of TOOL_ORDER) {
+    if (slug.startsWith(`${t}-`)) return t;
+  }
+  if (slug.startsWith("claude-")) return "claude";
+  return "claude";
+}
 
 const Courses = () => {
   const { t, i18n } = useTranslation();
@@ -24,12 +47,13 @@ const Courses = () => {
   const { user } = useAuth();
   const [filterDifficulty, setFilterDifficulty] = useState<string | null>(null);
   const [filterRole, setFilterRole] = useState<string | null>(null);
+  const [filterTool, setFilterTool] = useState<string | null>(null);
 
   useSEO({
-    title: isEs ? "Pymaia Academy — Cursos gratuitos de Claude por rol" : "Pymaia Academy — Free Claude Courses by Role",
+    title: isEs ? "Pymaia Academy — Cursos de IA por rol y herramienta" : "Pymaia Academy — AI Courses by Role & Tool",
     description: isEs
-      ? "Aprendé a usar Claude desde cero hasta experto con cursos adaptados a tu profesión."
-      : "Learn Claude from zero to expert with courses tailored to your profession.",
+      ? "Aprendé a usar Claude, Manus, OpenClaw y Lovable con cursos adaptados a tu profesión y nivel."
+      : "Learn Claude, Manus, OpenClaw & Lovable with courses tailored to your profession and level.",
     canonical: "https://pymaiaskills.lovable.app/cursos",
   });
 
@@ -61,35 +85,41 @@ const Courses = () => {
     },
   });
 
-  // Filter courses
-  const filtered = courses?.filter((c: any) => {
+  // Enrich courses with detected tool
+  const enriched = courses?.map((c: any) => ({ ...c, tool: detectTool(c.slug) }));
+
+  // Filter
+  const filtered = enriched?.filter((c: any) => {
     if (filterDifficulty && c.difficulty !== filterDifficulty) return false;
     if (filterRole && c.role_slug !== filterRole) return false;
+    if (filterTool && c.tool !== filterTool) return false;
+    // Exclude old generic multiagent courses
+    if (c.role_slug === "multiagent") return false;
     return true;
   });
 
-  // Group by role
-  const groupedByRole: Record<string, any[]> = {};
+  // Group: Role → Tool → Difficulty
+  const grouped: Record<string, Record<string, any[]>> = {};
   for (const role of ROLE_ORDER) {
     const roleCourses = (filtered || []).filter((c: any) => c.role_slug === role);
-    if (roleCourses.length > 0) {
-      // Sort by difficulty order
-      roleCourses.sort((a: any, b: any) =>
-        DIFFICULTY_ORDER.indexOf(a.difficulty) - DIFFICULTY_ORDER.indexOf(b.difficulty)
-      );
-      groupedByRole[role] = roleCourses;
+    if (roleCourses.length === 0) continue;
+    grouped[role] = {};
+    for (const tool of TOOL_ORDER) {
+      const toolCourses = roleCourses
+        .filter((c: any) => c.tool === tool)
+        .sort((a: any, b: any) => DIFFICULTY_ORDER.indexOf(a.difficulty) - DIFFICULTY_ORDER.indexOf(b.difficulty));
+      if (toolCourses.length > 0) {
+        grouped[role][tool] = toolCourses;
+      }
     }
   }
-  // Catch any roles not in ROLE_ORDER
-  const otherCourses = (filtered || []).filter((c: any) => !ROLE_ORDER.includes(c.role_slug));
-  if (otherCourses.length > 0) groupedByRole["general"] = otherCourses;
 
   const difficulties = ["beginner", "intermediate", "advanced"];
-  const hasRoleFilter = !filterRole;
+  const availableTools = [...new Set(enriched?.map((c: any) => c.tool) || [])].filter(t => TOOL_ORDER.includes(t));
 
   return (
     <div className="min-h-screen bg-background pt-14">
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="flex items-center gap-3 mb-2">
           <GraduationCap className="w-7 h-7 text-primary" />
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">Pymaia Academy</h1>
@@ -99,9 +129,34 @@ const Courses = () => {
         </p>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <div className="flex flex-col gap-3 mb-8">
+          {/* Tool filter */}
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground self-center mr-1">{isEs ? "Herramienta:" : "Tool:"}</span>
+            <button
+              onClick={() => setFilterTool(null)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                !filterTool ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {isEs ? "Todas" : "All"}
+            </button>
+            {TOOL_ORDER.filter(t => availableTools.includes(t)).map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilterTool(filterTool === t ? null : t)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  filterTool === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {TOOL_EMOJIS[t]} {TOOL_LABELS[t]}
+              </button>
+            ))}
+          </div>
+
           {/* Role filter */}
           <div className="flex gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground self-center mr-1">{isEs ? "Rol:" : "Role:"}</span>
             <button
               onClick={() => setFilterRole(null)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -125,6 +180,7 @@ const Courses = () => {
 
           {/* Difficulty filter */}
           <div className="flex gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground self-center mr-1">{isEs ? "Nivel:" : "Level:"}</span>
             <button
               onClick={() => setFilterDifficulty(null)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -147,67 +203,56 @@ const Courses = () => {
           </div>
         </div>
 
-        {/* Grouped by role */}
-        {hasRoleFilter ? (
-          Object.entries(groupedByRole).map(([role, roleCourses]) => (
-            <div key={role} className="mb-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">{ROLE_EMOJIS[role] || "📚"}</span>
-                <h2 className="text-xl font-semibold text-foreground">
-                  {t(`courses.roles.${role}`, role)}
-                </h2>
-              </div>
-
-              {/* Learning path: horizontal on md+, vertical on mobile */}
-              <div className="flex flex-col md:flex-row gap-3 md:gap-0 md:items-stretch">
-                {roleCourses.map((c: any, idx: number) => (
-                  <div key={c.id} className="flex flex-col md:flex-row md:items-center flex-1 min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <CourseCard
-                        slug={c.slug}
-                        title={c.title}
-                        titleEs={c.title_es}
-                        description={c.description}
-                        descriptionEs={c.description_es}
-                        emoji={c.emoji || "📚"}
-                        roleSlug={c.role_slug}
-                        difficulty={c.difficulty}
-                        estimatedMinutes={c.estimated_minutes}
-                        moduleCount={c.module_count}
-                        completedModules={progressMap?.[c.id] || 0}
-                      />
-                    </div>
-                    {idx < roleCourses.length - 1 && (
-                      <div className="hidden md:flex items-center justify-center px-2">
-                        <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+        {/* Grouped: Role → Tool → Learning Path */}
+        {Object.entries(grouped).map(([role, tools]) => (
+          <div key={role} className="mb-12">
+            <div className="flex items-center gap-2 mb-5">
+              <span className="text-2xl">{ROLE_EMOJIS[role] || "📚"}</span>
+              <h2 className="text-xl font-bold text-foreground">
+                {t(`courses.roles.${role}`, role)}
+              </h2>
             </div>
-          ))
-        ) : (
-          /* Single role selected: simple grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered?.map((c: any) => (
-              <CourseCard
-                key={c.id}
-                slug={c.slug}
-                title={c.title}
-                titleEs={c.title_es}
-                description={c.description}
-                descriptionEs={c.description_es}
-                emoji={c.emoji || "📚"}
-                roleSlug={c.role_slug}
-                difficulty={c.difficulty}
-                estimatedMinutes={c.estimated_minutes}
-                moduleCount={c.module_count}
-                completedModules={progressMap?.[c.id] || 0}
-              />
+
+            {Object.entries(tools).map(([tool, toolCourses]) => (
+              <div key={tool} className="mb-6 ml-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">{TOOL_EMOJIS[tool]}</span>
+                  <h3 className="text-base font-semibold text-foreground/80">
+                    {TOOL_LABELS[tool]}
+                  </h3>
+                  <div className="flex-1 h-px bg-border ml-2" />
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-3 md:gap-0 md:items-stretch">
+                  {toolCourses.map((c: any, idx: number) => (
+                    <div key={c.id} className="flex flex-col md:flex-row md:items-center flex-1 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <CourseCard
+                          slug={c.slug}
+                          title={c.title}
+                          titleEs={c.title_es}
+                          description={c.description}
+                          descriptionEs={c.description_es}
+                          emoji={c.emoji || "📚"}
+                          roleSlug={c.role_slug}
+                          difficulty={c.difficulty}
+                          estimatedMinutes={c.estimated_minutes}
+                          moduleCount={c.module_count}
+                          completedModules={progressMap?.[c.id] || 0}
+                        />
+                      </div>
+                      {idx < toolCourses.length - 1 && (
+                        <div className="hidden md:flex items-center justify-center px-2">
+                          <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        )}
+        ))}
 
         {filtered?.length === 0 && (
           <p className="text-center text-muted-foreground py-12">{t("courses.noCourses")}</p>
