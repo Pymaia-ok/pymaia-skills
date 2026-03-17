@@ -390,7 +390,7 @@ const SkillDetail = () => {
               )}
 
               {/* Full README */}
-              {(skill as any).readme_raw && (skill as any).readme_raw.length > 10 && (
+              {skill.readme_raw && skill.readme_raw.length > 10 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
                   <button onClick={() => setShowFullReadme(!showFullReadme)} className="flex items-center gap-2 text-lg font-semibold mb-4 hover:text-muted-foreground transition-colors">
                     <BookOpen className="w-5 h-5" />
@@ -399,7 +399,7 @@ const SkillDetail = () => {
                   </button>
                   {showFullReadme && (
                     <div className="p-6 rounded-2xl bg-secondary prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-background overflow-x-auto">
-                      <ReactMarkdown>{(skill as any).readme_raw}</ReactMarkdown>
+                      <ReactMarkdown>{skill.readme_raw}</ReactMarkdown>
                     </div>
                   )}
                 </motion.div>
