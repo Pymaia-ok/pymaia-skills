@@ -5,6 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function generateSalt(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function sha256(message: string): Promise<string> {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
@@ -77,13 +83,15 @@ Deno.serve(async (req) => {
       }
 
       const plainKey = generateApiKey();
-      const keyHash = await sha256(plainKey);
+      const salt = generateSalt();
+      const keyHash = await sha256(salt + plainKey);
       const keyPrefix = plainKey.slice(0, 14); // "pymsk_" + 8 chars
 
       const { error: insertError } = await db.from("api_keys").insert({
         user_id: user.id,
         key_hash: keyHash,
         key_prefix: keyPrefix,
+        key_salt: salt,
         label,
       });
 
