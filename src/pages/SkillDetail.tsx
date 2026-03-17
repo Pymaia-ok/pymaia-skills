@@ -244,8 +244,8 @@ const SkillDetail = () => {
 
                 {/* AI summary */}
                 {(() => {
-                  const summaryEs = (skill as any).readme_summary_es as string | null;
-                  const summaryEn = (skill as any).readme_summary as string | null;
+                  const summaryEs = skill.readme_summary_es;
+                  const summaryEn = skill.readme_summary;
                   let summary = (isEs && summaryEs) ? summaryEs : summaryEn;
                   if (!summary) return null;
                   // Remove "What it does" section (already shown above as descriptionHuman)
