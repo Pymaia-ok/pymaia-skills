@@ -141,7 +141,7 @@ export interface SkillFromDB {
   readme_summary?: string | null;
   readme_summary_es?: string | null;
   changelog?: string | null;
-  required_mcps?: any[] | null;
+  required_mcps?: any;
 }
 
 export function parseUseCases(uc: unknown): { title: string; before: string; after: string }[] {
