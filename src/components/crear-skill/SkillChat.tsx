@@ -399,7 +399,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
       };
 
       screenStream.getVideoTracks()[0].addEventListener("ended", () => {
-        console.log("[ScreenRec] share ended by user");
+        if (import.meta.env.DEV) console.log("[ScreenRec] share ended by user");
         if (recorder.state === "recording") recorder.stop();
       });
 
