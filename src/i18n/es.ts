@@ -849,6 +849,7 @@ export default {
       founder: "Founders",
       consultor: "Consultoría",
       general: "General",
+      multiagent: "IA Multi-Agente",
     },
   },
 } as const;

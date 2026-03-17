@@ -8,12 +8,13 @@ import { useSEO } from "@/hooks/useSEO";
 import CourseCard from "@/components/courses/CourseCard";
 import Footer from "@/components/landing/Footer";
 
-const ROLE_ORDER = ["marketer", "abogado", "founder", "consultor"];
+const ROLE_ORDER = ["marketer", "abogado", "founder", "consultor", "multiagent"];
 const ROLE_EMOJIS: Record<string, string> = {
   marketer: "📣",
   abogado: "⚖️",
   founder: "🚀",
   consultor: "💼",
+  multiagent: "🤖",
 };
 const DIFFICULTY_ORDER = ["beginner", "intermediate", "advanced"];
 
