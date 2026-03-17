@@ -30,17 +30,46 @@ function sanitizeContent(text: string): string {
     .trim();
 }
 
+// ── Tool descriptions for prompt context ──
+const TOOL_CONTEXT: Record<string, string> = {
+  claude: "Claude AI by Anthropic — an advanced conversational AI assistant that excels at analysis, writing, coding, and reasoning tasks",
+  manus: "Manus AI — an autonomous AI agent that can browse the web, execute code, manage files, and complete complex multi-step tasks independently",
+  openclaw: "OpenClaw — an open-source AI agent framework that lets developers build, customize, and deploy autonomous AI agents with full control over the code",
+  lovable: "Lovable — an AI-powered app builder that lets anyone create full-stack web applications by describing what they want in natural language, no coding required",
+};
+
 // ── Build the course generation prompt ──
-function buildModulePrompt(role_slug: string, title: string, description: string, difficulty: string, skillList: string, connectorList: string) {
-  return `You are creating an interactive course for Pymaia Academy about mastering Claude AI, tailored for the "${role_slug}" professional role.
+function buildModulePrompt(role_slug: string, title: string, description: string, difficulty: string, skillList: string, connectorList: string, tool_name?: string) {
+  const toolCtx = TOOL_CONTEXT[tool_name || "claude"] || TOOL_CONTEXT.claude;
+  const toolLabel = tool_name ? tool_name.charAt(0).toUpperCase() + tool_name.slice(1) : "Claude";
+
+  return `You are creating an interactive course for Pymaia Academy about mastering ${toolLabel} (${toolCtx}), tailored for the "${role_slug}" professional role.
 
 Course: "${title}" (${difficulty} level)
 Description: ${description}
 
+IMPORTANT: This course is specifically about ${toolLabel}, NOT about other AI tools. Every example, exercise, and tip must be about using ${toolLabel} in the context of the "${role_slug}" role.
+
+${difficulty === "beginner" ? `Since this is a BEGINNER course, focus on:
+- What ${toolLabel} is and how it works (specific to this tool)
+- Basic setup and first steps
+- Simple, practical use cases for the ${role_slug} role
+- Building confidence with hands-on exercises` : ""}
+${difficulty === "intermediate" ? `Since this is an INTERMEDIATE course, focus on:
+- Advanced prompting techniques and workflows specific to ${toolLabel}
+- Real-world professional scenarios for the ${role_slug} role
+- Combining ${toolLabel} with other tools in the workflow
+- Optimization and efficiency tips` : ""}
+${difficulty === "advanced" ? `Since this is an ADVANCED course, focus on:
+- Expert-level strategies and automation with ${toolLabel}
+- Complex multi-step workflows for the ${role_slug} role
+- Integration patterns, API usage, and scaling
+- Edge cases, limitations, and how to work around them` : ""}
+
 Generate exactly 5 modules. Each module MUST follow this structure:
 1. **Introduction paragraph** (3-4 sentences explaining WHAT you'll learn and WHY it matters for this role)
 2. **Core concepts** with ### headings, explanations with examples (NOT just prompts)
-3. **Practical exercise** using :::tryit block with a real-world prompt
+3. **Practical exercise** using :::tryit block with a real-world prompt specific to ${toolLabel}
 4. **Pro tip** using :::tip block with expert advice
 5. **Quiz** with exactly 3 questions testing comprehension
 
@@ -50,6 +79,7 @@ CRITICAL FORMATTING RULES:
 - Include at least 2 interactive blocks (:::tryit, :::step, :::tip, :::warning)
 - NEVER just wrap a single prompt in :::tryit — explain the concepts FIRST
 - Content must be pedagogical: explain WHY, WHEN, and HOW to adapt techniques
+- All examples must be SPECIFIC to ${toolLabel} and the ${role_slug} role — no generic AI advice
 
 Interactive block syntax:
 :::tryit{title="Exercise title"}
@@ -135,7 +165,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { role_slug, title, title_es, description, description_es, difficulty, emoji, mode, course_slug } = body;
+    const { role_slug, title, title_es, description, description_es, difficulty, emoji, mode, course_slug, tool_name } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -230,7 +260,127 @@ serve(async (req) => {
       });
     }
 
-    // ── FULL GENERATION MODE ──
+    // ── BATCH-ROLES MODE: generate courses for a tool across all roles × levels ──
+    if (mode === "batch-roles" && tool_name) {
+      const ROLES = [
+        { slug: "marketer", label: "Marketing", label_es: "Marketing", emoji: "📣" },
+        { slug: "abogado", label: "Legal / Lawyers", label_es: "Abogados / Legal", emoji: "⚖️" },
+        { slug: "founder", label: "Founders / Entrepreneurs", label_es: "Founders / Emprendedores", emoji: "🚀" },
+        { slug: "consultor", label: "Consultants", label_es: "Consultores", emoji: "💼" },
+      ];
+      const LEVELS = [
+        { slug: "beginner", label: "Getting Started", label_es: "Primeros Pasos", mins: 45 },
+        { slug: "intermediate", label: "Level Up", label_es: "Nivel Intermedio", mins: 55 },
+        { slug: "advanced", label: "Expert Mode", label_es: "Modo Experto", mins: 60 },
+      ];
+      const toolLabel = tool_name.charAt(0).toUpperCase() + tool_name.slice(1);
+      const toolCtx = TOOL_CONTEXT[tool_name] || tool_name;
+
+      const { data: skills } = await supabase
+        .from("skills").select("slug, display_name, category, tagline")
+        .eq("status", "approved").limit(200);
+      const { data: connectors } = await supabase
+        .from("mcp_servers").select("slug, name, category")
+        .eq("status", "approved").limit(100);
+      const skillList = (skills || []).map((s: any) => `${s.slug}: ${s.display_name} (${s.category}) - ${s.tagline}`).join("\n");
+      const connList = (connectors || []).map((c: any) => `${c.slug}: ${c.name} (${c.category})`).join("\n");
+
+      const results: any[] = [];
+      for (const role of ROLES) {
+        for (const level of LEVELS) {
+          const slug = `${tool_name}-${role.slug}-${level.slug}`;
+          const courseTitle = `${toolLabel} for ${role.label}: ${level.label}`;
+          const courseTitleEs = `${toolLabel} para ${role.label_es}: ${level.label_es}`;
+          const desc = `Learn to use ${toolLabel} (${toolCtx}) as a ${role.label} professional — ${level.label} level`;
+          const descEs = `Aprende a usar ${toolLabel} como profesional de ${role.label_es} — nivel ${level.label_es}`;
+
+          console.log(`🔄 Generating ${slug}...`);
+          try {
+            const prompt = buildModulePrompt(role.slug, courseTitle, desc, level.slug, skillList, connList, tool_name);
+            const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "You generate structured course content. Return only valid JSON arrays." },
+                  { role: "user", content: prompt },
+                ],
+              }),
+            });
+
+            if (!aiResp.ok) {
+              console.error(`❌ AI error for ${slug}: ${aiResp.status}`);
+              results.push({ slug, status: "error", error: `AI ${aiResp.status}` });
+              continue;
+            }
+
+            const aiData = await aiResp.json();
+            let raw = (aiData.choices?.[0]?.message?.content || "")
+              .replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+            raw = sanitizeContent(raw);
+            const modules = JSON.parse(raw);
+
+            // Sanitize & quality gate each module
+            for (let i = 0; i < modules.length; i++) {
+              modules[i].content_md = sanitizeContent(modules[i].content_md);
+              modules[i].content_md_es = sanitizeContent(modules[i].content_md_es);
+              const gate = passesQualityGate(modules[i]);
+              if (!gate.pass) {
+                const fixed = await regenerateSingleModule(modules[i], gate.reasons, role.slug, level.slug, LOVABLE_API_KEY);
+                if (fixed) {
+                  if (fixed.content_md && fixed.content_md.length >= 1200) modules[i].content_md = sanitizeContent(fixed.content_md);
+                  if (fixed.content_md_es) modules[i].content_md_es = sanitizeContent(fixed.content_md_es);
+                  if (fixed.quiz_json?.length >= 2) modules[i].quiz_json = fixed.quiz_json;
+                }
+              }
+            }
+
+            // Upsert course
+            const { data: course, error: cErr } = await supabase.from("courses").upsert({
+              slug,
+              title: courseTitle,
+              title_es: courseTitleEs,
+              description: desc,
+              description_es: descEs,
+              role_slug: role.slug,
+              difficulty: level.slug,
+              emoji: role.emoji,
+              estimated_minutes: modules.reduce((a: number, m: any) => a + (m.estimated_minutes || 10), 0),
+              module_count: modules.length,
+              is_active: true,
+            }, { onConflict: "slug" }).select().single();
+
+            if (cErr) { results.push({ slug, status: "error", error: cErr.message }); continue; }
+
+            await supabase.from("course_modules").delete().eq("course_id", course.id);
+            const rows = modules.map((m: any) => ({
+              course_id: course.id,
+              sort_order: m.sort_order,
+              title: m.title,
+              title_es: m.title_es || null,
+              content_md: m.content_md,
+              content_md_es: m.content_md_es || null,
+              quiz_json: m.quiz_json || [],
+              recommended_skill_slugs: m.recommended_skill_slugs || [],
+              recommended_connector_slugs: m.recommended_connector_slugs || [],
+              estimated_minutes: m.estimated_minutes || 10,
+            }));
+            await supabase.from("course_modules").insert(rows);
+            results.push({ slug, status: "ok", modules: modules.length });
+            console.log(`✅ ${slug} done (${modules.length} modules)`);
+          } catch (e) {
+            console.error(`❌ Error generating ${slug}:`, e);
+            results.push({ slug, status: "error", error: e instanceof Error ? e.message : "unknown" });
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, tool_name, courses_generated: results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: skills } = await supabase
       .from("skills").select("slug, display_name, category, tagline")
       .eq("status", "approved").limit(200);
@@ -241,7 +391,7 @@ serve(async (req) => {
     const skillList = (skills || []).map((s: any) => `${s.slug}: ${s.display_name} (${s.category}) - ${s.tagline}`).join("\n");
     const connectorList = (connectors || []).map((c: any) => `${c.slug}: ${c.name} (${c.category})`).join("\n");
 
-    const prompt = buildModulePrompt(role_slug, title, description, difficulty || "beginner", skillList, connectorList);
+    const prompt = buildModulePrompt(role_slug, title, description, difficulty || "beginner", skillList, connectorList, tool_name);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
