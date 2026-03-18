@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     // Fetch pending skills
     const { data: pending, error } = await supabase
       .from("skills")
-      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result")
+      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result, install_command")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(batchSize);
@@ -87,8 +87,10 @@ Deno.serve(async (req) => {
 
       // ── AUTO-APPROVE rules ──
 
-      // Require security scan before auto-approving
-      if (!skill.security_scan_result) {
+      // Light approval: skills with valid GitHub URL can proceed without full security scan
+      // Full scan will run async later via scan-security cron
+      const hasGithubUrl = !!skill.github_url && skill.github_url.startsWith("https://github.com/");
+      if (!skill.security_scan_result && !hasGithubUrl) {
         skipped++;
         continue;
       }
@@ -116,6 +118,12 @@ Deno.serve(async (req) => {
       // Rule 5: Created by platform user (SkillForge)
       if (skill.creator_id) {
         reasons.push("platform_created");
+      }
+
+      // Rule 6: Has valid install command (claude skill add format)
+      const cmd = (skill as any).install_command || "";
+      if (cmd.includes("claude skill add") || cmd.includes("raw.githubusercontent.com")) {
+        reasons.push("valid_install_command");
       }
 
       // Approve if at least 1 strong signal OR 2+ weak signals

@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || "full"; // scrape | dedup | import | full
-    const batchSize = body.batchSize || 5000;
+    const batchSize = body.batchSize || 50000;
 
     // Create sync log entry
     const { data: syncLog } = await supabase
@@ -194,7 +194,7 @@ async function scrapeFromSitemap(supabase: any, maxEntries: number) {
       repo_owner: e.owner,
       repo_name: e.repo,
       skill_folder: e.skill,
-      install_command: `npx skills add ${e.owner}/${e.repo} --skill ${e.skill}`,
+      install_command: `claude skill add --from-url https://raw.githubusercontent.com/${e.owner}/${e.repo}/main/skills/${e.skill}/SKILL.md`,
       description: "",
       dedup_status: "pending",
       import_status: "pending",

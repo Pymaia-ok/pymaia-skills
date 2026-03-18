@@ -799,7 +799,7 @@ Deno.serve(async (req) => {
       content,
       install_command: directInstallCmd,
       batch_mode = false,
-      batch_size = 20,
+      batch_size = 50,
       gate_mode = false,
       skip_llm = false, // Fast mode: skip LLM for bulk initial scanning
     } = body;
