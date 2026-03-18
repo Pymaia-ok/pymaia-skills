@@ -1,78 +1,65 @@
-## Plan: PRD Final V2 — Estado: ✅ Implementado
 
-### Fixes implementados
 
-#### Fix 1: generate-embeddings batch 25 + error logging ✅
-- Default `batch_size` reducido de 100 a **25**
-- Error logging agregado al sync_log en caso de fallo
-- Cron rescheduled a `*/3` (offset +1)
+# Desbloquear el Pipeline: De 4K Scraped a 88K+ Skills
 
-#### Fix 2: scrape-skills-sh slug collisions ✅
-- Import cambiado de batch insert a **individual upserts** con error handling por fila
-- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
-- Columna `error_message` agregada a `skills_import_staging`
+## Diagnóstico
 
-#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
-- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
-- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
-- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
-- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
+El pipeline tiene **3 cuellos de botella** que explican por qué tenemos tan pocos skills nuevos:
 
-#### Fix 4: Limpieza de crons duplicados ✅
-- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
-- 30 → 29 crons
+| Etapa | Estado | Problema |
+|---|---|---|
+| **Scraping** | 4,086 de ~88K scraped | El scraper solo capturó ~4K del sitemap. skills.sh tiene ~88K entries |
+| **Dedup** | 1,086 pendientes de dedup | Procesó solo ~3K de los 4K |
+| **Import → pending** | 896 listos + 2K importados | Los 2K importados entraron como `pending` |
+| **pending → approved** | 7,186 pending, 0 scanned | `auto-approve` requiere `security_scan_result`, pero `scan-security` no está procesando los pending |
+| **scan-security** | 0 scans en 24h | El cron de scan-security no está escaneando los 7,186 pending |
 
-#### Fix 5: enrich-github-metadata parallelizado ✅
-- Batch reducido de 400 a **150**
-- Procesamiento en paralelo (batches de 5)
-- Cron: `*/10` (staggered a offset +2)
+**Resumen**: El scraper obtuvo solo ~5% de skills.sh, y los que sí importó están atascados como `pending` porque el pipeline de security scan → auto-approve no los está procesando.
 
-#### Fix 6: bulk-fetch-skill-content acelerado ✅
-- Cron: `*/10` → `*/5` (staggered a offset +3)
+## Plan
 
-#### Fix 7: Crons staggered ✅
-- `calculate-trust-score`: `5,35 * * * *`
-- `scan-security`: `10,40 * * * *`
-- `verify-security`: `15,45 * * * *`
-- `generate-embeddings`: offset +1 cada 3 min
-- `bulk-fetch-skill-content`: offset +3 cada 5 min
-- `enrich-github-metadata`: offset +2 cada 10 min
+### 1. Ampliar el scraper para capturar todo skills.sh
+El scraper actual tiene `batchSize = 5000` por defecto y solo lee el sitemap. Skills.sh tiene ~88K skills. Necesitamos:
+- Aumentar el `maxEntries` del scraper o ejecutarlo en múltiples pasadas
+- Verificar que el sitemap de skills.sh realmente lista todos los skills (puede estar paginado)
+- Si el sitemap solo tiene ~4K URLs, explorar la API de skills.sh o paginar el listado HTML
 
-### Estado final: 29 crons activos, todos staggered
+### 2. Procesar staging completo (dedup + import)
+Ejecutar `scrape-skills-sh` en modo `dedup` y luego `import` para los ~2K pendientes en staging.
 
----
+### 3. Desbloquear auto-approve para imported skills
+El bloqueador principal: `auto-approve` requiere `security_scan_result` pero `scan-security` no los procesa. Dos opciones:
+- **Opción A (rápida)**: Para skills importados de skills.sh con GitHub URL válida, hacer un "light scan" que asigne un `security_scan_result` básico (sin full scan) para que `auto-approve` pueda evaluarlos
+- **Opción B (correcta)**: Ajustar `scan-security` para procesar pending skills en batches más grandes, y aumentar la frecuencia del cron
 
-## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
+### 4. Fix: install_command en staging usa formato viejo
+Línea 197 del scraper todavía genera `npx skills add` (formato roto):
+```
+install_command: `npx skills add ${e.owner}/${e.repo} --skill ${e.skill}`
+```
+Debe usar el formato nativo:
+```
+install_command: `claude skill add --from-url https://raw.githubusercontent.com/${e.owner}/${e.repo}/main/skills/${e.skill}/SKILL.md`
+```
 
-### Fix 2 (P0): Filtrar items sin scan en queries ✅
-- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
-- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
+### 5. Ejecutar pipeline completo
+Una vez corregido el código:
+1. Re-scrape skills.sh con límite alto
+2. Dedup todo el staging
+3. Import las nuevas entries
+4. Scan-security en batch los pending
+5. Auto-approve los que califiquen
 
-### Fix 3 (P0): Plugins importados como "pending" ✅
-- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
-- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+## Archivos a modificar
 
-### Fix 4 (P1): Auto-rechazar repos archivados ✅
-- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+| Archivo | Cambio |
+|---|---|
+| `supabase/functions/scrape-skills-sh/index.ts` | Fix install_command format (línea 197), aumentar default batchSize |
+| `supabase/functions/auto-approve-skills/index.ts` | Agregar "light approve" para skills con GitHub URL válida de fuentes conocidas (skills.sh import) |
+| `supabase/functions/scan-security/index.ts` | Verificar que procese skills en status `pending` |
 
-### Fix 6 (P1): Scan requerido para auto-approve ✅
-- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
-- También selecciona `security_scan_result` en la query inicial
+## Impacto esperado
+- Staging: de 4K → potencialmente 80K+ entries
+- Approved skills: de 38K → 50K-70K+ (dependiendo de dedup)
+- Todo el catálogo visible y buscable
 
-### Fix 7 (P2): Priorizar scan de items nuevos ✅
-- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
-
----
-
-## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
-
-### Fix 1 (P0): Imports como "pending" ✅
-- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
-
-### Fix 2 (P0): MCP server filtra por scan ✅
-- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
-
-### Fix 3 (P1): refresh-catalog-data error logging ✅
-- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
