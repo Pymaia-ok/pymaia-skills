@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { GraduationCap, ChevronRight } from "lucide-react";
+import { GraduationCap, ChevronRight, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSEO } from "@/hooks/useSEO";
@@ -10,30 +10,17 @@ import Footer from "@/components/landing/Footer";
 
 const ROLE_ORDER = ["marketer", "abogado", "founder", "consultor", "disenador", "rrhh", "contabilidad", "finanzas", "operaciones", "ventas"];
 const ROLE_EMOJIS: Record<string, string> = {
-  marketer: "📣",
-  abogado: "⚖️",
-  founder: "🚀",
-  consultor: "💼",
-  disenador: "🎨",
-  rrhh: "👥",
-  contabilidad: "📊",
-  finanzas: "💰",
-  operaciones: "⚙️",
-  ventas: "🤝",
+  marketer: "📣", abogado: "⚖️", founder: "🚀", consultor: "💼",
+  disenador: "🎨", rrhh: "👥", contabilidad: "📊", finanzas: "💰",
+  operaciones: "⚙️", ventas: "🤝",
 };
 
 const TOOL_ORDER = ["claude", "manus", "openclaw", "lovable"];
 const TOOL_LABELS: Record<string, string> = {
-  claude: "Claude AI",
-  manus: "Manus AI",
-  openclaw: "OpenClaw",
-  lovable: "Lovable",
+  claude: "Claude AI", manus: "Manus AI", openclaw: "OpenClaw", lovable: "Lovable",
 };
 const TOOL_EMOJIS: Record<string, string> = {
-  claude: "🧠",
-  manus: "🤖",
-  openclaw: "🐙",
-  lovable: "💜",
+  claude: "🧠", manus: "🤖", openclaw: "🐙", lovable: "💜",
 };
 
 const DIFFICULTY_ORDER = ["beginner", "intermediate", "advanced"];
@@ -118,30 +105,7 @@ const Courses = () => {
   const difficulties = ["beginner", "intermediate", "advanced"];
   const availableTools = [...new Set(enriched?.map((c: any) => c.tool) || [])].filter(t => TOOL_ORDER.includes(t));
 
-  const FilterChip = ({
-    active,
-    onClick,
-    children,
-    variant = "primary",
-  }: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    variant?: "primary" | "accent";
-  }) => (
-    <button
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
-        active
-          ? variant === "accent"
-            ? "bg-accent text-accent-foreground"
-            : "bg-primary text-primary-foreground"
-          : "bg-secondary text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
-  );
+  const hasActiveFilters = filterTool || filterRole || filterDifficulty;
 
   return (
     <div className="min-h-screen bg-background pt-14">
@@ -158,64 +122,56 @@ const Courses = () => {
         </p>
 
         {/* Filters */}
-        <div className="flex flex-col gap-2.5 mb-6 sm:mb-8">
+        <div className="rounded-2xl border border-border bg-card/50 p-4 sm:p-5 mb-8 sm:mb-10 space-y-3">
           {/* Tool filter */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-xs text-muted-foreground shrink-0">{isEs ? "Herramienta:" : "Tool:"}</span>
-            <div className="flex gap-1.5">
-              <FilterChip active={!filterTool} onClick={() => setFilterTool(null)}>
-                {isEs ? "Todas" : "All"}
-              </FilterChip>
-              {TOOL_ORDER.filter(t => availableTools.includes(t)).map((tool) => (
-                <FilterChip
-                  key={tool}
-                  active={filterTool === tool}
-                  onClick={() => setFilterTool(filterTool === tool ? null : tool)}
-                >
-                  {TOOL_EMOJIS[tool]} {TOOL_LABELS[tool]}
-                </FilterChip>
-              ))}
-            </div>
-          </div>
+          <FilterRow label={isEs ? "Herramienta" : "Tool"}>
+            <Chip active={!filterTool} onClick={() => setFilterTool(null)}>
+              {isEs ? "Todas" : "All"}
+            </Chip>
+            {TOOL_ORDER.filter(t => availableTools.includes(t)).map((tool) => (
+              <Chip key={tool} active={filterTool === tool} onClick={() => setFilterTool(filterTool === tool ? null : tool)}>
+                {TOOL_EMOJIS[tool]} {TOOL_LABELS[tool]}
+              </Chip>
+            ))}
+          </FilterRow>
 
           {/* Role filter */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-xs text-muted-foreground shrink-0">{isEs ? "Rol:" : "Role:"}</span>
-            <div className="flex gap-1.5">
-              <FilterChip active={!filterRole} onClick={() => setFilterRole(null)}>
-                {t("courses.allRoles")}
-              </FilterChip>
-              {ROLE_ORDER.map((r) => (
-                <FilterChip
-                  key={r}
-                  active={filterRole === r}
-                  onClick={() => setFilterRole(filterRole === r ? null : r)}
-                >
-                  {ROLE_EMOJIS[r]} {t(`courses.roles.${r}`, r)}
-                </FilterChip>
-              ))}
-            </div>
-          </div>
+          <FilterRow label={isEs ? "Rol" : "Role"}>
+            <Chip active={!filterRole} onClick={() => setFilterRole(null)}>
+              {t("courses.allRoles")}
+            </Chip>
+            {ROLE_ORDER.map((r) => (
+              <Chip key={r} active={filterRole === r} onClick={() => setFilterRole(filterRole === r ? null : r)}>
+                {ROLE_EMOJIS[r]} {t(`courses.roles.${r}`, r)}
+              </Chip>
+            ))}
+          </FilterRow>
 
           {/* Difficulty filter */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-xs text-muted-foreground shrink-0">{isEs ? "Nivel:" : "Level:"}</span>
-            <div className="flex gap-1.5">
-              <FilterChip active={!filterDifficulty} onClick={() => setFilterDifficulty(null)} variant="accent">
-                {t("courses.allLevels")}
-              </FilterChip>
-              {difficulties.map((d) => (
-                <FilterChip
-                  key={d}
-                  active={filterDifficulty === d}
-                  onClick={() => setFilterDifficulty(filterDifficulty === d ? null : d)}
-                  variant="accent"
-                >
-                  {t(`courses.difficulty.${d}`)}
-                </FilterChip>
-              ))}
+          <FilterRow label={isEs ? "Nivel" : "Level"}>
+            <Chip active={!filterDifficulty} onClick={() => setFilterDifficulty(null)} variant="accent">
+              {t("courses.allLevels")}
+            </Chip>
+            {difficulties.map((d) => (
+              <Chip key={d} active={filterDifficulty === d} onClick={() => setFilterDifficulty(filterDifficulty === d ? null : d)} variant="accent">
+                {t(`courses.difficulty.${d}`)}
+              </Chip>
+            ))}
+          </FilterRow>
+
+          {/* Active filters summary */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+              <span className="text-[11px] text-muted-foreground">{filtered?.length ?? 0} {isEs ? "cursos" : "courses"}</span>
+              <button
+                onClick={() => { setFilterTool(null); setFilterRole(null); setFilterDifficulty(null); }}
+                className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3 h-3" />
+                {isEs ? "Limpiar filtros" : "Clear filters"}
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Grouped: Role → Tool → Learning Path */}
@@ -226,6 +182,7 @@ const Courses = () => {
               <h2 className="text-lg sm:text-xl font-bold text-foreground">
                 {t(`courses.roles.${role}`, role)}
               </h2>
+              <div className="flex-1 h-px bg-border ml-2" />
             </div>
 
             {Object.entries(tools).map(([tool, toolCourses]) => (
@@ -235,10 +192,8 @@ const Courses = () => {
                   <h3 className="text-sm sm:text-base font-semibold text-foreground/80">
                     {TOOL_LABELS[tool]}
                   </h3>
-                  <div className="flex-1 h-px bg-border ml-2" />
                 </div>
 
-                {/* Mobile: vertical stack. Tablet+: horizontal path with chevrons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {toolCourses.map((c: any, idx: number) => (
                     <div key={c.id} className="relative">
@@ -255,7 +210,6 @@ const Courses = () => {
                         moduleCount={c.module_count}
                         completedModules={progressMap?.[c.id] || 0}
                       />
-                      {/* Chevron connector on lg+ */}
                       {idx < toolCourses.length - 1 && (
                         <div className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10">
                           <ChevronRight className="w-5 h-5 text-muted-foreground/40" />
@@ -277,5 +231,41 @@ const Courses = () => {
     </div>
   );
 };
+
+/* ---- Sub-components ---- */
+
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="text-xs font-medium text-muted-foreground shrink-0 pt-1.5 w-20 text-right">
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Chip({
+  active, onClick, children, variant = "primary",
+}: {
+  active: boolean; onClick: () => void; children: React.ReactNode; variant?: "primary" | "accent";
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+        active
+          ? variant === "accent"
+            ? "bg-accent text-accent-foreground shadow-sm"
+            : "bg-primary text-primary-foreground shadow-sm"
+          : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 export default Courses;
