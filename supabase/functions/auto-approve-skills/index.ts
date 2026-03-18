@@ -120,6 +120,12 @@ Deno.serve(async (req) => {
         reasons.push("platform_created");
       }
 
+      // Rule 6: Has valid install command (claude skill add format)
+      const cmd = (skill as any).install_command || "";
+      if (cmd.includes("claude skill add") || cmd.includes("raw.githubusercontent.com")) {
+        reasons.push("valid_install_command");
+      }
+
       // Approve if at least 1 strong signal OR 2+ weak signals
       const strongSignals = reasons.filter(r =>
         r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars")
