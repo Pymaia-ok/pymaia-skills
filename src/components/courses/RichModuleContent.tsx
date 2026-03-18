@@ -224,6 +224,45 @@ function proseToHtml(md: string): string {
   // Horizontal rule
   html = html.replace(/^---$/gm, '<hr class="my-6 border-border" />');
 
+  // Tables: detect blocks of lines starting with |
+  html = html.replace(
+    /(?:^\|.+\|$\n?)+/gm,
+    (match) => {
+      const rows = match.trim().split("\n").filter(r => r.trim());
+      if (rows.length < 2) return match;
+      // Check if second row is separator (|---|---|)
+      const isSep = (r: string) => /^\|[\s\-:]+(\|[\s\-:]+)+\|?$/.test(r.trim());
+      let headerEnd = isSep(rows[1]) ? 1 : 0;
+      
+      let table = '<table class="w-full text-sm border-collapse my-4">';
+      
+      const parseRow = (row: string) =>
+        row.split("|").slice(1, -1).map(c => c.trim());
+      
+      if (headerEnd === 1) {
+        const headerCells = parseRow(rows[0]);
+        table += "<thead><tr>";
+        headerCells.forEach(c => {
+          table += `<th class="border border-border px-3 py-2 text-left font-semibold bg-muted/50">${c}</th>`;
+        });
+        table += "</tr></thead>";
+      }
+      
+      table += "<tbody>";
+      for (let r = headerEnd + 1; r < rows.length; r++) {
+        if (isSep(rows[r])) continue;
+        const cells = parseRow(rows[r]);
+        table += "<tr>";
+        cells.forEach(c => {
+          table += `<td class="border border-border px-3 py-2">${c}</td>`;
+        });
+        table += "</tr>";
+      }
+      table += "</tbody></table>";
+      return table;
+    }
+  );
+
   // Ordered list
   html = html.replace(
     /(?:^\d+\.\s+.+$\n?)+/gm,
