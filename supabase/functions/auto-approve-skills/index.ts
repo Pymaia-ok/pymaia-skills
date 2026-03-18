@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     // Fetch pending skills
     const { data: pending, error } = await supabase
       .from("skills")
-      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result")
+      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result, install_command")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(batchSize);
