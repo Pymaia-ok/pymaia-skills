@@ -87,8 +87,10 @@ Deno.serve(async (req) => {
 
       // ── AUTO-APPROVE rules ──
 
-      // Require security scan before auto-approving
-      if (!skill.security_scan_result) {
+      // Light approval: skills with valid GitHub URL can proceed without full security scan
+      // Full scan will run async later via scan-security cron
+      const hasGithubUrl = !!skill.github_url && skill.github_url.startsWith("https://github.com/");
+      if (!skill.security_scan_result && !hasGithubUrl) {
         skipped++;
         continue;
       }
