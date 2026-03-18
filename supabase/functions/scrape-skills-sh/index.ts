@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || "full"; // scrape | dedup | import | full
-    const batchSize = body.batchSize || 5000;
+    const batchSize = body.batchSize || 50000;
 
     // Create sync log entry
     const { data: syncLog } = await supabase
