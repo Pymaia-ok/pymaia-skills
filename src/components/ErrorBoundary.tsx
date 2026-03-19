@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import i18n from "@/i18n/index";
 
 interface Props {
   children: ReactNode;
@@ -27,17 +28,18 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const t = i18n.t.bind(i18n);
       return (
         <div className="min-h-screen bg-background flex items-center justify-center px-6">
           <div className="text-center max-w-md">
             <h1 className="text-4xl font-bold mb-4">😵</h1>
             <h2 className="text-xl font-semibold mb-2 text-foreground">
-              Algo salió mal
+              {t("errors.somethingWrong", "Algo salió mal")}
             </h2>
             <p className="text-muted-foreground text-sm mb-6">
-              Ocurrió un error inesperado. Podés volver al inicio e intentar de nuevo.
+              {t("errors.unexpectedError", "Ocurrió un error inesperado. Podés volver al inicio e intentar de nuevo.")}
             </p>
-            <Button onClick={this.handleReset}>Volver al inicio</Button>
+            <Button onClick={this.handleReset}>{t("errors.backToHome", "Volver al inicio")}</Button>
           </div>
         </div>
       );

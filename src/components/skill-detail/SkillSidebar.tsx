@@ -78,6 +78,18 @@ export default function SkillSidebar({ skill, creatorProfile }: SkillSidebarProp
               </div>
             ) : null;
           })()}
+          {skill.last_verified_at && (() => {
+            const days = Math.floor((Date.now() - new Date(skill.last_verified_at).getTime()) / (1000 * 60 * 60 * 24));
+            const label = days === 0 ? (isEs ? "Verificado hoy" : "Verified today")
+              : days === 1 ? (isEs ? "Verificado ayer" : "Verified yesterday")
+              : (isEs ? `Verificado hace ${days} días` : `Verified ${days} days ago`);
+            return (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground col-span-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs">{label}</span>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="border-t border-border pt-3 space-y-2">

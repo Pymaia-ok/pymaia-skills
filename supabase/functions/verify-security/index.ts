@@ -162,9 +162,11 @@ Deno.serve(async (req) => {
 
         const result = await checkGitHubRepo(repo, ghHeaders);
 
+        const now = new Date().toISOString();
         const updateData: Record<string, any> = {
           security_status: result.status,
-          security_checked_at: new Date().toISOString(),
+          security_checked_at: now,
+          last_verified_at: now,
           security_notes: result.notes.join("; "),
           last_commit_at: result.last_commit_at,
         };

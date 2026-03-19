@@ -60,7 +60,7 @@ const Navbar = () => {
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/blog", label: "Blog" },
+    { to: "/blog", label: t("nav.blog", "Blog") },
     { to: "/cursos", label: t("nav.academy") },
   ];
 
@@ -68,10 +68,10 @@ const Navbar = () => {
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/blog", label: "Blog" },
+    { to: "/blog", label: t("nav.blog", "Blog") },
     { to: "/cursos", label: t("nav.academy") },
     { to: "/primeros-pasos", label: t("nav.gettingStarted") },
-    { to: "/mcp", label: "MCP Server" },
+    { to: "/mcp", label: t("nav.mcp", "MCP Server") },
   ];
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";

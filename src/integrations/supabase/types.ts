@@ -1063,6 +1063,7 @@ export type Database = {
           is_official: boolean
           is_stale: boolean | null
           last_commit_at: string | null
+          last_verified_at: string | null
           name: string
           readme_raw: string | null
           readme_summary: string | null
@@ -1098,6 +1099,7 @@ export type Database = {
           is_official?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
+          last_verified_at?: string | null
           name: string
           readme_raw?: string | null
           readme_summary?: string | null
@@ -1133,6 +1135,7 @@ export type Database = {
           is_official?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
+          last_verified_at?: string | null
           name?: string
           readme_raw?: string | null
           readme_summary?: string | null
@@ -1237,6 +1240,7 @@ export type Database = {
           is_official: boolean
           is_stale: boolean | null
           last_commit_at: string | null
+          last_verified_at: string | null
           name: string
           name_es: string | null
           platform: string
@@ -1273,6 +1277,7 @@ export type Database = {
           is_official?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
+          last_verified_at?: string | null
           name: string
           name_es?: string | null
           platform?: string
@@ -1309,6 +1314,7 @@ export type Database = {
           is_official?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
+          last_verified_at?: string | null
           name?: string
           name_es?: string | null
           platform?: string
@@ -1853,6 +1859,7 @@ export type Database = {
           is_public: boolean
           is_stale: boolean | null
           last_commit_at: string | null
+          last_verified_at: string | null
           price_amount: number | null
           pricing_model: string
           quality_rank: number | null
@@ -1907,6 +1914,7 @@ export type Database = {
           is_public?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
+          last_verified_at?: string | null
           price_amount?: number | null
           pricing_model?: string
           quality_rank?: number | null
@@ -1961,6 +1969,7 @@ export type Database = {
           is_public?: boolean
           is_stale?: boolean | null
           last_commit_at?: string | null
+          last_verified_at?: string | null
           price_amount?: number | null
           pricing_model?: string
           quality_rank?: number | null
@@ -2288,6 +2297,7 @@ export type Database = {
           is_public: boolean
           is_stale: boolean | null
           last_commit_at: string | null
+          last_verified_at: string | null
           price_amount: number | null
           pricing_model: string
           quality_rank: number | null
