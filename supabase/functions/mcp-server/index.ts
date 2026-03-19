@@ -74,6 +74,65 @@ const DOMAIN_TO_CATEGORY: Record<string, string> = {
   "marketing": "marketing",
 };
 
+// ─── INSTALL COMMAND NORMALIZER ───
+function normalizeInstallCommand(raw: string | null | undefined, name: string, slug: string): string {
+  if (!raw || raw.trim().length === 0) {
+    return `No install command available for "${name}". Visit the homepage or GitHub repo for setup instructions.`;
+  }
+
+  const trimmed = raw.trim();
+
+  // Case 1: JSON config block (e.g. {"mcpServers": {...}})
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed.mcpServers) {
+        const serverKey = Object.keys(parsed.mcpServers)[0];
+        const server = parsed.mcpServers[serverKey];
+        const transport = server?.type || "stdio";
+        const url = server?.url || server?.command;
+
+        let out = `## Install ${name}\n\n### Option A — Edit config file (~/.claude.json or mcp.json)\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+
+        if ((transport === "streamable-http" || transport === "http") && url) {
+          const headerArgs = server.headers
+            ? Object.entries(server.headers).map(([k, v]) => `--header "${k}: ${v}"`).join(" ")
+            : "";
+          out += `\n\n### Option B — CLI with mcp-remote bridge\n\`\`\`\nnpx -y @anthropic-ai/mcp-remote ${url}${headerArgs ? " " + headerArgs : ""}\n\`\`\``;
+          out += `\n\n⚠️ This server uses ${transport} transport. \`claude mcp add\` doesn't support this natively — use Option A or the mcp-remote bridge.`;
+        } else if (transport === "sse" && url) {
+          out += `\n\n### Option B — CLI\n\`\`\`\nclaude mcp add ${serverKey} --transport sse ${url}\n\`\`\``;
+        }
+        return out;
+      }
+    } catch { /* not valid JSON, fall through */ }
+  }
+
+  // Case 2: Already a claude mcp add command
+  if (trimmed.startsWith("claude mcp add")) {
+    return `## Install ${name}\n\n\`\`\`\n${trimmed}\n\`\`\``;
+  }
+
+  // Case 3: npx / uvx / pip / docker command
+  if (/^(npx|uvx|pip|docker)\s/.test(trimmed)) {
+    return `## Install ${name}\n\n\`\`\`\n${trimmed}\n\`\`\``;
+  }
+
+  // Case 4: Bare URL (most common — ~4,700 connectors)
+  if (/^https?:\/\//.test(trimmed)) {
+    const jsonConfig = JSON.stringify({
+      mcpServers: {
+        [slug]: { type: "streamable-http", url: trimmed }
+      }
+    }, null, 2);
+
+    return `## Install ${name}\n\n### Option A — Edit config file (~/.claude.json or mcp.json)\n\`\`\`json\n${jsonConfig}\n\`\`\`\n\n### Option B — CLI with mcp-remote bridge\n\`\`\`\nnpx -y @anthropic-ai/mcp-remote ${trimmed}\n\`\`\`\n\n⚠️ This is an HTTP-based MCP server. \`claude mcp add\` may not support it natively — use Option A or the mcp-remote bridge.`;
+  }
+
+  // Fallback: return as-is
+  return `## Install ${name}\n\n\`\`\`\n${trimmed}\n\`\`\``;
+}
+
 // ─── GENERIC TOOL SLUGS BLACKLIST ───
 const GENERIC_TOOL_SLUGS = new Set([
   "cowork-plugin-management", "claude-code-setup", "claude-code-plugins-plus-skills",
