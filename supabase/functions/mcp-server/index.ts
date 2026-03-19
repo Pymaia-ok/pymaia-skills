@@ -74,6 +74,65 @@ const DOMAIN_TO_CATEGORY: Record<string, string> = {
   "marketing": "marketing",
 };
 
+// ─── INSTALL COMMAND NORMALIZER ───
+function normalizeInstallCommand(raw: string | null | undefined, name: string, slug: string): string {
+  if (!raw || raw.trim().length === 0) {
+    return `No install command available for "${name}". Visit the homepage or GitHub repo for setup instructions.`;
+  }
+
+  const trimmed = raw.trim();
+
+  // Case 1: JSON config block (e.g. {"mcpServers": {...}})
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed.mcpServers) {
+        const serverKey = Object.keys(parsed.mcpServers)[0];
+        const server = parsed.mcpServers[serverKey];
+        const transport = server?.type || "stdio";
+        const url = server?.url || server?.command;
+
+        let out = `## Install ${name}\n\n### Option A — Edit config file (~/.claude.json or mcp.json)\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``;
+
+        if ((transport === "streamable-http" || transport === "http") && url) {
+          const headerArgs = server.headers
+            ? Object.entries(server.headers).map(([k, v]) => `--header "${k}: ${v}"`).join(" ")
+            : "";
+          out += `\n\n### Option B — CLI with mcp-remote bridge\n\`\`\`\nnpx -y @anthropic-ai/mcp-remote ${url}${headerArgs ? " " + headerArgs : ""}\n\`\`\``;
+          out += `\n\n⚠️ This server uses ${transport} transport. \`claude mcp add\` doesn't support this natively — use Option A or the mcp-remote bridge.`;
+        } else if (transport === "sse" && url) {
+          out += `\n\n### Option B — CLI\n\`\`\`\nclaude mcp add ${serverKey} --transport sse ${url}\n\`\`\``;
+        }
+        return out;
+      }
+    } catch { /* not valid JSON, fall through */ }
+  }
+
+  // Case 2: Already a claude mcp add command
+  if (trimmed.startsWith("claude mcp add")) {
+    return `## Install ${name}\n\n\`\`\`\n${trimmed}\n\`\`\``;
+  }
+
+  // Case 3: npx / uvx / pip / docker command
+  if (/^(npx|uvx|pip|docker)\s/.test(trimmed)) {
+    return `## Install ${name}\n\n\`\`\`\n${trimmed}\n\`\`\``;
+  }
+
+  // Case 4: Bare URL (most common — ~4,700 connectors)
+  if (/^https?:\/\//.test(trimmed)) {
+    const jsonConfig = JSON.stringify({
+      mcpServers: {
+        [slug]: { type: "streamable-http", url: trimmed }
+      }
+    }, null, 2);
+
+    return `## Install ${name}\n\n### Option A — Edit config file (~/.claude.json or mcp.json)\n\`\`\`json\n${jsonConfig}\n\`\`\`\n\n### Option B — CLI with mcp-remote bridge\n\`\`\`\nnpx -y @anthropic-ai/mcp-remote ${trimmed}\n\`\`\`\n\n⚠️ This is an HTTP-based MCP server. \`claude mcp add\` may not support it natively — use Option A or the mcp-remote bridge.`;
+  }
+
+  // Fallback: return as-is
+  return `## Install ${name}\n\n\`\`\`\n${trimmed}\n\`\`\``;
+}
+
 // ─── GENERIC TOOL SLUGS BLACKLIST ───
 const GENERIC_TOOL_SLUGS = new Set([
   "cowork-plugin-management", "claude-code-setup", "claude-code-plugins-plus-skills",
@@ -928,7 +987,8 @@ mcp.tool("get_connector_details", {
     const creds = Array.isArray(c.credentials_needed) && c.credentials_needed.length > 0
       ? `\n🔑 Credentials: ${c.credentials_needed.join(", ")}` : "";
 
-    const text = `# ${c.name}${c.is_official ? " ✅ Official" : ""}\n\n📂 Category: ${c.category}\n⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars${creds}\n🔒 Security: ${c.security_status}\n\n${c.description}\n\n${c.github_url ? `GitHub: ${c.github_url}\n` : ""}${c.homepage ? `Homepage: ${c.homepage}\n` : ""}${c.docs_url ? `Docs: ${c.docs_url}\n` : ""}\n## Install\n\`\`\`\n${c.install_command}\n\`\`\``;
+    const installSection = normalizeInstallCommand(c.install_command, c.name, c.slug);
+    const text = `# ${c.name}${c.is_official ? " ✅ Official" : ""}\n\n📂 Category: ${c.category}\n⭐ ${(c.github_stars || 0).toLocaleString()} GitHub stars${creds}\n🔒 Security: ${c.security_status}\n\n${c.description}\n\n${c.github_url ? `GitHub: ${c.github_url}\n` : ""}${c.homepage ? `Homepage: ${c.homepage}\n` : ""}${c.docs_url ? `Docs: ${c.docs_url}\n` : ""}\n${installSection}`;
 
     return { content: [{ type: "text" as const, text }] };
   },
@@ -2850,7 +2910,7 @@ mcp.tool("get_install_command", {
       if (skill.install_count_source !== 'tracked') {
         supabase.from("skills").update({ install_count_source: 'tracked' }).eq("slug", skill.slug).then(() => {});
       }
-      return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
+      return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n${normalizeInstallCommand(skill.install_command, skill.display_name, skill.slug)}` }] };
     }
 
     // 2. Search MCP connectors by slug (also check redirect)
@@ -2863,7 +2923,7 @@ mcp.tool("get_install_command", {
       .maybeSingle();
 
     if (connector) {
-      return { content: [{ type: "text" as const, text: `**${connector.name}** (connector)\n\n\`\`\`\n${connector.install_command}\n\`\`\`` }] };
+      return { content: [{ type: "text" as const, text: `**${connector.name}** (connector)\n\n${normalizeInstallCommand(connector.install_command, connector.name, connector.slug)}` }] };
     }
 
     // 3. Search plugins by slug
@@ -2890,8 +2950,8 @@ mcp.tool("get_install_command", {
     ]);
 
     const parts: string[] = [];
-    for (const s of skillsFuzzy) parts.push(`**${s.display_name}** (skill)\n\`\`\`\n${s.install_command}\n\`\`\``);
-    for (const c of connectorsFuzzy) parts.push(`**${c.name}** (connector)\n\`\`\`\n${c.install_command}\n\`\`\``);
+    for (const s of skillsFuzzy) parts.push(`**${s.display_name}** (skill)\n${normalizeInstallCommand(s.install_command, s.display_name, s.slug)}`);
+    for (const c of connectorsFuzzy) parts.push(`**${c.name}** (connector)\n${normalizeInstallCommand(c.install_command, c.name, c.slug)}`);
     for (const p of pluginsFuzzy) parts.push(`**${p.name}** (plugin)\n${p.homepage || p.github_url || "No install info"}`);
 
     if (parts.length > 0) return { content: [{ type: "text" as const, text: parts.join("\n\n") }] };
