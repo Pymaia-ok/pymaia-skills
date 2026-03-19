@@ -996,6 +996,51 @@ export type Database = {
           },
         ]
       }
+      mcp_discovery_watchlist: {
+        Row: {
+          company_name: string
+          created_at: string
+          discovered_mcp_url: string | null
+          discovered_repo_url: string | null
+          docs_url: string | null
+          domain: string
+          github_org: string | null
+          id: string
+          last_checked_at: string | null
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          discovered_mcp_url?: string | null
+          discovered_repo_url?: string | null
+          docs_url?: string | null
+          domain: string
+          github_org?: string | null
+          id?: string
+          last_checked_at?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          discovered_mcp_url?: string | null
+          discovered_repo_url?: string | null
+          docs_url?: string | null
+          domain?: string
+          github_org?: string | null
+          id?: string
+          last_checked_at?: string | null
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mcp_servers: {
         Row: {
           approved_content_hash: string | null
