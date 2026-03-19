@@ -2910,7 +2910,7 @@ mcp.tool("get_install_command", {
       if (skill.install_count_source !== 'tracked') {
         supabase.from("skills").update({ install_count_source: 'tracked' }).eq("slug", skill.slug).then(() => {});
       }
-      return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n\`\`\`\n${skill.install_command}\n\`\`\`` }] };
+      return { content: [{ type: "text" as const, text: `**${skill.display_name}** (skill)\n\n${normalizeInstallCommand(skill.install_command, skill.display_name, skill.slug)}` }] };
     }
 
     // 2. Search MCP connectors by slug (also check redirect)
