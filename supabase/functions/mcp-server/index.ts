@@ -13,9 +13,21 @@ async function sha256Hex(message: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Global per-request context for API key auth
-// Edge functions in Deno are single-threaded per isolate, so this is safe per-request
-let currentApiKeyUserId: string | null = null;
+// Per-request context stored via AsyncLocalStorage-like pattern
+// Using a request-scoped Map to avoid global state race conditions
+const requestContextMap = new Map<string, string | null>();
+
+function getRequestUserId(requestId: string): string | null {
+  return requestContextMap.get(requestId) ?? null;
+}
+
+function setRequestUserId(requestId: string, userId: string | null): void {
+  requestContextMap.set(requestId, userId);
+}
+
+function clearRequestContext(requestId: string): void {
+  requestContextMap.delete(requestId);
+}
 
 async function resolveApiKeyUser(authHeader: string | null): Promise<string | null> {
   if (!authHeader) return null;

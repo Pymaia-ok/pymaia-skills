@@ -281,11 +281,12 @@ Deno.serve(async (req) => {
       }
 
       // ── DECISION ──
-      // Approve if: 1+ strong signal OR 3+ weak signals (stricter than before)
+      // Approve if: 2+ signals total AND at least 1 strong signal, OR 4+ weak signals
+      // This is stricter to prevent low-quality items from being auto-approved
       const strongSignals = reasons.filter(r =>
         r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars")
       );
-      const shouldApprove = strongSignals.length >= 1 || reasons.length >= 3;
+      const shouldApprove = (strongSignals.length >= 1 && reasons.length >= 2) || reasons.length >= 4;
 
       if (shouldApprove) {
         await supabase.from("skills").update({

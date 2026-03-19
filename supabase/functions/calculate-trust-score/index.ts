@@ -202,31 +202,49 @@ Deno.serve(async (req) => {
         .order("updated_at", { ascending: true })
         .limit(batch_size);
 
-      if (!items) continue;
+      if (!items || items.length === 0) continue;
+
+      // ── BATCH: fetch all abuse counts in one query ──
+      const itemIds = items.map(i => i.id);
+      const { data: abuseRows } = await supabase
+        .from("security_reports")
+        .select("item_id")
+        .in("item_id", itemIds)
+        .eq("status", "open");
+
+      const abuseCounts: Record<string, number> = {};
+      for (const row of abuseRows ?? []) {
+        abuseCounts[row.item_id] = (abuseCounts[row.item_id] || 0) + 1;
+      }
+
+      // ── BATCH: fetch all eval runs for skills in one query ──
+      let evalMap: Record<string, { pass_rate: number; avg_score: number }> = {};
+      if (t.name === "skills") {
+        const slugs = items.map(i => i.slug).filter(Boolean);
+        if (slugs.length > 0) {
+          const { data: evalRows } = await supabase
+            .from("skill_eval_runs")
+            .select("skill_slug, pass_rate, avg_score, iteration")
+            .in("skill_slug", slugs)
+            .order("iteration", { ascending: false });
+
+          // Keep only the latest eval per slug
+          for (const row of evalRows ?? []) {
+            if (row.skill_slug && !evalMap[row.skill_slug]) {
+              evalMap[row.skill_slug] = { pass_rate: row.pass_rate, avg_score: row.avg_score };
+            }
+          }
+        }
+      }
 
       for (const item of items) {
-        // Check actual abuse report count
-        const { count: abuseCount } = await supabase
-          .from("security_reports")
-          .select("id", { count: "exact", head: true })
-          .eq("item_id", item.id)
-          .eq("status", "open");
-
-        const score = await calculateTrustScore(item, abuseCount ?? 0);
+        const abuseCount = abuseCounts[item.id] || 0;
+        const score = await calculateTrustScore(item, abuseCount);
         
-        // For skills, also compute quality_score
         const updateData: any = { trust_score: score.total };
         
         if (t.name === "skills") {
-          // Get latest eval run for this skill
-          const { data: evalRun } = await supabase
-            .from("skill_eval_runs")
-            .select("pass_rate, avg_score")
-            .eq("skill_slug", item.slug)
-            .order("iteration", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
+          const evalRun = evalMap[item.slug] || null;
           updateData.quality_score = calculateQualityScore(item, score.total, evalRun);
         }
 
