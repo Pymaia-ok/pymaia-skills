@@ -292,6 +292,7 @@ export default {
     installations: "instalaciones",
     min: "min",
     viewInstall: "Ver cómo instalarla →",
+    evalVerified: "Eval ✓",
   },
 
   // Skill Detail

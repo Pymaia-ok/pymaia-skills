@@ -287,6 +287,7 @@ export default {
     installations: "installs",
     min: "min",
     viewInstall: "See how to install →",
+    evalVerified: "Eval ✓",
   },
 
   detail: {

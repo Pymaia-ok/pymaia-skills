@@ -50,7 +50,7 @@ const SkillCard = memo(forwardRef<HTMLDivElement, SkillCardProps>(({ skill, inde
           {(skill as any).eval_verified && (
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border bg-primary/10 border-primary/30 text-primary inline-flex items-center gap-0.5">
               <CheckCircle2 size={10} />
-              Eval ✓
+              {t("skillCard.evalVerified")}
             </span>
           )}
           {skill.industry.slice(0, 1).map((ind) => (

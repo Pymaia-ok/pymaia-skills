@@ -232,7 +232,7 @@ const SkillDetail = () => {
                 {user && skill.creator_id === user.id && (
                   <button onClick={handleConvertToPlugin} disabled={convertingToPlugin} className="mt-3 inline-flex items-center gap-2 px-5 py-3 rounded-full border border-border text-foreground font-medium hover:bg-secondary transition-colors text-sm disabled:opacity-50">
                     {convertingToPlugin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-                    Publicar como plugin
+                    {t("detail.publishAsPlugin", "Publicar como plugin")}
                   </button>
                 )}
               </motion.div>
