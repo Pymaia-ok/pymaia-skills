@@ -336,6 +336,13 @@ export default {
     reviewError: "Could not publish review. Did you already leave one?",
     downloadZip: "ZIP for Claude.ai",
     zipDownloaded: "ZIP downloaded — upload it to Claude.ai in Settings → Features",
+    publishAsPlugin: "Publish as plugin",
+  },
+
+  errors: {
+    somethingWrong: "Something went wrong",
+    unexpectedError: "An unexpected error occurred. You can go back to the home page and try again.",
+    backToHome: "Back to home",
   },
 
   auth: {
