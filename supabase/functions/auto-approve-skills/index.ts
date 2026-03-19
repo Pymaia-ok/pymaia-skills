@@ -262,10 +262,25 @@ Deno.serve(async (req) => {
         reasons.push("platform_created");
       }
 
-      // Rule 6: Has valid native install command (weak signal)
+      // Rule 6: Has valid native install command — verify source exists (strong signal if verified)
       const cmd = skill.install_command || "";
       if (cmd.includes("claude skill add") || cmd.includes("raw.githubusercontent.com")) {
-        reasons.push("valid_install_command");
+        // Try HEAD check on the raw URL to verify it's reachable
+        const rawUrlMatch = cmd.match(/(https:\/\/raw\.githubusercontent\.com\/[^\s"']+)/);
+        if (rawUrlMatch) {
+          try {
+            const headRes = await fetch(rawUrlMatch[1], { method: "HEAD" });
+            if (headRes.ok) {
+              reasons.push("verified_install_command");
+            } else {
+              // Install source 404 — don't count as signal
+            }
+          } catch {
+            reasons.push("valid_install_command"); // Network error, give benefit of doubt
+          }
+        } else {
+          reasons.push("valid_install_command");
+        }
       }
 
       // Rule 7: GitHub pre-check passed with license (weak signal)
@@ -279,6 +294,11 @@ Deno.serve(async (req) => {
         if (monthsAgo <= 12) {
           reasons.push("active_repo");
         }
+      }
+
+      // Rule 9: Has real README content (strong signal)
+      if (skill.readme_raw && skill.readme_raw.length > 200) {
+        reasons.push("has_real_readme");
       }
 
       // ── DECISION ──
