@@ -1,78 +1,76 @@
-## Plan: PRD Final V2 — Estado: ✅ Implementado
 
-### Fixes implementados
 
-#### Fix 1: generate-embeddings batch 25 + error logging ✅
-- Default `batch_size` reducido de 100 a **25**
-- Error logging agregado al sync_log en caso de fallo
-- Cron rescheduled a `*/3` (offset +1)
+# Fix: Intelligent Install Command Resolution for MCP Connectors
 
-#### Fix 2: scrape-skills-sh slug collisions ✅
-- Import cambiado de batch insert a **individual upserts** con error handling por fila
-- Siempre usa prefixed slug: `{owner}-{repo}-{skill_folder}`
-- Columna `error_message` agregada a `skills_import_staging`
+## Problem
 
-#### Fix 3: Tools irrelevantes — Exclusiones expandidas + Penalización más fuerte ✅
-- Nuevos slugs excluidos: `claude-code-cwd-tracker`, `avisangle-calculator-server`, `multi-mcp`, `ui-ticket-mcp`
-- `DOMAIN_CATEGORY_MAP` actualizado con categorías españolas del catálogo real
-- Penalización domain-category aumentada de -5 a `score *= 0.2` (80%)
-- Penalización de connectors sin overlap de palabras del goal: `score *= 0.1` (90%)
+The `get_install_command` and `get_connector_details` tools return the raw `install_command` field from the database as-is. This field has **inconsistent formats** across 6,400+ connectors:
 
-#### Fix 4: Limpieza de crons duplicados ✅
-- Eliminado `monorepo-scan-3d` duplicado (jobid 72)
-- 30 → 29 crons
+| Format | Count | Example |
+|---|---|---|
+| Bare URL | ~4,773 | `https://mcp.itsgloria.ai/mcp` |
+| npx command | ~1,679 | `npx -y @smithery/cli install ...` |
+| JSON config block | ~10 | `{"mcpServers":{"polynod":{...}}}` |
+| `claude mcp add` | ~4 | `claude mcp add foo --transport sse ...` |
+| Empty | unknown | `` |
 
-#### Fix 5: enrich-github-metadata parallelizado ✅
-- Batch reducido de 400 a **150**
-- Procesamiento en paralelo (batches de 5)
-- Cron: `*/10` (staggered a offset +2)
+When Claude Code receives a JSON config (like Polynod's), it doesn't know how to use it — it tries `claude mcp add --transport http` which fails because `streamable-http` is not supported by the CLI.
 
-#### Fix 6: bulk-fetch-skill-content acelerado ✅
-- Cron: `*/10` → `*/5` (staggered a offset +3)
+## Solution
 
-#### Fix 7: Crons staggered ✅
-- `calculate-trust-score`: `5,35 * * * *`
-- `scan-security`: `10,40 * * * *`
-- `verify-security`: `15,45 * * * *`
-- `generate-embeddings`: offset +1 cada 3 min
-- `bulk-fetch-skill-content`: offset +3 cada 5 min
-- `enrich-github-metadata`: offset +2 cada 10 min
+Add an **install command normalizer** in the MCP server that wraps all `install_command` outputs with multi-agent install instructions. For each connector, generate **3 formats**:
 
-### Estado final: 29 crons activos, todos staggered
+1. **JSON config** (for manual `~/.claude.json` or `mcp.json` editing) — works for ALL transport types
+2. **CLI command** (when possible: `claude mcp add` for stdio/sse, `npx @anthropic-ai/mcp-remote` bridge for streamable-http)
+3. **Cursor/Windsurf** config variant
 
----
+## Changes
 
-## Plan: PRD Calidad, Confianza y Seguridad — Estado: ✅ Implementado
+### 1. `supabase/functions/mcp-server/index.ts` — Add `normalizeInstallCommand()` helper
 
-### Fix 2 (P0): Filtrar items sin scan en queries ✅
-- `src/lib/api.ts` → `fetchSkills` y `fetchAllSkills` ahora filtran con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
-- Items sin escanear y con trust_score < 60 ya no aparecen en la UI
+A function that takes the raw `install_command` and returns a formatted, multi-format install guide:
 
-### Fix 3 (P0): Plugins importados como "pending" ✅
-- `sync-plugins/index.ts` → Ambas funciones (topics + code-search) ahora usan `status: "pending"`
-- Plugins nuevos pasan por pipeline de security scan + trust score + auto-approve antes de ser visibles
+- **If JSON config**: Parse it, extract transport type. If `streamable-http`, output the JSON config for manual editing + `npx @anthropic-ai/mcp-remote` bridge command as CLI alternative
+- **If bare URL**: Generate both a JSON config block (with `streamable-http` type) and a `npx @anthropic-ai/mcp-remote` bridge command
+- **If npx command**: Return as-is for CLI, also generate equivalent JSON config with `command`/`args`
+- **If `claude mcp add`**: Return as-is for CLI
+- **If empty**: Return "No install command available. Visit the homepage/GitHub for setup instructions."
 
-### Fix 4 (P1): Auto-rechazar repos archivados ✅
-- `refresh-catalog-data/index.ts` → Repos archivados ahora se rechazan automáticamente con `status: "rejected"`, `security_status: "flagged"`, `security_notes: "Repository archived on GitHub"`
+### 2. Apply normalizer in 3 tool handlers
 
-### Fix 6 (P1): Scan requerido para auto-approve ✅
-- `auto-approve-skills/index.ts` → Ahora requiere `security_scan_result` antes de auto-aprobar. Items sin scan son skipped.
-- También selecciona `security_scan_result` en la query inicial
+- `get_install_command` (line ~2853, ~2866)
+- `get_connector_details` (line ~931)
+- `search_connectors` result formatting
 
-### Fix 7 (P2): Priorizar scan de items nuevos ✅
-- `scan-security/index.ts` → Batch mode ahora busca primero items `pending` sin scan, luego `approved` sin scan como fallback
+### 3. Output format example (for Polynod)
 
----
+```
+## Install Polynod
 
-## Plan: PRD Pendientes Finales — Estado: ✅ Implementado
+### Option A — Edit config file (~/.claude.json or mcp.json)
+```json
+{
+  "mcpServers": {
+    "polynod": {
+      "type": "streamable-http",
+      "url": "https://polynod.com/mcp",
+      "headers": { "Authorization": "Bearer YOUR_API_KEY_HERE" }
+    }
+  }
+}
+```
 
-### Fix 1 (P0): Imports como "pending" ✅
-- `scrape-skills-sh/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `sync-antigravity-skills/index.ts` → `status: "pending"` en lugar de `"approved"`
-- `import-skills-csv/index.ts` → `status: "pending"` en lugar de `"approved"`
+### Option B — CLI with mcp-remote bridge
+```
+npx -y @anthropic-ai/mcp-remote https://polynod.com/mcp --header "Authorization: Bearer YOUR_API_KEY_HERE"
+```
 
-### Fix 2 (P0): MCP server filtra por scan ✅
-- `mcp-server/index.ts` → `crossCatalogSearch()` ahora filtra skills, connectors y plugins con `.or("security_scan_result.not.is.null,trust_score.gte.60")`
+⚠️ This server uses streamable-http transport. `claude mcp add` doesn't support this transport natively — use Option A or the mcp-remote bridge.
+```
 
-### Fix 3 (P1): refresh-catalog-data error logging ✅
-- Catches con `console.error` reemplazados por `await log()` para registrar errores en `automation_logs`
+## Files to modify
+
+| File | Change |
+|---|---|
+| `supabase/functions/mcp-server/index.ts` | Add `normalizeInstallCommand()` helper, apply to `get_install_command`, `get_connector_details`, and `search_connectors` output |
+
