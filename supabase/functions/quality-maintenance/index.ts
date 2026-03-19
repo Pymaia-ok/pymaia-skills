@@ -78,18 +78,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 3. Clean up bad descriptions (parsing residue) ──
+    // ── 3. Clean up bad/auto-generated descriptions ──
     const { data: residues } = await supabase
       .from("skills")
       .select("id, slug, description_human")
       .eq("status", "approved")
-      .is("github_url", null)
       .limit(batchSize);
 
     if (residues) {
+      const autoGenPattern = /^[\w\s-]+ skill from [\w/-]+$/i;
       for (const skill of residues) {
         const desc = (skill.description_human || "").trim();
-        if (desc.length < 5 || /^[|>!\-\s]{1,5}$/.test(desc)) {
+        if (desc.length < 5 || /^[|>!\-\s]{1,5}$/.test(desc) || (desc.length < 50 && autoGenPattern.test(desc))) {
           await supabase.from("skills").update({ status: "pending" }).eq("id", skill.id);
 
           await supabase.from("automation_logs").insert({

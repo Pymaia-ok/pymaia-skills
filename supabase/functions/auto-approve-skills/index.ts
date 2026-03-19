@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     // Fetch pending skills
     const { data: pending, error } = await supabase
       .from("skills")
-      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result, install_command")
+      .select("id, slug, display_name, github_url, github_stars, security_status, security_notes, last_commit_at, description_human, creator_id, security_scan_result, install_command, readme_raw")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(batchSize);
@@ -113,9 +113,10 @@ Deno.serve(async (req) => {
       }
 
       const desc = (skill.description_human || "").trim();
-      if (desc.length < 10) {
+      const autoGenPattern = /^[\w\s-]+ skill from [\w/-]+$/i;
+      if (desc.length < 50 || autoGenPattern.test(desc)) {
         shouldReject = true;
-        rejectReason = "Description too short or missing";
+        rejectReason = "Description too short or auto-generated";
       }
 
       if (shouldReject) {
@@ -261,10 +262,25 @@ Deno.serve(async (req) => {
         reasons.push("platform_created");
       }
 
-      // Rule 6: Has valid native install command (weak signal)
+      // Rule 6: Has valid native install command — verify source exists (strong signal if verified)
       const cmd = skill.install_command || "";
       if (cmd.includes("claude skill add") || cmd.includes("raw.githubusercontent.com")) {
-        reasons.push("valid_install_command");
+        // Try HEAD check on the raw URL to verify it's reachable
+        const rawUrlMatch = cmd.match(/(https:\/\/raw\.githubusercontent\.com\/[^\s"']+)/);
+        if (rawUrlMatch) {
+          try {
+            const headRes = await fetch(rawUrlMatch[1], { method: "HEAD" });
+            if (headRes.ok) {
+              reasons.push("verified_install_command");
+            } else {
+              // Install source 404 — don't count as signal
+            }
+          } catch {
+            reasons.push("valid_install_command"); // Network error, give benefit of doubt
+          }
+        } else {
+          reasons.push("valid_install_command");
+        }
       }
 
       // Rule 7: GitHub pre-check passed with license (weak signal)
@@ -280,11 +296,16 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Rule 9: Has real README content (strong signal)
+      if (skill.readme_raw && skill.readme_raw.length > 200) {
+        reasons.push("has_real_readme");
+      }
+
       // ── DECISION ──
       // Approve if: 2+ signals total AND at least 1 strong signal, OR 4+ weak signals
       // This is stricter to prevent low-quality items from being auto-approved
       const strongSignals = reasons.filter(r =>
-        r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars")
+        r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars") || r === "has_real_readme" || r === "verified_install_command"
       );
       const shouldApprove = (strongSignals.length >= 1 && reasons.length >= 2) || reasons.length >= 4;
 

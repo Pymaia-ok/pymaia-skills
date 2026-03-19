@@ -248,7 +248,11 @@ Deno.serve(async (req) => {
           updateData.quality_score = calculateQualityScore(item, score.total, evalRun);
         }
 
-        await supabase.from(t.name).update(updateData).eq("id", item.id);
+        const { error: updateError } = await supabase.from(t.name).update(updateData).eq("id", item.id);
+        if (updateError) {
+          console.error(`[calculate-trust-score] Update failed for ${item.id}:`, updateError.message);
+          continue;
+        }
         processed++;
       }
     }
