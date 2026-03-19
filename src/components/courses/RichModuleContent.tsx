@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import DOMPurify from "dompurify";
 import {
   TryItBlock,
   StepBlock,
