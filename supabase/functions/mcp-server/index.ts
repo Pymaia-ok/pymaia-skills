@@ -836,7 +836,7 @@ mcp.tool("search_connectors", {
     const words = queryLower.split(/\s+/).filter(w => w.length >= 2);
     const catFilter = args.category ? (qb: any) => qb.eq("category", args.category) : undefined;
 
-    // Run exact-phrase search AND word-split search in parallel for better recall
+    // Run exact-phrase, slug/name exact match, and word-split search in parallel
     let exactQ = supabase
       .from("mcp_servers")
       .select(selectCols)
@@ -847,24 +847,37 @@ mcp.tool("search_connectors", {
       .limit(lim * 2);
     if (args.category) exactQ = exactQ.eq("category", args.category);
 
-    const [exactRes, wordSplitRes] = await Promise.all([
+    // Also search each individual word against slug/name for direct matches (e.g. "polynod" in "polynod image video")
+    const slugNameFilters = words.map(w => `slug.ilike.%${w}%,name.ilike.%${w}%`).join(",");
+    let directNameQ = supabase
+      .from("mcp_servers")
+      .select(selectCols)
+      .eq("status", "approved")
+      .or(slugNameFilters)
+      .order("is_official", { ascending: false })
+      .order("github_stars", { ascending: false })
+      .limit(lim);
+    if (args.category) directNameQ = directNameQ.eq("category", args.category);
+
+    const [exactRes, directNameRes, wordSplitRes] = await Promise.all([
       exactQ.then(r => r.data || []),
+      directNameQ.then(r => r.data || []),
       words.length > 1
         ? wordSplitSearch("mcp_servers", selectCols, words, "github_stars", lim * 2, catFilter)
         : Promise.resolve([]),
     ]);
 
-    // Merge: exact matches first, then word-split results (deduplicated)
+    // Merge: direct name matches first (highest intent), then exact, then word-split
     const seenSlugs = new Set<string>();
     const merged: any[] = [];
-    for (const item of [...exactRes, ...wordSplitRes]) {
+    for (const item of [...directNameRes, ...exactRes, ...wordSplitRes]) {
       if (!seenSlugs.has(item.slug)) {
         seenSlugs.add(item.slug);
         merged.push(item);
       }
     }
     let results = sortByTrust(deduplicateConnectors(merged)).slice(0, lim);
-    let fallbackUsed = results.length > 0 ? (wordSplitRes.length > 0 ? "merged" : "exact") : "none";
+    let fallbackUsed = results.length > 0 ? (directNameRes.length > 0 ? "name_match" : wordSplitRes.length > 0 ? "merged" : "exact") : "none";
 
     logUsageEvents("search_result", results.map((r: any) => ({ slug: r.slug, type: "connector" })), args.query);
     console.log(JSON.stringify({ tool: "search_connectors", query: args.query, sanitized: queryLower, category: args.category || null, resultCount: results.length, fallbackUsed }));
@@ -988,8 +1001,21 @@ mcp.tool("search_plugins", {
     if (args.category) exactQ = exactQ.eq("category", args.category);
     if (args.platform) exactQ = exactQ.eq("platform", args.platform);
 
-    const [exactRes, wordSplitRes] = await Promise.all([
+    // Direct name/slug match for individual words
+    const pluginSlugNameFilters = words.map(w => `slug.ilike.%${w}%,name.ilike.%${w}%`).join(",");
+    let directPluginNameQ = supabase
+      .from("plugins")
+      .select(selectCols)
+      .eq("status", "approved")
+      .or(pluginSlugNameFilters)
+      .order("install_count", { ascending: false })
+      .limit(lim);
+    if (args.category) directPluginNameQ = directPluginNameQ.eq("category", args.category);
+    if (args.platform) directPluginNameQ = directPluginNameQ.eq("platform", args.platform);
+
+    const [exactRes, directNameRes, wordSplitRes] = await Promise.all([
       exactQ.then(r => r.data || []),
+      directPluginNameQ.then(r => r.data || []),
       words.length > 1
         ? wordSplitSearch("plugins", selectCols, words, "install_count", lim * 2, extraFilter)
         : Promise.resolve([]),
@@ -997,7 +1023,7 @@ mcp.tool("search_plugins", {
 
     const seenSlugs = new Set<string>();
     const merged: any[] = [];
-    for (const item of [...exactRes, ...wordSplitRes]) {
+    for (const item of [...directNameRes, ...exactRes, ...wordSplitRes]) {
       if (!seenSlugs.has(item.slug)) {
         seenSlugs.add(item.slug);
         merged.push(item);
