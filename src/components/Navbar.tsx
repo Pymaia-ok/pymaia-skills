@@ -60,7 +60,7 @@ const Navbar = () => {
     { to: "/explorar", label: t("nav.explore") },
     { to: "/conectores", label: t("nav.connectors") },
     { to: "/plugins", label: t("nav.plugins") },
-    { to: "/blog", label: "Blog" },
+    { to: "/blog", label: t("nav.blog", "Blog") },
     { to: "/cursos", label: t("nav.academy") },
   ];
 
