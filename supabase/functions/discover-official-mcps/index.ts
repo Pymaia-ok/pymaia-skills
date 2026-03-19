@@ -20,6 +20,72 @@ function slugify(name: string): string {
     .slice(0, 200);
 }
 
+// ─── Quality Filter: reject repos that aren't actual MCP servers ───
+const REJECT_PATTERNS = [
+  /^awesome[-\s]/i,          // awesome lists
+  /\bdownloader\b/i,
+  /\btutorial\b/i,
+  /\bfor[-\s]?beginners\b/i,
+  /\bcourse\b/i,
+  /\bdesktop[-\s]?app\b/i,
+  /\b(web)?[-\s]?ui\b/i,     // UI apps, not servers
+  /\bcli\b(?!.*mcp)/i,       // CLIs that aren't MCP-related
+  /\bchat[-\s]?app\b/i,
+  /\bbot\b/i,
+];
+
+const REJECT_DESCRIPTION_PATTERNS = [
+  /\bcollection of\b/i,
+  /\bcurated list\b/i,
+  /\bawesome list\b/i,
+  /\bnever sleeps\b/i,
+  /\bphone\b/i,
+  /\bgroup chat\b/i,
+  /\byet another\b.*\bui\b/i,
+];
+
+function looksLikeMcpServer(repo: { name: string; description?: string; topics?: string[] }): boolean {
+  const name = repo.name || "";
+  const desc = (repo.description || "").toLowerCase();
+  const topics = repo.topics || [];
+
+  // Positive signal: name or topic explicitly says mcp-server
+  const hasStrongMcpSignal =
+    /mcp[-_]?server/i.test(name) ||
+    topics.includes("mcp-server") ||
+    topics.includes("model-context-protocol") ||
+    /\bmcp server\b/i.test(desc);
+
+  // Reject patterns on name
+  for (const p of REJECT_PATTERNS) {
+    if (p.test(name) && !hasStrongMcpSignal) return false;
+  }
+
+  // Reject patterns on description
+  for (const p of REJECT_DESCRIPTION_PATTERNS) {
+    if (p.test(desc) && !hasStrongMcpSignal) return false;
+  }
+
+  return true;
+}
+
+// ─── Cross-catalog dedup: check skills, plugins, connectors ───
+async function isDuplicate(supabase: any, githubUrl: string, slug: string): Promise<boolean> {
+  // Check mcp_servers
+  const { data: mc } = await supabase.from("mcp_servers").select("id").or(`slug.eq.${slug},github_url.eq.${githubUrl}`).limit(1);
+  if (mc?.length) return true;
+
+  // Check skills table
+  const { data: sk } = await supabase.from("skills").select("id").eq("github_url", githubUrl).limit(1);
+  if (sk?.length) return true;
+
+  // Check plugins table
+  const { data: pl } = await supabase.from("plugins").select("id").eq("github_url", githubUrl).limit(1);
+  if (pl?.length) return true;
+
+  return false;
+}
+
 // ─── Strategy 1: Check Watchlist (GitHub org repos + endpoint probing) ───
 async function checkWatchlist(supabase: any, githubToken: string) {
   const { data: companies } = await supabase
