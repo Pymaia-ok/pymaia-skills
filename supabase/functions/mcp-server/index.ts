@@ -2950,8 +2950,8 @@ mcp.tool("get_install_command", {
     ]);
 
     const parts: string[] = [];
-    for (const s of skillsFuzzy) parts.push(`**${s.display_name}** (skill)\n\`\`\`\n${s.install_command}\n\`\`\``);
-    for (const c of connectorsFuzzy) parts.push(`**${c.name}** (connector)\n\`\`\`\n${c.install_command}\n\`\`\``);
+    for (const s of skillsFuzzy) parts.push(`**${s.display_name}** (skill)\n${normalizeInstallCommand(s.install_command, s.display_name, s.slug)}`);
+    for (const c of connectorsFuzzy) parts.push(`**${c.name}** (connector)\n${normalizeInstallCommand(c.install_command, c.name, c.slug)}`);
     for (const p of pluginsFuzzy) parts.push(`**${p.name}** (plugin)\n${p.homepage || p.github_url || "No install info"}`);
 
     if (parts.length > 0) return { content: [{ type: "text" as const, text: parts.join("\n\n") }] };
