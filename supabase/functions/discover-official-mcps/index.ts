@@ -254,7 +254,13 @@ async function githubSearch(supabase: any, githubToken: string) {
       }
 
       const data = await res.json();
-      const repos = (data.items || []).filter((r: any) => !r.archived && !r.disabled);
+      const repos = (data.items || []).filter((r: any) =>
+        !r.archived && !r.disabled && looksLikeMcpServer({
+          name: r.name,
+          description: r.description,
+          topics: r.topics || [],
+        })
+      );
 
       for (const repo of repos) {
         if (timeLeft() < 2000) break;
@@ -262,23 +268,8 @@ async function githubSearch(supabase: any, githubToken: string) {
         const slug = slugify(repo.name);
         if (slug.length < 2) continue;
 
-        // Check if already exists
-        const { data: existing } = await supabase
-          .from("mcp_servers")
-          .select("id")
-          .eq("slug", slug)
-          .maybeSingle();
-
-        if (existing) continue;
-
-        // Also check by github_url
-        const { data: existsByUrl } = await supabase
-          .from("mcp_servers")
-          .select("id")
-          .eq("github_url", repo.html_url)
-          .maybeSingle();
-
-        if (existsByUrl) continue;
+        // Cross-catalog dedup
+        if (await isDuplicate(supabase, repo.html_url, slug)) continue;
 
         const stars = repo.stargazers_count || 0;
         const isVerifiedOrg = repo.owner?.type === "Organization";
