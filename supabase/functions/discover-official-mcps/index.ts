@@ -69,6 +69,51 @@ function looksLikeMcpServer(repo: { name: string; description?: string; topics?:
   return true;
 }
 
+// ─── Extract install command from README text ───
+function extractInstallFromReadme(readme: string): string | null {
+  // npx command
+  const npxMatch = readme.match(/(?:```[^\n]*\n)?\s*(npx\s+(?:-y\s+)?@?[\w\/-]+[\w@.\/-]*)/m);
+  if (npxMatch) return npxMatch[1].trim();
+
+  // claude mcp add
+  const claudeMatch = readme.match(/(?:```[^\n]*\n)?\s*(claude\s+mcp\s+add\s+[^\n]+)/m);
+  if (claudeMatch) return claudeMatch[1].trim();
+
+  // JSON mcpServers config block
+  const jsonMatch = readme.match(/({\s*"mcpServers"\s*:\s*{[\s\S]*?}\s*})\s*\n?\s*```/);
+  if (jsonMatch) {
+    try { JSON.parse(jsonMatch[1]); return jsonMatch[1].trim(); } catch { /* skip */ }
+  }
+
+  // uvx (Python MCP)
+  const uvxMatch = readme.match(/(?:```[^\n]*\n)?\s*(uvx\s+[\w@.\/-]+)/m);
+  if (uvxMatch) return uvxMatch[1].trim();
+
+  // docker run
+  const dockerMatch = readme.match(/(docker\s+run\s+[^\n]+)/m);
+  if (dockerMatch) return dockerMatch[1].trim();
+
+  // mcp-remote URL pattern
+  const remoteMatch = readme.match(/(npx\s+-y\s+@anthropic-ai\/mcp-remote\s+https?:\/\/[^\s]+)/m);
+  if (remoteMatch) return remoteMatch[1].trim();
+
+  return null;
+}
+
+// ─── Fetch README from GitHub repo ───
+async function fetchReadme(repoFullName: string, headers: Record<string, string>): Promise<string | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repoFullName}/readme`, {
+      headers: { ...headers, Accept: "application/vnd.github.v3.raw" },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.length > 15000 ? text.slice(0, 15000) : text;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Cross-catalog dedup: check skills, plugins, connectors ───
 async function isDuplicate(supabase: any, githubUrl: string, slug: string): Promise<boolean> {
   // Check mcp_servers
@@ -263,7 +308,7 @@ async function githubSearch(supabase: any, githubToken: string) {
       );
 
       for (const repo of repos) {
-        if (timeLeft() < 2000) break;
+        if (timeLeft() < 3000) break;
 
         const slug = slugify(repo.name);
         if (slug.length < 2) continue;
@@ -273,7 +318,6 @@ async function githubSearch(supabase: any, githubToken: string) {
 
         const stars = repo.stargazers_count || 0;
         const isVerifiedOrg = repo.owner?.type === "Organization";
-        const status = (stars > 500 && isVerifiedOrg) ? "approved" : "pending";
 
         const name = repo.name
           .replace(/[-_]/g, " ")
@@ -281,6 +325,22 @@ async function githubSearch(supabase: any, githubToken: string) {
           .replace(/\bMcp\b/g, "MCP")
           .replace(/\bApi\b/g, "API")
           .replace(/\bAi\b/g, "AI");
+
+        // Try to fetch README and extract install command
+        let installCmd = "";
+        let readmeRaw: string | null = null;
+        if (timeLeft() > 4000) {
+          readmeRaw = await fetchReadme(repo.full_name, headers);
+          if (readmeRaw) {
+            installCmd = extractInstallFromReadme(readmeRaw) || "";
+          }
+          await new Promise(r => setTimeout(r, 150)); // rate limit
+        }
+
+        // Auto-approve if: has install command OR (high stars + verified org)
+        const status = installCmd
+          ? "approved"
+          : (stars > 500 && isVerifiedOrg) ? "approved" : "pending";
 
         await supabase.from("mcp_servers").upsert({
           slug,
@@ -292,13 +352,15 @@ async function githubSearch(supabase: any, githubToken: string) {
           github_url: repo.html_url,
           source: "auto-discovery",
           is_official: isVerifiedOrg,
-          install_command: "",
+          install_command: installCmd,
           credentials_needed: [],
           install_count: 0,
           external_use_count: stars,
+          ...(readmeRaw ? { readme_raw: readmeRaw } : {}),
         }, { onConflict: "slug", ignoreDuplicates: true });
 
         totalFound++;
+        console.log(`📦 ${slug}: ${status} ${installCmd ? '✅ cmd' : '⏳ no cmd'} (${stars}⭐)`);
       }
 
       await new Promise(r => setTimeout(r, 500)); // rate limit between queries
