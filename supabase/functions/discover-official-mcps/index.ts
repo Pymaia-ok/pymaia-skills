@@ -69,6 +69,51 @@ function looksLikeMcpServer(repo: { name: string; description?: string; topics?:
   return true;
 }
 
+// ─── Extract install command from README text ───
+function extractInstallFromReadme(readme: string): string | null {
+  // npx command
+  const npxMatch = readme.match(/(?:```[^\n]*\n)?\s*(npx\s+(?:-y\s+)?@?[\w\/-]+[\w@.\/-]*)/m);
+  if (npxMatch) return npxMatch[1].trim();
+
+  // claude mcp add
+  const claudeMatch = readme.match(/(?:```[^\n]*\n)?\s*(claude\s+mcp\s+add\s+[^\n]+)/m);
+  if (claudeMatch) return claudeMatch[1].trim();
+
+  // JSON mcpServers config block
+  const jsonMatch = readme.match(/({\s*"mcpServers"\s*:\s*{[\s\S]*?}\s*})\s*\n?\s*```/);
+  if (jsonMatch) {
+    try { JSON.parse(jsonMatch[1]); return jsonMatch[1].trim(); } catch { /* skip */ }
+  }
+
+  // uvx (Python MCP)
+  const uvxMatch = readme.match(/(?:```[^\n]*\n)?\s*(uvx\s+[\w@.\/-]+)/m);
+  if (uvxMatch) return uvxMatch[1].trim();
+
+  // docker run
+  const dockerMatch = readme.match(/(docker\s+run\s+[^\n]+)/m);
+  if (dockerMatch) return dockerMatch[1].trim();
+
+  // mcp-remote URL pattern
+  const remoteMatch = readme.match(/(npx\s+-y\s+@anthropic-ai\/mcp-remote\s+https?:\/\/[^\s]+)/m);
+  if (remoteMatch) return remoteMatch[1].trim();
+
+  return null;
+}
+
+// ─── Fetch README from GitHub repo ───
+async function fetchReadme(repoFullName: string, headers: Record<string, string>): Promise<string | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repoFullName}/readme`, {
+      headers: { ...headers, Accept: "application/vnd.github.v3.raw" },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.length > 15000 ? text.slice(0, 15000) : text;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Cross-catalog dedup: check skills, plugins, connectors ───
 async function isDuplicate(supabase: any, githubUrl: string, slug: string): Promise<boolean> {
   // Check mcp_servers
