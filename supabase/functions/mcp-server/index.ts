@@ -13,8 +13,9 @@ async function sha256Hex(message: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Global per-request context for API key auth
-// Edge functions in Deno are single-threaded per isolate, so this is safe per-request
+// Per-request API key user context
+// Deno edge functions process requests sequentially per isolate,
+// but we use a scoped variable reset on each request to be safe.
 let currentApiKeyUserId: string | null = null;
 
 async function resolveApiKeyUser(authHeader: string | null): Promise<string | null> {
