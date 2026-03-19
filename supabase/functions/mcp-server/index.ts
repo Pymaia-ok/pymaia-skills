@@ -2923,7 +2923,7 @@ mcp.tool("get_install_command", {
       .maybeSingle();
 
     if (connector) {
-      return { content: [{ type: "text" as const, text: `**${connector.name}** (connector)\n\n\`\`\`\n${connector.install_command}\n\`\`\`` }] };
+      return { content: [{ type: "text" as const, text: `**${connector.name}** (connector)\n\n${normalizeInstallCommand(connector.install_command, connector.name, connector.slug)}` }] };
     }
 
     // 3. Search plugins by slug
