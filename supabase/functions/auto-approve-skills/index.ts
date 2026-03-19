@@ -5,13 +5,54 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Trusted GitHub orgs/users whose skills get auto-approved
+// Trusted GitHub orgs/users whose skills get auto-approved with lighter checks
 const TRUSTED_SOURCES = [
   "anthropics", "anthropic", "vercel", "microsoft", "google", "aws",
   "openai", "langchain-ai", "supabase", "stripe", "modelcontextprotocol",
   "cloudflare", "docker", "hashicorp", "grafana", "elastic",
   "mongodb", "prisma", "drizzle-team", "trpc",
 ];
+
+interface GitHubCheck {
+  exists: boolean;
+  archived: boolean;
+  disabled: boolean;
+  stars: number;
+  hasLicense: boolean;
+  hasReadme: boolean;
+  lastPushAt: string | null;
+  description: string | null;
+}
+
+/**
+ * Quick GitHub pre-check: verifies repo exists, is not archived/disabled,
+ * and gathers basic quality signals (stars, license, last activity).
+ */
+async function quickGitHubCheck(
+  repoFullName: string,
+  headers: Record<string, string>,
+): Promise<GitHubCheck | null> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repoFullName}`, { headers });
+    if (res.status === 404) return { exists: false, archived: false, disabled: false, stars: 0, hasLicense: false, hasReadme: false, lastPushAt: null, description: null };
+    if (res.status === 403 || res.status === 429) return null; // rate limited, skip
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return {
+      exists: true,
+      archived: !!data.archived,
+      disabled: !!data.disabled,
+      stars: data.stargazers_count ?? 0,
+      hasLicense: !!(data.license?.spdx_id && data.license.spdx_id !== "NOASSERTION"),
+      hasReadme: data.size > 0, // repos with content
+      lastPushAt: data.pushed_at ?? null,
+      description: data.description ?? null,
+    };
+  } catch {
+    return null; // network error, skip
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -21,8 +62,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const githubToken = Deno.env.get("GITHUB_TOKEN");
 
     const { batchSize = 100 } = await req.json().catch(() => ({}));
+
+    const ghHeaders: Record<string, string> = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "pymaia-skills-bot",
+    };
+    if (githubToken) ghHeaders["Authorization"] = `Bearer ${githubToken}`;
 
     // Fetch pending skills
     const { data: pending, error } = await supabase
@@ -41,17 +89,21 @@ Deno.serve(async (req) => {
     let approved = 0;
     let rejected = 0;
     let skipped = 0;
+    let rateLimited = false;
 
     for (const skill of pending) {
+      if (rateLimited) { skipped++; continue; }
+
       const reasons: string[] = [];
       let shouldReject = false;
       let rejectReason = "";
 
-      // Extract GitHub org/user
-      const ghMatch = skill.github_url?.match(/github\.com\/([^\/]+)\//);
+      // Extract GitHub org/user and repo
+      const ghMatch = skill.github_url?.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/);
       const ghOrg = ghMatch?.[1]?.toLowerCase();
+      const repoFullName = ghMatch ? `${ghMatch[1]}/${ghMatch[2].replace(/\.git$/, "")}` : null;
 
-      // ── AUTO-REJECT rules ──
+      // ── AUTO-REJECT rules (no API call needed) ──
       if (skill.security_status === "flagged") {
         const notes = (skill.security_notes || "").toLowerCase();
         if (notes.includes("archived") || notes.includes("not found") || notes.includes("disabled")) {
@@ -60,7 +112,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Check for extremely short/empty descriptions (parsing residue)
       const desc = (skill.description_human || "").trim();
       if (desc.length < 10) {
         shouldReject = true;
@@ -85,52 +136,156 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // ── AUTO-APPROVE rules ──
-
-      // Light approval: skills with valid GitHub URL can proceed without full security scan
-      // Full scan will run async later via scan-security cron
+      // ── GITHUB PRE-CHECK (Layer 1 validation) ──
+      // Every skill needs either a security_scan_result OR a passing GitHub pre-check
       const hasGithubUrl = !!skill.github_url && skill.github_url.startsWith("https://github.com/");
+
       if (!skill.security_scan_result && !hasGithubUrl) {
+        // No GitHub URL and no scan = can't validate, skip
         skipped++;
         continue;
       }
 
-      // Rule 1: Trusted source
+      let ghCheck: GitHubCheck | null = null;
+
+      // If no security_scan_result yet, we MUST do a GitHub pre-check before approving
+      if (!skill.security_scan_result && repoFullName) {
+        ghCheck = await quickGitHubCheck(repoFullName, ghHeaders);
+
+        if (ghCheck === null) {
+          // Rate limited or network error — stop making API calls
+          rateLimited = true;
+          skipped++;
+          continue;
+        }
+
+        // ── Reject based on GitHub check ──
+        if (!ghCheck.exists) {
+          await supabase.from("skills").update({
+            status: "rejected",
+            security_status: "flagged",
+            security_notes: "Repository not found (404)",
+            auto_approved_reason: "auto-rejected: repo_not_found",
+          }).eq("id", skill.id);
+
+          await supabase.from("automation_logs").insert({
+            skill_id: skill.id,
+            action_type: "auto_reject",
+            function_name: "auto-approve-skills",
+            reason: "repo_not_found",
+            metadata: { slug: skill.slug, github_url: skill.github_url },
+          });
+          rejected++;
+          continue;
+        }
+
+        if (ghCheck.archived) {
+          await supabase.from("skills").update({
+            status: "rejected",
+            security_status: "flagged",
+            security_notes: "Repository is archived",
+            auto_approved_reason: "auto-rejected: repo_archived",
+          }).eq("id", skill.id);
+
+          await supabase.from("automation_logs").insert({
+            skill_id: skill.id,
+            action_type: "auto_reject",
+            function_name: "auto-approve-skills",
+            reason: "repo_archived",
+            metadata: { slug: skill.slug },
+          });
+          rejected++;
+          continue;
+        }
+
+        if (ghCheck.disabled) {
+          await supabase.from("skills").update({
+            status: "rejected",
+            security_status: "flagged",
+            security_notes: "Repository is disabled",
+            auto_approved_reason: "auto-rejected: repo_disabled",
+          }).eq("id", skill.id);
+
+          await supabase.from("automation_logs").insert({
+            skill_id: skill.id,
+            action_type: "auto_reject",
+            function_name: "auto-approve-skills",
+            reason: "repo_disabled",
+            metadata: { slug: skill.slug },
+          });
+          rejected++;
+          continue;
+        }
+
+        // Update stars and metadata from GitHub check
+        const updateData: Record<string, unknown> = {
+          security_status: "unverified",
+          security_notes: [
+            ghCheck.hasLicense ? "License: yes" : "No license",
+            `Stars: ${ghCheck.stars}`,
+            ghCheck.lastPushAt ? `Last push: ${ghCheck.lastPushAt.slice(0, 10)}` : "No push data",
+          ].join("; "),
+          security_checked_at: new Date().toISOString(),
+        };
+        if (ghCheck.stars > 0) updateData.github_stars = ghCheck.stars;
+        if (ghCheck.lastPushAt) updateData.last_commit_at = ghCheck.lastPushAt;
+
+        await supabase.from("skills").update(updateData).eq("id", skill.id);
+      }
+
+      // ── SCORING: collect approval signals ──
+
+      // Rule 1: Trusted source (strong signal)
       if (ghOrg && TRUSTED_SOURCES.includes(ghOrg)) {
         reasons.push(`trusted_source:${ghOrg}`);
       }
 
-      // Rule 2: Security verified
+      // Rule 2: Security already verified (strong signal)
       if (skill.security_status === "verified") {
         reasons.push("security_verified");
       }
 
-      // Rule 3: GitHub stars > 5
-      if (skill.github_stars > 5) {
-        reasons.push(`github_stars:${skill.github_stars}`);
+      // Rule 3: GitHub stars (strong if >5, uses live data if available)
+      const effectiveStars = ghCheck?.stars ?? skill.github_stars;
+      if (effectiveStars > 5) {
+        reasons.push(`github_stars:${effectiveStars}`);
       }
 
-      // Rule 4: Has GitHub URL (imported from known registry)
-      if (skill.github_url) {
+      // Rule 4: Has GitHub URL (weak signal)
+      if (hasGithubUrl) {
         reasons.push("has_github_url");
       }
 
-      // Rule 5: Created by platform user (SkillForge)
+      // Rule 5: Created by platform user (weak signal)
       if (skill.creator_id) {
         reasons.push("platform_created");
       }
 
-      // Rule 6: Has valid install command (claude skill add format)
-      const cmd = (skill as any).install_command || "";
+      // Rule 6: Has valid native install command (weak signal)
+      const cmd = skill.install_command || "";
       if (cmd.includes("claude skill add") || cmd.includes("raw.githubusercontent.com")) {
         reasons.push("valid_install_command");
       }
 
-      // Approve if at least 1 strong signal OR 2+ weak signals
+      // Rule 7: GitHub pre-check passed with license (weak signal)
+      if (ghCheck?.hasLicense) {
+        reasons.push("has_license");
+      }
+
+      // Rule 8: Active repo — pushed within last 12 months (weak signal)
+      if (ghCheck?.lastPushAt) {
+        const monthsAgo = (Date.now() - new Date(ghCheck.lastPushAt).getTime()) / (1000 * 60 * 60 * 24 * 30);
+        if (monthsAgo <= 12) {
+          reasons.push("active_repo");
+        }
+      }
+
+      // ── DECISION ──
+      // Approve if: 1+ strong signal OR 3+ weak signals (stricter than before)
       const strongSignals = reasons.filter(r =>
         r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars")
       );
-      const shouldApprove = strongSignals.length >= 1 || reasons.length >= 2;
+      const shouldApprove = strongSignals.length >= 1 || reasons.length >= 3;
 
       if (shouldApprove) {
         await supabase.from("skills").update({
@@ -143,7 +298,12 @@ Deno.serve(async (req) => {
           action_type: "auto_approve",
           function_name: "auto-approve-skills",
           reason: reasons.join(", "),
-          metadata: { slug: skill.slug, stars: skill.github_stars, security: skill.security_status },
+          metadata: {
+            slug: skill.slug,
+            stars: effectiveStars,
+            security: skill.security_status,
+            gh_check: ghCheck ? { license: ghCheck.hasLicense, active: !!ghCheck.lastPushAt } : null,
+          },
         });
 
         approved++;
@@ -154,6 +314,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       processed: pending.length, approved, rejected, skipped,
+      rate_limited: rateLimited,
       remaining: pending.length === batchSize ? "more" : 0,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
