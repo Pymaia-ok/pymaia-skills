@@ -1001,8 +1001,21 @@ mcp.tool("search_plugins", {
     if (args.category) exactQ = exactQ.eq("category", args.category);
     if (args.platform) exactQ = exactQ.eq("platform", args.platform);
 
-    const [exactRes, wordSplitRes] = await Promise.all([
+    // Direct name/slug match for individual words
+    const pluginSlugNameFilters = words.map(w => `slug.ilike.%${w}%,name.ilike.%${w}%`).join(",");
+    let directPluginNameQ = supabase
+      .from("plugins")
+      .select(selectCols)
+      .eq("status", "approved")
+      .or(pluginSlugNameFilters)
+      .order("install_count", { ascending: false })
+      .limit(lim);
+    if (args.category) directPluginNameQ = directPluginNameQ.eq("category", args.category);
+    if (args.platform) directPluginNameQ = directPluginNameQ.eq("platform", args.platform);
+
+    const [exactRes, directNameRes, wordSplitRes] = await Promise.all([
       exactQ.then(r => r.data || []),
+      directPluginNameQ.then(r => r.data || []),
       words.length > 1
         ? wordSplitSearch("plugins", selectCols, words, "install_count", lim * 2, extraFilter)
         : Promise.resolve([]),
@@ -1010,7 +1023,7 @@ mcp.tool("search_plugins", {
 
     const seenSlugs = new Set<string>();
     const merged: any[] = [];
-    for (const item of [...exactRes, ...wordSplitRes]) {
+    for (const item of [...directNameRes, ...exactRes, ...wordSplitRes]) {
       if (!seenSlugs.has(item.slug)) {
         seenSlugs.add(item.slug);
         merged.push(item);
