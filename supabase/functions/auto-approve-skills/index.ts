@@ -113,9 +113,10 @@ Deno.serve(async (req) => {
       }
 
       const desc = (skill.description_human || "").trim();
-      if (desc.length < 10) {
+      const autoGenPattern = /^[\w\s-]+ skill from [\w/-]+$/i;
+      if (desc.length < 50 || autoGenPattern.test(desc)) {
         shouldReject = true;
-        rejectReason = "Description too short or missing";
+        rejectReason = "Description too short or auto-generated";
       }
 
       if (shouldReject) {
