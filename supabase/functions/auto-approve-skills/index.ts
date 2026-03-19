@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
       // Approve if: 2+ signals total AND at least 1 strong signal, OR 4+ weak signals
       // This is stricter to prevent low-quality items from being auto-approved
       const strongSignals = reasons.filter(r =>
-        r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars")
+        r.startsWith("trusted_source") || r === "security_verified" || r.startsWith("github_stars") || r === "has_real_readme" || r === "verified_install_command"
       );
       const shouldApprove = (strongSignals.length >= 1 && reasons.length >= 2) || reasons.length >= 4;
 
