@@ -1,70 +1,28 @@
 
 
-# Auto-Discovery Pipeline for Official/High-Authority MCP Servers
+# Limpiar pending y optimizar rejected
 
-## Problem
-High-profile official MCPs like Freepik exist but aren't in our catalog. We only find them manually. Current sync sources (Smithery, official registry, awesome-mcp-servers, Glama) miss MCPs that are announced on company docs/blogs but not yet listed in registries.
+## Situación actual
+- **6 pending**: Todos son MCPs oficiales reales (Zapier, PayPal, Okta, Intercom, Shopify-Gemini, Adobe). Están pending porque el auto-discovery no les extrajo `install_command`.
+- **977 rejected**: Mezcla legítima de repos muertos, placeholders sin GitHub/install, y falsos positivos. No se muestran al usuario (RLS filtra por `status = 'approved'`), pero ensucian la base.
 
-## Solution: New Edge Function `discover-official-mcps`
+## Plan
 
-A scheduled function that uses **3 discovery strategies** to find official MCP servers from authoritative companies, then inserts them as `pending` for admin review (or `approved` if confidence is high enough).
+### 1. Aprobar los 6 pending oficiales
+SQL migration para:
+- **Zapier**: Ya tiene install command (`npx -y mcp-remote https://zapier.com/mcp`) → `approved`
+- **PayPal, Okta, Intercom**: Buscar install commands en sus READMEs de GitHub y aprobar con datos reales
+- **Shopify-Gemini, Adobe-generic**: Evaluar si son MCPs funcionales o repos auxiliares — aprobar o rechazar según corresponda
 
-### Strategy 1 — GitHub Search for Official MCP Repos
-Search GitHub for repos matching patterns like `*-mcp` or `mcp-server` from organizations with high authority (verified orgs, >1000 followers, or known brands). Queries:
-- `"mcp" in:name org:freepik-company` (known orgs watchlist)
-- `topic:mcp-server stars:>100 pushed:>LAST_30_DAYS`
-- `"modelcontextprotocol" in:readme stars:>50 created:>LAST_30_DAYS`
-- `filename:mcp.json stars:>200` (repos exposing MCP config)
+### 2. Purgar rejected sin valor
+Eliminar (DELETE) los ~93 registros `curated` + `rejected` que son placeholders puros (sin `github_url` ni `install_command`). No aportan nada al catálogo ni al discovery pipeline.
 
-### Strategy 2 — AI-Powered Web Discovery
-Use Lovable AI (Gemini Flash) to generate a list of **known SaaS companies likely to have MCP servers**, then verify each one:
-1. Maintain a curated **watchlist** table (`mcp_discovery_watchlist`) with ~100 high-value companies (Figma, Notion, Stripe, Vercel, Datadog, etc.)
-2. For each company, check: `{domain}/mcp`, `{docs_domain}/mcp`, GitHub org repos matching `*mcp*`
-3. If a valid MCP endpoint or repo is found → queue for indexing
+### 3. Mejorar auto-approval en `discover-official-mcps`
+Modificar la función para que al descubrir un repo, intente extraer el `install_command` del README automáticamente (regex para `npx`, `uvx`, `docker`, `mcp-remote` patterns) antes de insertar. Si lo encuentra → `approved` directo. Si no → `pending` pero con `readme_raw` poblado para que `generate-install-commands` lo procese después.
 
-### Strategy 3 — Social Signal Monitoring
-Search GitHub trending + HackerNews/Reddit via web search for announcements:
-- Query: `"launched MCP" OR "MCP server" OR "MCP integration" site:github.com`
-- Parse results for new official announcements from companies not yet in our catalog
-
-## Database Changes
-
-**New table: `mcp_discovery_watchlist`**
-| Column | Type | Description |
-|---|---|---|
-| id | uuid PK | |
-| company_name | text | e.g. "Freepik" |
-| domain | text | e.g. "freepik.com" |
-| github_org | text | e.g. "freepik-company" |
-| docs_url | text | Known docs URL pattern |
-| last_checked_at | timestamptz | When we last checked |
-| status | text | `watching` / `found` / `indexed` |
-| discovered_mcp_url | text | If found, the MCP endpoint |
-
-Pre-seed with ~50-100 high-value companies (Adobe, Figma, Canva, Stripe, Vercel, Datadog, Sentry, Linear, Notion, Shopify, HubSpot, Twilio, SendGrid, Cloudflare, DigitalOcean, etc.)
-
-## Edge Function: `discover-official-mcps`
-
-3 modes triggered by cron:
-1. **`check_watchlist`** (daily) — Iterate watchlist companies, check GitHub org for `*mcp*` repos, check `{domain}/mcp` endpoint. If found → insert into `mcp_servers` as `pending` + update watchlist status.
-2. **`github_search`** (daily) — Run GitHub search queries for new high-star MCP repos not in our catalog. Auto-approve if >500 stars + verified org.
-3. **`ai_expand_watchlist`** (weekly) — Use Gemini Flash to suggest new companies to add to watchlist based on industry trends and recent MCP ecosystem growth.
-
-## Auto-Approval Logic
-- **Auto-approve** if: verified GitHub org + >500 stars + has README with MCP setup instructions
-- **Pending** otherwise, for admin review
-- Always set `source: 'auto-discovery'`, `is_official: true` for verified org repos
-
-## Cron Schedule
-- `check_watchlist`: daily at 04:00 UTC
-- `github_search`: daily at 05:00 UTC  
-- `ai_expand_watchlist`: weekly on Mondays at 03:00 UTC
-
-## Files to Create/Modify
-
-| File | Change |
+## Archivos a modificar
+| Archivo | Cambio |
 |---|---|
-| `supabase/functions/discover-official-mcps/index.ts` | New function with 3 modes |
-| DB migration | Create `mcp_discovery_watchlist` table + seed ~80 companies |
-| Cron jobs | 3 new scheduled invocations |
+| DB migration | UPDATE 6 pending → approved con install commands; DELETE placeholders rejected sin valor |
+| `supabase/functions/discover-official-mcps/index.ts` | Agregar extracción de install_command del README al descubrir repos |
 
