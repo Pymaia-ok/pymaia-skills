@@ -1,5 +1,6 @@
 import Footer from "@/components/landing/Footer";
 import { useTranslation } from "react-i18next";
+import DOMPurify from "dompurify";
 
 const Terms = () => {
   const { t } = useTranslation();
