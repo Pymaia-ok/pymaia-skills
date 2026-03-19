@@ -130,3 +130,6 @@ verify_jwt = false
 [functions.discover-trending-repos]
 verify_jwt = false
 
+[functions.discover-official-mcps]
+verify_jwt = false
+
