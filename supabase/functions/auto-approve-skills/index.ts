@@ -54,6 +54,9 @@ async function quickGitHubCheck(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
