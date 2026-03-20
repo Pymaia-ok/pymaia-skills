@@ -1,41 +1,50 @@
 
 
-# Importar repos principales del Top AI Tools
+# Seguridad para Publicación de Repo Público
 
-## Situación actual
+## Resumen
 
-Tenemos skills derivadas (templates, sub-skills de monorepos) pero **faltan los repos principales** como entradas de primera clase:
+Implementar las 4 partes del PRD de seguridad: gitignore, CORS restrictivo, migración SQL para eliminar JWT hardcodeados, y protección de endpoints admin.
 
-| Repo | Estado actual |
+## Plan de implementación
+
+### 1. `.gitignore` + `.env.example`
+- Agregar `.env`, `.env.local`, `.env.*.local`, `.supabase`, `supabase/.temp` al gitignore
+- Crear `.env.example` con placeholders
+
+### 2. CORS restrictivo en `_shared/cors.ts`
+- Reemplazar `*` con lista de orígenes permitidos (`pymaiaskills.lovable.app`, `mcp.pymaia.com`, `localhost:*`)
+- Exportar `getCorsHeaders(req)` + mantener `corsHeaders` estático como fallback apuntando al dominio principal
+- Actualizar las ~20 funciones que definen CORS inline para importar de `_shared/cors.ts` en vez de definir `*` localmente
+
+**Funciones con CORS inline a migrar** (encontradas 55 archivos): `auto-approve-skills`, `security-incident`, `rescan-security`, `quality-maintenance`, `refresh-catalog-data`, `sync-antigravity-skills`, `sync-plugins`, `translate-skills`, `generate-course`, `sync-creators`, `sync-connectors`, `sync-skills`, `generate-install-commands`, `scan-security`, `smart-search`, `scrape-skills-sh`, `skill-raw`, `check-mcp-health`, `enrich-skills-ai`, `blog-sitemap`, y más.
+
+### 3. Migración SQL — Eliminar JWT hardcodeados
+- Crear migración que re-programe los 2 cron jobs:
+  - `regen-truncated-blogs` → usar `current_setting('supabase.url')` + `current_setting('supabase.anon_key')`
+  - `generate-embeddings-auto` → idem
+- Esto no cambia las migraciones viejas (quedan en historial), pero los jobs activos ya no usarán el token literal
+
+### 4. Admin auth helper + protección de funciones admin
+- Crear `_shared/admin-auth.ts` con `validateAdminSecret()` y `unauthorizedResponse()`
+- Agregar validación en: `auto-approve-skills`, `security-incident`, `rescan-security`, `quality-maintenance`
+- Backward compatible: si `ADMIN_FUNCTION_SECRET` no está configurado, permite acceso (para no romper cron jobs existentes)
+
+### 5. Recordatorio de acciones manuales
+Al finalizar, listar las acciones que el usuario debe hacer manualmente:
+- Configurar secret `ADMIN_FUNCTION_SECRET`
+- Rotar anon key antes de publicar
+- Limpiar historial git con `git filter-repo`
+
+## Detalle técnico
+
+| Archivo | Acción |
 |---|---|
-| `open-webui/open-webui` | No existe |
-| `infiniflow/ragflow` | No existe |
-| `langgenius/dify` | Solo sub-skills del monorepo (component-refactoring, etc.) |
-| `langchain-ai/langchain` | Solo skills de langchain-skills, no el repo principal |
-| `langflow-ai/langflow` | No existe |
-| `crewAIInc/crewAI` | Solo templates, no el framework principal |
-
-## Plan
-
-Insertar 6 registros en la tabla `skills` con status `approved`, usando datos reales de GitHub (estrellas, descripción). El pipeline existente (`enrich-github-metadata`, `bulk-fetch-skill-content`, `generate-embeddings`) se encargará automáticamente de:
-- Poblar `github_metadata`
-- Extraer SKILL.md si existe
-- Generar embeddings y traducciones
-
-### Datos a insertar
-
-| slug | display_name | github_url | category | estrellas aprox |
-|---|---|---|---|---|
-| `open-webui` | Open WebUI | github.com/open-webui/open-webui | `ai-tools` | ~80k |
-| `ragflow` | RAGFlow | github.com/infiniflow/ragflow | `ai-tools` | ~55k |
-| `dify-platform` | Dify | github.com/langgenius/dify | `ai-tools` | ~90k |
-| `langchain-framework` | LangChain | github.com/langchain-ai/langchain | `ai-tools` | ~105k |
-| `langflow-platform` | Langflow | github.com/langflow-ai/langflow | `ai-tools` | ~55k |
-| `crewai-framework` | CrewAI | github.com/crewAIInc/crewAI | `ai-tools` | ~30k |
-
-### Ejecución
-- 1 INSERT con los 6 registros usando el insert tool de Supabase
-- Cada registro incluirá: slug, display_name, github_url, category, status=approved, tagline descriptivo, install_command (link al repo)
-
-No requiere cambios de código ni migraciones.
+| `.gitignore` | Agregar exclusiones de .env y .supabase |
+| `.env.example` | Crear con placeholders |
+| `supabase/functions/_shared/cors.ts` | CORS restrictivo con `getCorsHeaders()` |
+| `supabase/functions/_shared/admin-auth.ts` | Crear helper de auth admin |
+| ~20 edge functions con CORS inline | Reemplazar por import de shared |
+| 4 funciones admin | Agregar `validateAdminSecret()` |
+| Nueva migración SQL | Re-programar 2 cron jobs sin JWT hardcodeado |
 
