@@ -42,7 +42,7 @@ const FinalCTA = () => {
           {/* Install command */}
           <button
             onClick={handleCopy}
-            className="w-full max-w-xl mx-auto flex items-center gap-3 px-4 py-3 rounded-xl bg-background text-foreground font-mono text-sm border border-background/20 hover:bg-background/90 transition-colors cursor-pointer group text-left mb-8"
+            className="w-full max-w-xl mx-auto flex items-center gap-3 px-4 py-3 rounded-xl bg-background text-foreground font-mono text-sm border border-border hover:bg-secondary transition-colors cursor-pointer group text-left mb-8"
           >
             <span className="text-foreground/50 select-none">$</span>
             <span className="flex-1 truncate">{INSTALL_CMD}</span>
