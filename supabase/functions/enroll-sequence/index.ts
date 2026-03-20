@@ -194,10 +194,14 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
 };
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+  const dynCorsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynCorsHeaders });
   }
+
+  // Admin auth guard
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
