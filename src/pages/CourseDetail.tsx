@@ -63,6 +63,27 @@ const CourseDetail = () => {
     canonical: `https://pymaiaskills.lovable.app/curso/${slug}`,
   });
 
+  if (courseLoading) {
+    return (
+      <div className="min-h-screen bg-background pt-14">
+        <div className="max-w-3xl mx-auto px-6 py-12 space-y-6">
+          <div className="h-5 w-32 bg-secondary animate-pulse rounded" />
+          <div className="h-10 w-80 bg-secondary animate-pulse rounded" />
+          <div className="h-5 w-full max-w-lg bg-secondary animate-pulse rounded" />
+          <div className="flex gap-3 mt-4">
+            <div className="h-6 w-20 bg-secondary animate-pulse rounded-full" />
+            <div className="h-6 w-24 bg-secondary animate-pulse rounded-full" />
+          </div>
+          <div className="space-y-3 mt-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-secondary animate-pulse rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!course) {
     return (
       <div className="min-h-screen bg-background pt-14 flex items-center justify-center">

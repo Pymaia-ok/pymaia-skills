@@ -189,8 +189,17 @@ export default function MisSkills() {
 
         {/* Skills list */}
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-secondary animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 bg-secondary animate-pulse rounded" />
+                  <div className="h-3 w-72 bg-secondary animate-pulse rounded" />
+                </div>
+                <div className="h-6 w-20 bg-secondary animate-pulse rounded-full" />
+              </div>
+            ))}
           </div>
         ) : skills.length === 0 && drafts.length === 0 ? (
           <div className="text-center py-16">
