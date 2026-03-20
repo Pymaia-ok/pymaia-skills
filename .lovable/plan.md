@@ -1,50 +1,67 @@
 
 
-# Seguridad para Publicación de Repo Público
+# Plan: Hardening de Seguridad Pre-Publicación
 
-## Resumen
+## Estado actual vs PRD
 
-Implementar las 4 partes del PRD de seguridad: gitignore, CORS restrictivo, migración SQL para eliminar JWT hardcodeados, y protección de endpoints admin.
+| ID | Hallazgo | Estado | Acción necesaria |
+|----|----------|--------|-----------------|
+| S1 | `.env` commiteado | ✅ RESUELTO — repo nuevo, historial limpio | Ninguna |
+| S2 | `.gitignore` incompleto | ❌ PENDIENTE — falta `.env`, `.lovable/`, `.env.*` | Actualizar |
+| S3 | JWT en migraciones SQL | ✅ RESUELTO — cron jobs ya usan `get_edge_headers()` (vault) | Ninguna |
+| S4 | 13 PRDs estratégicos en `.lovable/` | ❌ PENDIENTE — tracked por git | Agregar a `.gitignore` + eliminar del tracking |
+| S5 | Admin auth fallback inseguro | ❌ PENDIENTE — permite acceso si no hay secret | Cambiar a denegar |
+| S6 | Functions sensibles sin auth | ❌ PENDIENTE — 7 funciones sin protección | Agregar admin auth |
+| S7 | CORS con localhost hardcodeado | ⚠️ PARCIAL — `_shared/cors.ts` es correcto pero `manage-api-keys` y `enroll-sequence` tienen CORS inline con localhost | Migrar a shared CORS |
 
-## Plan de implementación
+## Implementación
 
-### 1. `.gitignore` + `.env.example`
-- Agregar `.env`, `.env.local`, `.env.*.local`, `.supabase`, `supabase/.temp` al gitignore
-- Crear `.env.example` con placeholders
+### 1. Actualizar `.gitignore` + eliminar `.lovable/` del tracking (S2 + S4)
+- Agregar: `.env`, `.env.*`, `.env.local`, `.env.production`, `.lovable/`, `*.pem`, `*.key`, `secrets/`
+- Los 13 archivos `.lovable/*.md` dejarán de ser tracked en el próximo push
 
-### 2. CORS restrictivo en `_shared/cors.ts`
-- Reemplazar `*` con lista de orígenes permitidos (`pymaiaskills.lovable.app`, `mcp.pymaia.com`, `localhost:*`)
-- Exportar `getCorsHeaders(req)` + mantener `corsHeaders` estático como fallback apuntando al dominio principal
-- Actualizar las ~20 funciones que definen CORS inline para importar de `_shared/cors.ts` en vez de definir `*` localmente
+### 2. Fix admin auth fallback (S5)
+- Archivo: `supabase/functions/_shared/admin-auth.ts`
+- Cambiar: si `ADMIN_FUNCTION_SECRET` no está configurado → denegar acceso (no permitir)
+- Eliminar: fallback de anon key (líneas 35-39) — ya no necesario porque cron jobs usan service role key
 
-**Funciones con CORS inline a migrar** (encontradas 55 archivos): `auto-approve-skills`, `security-incident`, `rescan-security`, `quality-maintenance`, `refresh-catalog-data`, `sync-antigravity-skills`, `sync-plugins`, `translate-skills`, `generate-course`, `sync-creators`, `sync-connectors`, `sync-skills`, `generate-install-commands`, `scan-security`, `smart-search`, `scrape-skills-sh`, `skill-raw`, `check-mcp-health`, `enrich-skills-ai`, `blog-sitemap`, y más.
+### 3. Proteger funciones sensibles sin auth (S6)
+Agregar `validateAdminRequest` a estas funciones que hoy NO tienen protección:
 
-### 3. Migración SQL — Eliminar JWT hardcodeados
-- Crear migración que re-programe los 2 cron jobs:
-  - `regen-truncated-blogs` → usar `current_setting('supabase.url')` + `current_setting('supabase.anon_key')`
-  - `generate-embeddings-auto` → idem
-- Esto no cambia las migraciones viejas (quedan en historial), pero los jobs activos ya no usarán el token literal
+| Función | Auth actual | Acción |
+|---------|------------|--------|
+| `send-email` | Ninguna | Agregar admin auth |
+| `process-email-queue` | Ninguna | Agregar admin auth |
+| `import-skills-csv` | Ninguna | Agregar admin auth |
+| `generate-blog-post` | Ninguna | Agregar admin auth |
+| `generate-course` | Ninguna | Agregar admin auth |
+| `regen-blog-covers` | Ninguna | Agregar admin auth |
 
-### 4. Admin auth helper + protección de funciones admin
-- Crear `_shared/admin-auth.ts` con `validateAdminSecret()` y `unauthorizedResponse()`
-- Agregar validación en: `auto-approve-skills`, `security-incident`, `rescan-security`, `quality-maintenance`
-- Backward compatible: si `ADMIN_FUNCTION_SECRET` no está configurado, permite acceso (para no romper cron jobs existentes)
+Nota: `manage-api-keys` ya valida JWT del usuario (línea 49-55), OK.
 
-### 5. Recordatorio de acciones manuales
-Al finalizar, listar las acciones que el usuario debe hacer manualmente:
-- Configurar secret `ADMIN_FUNCTION_SECRET`
-- Rotar anon key antes de publicar
-- Limpiar historial git con `git filter-repo`
+### 4. Migrar CORS inline a shared (S7)
+- `manage-api-keys/index.ts`: eliminar CORS local (líneas 4-19), usar import de `_shared/cors.ts`
+- `enroll-sequence/index.ts`: eliminar CORS local (líneas 5-20), usar import de `_shared/cors.ts`
 
-## Detalle técnico
+### Funciones que correctamente NO necesitan cambio
+- `mcp-server` — API pública con API keys propias
+- `trust-score-api`, `plugin-registry`, `skill-raw` — APIs públicas de consulta
+- `semantic-search`, `smart-search`, `fetch-readme` — búsqueda pública
+- `sync-*`, `discover-*`, `enrich-*` — llamados por cron con service role key
+- `auto-approve-skills`, `security-incident`, `rescan-security`, `quality-maintenance` — ya tienen `validateAdminRequest`
 
-| Archivo | Acción |
-|---|---|
-| `.gitignore` | Agregar exclusiones de .env y .supabase |
-| `.env.example` | Crear con placeholders |
-| `supabase/functions/_shared/cors.ts` | CORS restrictivo con `getCorsHeaders()` |
-| `supabase/functions/_shared/admin-auth.ts` | Crear helper de auth admin |
-| ~20 edge functions con CORS inline | Reemplazar por import de shared |
-| 4 funciones admin | Agregar `validateAdminSecret()` |
-| Nueva migración SQL | Re-programar 2 cron jobs sin JWT hardcodeado |
+## Archivos a modificar
+
+| Archivo | Cambio |
+|---------|--------|
+| `.gitignore` | Agregar exclusiones de `.env`, `.lovable/`, etc. |
+| `_shared/admin-auth.ts` | Denegar si no hay secret; eliminar fallback anon key |
+| `send-email/index.ts` | Agregar admin auth guard |
+| `process-email-queue/index.ts` | Agregar admin auth guard |
+| `import-skills-csv/index.ts` | Agregar admin auth guard |
+| `generate-blog-post/index.ts` | Agregar admin auth guard |
+| `generate-course/index.ts` | Agregar admin auth guard |
+| `regen-blog-covers/index.ts` | Agregar admin auth guard |
+| `manage-api-keys/index.ts` | Eliminar CORS inline, usar shared |
+| `enroll-sequence/index.ts` | Eliminar CORS inline, usar shared |
 
