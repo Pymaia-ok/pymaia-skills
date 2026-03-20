@@ -4,8 +4,8 @@
  * 1. ADMIN_FUNCTION_SECRET in Authorization header (preferred)
  * 2. Supabase service-role key (internal cron calls)
  *
- * If ADMIN_FUNCTION_SECRET is not configured, access is allowed
- * (backward-compatible for existing cron jobs).
+ * IMPORTANT: If ADMIN_FUNCTION_SECRET is not configured, access is DENIED.
+ * This ensures all admin endpoints are protected by default.
  */
 
 import { getCorsHeaders } from "./cors.ts";
@@ -14,9 +14,9 @@ export function validateAdminRequest(req: Request): { authorized: boolean; reaso
   const adminSecret = Deno.env.get("ADMIN_FUNCTION_SECRET");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  // If no admin secret configured, allow access (backward compat)
+  // If no admin secret configured, DENY access (secure by default)
   if (!adminSecret) {
-    return { authorized: true };
+    return { authorized: false, reason: "ADMIN_FUNCTION_SECRET not configured" };
   }
 
   const authHeader = req.headers.get("authorization") ?? "";
@@ -29,12 +29,6 @@ export function validateAdminRequest(req: Request): { authorized: boolean; reaso
 
   // Allow if token matches service-role key (internal cron/function calls)
   if (serviceRoleKey && token === serviceRoleKey) {
-    return { authorized: true };
-  }
-
-  // Also allow anon key (for existing cron jobs during transition)
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (anonKey && token === anonKey) {
     return { authorized: true };
   }
 

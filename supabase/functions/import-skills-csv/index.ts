@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAdminRequest, unauthorizedResponse } from "../_shared/admin-auth.ts";
 
 function inferCategory(name: string, desc: string): string {
   const text = `${name} ${desc}`.toLowerCase();

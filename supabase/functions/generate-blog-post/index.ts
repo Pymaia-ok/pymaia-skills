@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAdminRequest, unauthorizedResponse } from "../_shared/admin-auth.ts";
 
 /** Sanitize AI-generated article text before persisting */
 function sanitizeArticle(text: string | undefined | null): string {
