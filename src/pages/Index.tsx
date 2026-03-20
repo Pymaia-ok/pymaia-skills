@@ -13,7 +13,7 @@ import ConnectorsSection from "@/components/landing/ConnectorsSection";
 import PluginsSection from "@/components/landing/PluginsSection";
 import BundlesSection from "@/components/landing/BundlesSection";
 import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
-import McpBannerSection from "@/components/landing/McpBannerSection";
+
 import BlogSection from "@/components/landing/BlogSection";
 import CreatorLeaderboard from "@/components/landing/CreatorLeaderboard";
 import CoursesSection from "@/components/landing/CoursesSection";
