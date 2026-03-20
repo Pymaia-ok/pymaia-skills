@@ -15,7 +15,7 @@ const CourseDetail = () => {
   const isEs = i18n.language?.startsWith("es");
   const { user } = useAuth();
 
-  const { data: course } = useQuery({
+  const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
     queryFn: async () => {
       const { data } = await supabase
