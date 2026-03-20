@@ -2,11 +2,7 @@
 // Runs every 10 minutes via pg_cron to retrieve final verdicts after upload
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { errorResponse, logFailure } from "../_shared/error-helpers.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 const VT_API_BASE = "https://www.virustotal.com/api/v3";
 

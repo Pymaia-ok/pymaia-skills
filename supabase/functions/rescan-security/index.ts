@@ -2,11 +2,7 @@
 // Rotates through ALL approved items weekly, not just stale ones
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { errorResponse, logFailure } from "../_shared/error-helpers.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

@@ -2,11 +2,7 @@
 // Layers: secrets, injection (regex+LLM), typosquatting, format validation,
 //         hidden content, scope analysis, MCP permission classification
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 // ── SECRET PATTERNS ──
 const SECRET_PATTERNS: Array<{ name: string; regex: RegExp }> = [

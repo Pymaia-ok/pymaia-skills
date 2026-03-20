@@ -1,10 +1,6 @@
 // sync-plugins v1 — Discover community plugins from GitHub
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 function slugify(name: string): string {
   return name

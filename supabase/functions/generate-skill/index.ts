@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 const GENERATE_PROMPT = `Sos un experto en crear skills best-in-class para Claude Code siguiendo el estándar oficial Agent Skills de Anthropic. Estudiaste las mejores skills del ecosistema (webapp-testing, mcp-builder, pdf-tools, frontend-design) y aplicás sus patrones.
 

@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 // Phase 1: Generate test cases
 const GENERATE_CASES_PROMPT = `Sos un diseñador de QA para skills de Claude Code. Generá 5 casos de test precisos y diversos.

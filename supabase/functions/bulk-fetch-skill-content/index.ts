@@ -1,10 +1,6 @@
 // bulk-fetch-skill-content
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 function extractRepoAndSkill(githubUrl: string, installCommand: string): { owner: string; repo: string; skillName: string | null } | null {
   const m = githubUrl.match(/github\.com\/([^\/]+)\/([^\/\?#]+)/);

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 const ALLOWED_ORIGINS = [
   "https://pymaiaskills.lovable.app",

@@ -1,12 +1,7 @@
 // trust-score-api v2.0 — Public Security Benchmark API
 // Endpoints: lookup, search, badge SVG
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 // ── Rate Limiting (in-memory, per-instance) ──
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
