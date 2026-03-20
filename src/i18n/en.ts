@@ -74,9 +74,9 @@ export default {
 
     pathsTitle: "What do you need today?",
     pathsSubtitle: "We have a path for every need.",
-    pathExpertTitle: "I want to be more productive",
-    pathExpertDesc: "Explore solutions trusted by thousands of professionals. Activate what you need and be more productive from today.",
-    pathExpertCta: "Explore solutions",
+    pathExpertTitle: "Install and go",
+    pathExpertDesc: "One command and your AI has access to 43,000+ professional solutions. Just ask for what you need.",
+    pathExpertCta: "Install Pymaia Skills",
     pathNewTitle: "I want to create custom solutions",
     pathNewDesc: "Package your expert knowledge into reusable solutions. Share with whoever you want or publish for the community.",
     pathNewCta: "Create a solution",
