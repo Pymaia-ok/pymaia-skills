@@ -94,8 +94,10 @@ The Pymaia Skills MCP Server enables Claude to automatically recommend relevant 
 
 Run this single command in Claude Code — no config files to edit:
 ```
-claude mcp add pymaia-skills --transport http https://mcp.pymaia.com
+claude mcp add pymaia-skills --transport http --scope user https://mcp.pymaia.com
 ```
+
+This installs the server globally (available in every project). For project-only, use `--scope project`.
 
 ### Manual Configuration
 
