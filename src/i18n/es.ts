@@ -140,14 +140,14 @@ export default {
     batoolseekerAfter: "Describí tu objetivo, recibí una solución curada con comandos de instalación en 30 segundos.",
     batoolseekerTime: "Ahorra ~2hs por búsqueda",
 
-    mcpTitle: "Tu arquitecto de soluciones AI",
-    mcpSubtitle: "Instalá Pymaia Agent y decile qué necesitás. Él analiza tu objetivo, busca en todo el catálogo y te arma la combinación perfecta de herramientas.",
-    mcpCta: "Instalar Pymaia Agent",
+    mcpTitle: "Un comando. Todo el poder.",
+    mcpSubtitle: "Instalá Pymaia Skills y tu IA accede a 43,000+ soluciones profesionales. Buscá, activá y resolvé sin salir de tu agente.",
+    mcpCta: "Instalar Pymaia Skills",
 
-    ctaTitle: "Transformá tu\nproductividad.",
-    ctaSubtitle: "35,000+ soluciones profesionales. Activá las que necesitás en minutos y empezá a ver resultados desde el día uno.",
-    ctaExplore: "Explorar soluciones",
-    ctaLearn: "Primeros pasos",
+    ctaTitle: "Instalá Pymaia Skills.\nEl resto lo hace tu IA.",
+    ctaSubtitle: "43,000+ soluciones profesionales a un comando de distancia. Instalá, pedí y resolvé.",
+    ctaExplore: "Instalar ahora",
+    ctaLearn: "Explorar catálogo",
   },
 
   roles: {

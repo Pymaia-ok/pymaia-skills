@@ -27,12 +27,12 @@ const FinalCTA = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild variant="secondary" size="lg" className="text-base px-8 h-12 rounded-full">
-              <Link to="/explorar">
+              <Link to="/conector/pymaia-skills">
                 {t("landing.ctaExplore")} <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
             <Button asChild variant="ghost" size="lg" className="text-base px-8 h-12 rounded-full text-background/70 hover:text-background hover:bg-background/10">
-              <Link to="/primeros-pasos">
+              <Link to="/explorar">
                 {t("landing.ctaLearn")}
               </Link>
             </Button>

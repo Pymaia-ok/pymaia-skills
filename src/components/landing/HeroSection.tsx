@@ -119,13 +119,13 @@ const HeroSection = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="text-base px-8 h-12 rounded-full">
-              <Link to="/explorar">
+              <Link to="/conector/pymaia-skills">
                 {t("landing.heroCtaExplore")}
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="text-base px-8 h-12 rounded-full">
-              <Link to="/primeros-pasos">
+              <Link to="/explorar">
                 {t("landing.heroCtaLearn")}
               </Link>
             </Button>
