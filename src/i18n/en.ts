@@ -45,6 +45,8 @@ export default {
     heroChatAi1: "Pymaia Skills found 3 solutions. Activated 'Competitive Intel Pro' — ask me for the analysis whenever you're ready.",
     heroChatUser2: "Do it with fintech data in LATAM",
     heroChatAi2: "Done. Report with 8 competitors, pricing and gaps. Ready in executive format.",
+    heroChatTitle: "Pymaia Skills in action",
+    heroChatPlaceholder: "Ask your AI something...",
 
     howTitle: "How it works",
     howSubtitle: "From zero to productive in 30 seconds.",
@@ -57,6 +59,9 @@ export default {
     howstep2Desc: "Your AI searches, verifies and activates the best solution from the catalog automatically.",
     howstep3Title: "Expert knowledge activated",
     howstep3Desc: "Your assistant already knows how to do the task. Just use it.",
+
+    marqueeTitle: "Any role. Any task. Solved.",
+    marqueeSubtitle: "Pymaia Skills has solutions for every professional area.",
 
     statsSkills: "solutions",
     statsConnectors: "integrations",
