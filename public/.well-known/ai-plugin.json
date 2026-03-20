@@ -10,7 +10,8 @@
   "api": {
     "type": "mcp",
     "url": "https://mcp.pymaia.com",
-    "transport": "streamable-http"
+    "transport": "streamable-http",
+    "openapi_url": "https://pymaiaskills.lovable.app/.well-known/openapi.json"
   },
   "logo_url": "https://pymaiaskills.lovable.app/images/pymaia-skills-icon.png",
   "contact_email": "info@pymaia.com",

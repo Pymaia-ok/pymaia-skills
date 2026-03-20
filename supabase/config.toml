@@ -133,3 +133,6 @@ verify_jwt = false
 [functions.discover-official-mcps]
 verify_jwt = false
 
+[functions.skills-sitemap]
+verify_jwt = false
+
