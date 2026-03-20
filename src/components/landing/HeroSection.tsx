@@ -6,7 +6,7 @@ import { ArrowRight, Zap, Send, Copy, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AgentLogoStrip } from "@/components/AgentLogos";
 
-const INSTALL_CMD = "claude mcp add pymaia-skills --transport http https://mcp.pymaia.com";
+const INSTALL_CMD = "claude mcp add pymaia-skills --transport http --scope user https://mcp.pymaia.com";
 
 const useChatMessages = () => {
   const { t } = useTranslation();

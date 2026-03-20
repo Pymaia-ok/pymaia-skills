@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 const MCP_URL = "https://mcp.pymaia.com";
 
-const oneLineCommand = `claude mcp add pymaia-skills --transport http ${MCP_URL}`;
+const oneLineCommand = `claude mcp add pymaia-skills --transport http --scope user ${MCP_URL}`;
 
 const streamableConfig = JSON.stringify(
   { mcpServers: { "pymaia-skills": { type: "streamable-http", url: MCP_URL } } },

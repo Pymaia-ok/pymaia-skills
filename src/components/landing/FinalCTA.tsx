@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Bot, Copy, Check } from "lucide-react";
 import { useState } from "react";
 
-const INSTALL_CMD = "claude mcp add pymaia-skills --transport http https://mcp.pymaia.com";
+const INSTALL_CMD = "claude mcp add pymaia-skills --transport http --scope user https://mcp.pymaia.com";
 
 const FinalCTA = () => {
   const { t } = useTranslation();
