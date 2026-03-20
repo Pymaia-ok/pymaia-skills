@@ -1,43 +1,7 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
-const roles = [
-  { emoji: "📣", label: "Marketing" },
-  { emoji: "💰", label: "Ventas" },
-  { emoji: "⚖️", label: "Legal" },
-  { emoji: "💵", label: "Finanzas" },
-  { emoji: "👥", label: "RRHH" },
-  { emoji: "💼", label: "Consultoría" },
-  { emoji: "⚙️", label: "Operaciones" },
-  { emoji: "📊", label: "Datos" },
-  { emoji: "🚀", label: "Startups" },
-  { emoji: "🎨", label: "Diseño" },
-  { emoji: "🏥", label: "Salud" },
-  { emoji: "🎓", label: "Educación" },
-  { emoji: "🛒", label: "E-commerce" },
-  { emoji: "📝", label: "Contenido" },
-  { emoji: "🏗️", label: "Construcción" },
-];
-
-const skills = [
-  "Automatizar reportes",
-  "Revisar contratos",
-  "Analizar competencia",
-  "Onboarding de empleados",
-  "Crear briefs de campaña",
-  "Gestionar pipeline de ventas",
-  "Auditoría de compliance",
-  "Dashboard de métricas",
-  "Optimizar procesos",
-  "Plan de negocios",
-  "Atención al cliente",
-  "Análisis financiero",
-  "Email marketing",
-  "Evaluar rendimiento",
-  "Presentación comercial",
-  "Investigación de mercado",
-  "Gestionar proveedores",
-];
+const roleEmojis = ["📣", "💰", "⚖️", "💵", "👥", "💼", "⚙️", "📊", "🚀", "🎨", "🏥", "🎓", "🛒", "📝", "🏗️"];
 
 const MarqueeStrip = ({
   children,
@@ -65,9 +29,15 @@ const MarqueeStrip = ({
 const MarqueeSection = () => {
   const { t } = useTranslation();
 
+  const roles = t("landing.marqueeRoles").split(",").map((label, i) => ({
+    emoji: roleEmojis[i] || "⚡",
+    label: label.trim(),
+  }));
+
+  const skills = t("landing.marqueeSkills").split(",").map((s) => s.trim());
+
   return (
     <section className="pt-4 pb-16 overflow-hidden">
-      {/* Roles marquee */}
       <div className="mb-4">
         <MarqueeStrip duration={35}>
           {roles.map((role) => (
@@ -82,7 +52,6 @@ const MarqueeSection = () => {
         </MarqueeStrip>
       </div>
 
-      {/* Skills marquee (reverse direction) */}
       <div className="mb-12">
         <MarqueeStrip reverse duration={45}>
           {skills.map((skill) => (
@@ -96,7 +65,6 @@ const MarqueeSection = () => {
         </MarqueeStrip>
       </div>
 
-      {/* Title below the marquees */}
       <div className="max-w-5xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
