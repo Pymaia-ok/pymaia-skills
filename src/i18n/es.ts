@@ -48,6 +48,8 @@ export default {
     heroChatAi1: "Pymaia Skills encontró 3 soluciones. Activé 'Competitive Intel Pro' — pedime el análisis cuando quieras.",
     heroChatUser2: "Hacelo con datos del sector fintech en LATAM",
     heroChatAi2: "Listo. Reporte con 8 competidores, pricing y gaps. Te lo dejo en formato ejecutivo.",
+    heroChatTitle: "Pymaia Skills en acción",
+    heroChatPlaceholder: "Pedile algo a tu IA...",
 
     howTitle: "Cómo funciona",
     howSubtitle: "De cero a productivo en 30 segundos.",
