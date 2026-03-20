@@ -1,0 +1,147 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Pymaia Skills API",
+    "description": "The #1 AI skill directory. Search 43,000+ professional skills, 500+ MCP connectors, and 100+ plugins for AI coding agents. Use this API to discover skills, connectors, and plugins for Claude, Manus, Cursor, Antigravity, OpenClaw and any agent supporting SKILL.md.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Pymaia",
+      "email": "info@pymaia.com",
+      "url": "https://pymaiaskills.lovable.app"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1",
+      "description": "Pymaia Skills API"
+    }
+  ],
+  "paths": {
+    "/smart-search": {
+      "post": {
+        "operationId": "searchCatalog",
+        "summary": "Search skills, connectors, and plugins",
+        "description": "Hybrid search across the entire Pymaia catalog (43,000+ skills, 500+ MCP connectors, 100+ plugins). Supports natural language queries. Returns ranked results with trust scores.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Natural language search query (e.g. 'SEO optimization tools', 'CRM for sales teams')"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Filter by category"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Max results to return"
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": { "type": "string" },
+                          "name": { "type": "string" },
+                          "description": { "type": "string" },
+                          "type": { "type": "string", "enum": ["skill", "connector", "plugin"] },
+                          "trust_score": { "type": "number" },
+                          "github_stars": { "type": "integer" },
+                          "install_count": { "type": "integer" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/skill-raw": {
+      "get": {
+        "operationId": "getSkillContent",
+        "summary": "Get raw SKILL.md content for a skill",
+        "description": "Returns the raw SKILL.md markdown content for installation. Use the slug from search results.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Skill slug identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw SKILL.md content in markdown format",
+            "content": {
+              "text/markdown": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trust-score-api": {
+      "get": {
+        "operationId": "getTrustScore",
+        "summary": "Get trust and security report for a skill or connector",
+        "description": "Returns a detailed trust score breakdown including security scan results, GitHub health metrics, and community signals.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["skill", "connector", "plugin"], "default": "skill" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trust score report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "trust_score": { "type": "number" },
+                    "security_status": { "type": "string" },
+                    "github_stars": { "type": "integer" },
+                    "last_commit_at": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
