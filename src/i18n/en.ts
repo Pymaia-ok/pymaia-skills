@@ -144,12 +144,8 @@ export default {
     batoolseekerAfter: "Describe your goal, get a curated solution with install commands in 30 seconds.",
     batoolseekerTime: "Saves ~2hrs per search",
 
-    mcpTitle: "One command. All the power.",
-    mcpSubtitle: "Install Pymaia Skills and your AI accesses 43,000+ professional solutions. Search, activate and solve without leaving your agent.",
-    mcpCta: "Install Pymaia Skills",
-
-    ctaTitle: "Install Pymaia Skills.\nYour AI does the rest.",
-    ctaSubtitle: "43,000+ professional solutions one command away. Install, ask and solve.",
+    ctaTitle: "One command.\nYour AI does the rest.",
+    ctaSubtitle: "43,000+ professional solutions. Install Pymaia Skills, ask for what you need and solve without leaving your agent.",
     ctaExplore: "Install now",
     ctaLearn: "Explore catalog",
   },

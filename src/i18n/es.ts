@@ -147,12 +147,8 @@ export default {
     batoolseekerAfter: "Describí tu objetivo, recibí una solución curada con comandos de instalación en 30 segundos.",
     batoolseekerTime: "Ahorra ~2hs por búsqueda",
 
-    mcpTitle: "Un comando. Todo el poder.",
-    mcpSubtitle: "Instalá Pymaia Skills y tu IA accede a 43,000+ soluciones profesionales. Buscá, activá y resolvé sin salir de tu agente.",
-    mcpCta: "Instalar Pymaia Skills",
-
-    ctaTitle: "Instalá Pymaia Skills.\nEl resto lo hace tu IA.",
-    ctaSubtitle: "43,000+ soluciones profesionales a un comando de distancia. Instalá, pedí y resolvé.",
+    ctaTitle: "Un comando.\nTu IA hace el resto.",
+    ctaSubtitle: "43,000+ soluciones profesionales. Instalá Pymaia Skills, pedí lo que necesités y resolvé sin salir de tu agente.",
     ctaExplore: "Instalar ahora",
     ctaLearn: "Explorar catálogo",
   },
