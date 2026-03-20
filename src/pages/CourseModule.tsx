@@ -20,7 +20,7 @@ const CourseModule = () => {
   const queryClient = useQueryClient();
   const order = parseInt(moduleOrder || "0", 10);
 
-  const { data: course } = useQuery({
+  const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
     queryFn: async () => {
       const { data } = await supabase.from("courses").select("*").eq("slug", slug).single();
@@ -88,6 +88,23 @@ const CourseModule = () => {
     title: `${title} — ${courseTitle} — Pymaia Academy`,
     description: title,
   });
+
+  if (courseLoading || !modules) {
+    return (
+      <div className="min-h-screen bg-background pt-14">
+        <div className="max-w-3xl mx-auto px-6 py-12 space-y-6">
+          <div className="h-4 w-40 bg-secondary animate-pulse rounded" />
+          <div className="h-8 w-72 bg-secondary animate-pulse rounded" />
+          <div className="h-2 w-full bg-secondary animate-pulse rounded-full" />
+          <div className="space-y-3 mt-6">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-4 bg-secondary animate-pulse rounded" style={{ width: `${90 - i * 8}%` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentModule) {
     return (

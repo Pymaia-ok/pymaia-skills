@@ -165,8 +165,14 @@ export default function ApiKeysSection() {
 
       {/* Keys list */}
       {isLoading ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+              <div className="h-4 w-24 bg-secondary animate-pulse rounded" />
+              <div className="h-4 w-40 bg-secondary animate-pulse rounded" />
+              <div className="ml-auto h-4 w-16 bg-secondary animate-pulse rounded" />
+            </div>
+          ))}
         </div>
       ) : keys.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center">
