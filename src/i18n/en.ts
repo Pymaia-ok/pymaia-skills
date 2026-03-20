@@ -58,6 +58,9 @@ export default {
     howstep3Title: "Expert knowledge activated",
     howstep3Desc: "Your assistant already knows how to do the task. Just use it.",
 
+    marqueeTitle: "Any role. Any task. Solved.",
+    marqueeSubtitle: "Pymaia Skills has solutions for every professional area.",
+
     statsSkills: "solutions",
     statsConnectors: "integrations",
     statsPlugins: "plugins",
