@@ -1,11 +1,7 @@
 // scrape-skills-sh — Import skills from skills.sh sitemap
 // Modes: scrape | dedup | import | full (all 3 sequentially)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 // ─── Category auto-detection keywords ───
 const CATEGORY_KEYWORDS: Record<string, string[]> = {

@@ -1,10 +1,6 @@
 // calculate-trust-score v3.0 — Computes Trust Score (0-100) + Quality Score (0-100)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 const TRUSTED_PUBLISHERS = [
   "anthropics", "anthropic", "vercel", "microsoft", "google", "aws",

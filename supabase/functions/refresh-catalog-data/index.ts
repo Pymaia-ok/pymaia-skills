@@ -2,11 +2,7 @@
 // Modes: refresh_readmes | detect_dead_repos | scrape_docs
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logFailure } from "../_shared/error-helpers.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

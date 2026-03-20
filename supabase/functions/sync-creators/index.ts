@@ -1,10 +1,6 @@
 // sync-creators — Populate and enrich creator profiles from GitHub data
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 const VERIFIED_ORGS = new Set([
   "anthropics", "vercel", "vercel-labs", "microsoft", "google", "meta",

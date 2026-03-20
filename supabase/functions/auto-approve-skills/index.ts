@@ -1,9 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAdminRequest, unauthorizedResponse } from "../_shared/admin-auth.ts";
 
 // Trusted GitHub orgs/users whose skills get auto-approved with lighter checks
 const TRUSTED_SOURCES = [
@@ -56,6 +53,9 @@ async function quickGitHubCheck(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
 
   try {
     const supabase = createClient(

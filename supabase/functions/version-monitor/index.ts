@@ -1,11 +1,7 @@
 // version-monitor v2.0 — Rug pull detection + publisher account status check
 // PRD 10.1: Check publisher GitHub accounts are still active
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 
 async function hashContent(content: string): Promise<string> {
   const encoder = new TextEncoder();

@@ -2267,6 +2267,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      edge_function_auth_headers: { Args: never; Returns: Json }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -2350,6 +2351,7 @@ export type Database = {
           title_es: string
         }[]
       }
+      get_edge_headers: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
