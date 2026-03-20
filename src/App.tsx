@@ -44,8 +44,14 @@ const Links = lazy(() => import("./pages/Links"));
 const queryClient = new QueryClient();
 
 const LazyFallback = () => (
-  <div className="flex items-center justify-center min-h-[50vh]">
-    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  <div className="min-h-[70vh] w-full max-w-6xl mx-auto px-4 pt-12 space-y-8 animate-pulse">
+    <div className="h-8 w-48 bg-muted rounded-md" />
+    <div className="h-5 w-96 max-w-full bg-muted rounded-md" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="rounded-xl bg-muted h-48" />
+      ))}
+    </div>
   </div>
 );
 
