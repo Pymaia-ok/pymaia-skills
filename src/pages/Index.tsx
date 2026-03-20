@@ -119,8 +119,6 @@ const Index = () => {
         <CreatorLeaderboard />
         {/* 13. Blog / Articles */}
         <BlogSection />
-        {/* 14. MCP banner */}
-        <McpBannerSection />
         {/* 14. Final CTA */}
         <FinalCTA />
         <Footer />
