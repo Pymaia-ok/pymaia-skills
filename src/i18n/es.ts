@@ -39,8 +39,8 @@ export default {
   // Landing sections
   landing: {
     heroBadge: "El MCP Server #1 para profesionales",
-    heroTitle: "Instalá Pymaia Skills\ny tu IA hace el resto.",
-    heroSubtitle: "Un comando. 43,000+ soluciones. Solo pedile lo que necesitás.",
+    heroTitle: "Convertí a tu IA en experta\ninstalando Pymaia Skills.",
+    heroSubtitle: "Marketing, finanzas, legal, datos, diseño, ventas… un comando y tu asistente domina cualquier tema.",
     multiAgentBadge: "Funciona con las herramientas de IA más populares",
     heroCtaExplore: "Instalar Pymaia Skills",
     heroCtaLearn: "Explorar soluciones",
