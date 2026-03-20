@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, PenTool } from "lucide-react";
+import { ArrowRight, Download, PenTool } from "lucide-react";
 
 const TwoPathsSection = () => {
   const { t } = useTranslation();
@@ -28,11 +28,11 @@ const TwoPathsSection = () => {
             viewport={{ once: true }}
             className="p-8 rounded-3xl border-2 border-foreground bg-foreground text-background"
           >
-            <Users className="w-10 h-10 mb-6" />
+            <Download className="w-10 h-10 mb-6" />
             <h3 className="text-2xl font-bold mb-3">{t("landing.pathExpertTitle")}</h3>
             <p className="text-background/70 mb-8 leading-relaxed">{t("landing.pathExpertDesc")}</p>
             <Button asChild variant="secondary" size="lg" className="rounded-full">
-              <Link to="/explorar">
+              <Link to="/conector/pymaia-skills">
                 {t("landing.pathExpertCta")} <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>

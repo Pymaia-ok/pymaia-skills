@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Target, ShieldCheck, Zap } from "lucide-react";
+import { Download, MessageSquare, Sparkles } from "lucide-react";
 
 const steps = [
-  { icon: Target, key: "step1" },
-  { icon: ShieldCheck, key: "step2" },
-  { icon: Zap, key: "step3" },
+  { icon: Download, key: "step1" },
+  { icon: MessageSquare, key: "step2" },
+  { icon: Sparkles, key: "step3" },
 ];
 
 const HowItWorks = () => {
