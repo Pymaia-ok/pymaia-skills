@@ -77,9 +77,9 @@ export default {
 
     pathsTitle: "¿Qué necesitás hoy?",
     pathsSubtitle: "Tenemos un camino para cada necesidad.",
-    pathExpertTitle: "Quiero ser más productivo",
-    pathExpertDesc: "Explorá soluciones probadas por miles de profesionales. Activá las que necesitás y sé más productivo desde hoy.",
-    pathExpertCta: "Explorar soluciones",
+    pathExpertTitle: "Instalá y listo",
+    pathExpertDesc: "Un comando y tu IA ya tiene acceso a 43,000+ soluciones profesionales. Solo pedile lo que necesitás.",
+    pathExpertCta: "Instalar Pymaia Skills",
     pathNewTitle: "Quiero crear soluciones propias",
     pathNewDesc: "Empaquetá tu conocimiento experto en soluciones reutilizables. Compartilas con quienes quieras o publicá para la comunidad.",
     pathNewCta: "Crear una solución",
