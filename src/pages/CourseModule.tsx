@@ -20,7 +20,7 @@ const CourseModule = () => {
   const queryClient = useQueryClient();
   const order = parseInt(moduleOrder || "0", 10);
 
-  const { data: course } = useQuery({
+  const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", slug],
     queryFn: async () => {
       const { data } = await supabase.from("courses").select("*").eq("slug", slug).single();
