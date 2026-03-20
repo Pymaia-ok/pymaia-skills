@@ -1,23 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
-
-const ALLOWED_ORIGINS = [
-  "https://pymaiaskills.lovable.app",
-  "https://id-preview--057a62fa-7fa9-4620-a2ec-a3e99f5cc83e.lovable.app",
-  "http://localhost:5173",
-  "http://localhost:8080",
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("origin") || "";
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Vary": "Origin",
-  };
-}
+import { validateAdminRequest, unauthorizedResponse } from "../_shared/admin-auth.ts";
 
 // Email templates
 const templates: Record<string, (data: any) => { subject: string; html: string }> = {
@@ -210,10 +194,14 @@ const templates: Record<string, (data: any) => { subject: string; html: string }
 };
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+  const dynCorsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynCorsHeaders });
   }
+
+  // Admin auth guard
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;

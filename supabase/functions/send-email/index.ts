@@ -1,11 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { errorResponse } from "../_shared/error-helpers.ts";
 import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAdminRequest, unauthorizedResponse } from "../_shared/admin-auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Admin auth guard
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
 
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");

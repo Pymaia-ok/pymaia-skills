@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
+import { validateAdminRequest, unauthorizedResponse } from "../_shared/admin-auth.ts";
 
 // ── Quality gate: validates a single module meets minimum standards ──
 function passesQualityGate(m: any): { pass: boolean; reasons: string[] } {
@@ -177,6 +178,10 @@ Return a JSON object with: content_md, content_md_es, quiz_json (array of 3 ques
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Admin auth guard
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
 
   try {
     const body = await req.json();
