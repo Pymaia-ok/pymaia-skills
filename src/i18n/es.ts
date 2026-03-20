@@ -65,6 +65,8 @@ export default {
 
     marqueeTitle: "Cualquier rol. Cualquier tarea. Resuelto.",
     marqueeSubtitle: "Pymaia Skills tiene soluciones para cada área profesional.",
+    marqueeRoles: "Marketing,Ventas,Legal,Finanzas,RRHH,Consultoría,Operaciones,Datos,Startups,Diseño,Salud,Educación,E-commerce,Contenido,Construcción",
+    marqueeSkills: "Automatizar reportes,Revisar contratos,Analizar competencia,Onboarding de empleados,Crear briefs de campaña,Gestionar pipeline de ventas,Auditoría de compliance,Dashboard de métricas,Optimizar procesos,Plan de negocios,Atención al cliente,Análisis financiero,Email marketing,Evaluar rendimiento,Presentación comercial,Investigación de mercado,Gestionar proveedores",
 
     statsSkills: "soluciones",
     statsConnectors: "integraciones",

@@ -2,9 +2,11 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap, Send } from "lucide-react";
+import { ArrowRight, Zap, Send, Copy, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AgentLogoStrip } from "@/components/AgentLogos";
+
+const INSTALL_CMD = "claude mcp add pymaia-skills --transport http https://mcp.pymaia.com";
 
 const useChatMessages = () => {
   const { t } = useTranslation();
@@ -14,6 +16,38 @@ const useChatMessages = () => {
     { role: "user" as const, text: t("landing.heroChatUser2"), delay: 4200 },
     { role: "assistant" as const, text: t("landing.heroChatAi2"), delay: 5800 },
   ];
+};
+
+const InstallCommand = () => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(INSTALL_CMD);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35, duration: 0.5 }}
+      className="mt-8 max-w-xl mx-auto"
+    >
+      <button
+        onClick={handleCopy}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-foreground text-background font-mono text-sm border-2 border-foreground hover:bg-foreground/90 transition-colors cursor-pointer group text-left"
+      >
+        <span className="text-background/50 select-none">$</span>
+        <span className="flex-1 truncate">{INSTALL_CMD}</span>
+        {copied ? (
+          <Check className="w-4 h-4 shrink-0 text-green-400" />
+        ) : (
+          <Copy className="w-4 h-4 shrink-0 text-background/50 group-hover:text-background transition-colors" />
+        )}
+      </button>
+    </motion.div>
+  );
 };
 
 const ChatDemo = () => {
@@ -130,6 +164,8 @@ const HeroSection = () => {
               </Link>
             </Button>
           </div>
+
+          <InstallCommand />
 
           {/* Agent logo strip */}
           <div className="mt-10">
