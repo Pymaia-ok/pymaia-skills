@@ -32,7 +32,7 @@ const TwoPathsSection = () => {
             <h3 className="text-2xl font-bold mb-3">{t("landing.pathExpertTitle")}</h3>
             <p className="text-background/70 mb-8 leading-relaxed">{t("landing.pathExpertDesc")}</p>
             <Button asChild variant="secondary" size="lg" className="rounded-full">
-              <Link to="/explorar">
+              <Link to="/conector/pymaia-skills">
                 {t("landing.pathExpertCta")} <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
