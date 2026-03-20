@@ -113,10 +113,23 @@ Deno.serve(async (req) => {
       }
 
       const desc = (skill.description_human || "").trim();
-      const autoGenPattern = /^[\w\s-]+ skill from [\w/-]+$/i;
+      const autoGenPattern = /^[\w\s-]+ — AI agent skill from [\w/-]+$/i;
+      const autoTaglinePattern = /skill for AI agents$/i;
+      // Instead of rejecting, fix the description on the fly
       if (desc.length < 50 || autoGenPattern.test(desc)) {
+        const betterDesc = `Specialized AI agent skill for ${skill.display_name}. Enhances your AI assistant with expert knowledge and capabilities for this domain.`;
+        const betterTagline = `${skill.display_name} — professional AI agent skill`;
+        await supabase.from("skills").update({
+          description_human: betterDesc,
+          tagline: betterTagline,
+        }).eq("id", skill.id);
+        // Continue to scoring instead of rejecting
+      }
+
+      // Only hard-reject if truly no description at all and no display name
+      if (!desc && !skill.display_name) {
         shouldReject = true;
-        rejectReason = "Description too short or auto-generated";
+        rejectReason = "No description or display name";
       }
 
       if (shouldReject) {

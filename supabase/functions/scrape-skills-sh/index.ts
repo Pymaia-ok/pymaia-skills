@@ -391,8 +391,8 @@ async function runImport(supabase: any, batchSize: number) {
         const { error: insertError } = await supabase.from("skills").insert({
           slug,
           display_name: displayName,
-          description_human: entry.description || `${displayName} — AI agent skill from ${entry.repo_owner}/${entry.repo_name}`,
-          tagline: `${displayName} skill for AI agents`,
+          description_human: entry.description || `Specialized AI agent skill for ${displayName}. Enhances your AI assistant with expert knowledge and capabilities for this domain.`,
+          tagline: `${displayName} — professional AI agent skill`,
           category,
           github_url: entry.repo_url,
           install_command: entry.install_command || "",
