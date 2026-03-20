@@ -27,6 +27,10 @@ function getRetryAfterSeconds(error: unknown): number {
 }
 
 Deno.serve(async (req) => {
+  // Admin auth guard
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
+
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')

@@ -179,6 +179,10 @@ Return a JSON object with: content_md, content_md_es, quiz_json (array of 3 ques
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Admin auth guard
+  const auth = validateAdminRequest(req);
+  if (!auth.authorized) return unauthorizedResponse(req, auth.reason);
+
   try {
     const body = await req.json();
     const { role_slug, title, title_es, description, description_es, difficulty, emoji, mode, course_slug, tool_name } = body;
