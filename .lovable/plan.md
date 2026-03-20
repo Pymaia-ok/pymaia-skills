@@ -1,60 +1,41 @@
 
 
-# Mejorar descubrimiento por agentes de IA — Fase 2
+# Importar repos principales del Top AI Tools
 
-## Contexto
-Ya tenemos llms.txt, ai-plugin.json, JSON-LD y robots.txt optimizados. Falta cubrir 3 vectores de descubrimiento clave.
+## Situación actual
+
+Tenemos skills derivadas (templates, sub-skills de monorepos) pero **faltan los repos principales** como entradas de primera clase:
+
+| Repo | Estado actual |
+|---|---|
+| `open-webui/open-webui` | No existe |
+| `infiniflow/ragflow` | No existe |
+| `langgenius/dify` | Solo sub-skills del monorepo (component-refactoring, etc.) |
+| `langchain-ai/langchain` | Solo skills de langchain-skills, no el repo principal |
+| `langflow-ai/langflow` | No existe |
+| `crewAIInc/crewAI` | Solo templates, no el framework principal |
 
 ## Plan
 
-### 1. Sitemap dinámico con las 43k+ skills y conectores
-El sitemap actual tiene 10 URLs estáticas. Los crawlers de IA no pueden descubrir las páginas individuales. Crear una edge function que genere un sitemap-index con sub-sitemaps paginados.
+Insertar 6 registros en la tabla `skills` con status `approved`, usando datos reales de GitHub (estrellas, descripción). El pipeline existente (`enrich-github-metadata`, `bulk-fetch-skill-content`, `generate-embeddings`) se encargará automáticamente de:
+- Poblar `github_metadata`
+- Extraer SKILL.md si existe
+- Generar embeddings y traducciones
 
-**Archivo:** `supabase/functions/skills-sitemap/index.ts`
-- Genera un sitemap-index que apunta a sub-sitemaps de ~1000 URLs cada uno
-- Sub-sitemaps para: `/skill/{slug}`, `/conector/{slug}`, `/plugin/{slug}`
-- Cachea respuesta por 6 horas
-- Actualizar `robots.txt` para incluir este nuevo sitemap
+### Datos a insertar
 
-### 2. OpenAPI spec para agentes no-MCP
-Crear un `openapi.json` que describa los endpoints REST del catálogo (search, detail, stats). Esto permite que GPT plugins, Perplexity y otros agentes no-MCP descubran y usen la API.
+| slug | display_name | github_url | category | estrellas aprox |
+|---|---|---|---|---|
+| `open-webui` | Open WebUI | github.com/open-webui/open-webui | `ai-tools` | ~80k |
+| `ragflow` | RAGFlow | github.com/infiniflow/ragflow | `ai-tools` | ~55k |
+| `dify-platform` | Dify | github.com/langgenius/dify | `ai-tools` | ~90k |
+| `langchain-framework` | LangChain | github.com/langchain-ai/langchain | `ai-tools` | ~105k |
+| `langflow-platform` | Langflow | github.com/langflow-ai/langflow | `ai-tools` | ~55k |
+| `crewai-framework` | CrewAI | github.com/crewAIInc/crewAI | `ai-tools` | ~30k |
 
-**Archivo:** `public/.well-known/openapi.json`
-- Endpoints: search skills, get skill detail, get stats, search connectors
-- Apunta a las edge functions existentes (`smart-search`, `skill-raw`, etc.)
-- Registrar en `ai-plugin.json` como API alternativa
+### Ejecución
+- 1 INSERT con los 6 registros usando el insert tool de Supabase
+- Cada registro incluirá: slug, display_name, github_url, category, status=approved, tagline descriptivo, install_command (link al repo)
 
-### 3. Meta tags `<link>` para descubrimiento automático
-Agregar headers estándar que los crawlers de IA buscan para auto-descubrimiento.
-
-**Archivo:** `index.html`
-- `<link rel="api" type="application/json" href="/.well-known/openapi.json">`
-- `<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml">`
-
-### 4. OpenSearch descriptor
-Permite que navegadores y agentes ofrezcan búsqueda directa en Pymaia.
-
-**Archivo:** `public/opensearch.xml`
-- Template URL apuntando a `/explorar?q={searchTerms}`
-
-### Recomendación manual (no requiere código)
-**Registrar pymaia-skills en directorios de MCP servers:**
-- glama.ai
-- mcp.so  
-- smithery.ai
-- mcpservers.org
-- awesome-mcp-servers (GitHub)
-
-Esto es lo más impactante porque es donde los agentes y humanos buscan MCP servers activamente.
-
-## Archivos a crear/modificar
-
-| Archivo | Acción |
-|---|---|
-| `supabase/functions/skills-sitemap/index.ts` | Crear — sitemap dinámico paginado |
-| `public/.well-known/openapi.json` | Crear — spec REST para agentes no-MCP |
-| `public/opensearch.xml` | Crear — descriptor de búsqueda |
-| `public/robots.txt` | Modificar — agregar sitemap dinámico |
-| `index.html` | Modificar — agregar link tags de descubrimiento |
-| `public/.well-known/ai-plugin.json` | Modificar — referenciar openapi.json |
+No requiere cambios de código ni migraciones.
 
