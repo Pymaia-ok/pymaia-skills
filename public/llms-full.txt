@@ -1,6 +1,6 @@
 # Pymaia Skills — Full Documentation
 
-> The #1 skill directory for Claude Code. 38,000+ professional skills. AI Solutions Architect with 37 tools. Install any skill in 2 minutes.
+> The #1 AI skill directory. 43,000+ professional skills for AI agents (Claude, Manus, Cursor, Antigravity, OpenClaw). 500+ MCP connectors. 100+ plugins. AI Solutions Architect with 48 tools. Install globally: `claude mcp add pymaia-skills --transport http --scope user https://mcp.pymaia.com`
 
 ## Overview
 
