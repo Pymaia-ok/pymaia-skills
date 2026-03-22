@@ -76,6 +76,7 @@ serve(async (req) => {
       const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
       const videoExts = ["mp4", "mov", "avi", "webm", "mkv"];
       const docExts = ["pdf", "doc", "docx", "txt", "md", "csv", "json"];
+      const ebookExts = ["epub", "mobi", "azw3", "fb2", "cbz"];
 
       if (imageExts.includes(ext)) {
         // Process image with AI vision
