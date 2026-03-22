@@ -434,7 +434,7 @@ export default function SkillChat({ messages, setMessages, onGenerate, isGenerat
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.txt,.md,.csv,.json,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm"
+        accept=".pdf,.doc,.docx,.txt,.md,.csv,.json,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.webm,.epub,.mobi,.azw3,.fb2,.cbz"
         onChange={handleFileSelect}
         className="hidden"
       />
