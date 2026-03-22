@@ -214,6 +214,111 @@ serve(async (req) => {
           const text = await fileData.text();
           extractedText = `[Contenido de documento: ${fileName}]\n\n${text.slice(0, 15000)}`;
         }
+      } else if (ebookExts.includes(ext)) {
+        // Process eBook files
+        if (ext === "epub") {
+          // EPUB is a ZIP with XHTML files inside
+          try {
+            const { default: JSZip } = await import("https://esm.sh/jszip@3.10.1");
+            const zip = await JSZip.loadAsync(await fileData.arrayBuffer());
+            const textParts: string[] = [];
+
+            // Find and extract XHTML/HTML content files
+            const contentFiles = Object.keys(zip.files)
+              .filter(f => /\.(xhtml|html|htm|xml)$/i.test(f) && !f.includes("META-INF"))
+              .sort();
+
+            for (const fName of contentFiles) {
+              const content = await zip.files[fName].async("string");
+              // Strip HTML tags to get plain text
+              const plainText = content
+                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+              if (plainText.length > 20) textParts.push(plainText);
+            }
+
+            extractedText = `[Contenido extraído de eBook EPUB: ${fileName}]\n\n${textParts.join('\n\n').slice(0, 30000)}`;
+          } catch (epubErr) {
+            console.error("EPUB extraction error:", epubErr);
+            // Fallback: send to Gemini
+            const base64 = await arrayBufferToBase64(await fileData.arrayBuffer());
+            const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "Extraé todo el contenido relevante de este libro electrónico. Incluí: títulos, capítulos, secciones, textos principales, listas, procesos, instrucciones. Respondé en español con el contenido extraído de forma estructurada." },
+                  { role: "user", content: [
+                    { type: "image_url", image_url: { url: `data:application/epub+zip;base64,${base64}` } },
+                    { type: "text", text: `Extraé el contenido de este eBook "${fileName}" para crear una skill de Claude.` },
+                  ]},
+                ],
+              }),
+            });
+            if (response.ok) {
+              const data = await response.json();
+              extractedText = `[Contenido extraído de eBook: ${fileName}]\n\n${data.choices[0].message.content}`;
+            } else {
+              extractedText = `[eBook subido: ${fileName}]\n\nNo se pudo procesar el EPUB automáticamente. Pedile al usuario que copie y pegue el contenido más relevante.`;
+            }
+          }
+        } else if (ext === "fb2") {
+          // FB2 is XML-based, extract text directly
+          const xmlText = await fileData.text();
+          const plainText = xmlText
+            .replace(/<binary[^>]*>[\s\S]*?<\/binary>/gi, '') // Remove embedded images
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          extractedText = `[Contenido extraído de eBook FB2: ${fileName}]\n\n${plainText.slice(0, 30000)}`;
+        } else {
+          // MOBI, AZW3, CBZ — binary formats, send to Gemini for extraction
+          const base64 = await arrayBufferToBase64(await fileData.arrayBuffer());
+          const fileSizeMB = base64.length * 0.75 / (1024 * 1024);
+          
+          if (fileSizeMB > 18) {
+            extractedText = `[eBook subido: ${fileName} (${fileSizeMB.toFixed(1)}MB)]\n\nEl archivo es demasiado grande para procesar automáticamente. Pedile al usuario que copie y pegue los capítulos más relevantes o que convierta el libro a formato EPUB o TXT.`;
+          } else {
+            const mimeMap: Record<string, string> = {
+              mobi: "application/x-mobipocket-ebook",
+              azw3: "application/vnd.amazon.ebook",
+              cbz: "application/x-cbz",
+            };
+            const mimeType = mimeMap[ext] || "application/octet-stream";
+            
+            const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "Extraé todo el contenido relevante de este libro electrónico o cómic. Incluí: títulos, capítulos, secciones, textos principales, diálogos, procesos, instrucciones, reglas. Si es un cómic, describí las escenas y extraé los textos de los globos. Respondé en español de forma estructurada y completa." },
+                  { role: "user", content: [
+                    { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
+                    { type: "text", text: `Extraé todo el contenido de este eBook "${fileName}" para crear una skill de Claude.` },
+                  ]},
+                ],
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              extractedText = `[Contenido extraído de eBook: ${fileName}]\n\n${data.choices[0].message.content}`;
+            } else {
+              extractedText = `[eBook subido: ${fileName}]\n\nNo se pudo procesar el archivo automáticamente. Pedile al usuario que convierta el libro a formato EPUB o TXT y lo suba de nuevo.`;
+            }
+          }
+        }
       } else {
         extractedText = `[Archivo subido: ${fileName}]\n\nTipo de archivo no reconocido. Pedile al usuario que describa el contenido del archivo.`;
       }
