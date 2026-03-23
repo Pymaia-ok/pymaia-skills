@@ -310,6 +310,191 @@ Return the COMPLETE article using the generate_blog_post tool.`;
       });
     }
 
+    // ── TRENDING BLOG MODE: auto-generate posts from trending repos ──
+    if (body.mode === "trending_to_blog") {
+      // Find recently discovered trending repos with high stars
+      const minStars = body.min_stars || 1000;
+      const lookbackDays = body.lookback_days || 7;
+      const lookbackDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: trendingSkills } = await supabase
+        .from("skills")
+        .select("slug, display_name, description_human, github_url, github_stars, category, created_at")
+        .eq("status", "approved")
+        .gte("created_at", lookbackDate)
+        .gte("github_stars", minStars)
+        .order("github_stars", { ascending: false })
+        .limit(20);
+
+      if (!trendingSkills || trendingSkills.length < 3) {
+        return new Response(JSON.stringify({ message: "Not enough trending repos for a blog post", found: trendingSkills?.length || 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Group by category for thematic clustering
+      const byCategory: Record<string, any[]> = {};
+      for (const s of trendingSkills) {
+        const cat = s.category || "desarrollo";
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(s);
+      }
+
+      // Build the trending list for the AI
+      const trendingList = trendingSkills.map((s: any, i: number) =>
+        `${i + 1}. **${s.display_name}** (${s.github_stars?.toLocaleString()}★) — ${s.description_human?.slice(0, 150) || "No description"} → [View on Pymaia](/skill/${s.slug})`
+      ).join("\n");
+
+      const topCategories = Object.entries(byCategory)
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, 3)
+        .map(([cat, items]) => `${cat} (${items.length} tools)`)
+        .join(", ");
+
+      const weekLabel = new Date().toISOString().split("T")[0];
+
+      const trendingPrompt = `Write a blog article about the TOP TRENDING AI tools discovered this week (${weekLabel}).
+
+Here are the trending repositories that were recently added to our catalog:
+
+${trendingList}
+
+Top categories this week: ${topCategories}
+
+REQUIREMENTS:
+1. Title should be something like "Top ${trendingSkills.length} trending AI tools this week" or "This week's hottest AI repositories"
+2. Group tools by theme/category
+3. For each tool, explain what it does and why it's trending
+4. Include links to each tool's page on Pymaia using /skill/{slug} format
+5. Add analysis: what patterns/trends do you see? What does this tell us about the AI ecosystem?
+6. End with a CTA to explore more tools on the platform
+
+Also link to these platform pages:
+- [Explore all AI tools](/explorar)
+- [Browse connectors](/conectores)
+- [Browse plugins](/plugins)
+
+Return your response using the generate_blog_post tool.`;
+
+      const trendBlogRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          max_tokens: 32000,
+          messages: [
+            { role: "system", content: systemPromptText },
+            { role: "user", content: trendingPrompt },
+          ],
+          tools: [blogToolDef],
+          tool_choice: { type: "function", function: { name: "generate_blog_post" } },
+        }),
+      });
+
+      if (!trendBlogRes.ok) {
+        const errText = await trendBlogRes.text();
+        throw new Error(`AI gateway error for trending blog: ${trendBlogRes.status} - ${errText.slice(0, 200)}`);
+      }
+
+      const trendResult = await trendBlogRes.json();
+      const trendToolCall = trendResult.choices?.[0]?.message?.tool_calls?.[0];
+      if (!trendToolCall) throw new Error("No tool call in trending blog AI response");
+
+      const trendArticle = JSON.parse(trendToolCall.function.arguments);
+
+      const trendSlug = (trendArticle.title_en || "trending-ai-tools")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 80);
+
+      const trendWordCount = (trendArticle.content_en || "").split(/\s+/).length;
+
+      // Generate cover image for trending post
+      let trendCoverUrl: string | null = null;
+      try {
+        const imgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3.1-flash-image-preview",
+            messages: [{ role: "user", content: `Clean flat-lay photograph of a modern developer workspace with multiple screens showing code and dashboards, warm natural lighting, shallow depth of field. Topic: trending AI tools and repositories. MUST be photorealistic. NO illustrations, NO digital art, NO neon.` }],
+            modalities: ["image", "text"],
+          }),
+        });
+        if (imgRes.ok) {
+          const imgResult = await imgRes.json();
+          const base64 = imgResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          if (base64) {
+            const raw = base64.includes(",") ? base64.split(",")[1] : base64;
+            const imageBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+            await supabase.storage.from("blog-covers").upload(`${trendSlug}.jpg`, imageBytes, { contentType: "image/jpeg", upsert: true });
+            const { data: publicUrl } = supabase.storage.from("blog-covers").getPublicUrl(`${trendSlug}.jpg`);
+            trendCoverUrl = publicUrl?.publicUrl || null;
+          }
+        }
+      } catch (imgErr) {
+        console.error("Trending cover image failed (non-blocking):", imgErr);
+      }
+
+      const { error: trendInsertErr } = await supabase.from("blog_posts").insert({
+        slug: trendSlug,
+        title: trendArticle.title_en,
+        title_es: trendArticle.title_es,
+        excerpt: trendArticle.excerpt_en,
+        excerpt_es: trendArticle.excerpt_es,
+        content: sanitizeArticle(trendArticle.content_en),
+        content_es: sanitizeArticle(trendArticle.content_es),
+        meta_description: trendArticle.meta_description_en,
+        meta_description_es: trendArticle.meta_description_es,
+        keywords: ["trending", "AI tools", "github trending", "herramientas IA", "repositorios trending"],
+        category: "agents",
+        geo_target: "global",
+        related_skill_slugs: trendingSkills.slice(0, 8).map((s: any) => s.slug),
+        reading_time_minutes: Math.max(3, Math.ceil(trendWordCount / 250)),
+        cover_image_url: trendCoverUrl,
+        faq_json: trendArticle.faq_items || [],
+        status: "published",
+      });
+
+      if (trendInsertErr && trendInsertErr.code === "23505") {
+        const altSlug = `${trendSlug}-${Date.now().toString(36)}`;
+        await supabase.from("blog_posts").insert({
+          slug: altSlug,
+          title: trendArticle.title_en,
+          title_es: trendArticle.title_es,
+          excerpt: trendArticle.excerpt_en,
+          excerpt_es: trendArticle.excerpt_es,
+          content: sanitizeArticle(trendArticle.content_en),
+          content_es: sanitizeArticle(trendArticle.content_es),
+          meta_description: trendArticle.meta_description_en,
+          meta_description_es: trendArticle.meta_description_es,
+          keywords: ["trending", "AI tools", "github trending"],
+          category: "agents",
+          geo_target: "global",
+          related_skill_slugs: trendingSkills.slice(0, 8).map((s: any) => s.slug),
+          reading_time_minutes: Math.max(3, Math.ceil(trendWordCount / 250)),
+          cover_image_url: trendCoverUrl,
+          faq_json: trendArticle.faq_items || [],
+          status: "published",
+        });
+      }
+
+      await supabase.from("automation_logs").insert({
+        function_name: "generate-blog-post",
+        action_type: "blog_generated",
+        reason: `Trending blog: ${trendArticle.title_en} (${trendingSkills.length} tools featured)`,
+        metadata: { slug: trendSlug, mode: "trending_to_blog", tools_featured: trendingSkills.length },
+      });
+
+      return new Response(JSON.stringify({ success: true, slug: trendSlug, title: trendArticle.title_en, tools_featured: trendingSkills.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── NORMAL MODE: generate new post ──
     // Get recent posts to avoid repetition
     const { data: recentPosts } = await supabase
