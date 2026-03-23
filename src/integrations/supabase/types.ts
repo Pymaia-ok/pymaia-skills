@@ -818,6 +818,86 @@ export type Database = {
         }
         Relationships: []
       }
+      experience_executions: {
+        Row: {
+          caller_hash: string | null
+          created_at: string
+          domain: string | null
+          execution_id: string
+          goal: string
+          id: string
+          latency_ms: number | null
+          model_version: string | null
+          recommended_slugs: string[]
+          recommended_types: string[]
+        }
+        Insert: {
+          caller_hash?: string | null
+          created_at?: string
+          domain?: string | null
+          execution_id: string
+          goal: string
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          recommended_slugs?: string[]
+          recommended_types?: string[]
+        }
+        Update: {
+          caller_hash?: string | null
+          created_at?: string
+          domain?: string | null
+          execution_id?: string
+          goal?: string
+          id?: string
+          latency_ms?: number | null
+          model_version?: string | null
+          recommended_slugs?: string[]
+          recommended_types?: string[]
+        }
+        Relationships: []
+      }
+      experience_outcomes: {
+        Row: {
+          caller_hash: string | null
+          created_at: string
+          execution_id: string
+          feedback_text: string | null
+          id: string
+          outcome: string
+          tool_slug: string
+          tool_type: string
+        }
+        Insert: {
+          caller_hash?: string | null
+          created_at?: string
+          execution_id: string
+          feedback_text?: string | null
+          id?: string
+          outcome: string
+          tool_slug: string
+          tool_type?: string
+        }
+        Update: {
+          caller_hash?: string | null
+          created_at?: string
+          execution_id?: string
+          feedback_text?: string | null
+          id?: string
+          outcome?: string
+          tool_slug?: string
+          tool_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experience_outcomes_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "experience_executions"
+            referencedColumns: ["execution_id"]
+          },
+        ]
+      }
       github_metadata: {
         Row: {
           archived: boolean
@@ -1406,6 +1486,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_log: {
+        Row: {
+          action: string
+          id: string
+          identifier: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          identifier: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       recommendation_feedback: {
         Row: {
           chosen_option: string | null
@@ -1482,6 +1586,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scoring_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
       }
       security_advisories: {
         Row: {
@@ -2261,6 +2386,19 @@ export type Database = {
         }
         Relationships: []
       }
+      experience_tool_scores: {
+        Row: {
+          failure_count: number | null
+          last_outcome_at: string | null
+          success_count: number | null
+          success_rate: number | null
+          tool_slug: string | null
+          tool_type: string | null
+          total_outcomes: number | null
+          weighted_score: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_email: {
@@ -2378,6 +2516,7 @@ export type Database = {
       }
       recompute_quality_ranks: { Args: never; Returns: undefined }
       refresh_directory_stats: { Args: never; Returns: undefined }
+      refresh_experience_scores: { Args: never; Returns: undefined }
       search_skills: {
         Args: {
           filter_category?: string
@@ -2450,6 +2589,10 @@ export type Database = {
           use_cases: Json
           video_url: string
         }[]
+      }
+      upsert_rate_limit: {
+        Args: { _action: string; _identifier: string; _max_requests?: number }
+        Returns: number
       }
       validate_api_key: { Args: { _key_hash: string }; Returns: string }
       validate_api_key_salted: { Args: { _plain_key: string }; Returns: string }
