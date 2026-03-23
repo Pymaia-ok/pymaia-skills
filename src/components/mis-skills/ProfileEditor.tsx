@@ -63,7 +63,7 @@ export default function ProfileEditor({ userId }: ProfileEditorProps) {
     setSaving(false);
   };
 
-  if (loading) return null;
+  if (loading) return <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 mb-8">
