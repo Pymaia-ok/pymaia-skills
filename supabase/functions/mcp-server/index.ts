@@ -1841,12 +1841,25 @@ mcp.tool("solve_goal", {
     // A/B experiment tag
     sections.push(`\n<sub>experiment: ${variant} · classifier: ${intent.confidence > 0 ? "ml" : "keyword"}</sub>`);
 
+    // EXPERIENCE LAYER: Generate execution_id and log execution
+    const executionId = generateExecutionId();
+    const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
+    const allTypes = [...optionA, ...optionB].map((i: any) => i.type);
+
+    // Add execution_id as HTML comment (backwards compatible)
+    sections.push(`\n<!-- execution_id: ${executionId} -->`);
+
+    // Experience-backed items indicator
+    const expBackedCount = [...optionA, ...optionB].filter((i: any) => i._experience_backed).length;
+    if (expBackedCount > 0) {
+      sections.push(`\n<sub>📊 ${expBackedCount} tool(s) backed by real outcome data</sub>`);
+    }
+
     if (matchedTemplate) {
       supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id).then(() => {});
     }
 
     // Track analytics (fire-and-forget — don't block response)
-    const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
     supabase.from("agent_analytics").insert({
       event_type: "solve_goal",
       tool_name: "solve_goal",
@@ -1854,6 +1867,7 @@ mcp.tool("solve_goal", {
       items_recommended: allSlugs,
       event_data: {
         variant,
+        execution_id: executionId,
         classifier_confidence: intent.confidence,
         classifier_category: intent.category,
         classifier_domain: intent.domain,
@@ -1866,10 +1880,22 @@ mcp.tool("solve_goal", {
         plugins_count: [...optionA, ...optionB].filter((i: any) => i.type === "plugin").length,
         keywords: intent.keywords || [],
         total_ms: Date.now() - solveT0,
+        experience_backed_count: expBackedCount,
       },
     }).then(() => {});
 
-    console.log(JSON.stringify({ tool: "solve_goal", phase: "done", ms: Date.now() - solveT0, optionA: optionA.length, optionB: optionB.length }));
+    // Log to experience_executions (fire-and-forget)
+    supabase.from("experience_executions").insert({
+      execution_id: executionId,
+      goal: args.goal,
+      domain: intent.domain,
+      recommended_slugs: allSlugs,
+      recommended_types: allTypes,
+      caller_hash: _currentCallerHash,
+      latency_ms: Date.now() - solveT0,
+    }).then(() => {});
+
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "done", ms: Date.now() - solveT0, optionA: optionA.length, optionB: optionB.length, executionId }));
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
 });
