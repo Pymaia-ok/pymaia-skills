@@ -38,5 +38,5 @@
 - [x] `refresh-experience-scores` edge function created
 - [x] Config in supabase/config.toml
 
-## 🔲 Pending (manual setup)
-- [ ] Schedule cron job for `refresh-experience-scores` (hourly)
+## ✅ All Complete
+- [x] Schedule cron job for `refresh-experience-scores` (hourly) — cron ID 163, runs at :15 each hour
