@@ -43,17 +43,25 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estruc
 
 El SKILL.md DEBE seguir estos patrones best-in-class de Anthropic:
 
-### 1. Frontmatter con description keyword-rich
-La description DEBE decir QUÉ hace + CUÁNDO usarla + keywords de matching:
+### 1. Frontmatter con description keyword-rich y negative triggers
+La description DEBE decir QUÉ hace + CUÁNDO usarla + CUÁNDO NO usarla + keywords de matching:
 
 ---
 name: nombre-en-kebab-case
-description: "[QUÉ hace en 1 frase]. [CUÁNDO usarla]. Use when [keywords de activación]."
+description: "[QUÉ hace en 1 frase]. [CUÁNDO usarla]. Use when [keywords de activación]. Do NOT use for [situaciones donde NO aplica]."
 compatibility: claude-code
+license: MIT
+allowed-tools: ["Bash", "Read", "Write"]
 metadata:
   author: pymaia
   version: "1.0"
 ---
+
+IMPORTANTE sobre el frontmatter:
+- La description DEBE incluir negative triggers ("Do NOT use for X, Y, Z")
+- NUNCA uses angle brackets XML (<, >) dentro del frontmatter YAML — causan errores de parsing
+- El campo "allowed-tools" es opcional: incluilo solo si la skill necesita herramientas específicas
+- El campo "license" siempre debe ser "MIT" salvo que el usuario pida otra
 
 ### 2. Estructura del body (secciones obligatorias)
 
@@ -94,7 +102,10 @@ Ejemplo de formato:
 
 ## Best Practices
 
-[Lista de mejores prácticas del dominio]
+[Lista de mejores prácticas del dominio, específicas y accionables]
+
+- **[Práctica 1]**: [Explicación concisa de por qué y cómo]
+- **[Práctica 2]**: [Explicación concisa]
 
 ## Common Pitfalls
 
@@ -111,6 +122,15 @@ Ejemplo de formato:
 [Lista explícita de restricciones absolutas]
 - NEVER [restricción 1]
 - NEVER [restricción 2]
+
+## Troubleshooting
+
+[Errores comunes con formato tabla o lista estructurada]
+
+| Error | Causa | Solución |
+|-------|-------|----------|
+| [Error 1] | [Por qué ocurre] | [Cómo resolverlo] |
+| [Error 2] | [Por qué ocurre] | [Cómo resolverlo] |
 
 ### 3. Sección ## Dependencies (SOLO si la skill necesita MCPs externos)
 
@@ -139,17 +159,20 @@ Before executing, verify MCP availability:
 - Si necesita más detalle, referenciar archivos externos
 - Los ejemplos deben ser EJECUTABLES, no genéricos
 - El tono debe ser directo e imperativo (instrucciones para un agente, no documentación para humanos)
-- Usar markdown semántico: headers, listas, code blocks, bold para énfasis`;
+- Usar markdown semántico: headers, listas, code blocks, bold para énfasis
+- NUNCA uses angle brackets XML (<tag>) en el frontmatter YAML`;
 
 const JUDGE_PROMPT = `Sos un evaluador experto de skills para Claude Code, calibrado contra las mejores skills del ecosistema de Anthropic (webapp-testing, mcp-builder, pdf-tools). Evaluá la skill generada con estos criterios best-in-class:
 
 Criterios de evaluación (10 puntos total):
-- **Description keyword-rich** (1.5pts): ¿La description del frontmatter dice QUÉ hace + CUÁNDO usarla + keywords de matching? ¿Ayudaría a un agente a decidir si activarla?
-- **Decision tree** (1.5pts): ¿Tiene un árbol de decisión claro que ayude al agente a saber cuándo SÍ y cuándo NO activar la skill?
+- **Description keyword-rich con negative triggers** (1.5pts): ¿La description del frontmatter dice QUÉ hace + CUÁNDO usarla + CUÁNDO NO? ¿Incluye "Do NOT use for..."?
+- **Decision tree** (1pts): ¿Tiene un árbol de decisión claro que ayude al agente a saber cuándo SÍ y cuándo NO activar la skill?
 - **Workflow estructurado** (2pts): ¿Los pasos son claros, ordenados y sin ambigüedad? ¿Un agente podría seguirlos mecánicamente?
-- **Ejemplos ejecutables** (2pts): ¿Los ejemplos tienen input/output concretos? ¿Incluyen código real si es técnica? ¿Son copy-pasteables?
-- **Common pitfalls ❌/✅** (1.5pts): ¿Tiene errores comunes con formato visual ❌ Don't / ✅ Do? ¿Son específicos del dominio?
-- **Progressive disclosure** (1.5pts): ¿El SKILL.md tiene menos de 500 líneas? ¿Usa referencias a archivos externos si necesita más detalle?
+- **Ejemplos ejecutables** (1.5pts): ¿Los ejemplos tienen input/output concretos? ¿Incluyen código real si es técnica? ¿Son copy-pasteables?
+- **Best Practices** (1pt): ¿Tiene una sección separada de Best Practices con consejos específicos del dominio?
+- **Common pitfalls ❌/✅** (1pt): ¿Tiene errores comunes con formato visual ❌ Don't / ✅ Do? ¿Son específicos del dominio?
+- **Troubleshooting** (1pt): ¿Tiene una sección de troubleshooting con errores comunes, causas y soluciones?
+- **Progressive disclosure** (1pt): ¿El SKILL.md tiene menos de 500 líneas? ¿Usa referencias a archivos externos si necesita más detalle?
 
 Respondé SOLO con un JSON válido (sin markdown, sin backticks):
 
@@ -159,7 +182,6 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks):
   "strengths": ["lista de 2-3 fortalezas"],
   "improvements": ["lista de 2-3 mejoras concretas y accionables"]
 }`;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -279,6 +301,14 @@ serve(async (req) => {
       // description: max 1024 chars
       if (s.description && s.description.length > 1024) {
         s.description = s.description.slice(0, 1021) + '...';
+      }
+      // Sanitize XML angle brackets from frontmatter in install_command
+      if (s.install_command) {
+        const fmMatch = s.install_command.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const sanitizedFm = fmMatch[1].replace(/</g, '(').replace(/>/g, ')');
+          s.install_command = s.install_command.replace(fmMatch[1], sanitizedFm);
+        }
       }
       return s;
     };
