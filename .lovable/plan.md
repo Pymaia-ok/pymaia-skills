@@ -1,70 +1,58 @@
 
-Objetivo: resolver una “pantalla en blanco” que yo no pude reproducir desde la sesión remota, aunque vos sí la seguís viendo en tu preview.
 
-Diagnóstico actual
-- En mi revisión, la app sí renderiza correctamente en `/` y la captura muestra navbar + hero visibles.
-- No aparecieron errores en consola, requests fallidas ni session replay útil.
-- Eso sugiere que el problema probablemente no es un crash global constante del código, sino uno de estos casos:
-  1. fallo intermitente de carga del preview,
-  2. chunk/import desincronizado en el navegador del preview,
-  3. ruta o estado local que deja la app en `null`,
-  4. error asíncrono no capturado por el `ErrorBoundary`.
+## Plan: Scraper de GitHub Trending + Trendshift + Blog Auto-Generation
 
-Qué haría para dejarlo realmente robusto
-1. Instrumentar el arranque de la app
-- Agregar logging global para `window.onerror` y `unhandledrejection`.
-- Loguear errores de imports dinámicos/chunks para detectar si el preview quedó con assets viejos.
-- Mostrar un fallback visible en vez de dejar pantalla vacía.
+### Situación actual
+- `discover-trending-repos` solo busca via GitHub Search API con queries fijas (topics: `claude-code`, `ai-agent`, `mcp-server`). No scrappea fuentes externas como Trendshift o GitHub Trending.
+- De los 20 repos del trending que compartiste, **ya tenemos 12** (superpowers, everything-claude-code, browser-use, deer-flow, Understand-Anything, gstack, pentagi, agency-agents, gsap-skills, Claude-Code-Game-Studios).
+- **Faltan 8**: project-nomad, spec-kit, MiniMax-AI/skills, MoneyPrinterV2, pascalorg/editor, TradingAgents, public-apis, supermemory, MoneyPrinterTurbo, floci.
+- No hay pipeline que use trending data para generar posts de blog automáticamente.
 
-2. Eliminar “blank states” silenciosos
-- Revisar componentes/páginas que hoy hacen `return null` en estados de carga o auth (`Auth`, `Admin`, `CrearSkill`, etc.).
-- Reemplazarlos por loaders o mensajes explícitos.
-- Prioridad: cualquier componente montado globalmente (`Navbar`, auth provider, rutas lazy).
+### Cambios propuestos
 
-3. Endurecer lazy loading y recuperación
-- Envolver imports lazy con manejo de error amigable.
-- Detectar errores tipo “Failed to fetch dynamically imported module / Loading chunk failed”.
-- Ofrecer recarga automática o botón de “Reintentar” cuando el bundle quede desfasado.
+#### 1. Agregar scraping de Trendshift al discover-trending-repos
+Ampliar la función existente para también scrapear `https://trendshift.io/repositories` como fuente adicional de repos trending, además de las queries de GitHub Search API.
 
-4. Verificar componentes globales sensibles
-- Revisar `Navbar`, `GlobalSearch`, `useAuth`, `useSEO`, `ThemeProvider` y `ErrorBoundary`, porque están presentes desde el arranque.
-- Buscar accesos a `localStorage`, `document`, `window`, `clipboard` o queries globales que puedan fallar según el entorno.
+- Usar Firecrawl (ya conectado) para scrapear la página de Trendshift
+- Parsear repos del HTML/markdown resultante
+- Resolver cada repo contra GitHub API para obtener metadata completa (stars, description, topics)
+- Deduplicar contra catálogo existente e insertar nuevos skills
 
-5. Diferenciar bug real vs preview desincronizado
-- Comparar comportamiento entre preview y published con la misma versión.
-- Si sólo falla el preview, dejar una protección para recargar assets/versiones y evitar que vuelva a quedar en blanco.
+#### 2. Agregar scraping de GitHub Trending page
+Scrapear `https://github.com/trending` (daily/weekly) como tercera fuente:
+- Firecrawl scrape de la trending page
+- Parsear los repo links del markdown
+- Enriquecer con GitHub API
+- Mismo pipeline de dedup + insert
 
-Cambios concretos que implementaría
-- `src/main.tsx`: guardas globales de error + fallback de arranque.
-- `src/App.tsx`: manejo de error para rutas lazy.
-- `src/components/ErrorBoundary.tsx`: fallback más informativo con opción de recarga.
-- `src/hooks/useAuth.tsx`: proteger flujos asíncronos para que nunca dejen la app “vacía”.
-- Páginas con `return null`: reemplazarlas por estados de loading visibles.
+#### 3. Nuevo modo `trending_to_blog` en generate-blog-post
+Agregar lógica que detecte repos trending de alto impacto y genere automáticamente posts de blog sobre ellos:
+- Consultar skills insertados en las últimas 24h con >1000 stars desde `discover-trending-repos`
+- Agrupar por tema (ej: "Claude Code skills", "AI agents", "trading bots")
+- Generar un post tipo "Top X trending AI tools this week" usando Gemini
+- Insertar como draft en `blog_posts` para revisión
 
-Resultado esperado
-- Aunque el preview falle o quede desincronizado, no debería volver a verse una pantalla totalmente blanca.
-- Vamos a poder distinguir si el problema es:
-  - error real de runtime,
-  - chunk stale/cache,
-  - auth/loading infinito,
-  - o issue específico del preview.
+#### 4. Cron semanal para blog trending
+Agregar un cron job semanal que ejecute el modo `trending_to_blog`.
 
-Detalles técnicos
+### Archivos a modificar
+- `supabase/functions/discover-trending-repos/index.ts` — agregar fuentes Trendshift + GitHub Trending via Firecrawl
+- `supabase/functions/generate-blog-post/index.ts` — agregar topics dinámicos basados en trending data
+- Nuevo cron job para blog trending semanal
+
+### Detalles técnicos
+
 ```text
-Hoy:
-arranque falla o queda colgado
--> varios componentes devuelven null
--> usuario percibe "pantalla blanca"
+Flujo actual:
+  GitHub Search API (7 queries) → dedup → insert skills
 
-Propuesto:
-arranque falla o queda colgado
--> logger global captura causa
--> fallback visible informa el error
--> retry / reload permite recuperar
+Flujo propuesto:
+  GitHub Search API (7 queries)
+  + Trendshift scrape (via Firecrawl)
+  + GitHub Trending page scrape (via Firecrawl)
+  → merge + dedup → insert skills
+  → flag high-impact repos → weekly blog post generation
 ```
 
-Alcance recomendado
-- Paso 1: hardening del arranque + fallback visible
-- Paso 2: limpiar `return null` críticos
-- Paso 3: recuperación de lazy imports/chunks
-- Paso 4: revalidación de preview/published
+El scraping de Trendshift y GitHub Trending usa Firecrawl que ya está configurado como conector. No requiere API keys adicionales.
+
