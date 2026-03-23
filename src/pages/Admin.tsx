@@ -329,6 +329,7 @@ const Admin = () => {
     { name: "Scrape docs conectores", func: "refresh-catalog-data", freq: "Semanal mié 7:00 UTC" },
     { name: "Generar install commands", func: "generate-install-commands", freq: "Cada 3 min" },
     { name: "Weekly digest", func: "weekly-digest", freq: "Lunes 10:00 UTC" },
+    { name: "Refresh experience scores", func: "refresh-experience-scores", freq: "Cada hora :15" },
   ];
 
   return (
