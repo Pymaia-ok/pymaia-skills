@@ -1,81 +1,87 @@
 
 
-# Auditoría: Pymaia SkillForge vs Guía Oficial Anthropic
+# Revisión del PRD: Experience Layer v2.0
 
-## Resumen ejecutivo
+## Veredicto: Implementable. Buen PRD.
 
-El sistema actual cubre ~75% de los lineamientos de Anthropic. Hay gaps importantes en la estructura del SKILL.md generado, campos YAML faltantes, y la ausencia de soporte para carpetas con scripts/references.
+Es uno de los PRDs más buildable que he visto para este proyecto. El contexto técnico es preciso, los snippets de código son funcionales, y el orden de implementación es correcto. Hay algunos ajustes menores necesarios.
 
-## Comparativa detallada
+---
 
-| Lineamiento Anthropic | Estado Pymaia | Gap |
+## Lo que está bien
+
+- **Contexto técnico correcto**: Stack, scoring actual (líneas 1484-1550), tablas existentes — todo matchea con el código real
+- **Backwards compatible**: Agregar `execution_id` como HTML comment no rompe callers. Correcto.
+- **Orden de implementación sensato**: DB → logging → config → outcome tool → dynamic scoring → rate limiting. Cada paso es deployable solo.
+- **Privacidad resuelta**: SHA-256 con salt para IPs, sin FK a usuarios
+- **Rate limiting pragmático**: Tabla propia con upsert atómico en Postgres, sin dependencias externas
+- **Fase 2 separada**: La inferencia pasiva está documentada pero no bloquea
+
+## Ajustes necesarios antes de implementar
+
+### 1. El scoring actual es más complejo que lo documentado
+El PRD muestra las líneas 1484-1550 simplificadas. En realidad hay:
+- Quality guards adicionales (corrupted taglines: -15, tagline/name mismatch: -5, zero-signal: -8)
+- Connector-specific penalty (90% si zero goal-word overlap)
+- Install count bonuses (+3 si >100, +1 si >10)
+- Rating bonus (+2 si avg_rating >= 4.0)
+- A/B variant "reranked" con shuffle de tiers
+
+La tabla `scoring_config` necesita ~8 keys más para cubrir todo esto. Sin impacto en arquitectura, solo más rows.
+
+### 2. Materialized View: no hay pg_cron nativo
+Lovable Cloud no expone `pg_cron`. La alternativa es un cron job de Supabase (edge function invocada periódicamente) que ejecute `REFRESH MATERIALIZED VIEW experience_tool_scores` vía RPC. Ya tenemos el patrón con `refresh_directory_stats`.
+
+### 3. HASH_SALT como secret
+El PRD lo menciona como env var. Se debe agregar como secret de Supabase. Ya tenemos el tool `add_secret` para esto.
+
+### 4. RLS policies faltantes
+El PRD no especifica RLS para las nuevas tablas. Necesitamos:
+- `experience_executions`: INSERT para anon/service_role, SELECT para admins y service_role
+- `experience_outcomes`: igual
+- `rate_limit_log`: ALL para service_role solamente
+- `scoring_config`: SELECT para service_role (el MCP corre con service_role key), ALL para admins
+
+### 5. Cleanup job para rate_limit_log
+La tabla crece indefinidamente. Agregar un DELETE de rows con `window_start < now() - interval '24 hours'` en el cron de refresh.
+
+## Estimación de implementación
+
+| Step | PRD dice | Mi estimación |
 |---|---|---|
-| **Frontmatter YAML con `name` + `description`** | ✅ Implementado | name kebab-case, description keyword-rich |
-| **Campo `description` = QUÉ + CUÁNDO + triggers** | ✅ Implementado | GENERATE_PROMPT lo exige explícitamente |
-| **Progressive Disclosure (3 niveles)** | ⚠️ Parcial | Generamos SKILL.md (nivel 2) pero no soportamos `references/` ni `scripts/` (nivel 3) |
-| **Carpeta con estructura: SKILL.md + scripts/ + references/ + assets/** | ❌ Faltante | Solo generamos un SKILL.md plano, no una carpeta ZIP con subcarpetas |
-| **Campos YAML opcionales: `license`, `allowed-tools`, `metadata`** | ❌ Faltante | Solo generamos `name`, `description`, `compatibility`, `metadata.author/version` — faltan `license`, `allowed-tools` |
-| **Decision Tree en el body** | ✅ Implementado | GENERATE_PROMPT incluye formato ASCII de decision tree |
-| **Workflow paso a paso** | ✅ Implementado | Sección obligatoria en el prompt |
-| **Examples con input/output concretos** | ✅ Implementado | Mínimo 2 ejemplos requeridos |
-| **Common Pitfalls ❌/✅** | ✅ Implementado | Formato visual exigido |
-| **What NOT to Do (NEVER list)** | ✅ Implementado | Sección obligatoria |
-| **Best Practices section** | ⚠️ Parcial | Mencionada en el prompt pero no como sección obligatoria separada |
-| **Error/Troubleshooting section** | ❌ Faltante | La guía recomienda sección de errores comunes con causa/solución |
-| **SKILL.md < 500 líneas** | ✅ Implementado | Regla explícita en el prompt |
-| **Nombre kebab-case, sin "claude"/"anthropic"** | ✅ Implementado | `validateSkillFields` lo sanitiza |
-| **Description max 1024 chars** | ✅ Implementado | Trunca en `validateSkillFields` |
-| **No XML angle brackets en frontmatter** | ❌ No validado | La guía lo marca como restricción de seguridad |
-| **No README.md dentro del skill folder** | N/A | No generamos carpetas aún |
-| **Testing guidance (trigger/functional/performance)** | ⚠️ Parcial | Tenemos test-skill y auto-improve, pero no test de triggering |
-| **Negative triggers en description** | ❌ Faltante | La guía recomienda "Do NOT use for X" en la description |
-| **ZIP export con estructura de carpeta** | ❌ Faltante | Solo exportamos SKILL.md plano |
-| **MCP Dependencies section** | ✅ Implementado | Para api-connectors |
+| DB setup | 1-2h | 1 mensaje (migración SQL) |
+| Logging solve_goal | 2-3h | 1 mensaje |
+| Scoring config from DB | 1-2h | 1 mensaje |
+| report_goal_outcome tool | 3-4h | 1-2 mensajes |
+| Dynamic scoring | 2-3h | 1 mensaje |
+| Rate limiting | 1h | 1 mensaje |
+| **Total** | **10-15h** | **5-7 mensajes** |
 
-## Cambios propuestos
+## Plan de implementación
 
-### 1. Actualizar GENERATE_PROMPT en `generate-skill/index.ts`
-- Agregar sección obligatoria `## Troubleshooting` con formato Error/Cause/Solution
-- Agregar sección obligatoria `## Best Practices` separada
-- Exigir **negative triggers** en la description YAML ("Do NOT use for...")
-- Agregar campos YAML opcionales: `license: MIT`, `allowed-tools` cuando aplique
-- Sanitizar XML angle brackets (`<`, `>`) del frontmatter generado
+### Mensaje 1: DB Setup
+- Crear las 4 tablas (`experience_executions`, `experience_outcomes`, `scoring_config`, `rate_limit_log`)
+- Crear la materialized view `experience_tool_scores`
+- Crear funciones `upsert_rate_limit` y `refresh_experience_scores` (RPC)
+- RLS policies para todas las tablas
+- Agregar `HASH_SALT` como secret
 
-### 2. Actualizar `validateSkillFields` en `generate-skill/index.ts`
-- Agregar sanitización de `<` y `>` en el frontmatter del `install_command`
-- Validar que la description incluya trigger phrases
+### Mensaje 2: Logging + Config
+- Helper `hashSHA256` en el MCP server
+- Loader de `scoring_config` con cache de 5 min
+- Reemplazar constantes hardcodeadas por valores del config (con fallback)
+- Generar `execution_id` y loguearlo async en solve_goal
+- Agregar HTML comment `<!-- execution_id: ... -->` al response
 
-### 3. Actualizar JUDGE_PROMPT en `generate-skill/index.ts`
-- Agregar criterio de evaluación para Troubleshooting section
-- Agregar criterio para negative triggers en description
-- Agregar criterio para Best Practices como sección separada
+### Mensaje 3: report_goal_outcome + Rate Limiting
+- Registrar `report_goal_outcome` como tool MCP
+- Implementar `checkRateLimit` usando `upsert_rate_limit`
+- Aplicar rate limit en `report_goal_outcome` (20/hora) y `solve_goal` (100/hora)
+- Aplicar rate limit global en middleware Hono (500/hora)
 
-### 4. Actualizar interviewer en `skill-interviewer/index.ts`
-- Agregar pregunta sobre troubleshooting: "¿Cuáles son los errores más comunes que ves y cómo los resolvés?"
-- Reordenar numeración duplicada (líneas 50-53 tienen números repetidos 10-11)
-
-### 5. Agregar export ZIP con estructura de carpeta (nuevo)
-- En `SkillPreview.tsx` o `SkillPublishConfig.tsx`: al descargar, generar un ZIP con:
-  ```
-  skill-name/
-  ├── SKILL.md
-  └── (sin README.md)
-  ```
-- Usar JSZip (ya disponible en el proyecto para EPUB)
-
-## Archivos a modificar
-
-| Archivo | Cambio |
-|---|---|
-| `supabase/functions/generate-skill/index.ts` | Actualizar GENERATE_PROMPT, JUDGE_PROMPT, validateSkillFields |
-| `supabase/functions/skill-interviewer/index.ts` | Fix numeración duplicada, agregar pregunta troubleshooting |
-| `src/components/crear-skill/SkillPreview.tsx` | Agregar export ZIP con estructura de carpeta |
-
-## Lo que NO cambiamos (ya está bien)
-- Decision tree, workflow, examples, pitfalls, NEVER list
-- Kebab-case validation, description length limit
-- MCP Dependencies para api-connectors
-- Auto-improve loop con test-skill
-- Progressive disclosure < 500 líneas
-- Detección automática de tipo de artefacto
+### Mensaje 4: Dynamic Scoring
+- Implementar `getDynamicScores` con query a la materialized view (timeout 200ms)
+- Integrar en el loop de scoring de solve_goal
+- Agregar `experience_backed` y `outcomes_count` al response
+- Crear edge function cron para refresh de la materialized view cada hora
 
