@@ -1535,75 +1535,90 @@ mcp.tool("solve_goal", {
 
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", ms: Date.now() - solveT0, totalItems: allItems.length, uniqueKeywords: uniqueKeywords.length }));
 
-    // 4. Score by relevance (ML-enhanced with quality guards)
-    // Filter out generic/meta tools AND solve_goal excluded tools
+    // 4. Score by relevance (ML-enhanced with quality guards + dynamic config)
+    const scoringCfg = await getScoringConfig();
     const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug) && !SOLVE_GOAL_EXCLUDED_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
     const keywordDomain = detectDomainByKeywords(args.goal);
+
+    // Load dynamic experience scores (timeout 200ms, non-blocking)
+    let experienceScores: Record<string, { success_rate: number; weighted_score: number; total_outcomes: number }> = {};
+    try {
+      const expPromise = supabase.from("experience_tool_scores").select("tool_slug, tool_type, success_rate, weighted_score, total_outcomes");
+      const expResult = await Promise.race([expPromise, new Promise(r => setTimeout(r, 200))]);
+      if (expResult && (expResult as any).data) {
+        for (const row of (expResult as any).data) {
+          experienceScores[`${row.tool_slug}:${row.tool_type}`] = row;
+        }
+      }
+    } catch { /* non-critical */ }
+
     const scored = filteredItems.map((item: any) => {
       let score = 0;
       const descLower = (item.desc || "").toLowerCase();
       const nameLower = (item.name || "").toLowerCase();
       const searchable = `${nameLower} ${descLower} ${item.category || ""}`;
 
-      // QUALITY GUARD: Penalize corrupted/generic taglines (monorepo inheritance)
       const hasCorruptedTagline = CORRUPTED_TAGLINES.some(ct => descLower.startsWith(ct));
-      if (hasCorruptedTagline) score -= 15;
+      if (hasCorruptedTagline) score += sc(scoringCfg, "corrupted_tagline_penalty", -15);
 
-      // QUALITY GUARD: Penalize items where tagline doesn't relate to the name at all
       const nameWords = nameLower.split(/[\s-]+/).filter((w: string) => w.length >= 3);
       const taglineMatchesName = nameWords.some((w: string) => descLower.includes(w));
-      if (!taglineMatchesName && nameWords.length > 0) score -= 5;
+      if (!taglineMatchesName && nameWords.length > 0) score += sc(scoringCfg, "tagline_name_mismatch_penalty", -5);
 
-      // QUALITY GUARD: Penalize zero-signal items (no stars, no installs, no trust)
       const totalSignals = (item.github_stars || 0) + (item.install_count || 0) + (item.trust_score || 0);
-      if (totalSignals === 0) score -= 8;
+      if (totalSignals === 0) score += sc(scoringCfg, "zero_signal_penalty", -8);
 
-      // Keyword relevance
-      for (const kw of goalWords2) { if (searchable.includes(kw)) score += 3; }
-      for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
+      for (const kw of goalWords2) { if (searchable.includes(kw)) score += sc(scoringCfg, "keyword_strong_match_weight", 3); }
+      for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += sc(scoringCfg, "keyword_match_weight", 1); }
       for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
       if (intent.category && item.category === intent.category) score += 4;
 
-      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories (80% penalty)
       const detectedDomain = keywordDomain?.domain || intent.domain;
       const expectedCategories = DOMAIN_CATEGORY_MAP[detectedDomain];
       if (expectedCategories && item.category && !expectedCategories.has(item.category.toLowerCase())) {
-        score *= 0.2; // 80% penalty for off-domain tools
+        score *= (1 - sc(scoringCfg, "domain_mismatch_penalty", 0.8));
       }
 
-      // CONNECTOR DESCRIPTION-OVERLAP CHECK: connectors without goal-word overlap get 90% penalty
       if (item.item_type === "connector") {
         const connGoalWords = goalWords2.filter((w: string) => w.length >= 4);
         if (connGoalWords.length > 0) {
           const connMatch = connGoalWords.filter((w: string) => searchable.includes(w)).length;
           if (connMatch === 0) {
-            score *= 0.1; // 90% penalty — connector has zero goal-word overlap
+            score *= (1 - sc(scoringCfg, "connector_overlap_penalty", 0.9));
           }
         }
       }
 
-      // Quality signals (with inflated-stars guard)
       const stars = item.github_stars || 0;
       const installs = item.install_count || 0;
-      // Only trust high star counts if tagline isn't corrupted
       if (!hasCorruptedTagline) {
-        if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
+        if (stars > 10000) score += sc(scoringCfg, "stars_bonus_high", 5);
+        else if (stars > 1000) score += sc(scoringCfg, "stars_bonus_medium", 3);
+        else if (stars > 100) score += sc(scoringCfg, "stars_bonus_low", 1);
       }
-      if (installs > 100) score += 3; else if (installs > 10) score += 1;
+      if (installs > 100) score += sc(scoringCfg, "install_bonus_high", 3);
+      else if (installs > 10) score += sc(scoringCfg, "install_bonus_low", 1);
       if (item.is_official) score += 3;
       if (item.is_anthropic_verified) score += 2;
-      if (item.avg_rating >= 4.0) score += 2;
+      if (item.avg_rating >= 4.0) score += sc(scoringCfg, "rating_bonus", 2);
       score += (item.trust_score || 0) / 20;
 
-      // Goal-word relevance penalty: if NO goal words (4+ chars) appear in description, penalize 80%
       const goalWordsLong = goalWords2.filter((w: string) => w.length >= 4);
       if (goalWordsLong.length > 0) {
         const matchCount = goalWordsLong.filter((w: string) => searchable.includes(w)).length;
-        if (matchCount === 0) {
-          score *= 0.2; // 80% penalty — no goal word overlap at all
-        }
+        if (matchCount === 0) score *= 0.2;
+      }
+
+      // EXPERIENCE LAYER: boost/penalize based on real outcome data
+      const expKey = `${item.slug}:${item.type}`;
+      const expData = experienceScores[expKey];
+      if (expData && expData.total_outcomes >= 3) {
+        const outcomeBonus = (expData.weighted_score / 100 - 0.5) * sc(scoringCfg, "outcome_weight", 0.4) * 10;
+        score += outcomeBonus;
+        item._experience_backed = true;
+        item._outcomes_count = expData.total_outcomes;
       }
 
       return { ...item, relevance: score };
