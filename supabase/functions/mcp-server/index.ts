@@ -3916,36 +3916,64 @@ mcp.tool("unpublish_skill", {
   },
 });
 
-// ─── report_goal_outcome: Post-implementation feedback ───
+// ─── report_goal_outcome: Post-implementation feedback with Experience Layer ───
 mcp.tool("report_goal_outcome", {
-  description: "Report the outcome after implementing a Pymaia recommendation. Helps improve future recommendations by tracking what actually worked.",
+  description: "Report the outcome after implementing a Pymaia recommendation. Include the execution_id from the solve_goal response to link feedback to specific recommendations. Helps improve future recommendations by tracking what actually worked.",
   inputSchema: {
     type: "object",
     properties: {
-      goal: { type: "string", description: "The original goal" },
-      outcome: { type: "string", description: "Result: 'success', 'partial', or 'failed'" },
+      execution_id: { type: "string", description: "The execution_id from the solve_goal response (found in HTML comment <!-- execution_id: ... -->)" },
+      tool_slug: { type: "string", description: "Slug of the specific tool being reported on" },
+      tool_type: { type: "string", description: "Type: 'skill', 'connector', or 'plugin'" },
+      outcome: { type: "string", description: "Result: 'success', 'partial', 'failure', or 'skipped'" },
       feedback: { type: "string", description: "What worked and what didn't" },
-      time_spent: { type: "string", description: "How long implementation took (e.g., '30 min', '2 hours')" },
-      would_recommend: { type: "boolean", description: "Would you recommend this solution to others?" },
+      goal: { type: "string", description: "The original goal (fallback if no execution_id)" },
     },
-    required: ["goal", "outcome"],
+    required: ["outcome"],
   },
-  handler: async (args: { goal: string; outcome: string; feedback?: string; time_spent?: string; would_recommend?: boolean }) => {
+  handler: async (args: { execution_id?: string; tool_slug?: string; tool_type?: string; outcome: string; feedback?: string; goal?: string }) => {
     logToolCall("report_goal_outcome", args);
-    const ratingMap: Record<string, number> = { success: 5, partial: 3, failed: 1 };
+
+    // Rate limiting: 20 outcomes per hour per caller
+    const rl = await checkRateLimit(_currentCallerHash, "report_outcome", 20);
+    if (!rl.allowed) {
+      return { content: [{ type: "text" as const, text: `⚠️ Rate limit exceeded (${rl.current}/20 per hour). Please try again later.` }] };
+    }
+
+    const validOutcomes = ["success", "partial", "failure", "skipped"];
+    if (!validOutcomes.includes(args.outcome)) {
+      return { content: [{ type: "text" as const, text: `❌ Invalid outcome. Use: ${validOutcomes.join(", ")}` }] };
+    }
+
+    // If execution_id provided, log to experience_outcomes
+    if (args.execution_id && args.tool_slug) {
+      await supabase.from("experience_outcomes").insert({
+        execution_id: args.execution_id,
+        tool_slug: args.tool_slug,
+        tool_type: args.tool_type || "skill",
+        outcome: args.outcome,
+        feedback_text: args.feedback || null,
+        caller_hash: _currentCallerHash,
+      });
+    }
+
+    // Also log to legacy recommendation_feedback for backwards compat
+    const ratingMap: Record<string, number> = { success: 5, partial: 3, failure: 1, skipped: 2 };
     await supabase.from("recommendation_feedback").insert({
-      goal: args.goal,
+      goal: args.goal || args.execution_id || "unknown",
       rating: ratingMap[args.outcome] || 3,
-      comment: [args.feedback || "", args.time_spent ? `Time: ${args.time_spent}` : "", args.would_recommend !== undefined ? `Recommend: ${args.would_recommend ? "yes" : "no"}` : ""].filter(Boolean).join(" | "),
-      recommended_slugs: [],
+      comment: [args.feedback || "", args.tool_slug ? `Tool: ${args.tool_slug}` : ""].filter(Boolean).join(" | "),
+      recommended_slugs: args.tool_slug ? [args.tool_slug] : [],
     });
+
     await supabase.from("agent_analytics").insert({
       event_type: "goal_outcome",
       tool_name: "report_goal_outcome",
-      goal: args.goal,
-      event_data: { outcome: args.outcome, feedback: args.feedback, time_spent: args.time_spent, would_recommend: args.would_recommend },
+      goal: args.goal || args.execution_id || "unknown",
+      event_data: { execution_id: args.execution_id, tool_slug: args.tool_slug, tool_type: args.tool_type, outcome: args.outcome, feedback: args.feedback },
     });
-    return { content: [{ type: "text" as const, text: `✅ Outcome recorded: ${args.outcome}. Thank you for the feedback!` }] };
+
+    return { content: [{ type: "text" as const, text: `✅ Outcome recorded: ${args.outcome}${args.tool_slug ? ` for ${args.tool_slug}` : ""}. Thank you for the feedback!` }] };
   },
 });
 
