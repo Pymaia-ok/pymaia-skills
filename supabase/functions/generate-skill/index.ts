@@ -165,12 +165,14 @@ Before executing, verify MCP availability:
 const JUDGE_PROMPT = `Sos un evaluador experto de skills para Claude Code, calibrado contra las mejores skills del ecosistema de Anthropic (webapp-testing, mcp-builder, pdf-tools). Evaluá la skill generada con estos criterios best-in-class:
 
 Criterios de evaluación (10 puntos total):
-- **Description keyword-rich** (1.5pts): ¿La description del frontmatter dice QUÉ hace + CUÁNDO usarla + keywords de matching? ¿Ayudaría a un agente a decidir si activarla?
-- **Decision tree** (1.5pts): ¿Tiene un árbol de decisión claro que ayude al agente a saber cuándo SÍ y cuándo NO activar la skill?
+- **Description keyword-rich con negative triggers** (1.5pts): ¿La description del frontmatter dice QUÉ hace + CUÁNDO usarla + CUÁNDO NO? ¿Incluye "Do NOT use for..."?
+- **Decision tree** (1pts): ¿Tiene un árbol de decisión claro que ayude al agente a saber cuándo SÍ y cuándo NO activar la skill?
 - **Workflow estructurado** (2pts): ¿Los pasos son claros, ordenados y sin ambigüedad? ¿Un agente podría seguirlos mecánicamente?
-- **Ejemplos ejecutables** (2pts): ¿Los ejemplos tienen input/output concretos? ¿Incluyen código real si es técnica? ¿Son copy-pasteables?
-- **Common pitfalls ❌/✅** (1.5pts): ¿Tiene errores comunes con formato visual ❌ Don't / ✅ Do? ¿Son específicos del dominio?
-- **Progressive disclosure** (1.5pts): ¿El SKILL.md tiene menos de 500 líneas? ¿Usa referencias a archivos externos si necesita más detalle?
+- **Ejemplos ejecutables** (1.5pts): ¿Los ejemplos tienen input/output concretos? ¿Incluyen código real si es técnica? ¿Son copy-pasteables?
+- **Best Practices** (1pt): ¿Tiene una sección separada de Best Practices con consejos específicos del dominio?
+- **Common pitfalls ❌/✅** (1pt): ¿Tiene errores comunes con formato visual ❌ Don't / ✅ Do? ¿Son específicos del dominio?
+- **Troubleshooting** (1pt): ¿Tiene una sección de troubleshooting con errores comunes, causas y soluciones?
+- **Progressive disclosure** (1pt): ¿El SKILL.md tiene menos de 500 líneas? ¿Usa referencias a archivos externos si necesita más detalle?
 
 Respondé SOLO con un JSON válido (sin markdown, sin backticks):
 
@@ -180,7 +182,6 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks):
   "strengths": ["lista de 2-3 fortalezas"],
   "improvements": ["lista de 2-3 mejoras concretas y accionables"]
 }`;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
