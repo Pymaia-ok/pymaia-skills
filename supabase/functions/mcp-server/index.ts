@@ -6,6 +6,65 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const HASH_SALT = Deno.env.get("HASH_SALT") || "pymaia-default-salt-change-me";
+
+// ─── EXPERIENCE LAYER: Helpers ───
+async function hashCallerIP(req: Request): Promise<string> {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("cf-connecting-ip")
+    || "unknown";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(HASH_SALT + ip));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function generateExecutionId(): string {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return `exec_${Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Scoring config cache (5 min TTL)
+let _scoringConfigCache: Record<string, number> | null = null;
+let _scoringConfigTs = 0;
+const SCORING_CONFIG_TTL = 5 * 60 * 1000;
+
+async function getScoringConfig(): Promise<Record<string, number>> {
+  if (_scoringConfigCache && Date.now() - _scoringConfigTs < SCORING_CONFIG_TTL) {
+    return _scoringConfigCache;
+  }
+  try {
+    const { data } = await supabase.from("scoring_config").select("key, value");
+    const config: Record<string, number> = {};
+    for (const row of data || []) config[row.key] = Number(row.value);
+    _scoringConfigCache = config;
+    _scoringConfigTs = Date.now();
+    return config;
+  } catch {
+    return _scoringConfigCache || {};
+  }
+}
+
+function sc(config: Record<string, number>, key: string, fallback: number): number {
+  return config[key] ?? fallback;
+}
+
+// Rate limiting via DB
+async function checkRateLimit(identifier: string, action: string, maxRequests: number): Promise<{ allowed: boolean; current: number }> {
+  try {
+    const { data } = await supabase.rpc("upsert_rate_limit", {
+      _identifier: identifier,
+      _action: action,
+      _max_requests: maxRequests,
+    });
+    const current = data ?? 1;
+    return { allowed: current <= maxRequests, current };
+  } catch {
+    return { allowed: true, current: 0 }; // fail open
+  }
+}
+
+// Per-request caller hash for rate limiting
+let _currentCallerHash: string = "anonymous";
 
 // ─── API KEY AUTH: resolve user_id from Bearer token ───
 async function sha256Hex(message: string): Promise<string> {
@@ -1476,75 +1535,90 @@ mcp.tool("solve_goal", {
 
     console.log(JSON.stringify({ tool: "solve_goal", phase: "search_complete", ms: Date.now() - solveT0, totalItems: allItems.length, uniqueKeywords: uniqueKeywords.length }));
 
-    // 4. Score by relevance (ML-enhanced with quality guards)
-    // Filter out generic/meta tools AND solve_goal excluded tools
+    // 4. Score by relevance (ML-enhanced with quality guards + dynamic config)
+    const scoringCfg = await getScoringConfig();
     const filteredItems = allItems.filter((item: any) => !GENERIC_TOOL_SLUGS.has(item.slug) && !SOLVE_GOAL_EXCLUDED_SLUGS.has(item.slug));
     const CORRUPTED_TAGLINES = ["discover and install skills", "a curated list of", "a collection of", "collection of awesome", "the lobster way", "deep agents is"];
     const keywordDomain = detectDomainByKeywords(args.goal);
+
+    // Load dynamic experience scores (timeout 200ms, non-blocking)
+    let experienceScores: Record<string, { success_rate: number; weighted_score: number; total_outcomes: number }> = {};
+    try {
+      const expPromise = supabase.from("experience_tool_scores").select("tool_slug, tool_type, success_rate, weighted_score, total_outcomes");
+      const expResult = await Promise.race([expPromise, new Promise(r => setTimeout(r, 200))]);
+      if (expResult && (expResult as any).data) {
+        for (const row of (expResult as any).data) {
+          experienceScores[`${row.tool_slug}:${row.tool_type}`] = row;
+        }
+      }
+    } catch { /* non-critical */ }
+
     const scored = filteredItems.map((item: any) => {
       let score = 0;
       const descLower = (item.desc || "").toLowerCase();
       const nameLower = (item.name || "").toLowerCase();
       const searchable = `${nameLower} ${descLower} ${item.category || ""}`;
 
-      // QUALITY GUARD: Penalize corrupted/generic taglines (monorepo inheritance)
       const hasCorruptedTagline = CORRUPTED_TAGLINES.some(ct => descLower.startsWith(ct));
-      if (hasCorruptedTagline) score -= 15;
+      if (hasCorruptedTagline) score += sc(scoringCfg, "corrupted_tagline_penalty", -15);
 
-      // QUALITY GUARD: Penalize items where tagline doesn't relate to the name at all
       const nameWords = nameLower.split(/[\s-]+/).filter((w: string) => w.length >= 3);
       const taglineMatchesName = nameWords.some((w: string) => descLower.includes(w));
-      if (!taglineMatchesName && nameWords.length > 0) score -= 5;
+      if (!taglineMatchesName && nameWords.length > 0) score += sc(scoringCfg, "tagline_name_mismatch_penalty", -5);
 
-      // QUALITY GUARD: Penalize zero-signal items (no stars, no installs, no trust)
       const totalSignals = (item.github_stars || 0) + (item.install_count || 0) + (item.trust_score || 0);
-      if (totalSignals === 0) score -= 8;
+      if (totalSignals === 0) score += sc(scoringCfg, "zero_signal_penalty", -8);
 
-      // Keyword relevance
-      for (const kw of goalWords2) { if (searchable.includes(kw)) score += 3; }
-      for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += 1; }
+      for (const kw of goalWords2) { if (searchable.includes(kw)) score += sc(scoringCfg, "keyword_strong_match_weight", 3); }
+      for (const kw of uniqueKeywords) { if (searchable.includes(kw.toLowerCase())) score += sc(scoringCfg, "keyword_match_weight", 1); }
       for (const kw of intent.keywords) { if (searchable.includes(kw.toLowerCase())) score += 2; }
       for (const cap of intent.capabilities) { if (searchable.includes(cap.toLowerCase())) score += 3; }
       if (intent.category && item.category === intent.category) score += 4;
 
-      // DOMAIN-CATEGORY PENALTY: penalize tools from unrelated categories (80% penalty)
       const detectedDomain = keywordDomain?.domain || intent.domain;
       const expectedCategories = DOMAIN_CATEGORY_MAP[detectedDomain];
       if (expectedCategories && item.category && !expectedCategories.has(item.category.toLowerCase())) {
-        score *= 0.2; // 80% penalty for off-domain tools
+        score *= (1 - sc(scoringCfg, "domain_mismatch_penalty", 0.8));
       }
 
-      // CONNECTOR DESCRIPTION-OVERLAP CHECK: connectors without goal-word overlap get 90% penalty
       if (item.item_type === "connector") {
         const connGoalWords = goalWords2.filter((w: string) => w.length >= 4);
         if (connGoalWords.length > 0) {
           const connMatch = connGoalWords.filter((w: string) => searchable.includes(w)).length;
           if (connMatch === 0) {
-            score *= 0.1; // 90% penalty — connector has zero goal-word overlap
+            score *= (1 - sc(scoringCfg, "connector_overlap_penalty", 0.9));
           }
         }
       }
 
-      // Quality signals (with inflated-stars guard)
       const stars = item.github_stars || 0;
       const installs = item.install_count || 0;
-      // Only trust high star counts if tagline isn't corrupted
       if (!hasCorruptedTagline) {
-        if (stars > 10000) score += 5; else if (stars > 1000) score += 3; else if (stars > 100) score += 1;
+        if (stars > 10000) score += sc(scoringCfg, "stars_bonus_high", 5);
+        else if (stars > 1000) score += sc(scoringCfg, "stars_bonus_medium", 3);
+        else if (stars > 100) score += sc(scoringCfg, "stars_bonus_low", 1);
       }
-      if (installs > 100) score += 3; else if (installs > 10) score += 1;
+      if (installs > 100) score += sc(scoringCfg, "install_bonus_high", 3);
+      else if (installs > 10) score += sc(scoringCfg, "install_bonus_low", 1);
       if (item.is_official) score += 3;
       if (item.is_anthropic_verified) score += 2;
-      if (item.avg_rating >= 4.0) score += 2;
+      if (item.avg_rating >= 4.0) score += sc(scoringCfg, "rating_bonus", 2);
       score += (item.trust_score || 0) / 20;
 
-      // Goal-word relevance penalty: if NO goal words (4+ chars) appear in description, penalize 80%
       const goalWordsLong = goalWords2.filter((w: string) => w.length >= 4);
       if (goalWordsLong.length > 0) {
         const matchCount = goalWordsLong.filter((w: string) => searchable.includes(w)).length;
-        if (matchCount === 0) {
-          score *= 0.2; // 80% penalty — no goal word overlap at all
-        }
+        if (matchCount === 0) score *= 0.2;
+      }
+
+      // EXPERIENCE LAYER: boost/penalize based on real outcome data
+      const expKey = `${item.slug}:${item.type}`;
+      const expData = experienceScores[expKey];
+      if (expData && expData.total_outcomes >= 3) {
+        const outcomeBonus = (expData.weighted_score / 100 - 0.5) * sc(scoringCfg, "outcome_weight", 0.4) * 10;
+        score += outcomeBonus;
+        item._experience_backed = true;
+        item._outcomes_count = expData.total_outcomes;
       }
 
       return { ...item, relevance: score };
@@ -1767,12 +1841,25 @@ mcp.tool("solve_goal", {
     // A/B experiment tag
     sections.push(`\n<sub>experiment: ${variant} · classifier: ${intent.confidence > 0 ? "ml" : "keyword"}</sub>`);
 
+    // EXPERIENCE LAYER: Generate execution_id and log execution
+    const executionId = generateExecutionId();
+    const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
+    const allTypes = [...optionA, ...optionB].map((i: any) => i.type);
+
+    // Add execution_id as HTML comment (backwards compatible)
+    sections.push(`\n<!-- execution_id: ${executionId} -->`);
+
+    // Experience-backed items indicator
+    const expBackedCount = [...optionA, ...optionB].filter((i: any) => i._experience_backed).length;
+    if (expBackedCount > 0) {
+      sections.push(`\n<sub>📊 ${expBackedCount} tool(s) backed by real outcome data</sub>`);
+    }
+
     if (matchedTemplate) {
       supabase.from("goal_templates").update({ usage_count: (matchedTemplate.usage_count || 0) + 1 }).eq("id", matchedTemplate.id).then(() => {});
     }
 
     // Track analytics (fire-and-forget — don't block response)
-    const allSlugs = [...optionA, ...optionB].map((i: any) => i.slug);
     supabase.from("agent_analytics").insert({
       event_type: "solve_goal",
       tool_name: "solve_goal",
@@ -1780,6 +1867,7 @@ mcp.tool("solve_goal", {
       items_recommended: allSlugs,
       event_data: {
         variant,
+        execution_id: executionId,
         classifier_confidence: intent.confidence,
         classifier_category: intent.category,
         classifier_domain: intent.domain,
@@ -1792,10 +1880,22 @@ mcp.tool("solve_goal", {
         plugins_count: [...optionA, ...optionB].filter((i: any) => i.type === "plugin").length,
         keywords: intent.keywords || [],
         total_ms: Date.now() - solveT0,
+        experience_backed_count: expBackedCount,
       },
     }).then(() => {});
 
-    console.log(JSON.stringify({ tool: "solve_goal", phase: "done", ms: Date.now() - solveT0, optionA: optionA.length, optionB: optionB.length }));
+    // Log to experience_executions (fire-and-forget)
+    supabase.from("experience_executions").insert({
+      execution_id: executionId,
+      goal: args.goal,
+      domain: intent.domain,
+      recommended_slugs: allSlugs,
+      recommended_types: allTypes,
+      caller_hash: _currentCallerHash,
+      latency_ms: Date.now() - solveT0,
+    }).then(() => {});
+
+    console.log(JSON.stringify({ tool: "solve_goal", phase: "done", ms: Date.now() - solveT0, optionA: optionA.length, optionB: optionB.length, executionId }));
     return { content: [{ type: "text" as const, text: sections.join("\n") }] };
   },
 });
@@ -3816,36 +3916,64 @@ mcp.tool("unpublish_skill", {
   },
 });
 
-// ─── report_goal_outcome: Post-implementation feedback ───
+// ─── report_goal_outcome: Post-implementation feedback with Experience Layer ───
 mcp.tool("report_goal_outcome", {
-  description: "Report the outcome after implementing a Pymaia recommendation. Helps improve future recommendations by tracking what actually worked.",
+  description: "Report the outcome after implementing a Pymaia recommendation. Include the execution_id from the solve_goal response to link feedback to specific recommendations. Helps improve future recommendations by tracking what actually worked.",
   inputSchema: {
     type: "object",
     properties: {
-      goal: { type: "string", description: "The original goal" },
-      outcome: { type: "string", description: "Result: 'success', 'partial', or 'failed'" },
+      execution_id: { type: "string", description: "The execution_id from the solve_goal response (found in HTML comment <!-- execution_id: ... -->)" },
+      tool_slug: { type: "string", description: "Slug of the specific tool being reported on" },
+      tool_type: { type: "string", description: "Type: 'skill', 'connector', or 'plugin'" },
+      outcome: { type: "string", description: "Result: 'success', 'partial', 'failure', or 'skipped'" },
       feedback: { type: "string", description: "What worked and what didn't" },
-      time_spent: { type: "string", description: "How long implementation took (e.g., '30 min', '2 hours')" },
-      would_recommend: { type: "boolean", description: "Would you recommend this solution to others?" },
+      goal: { type: "string", description: "The original goal (fallback if no execution_id)" },
     },
-    required: ["goal", "outcome"],
+    required: ["outcome"],
   },
-  handler: async (args: { goal: string; outcome: string; feedback?: string; time_spent?: string; would_recommend?: boolean }) => {
+  handler: async (args: { execution_id?: string; tool_slug?: string; tool_type?: string; outcome: string; feedback?: string; goal?: string }) => {
     logToolCall("report_goal_outcome", args);
-    const ratingMap: Record<string, number> = { success: 5, partial: 3, failed: 1 };
+
+    // Rate limiting: 20 outcomes per hour per caller
+    const rl = await checkRateLimit(_currentCallerHash, "report_outcome", 20);
+    if (!rl.allowed) {
+      return { content: [{ type: "text" as const, text: `⚠️ Rate limit exceeded (${rl.current}/20 per hour). Please try again later.` }] };
+    }
+
+    const validOutcomes = ["success", "partial", "failure", "skipped"];
+    if (!validOutcomes.includes(args.outcome)) {
+      return { content: [{ type: "text" as const, text: `❌ Invalid outcome. Use: ${validOutcomes.join(", ")}` }] };
+    }
+
+    // If execution_id provided, log to experience_outcomes
+    if (args.execution_id && args.tool_slug) {
+      await supabase.from("experience_outcomes").insert({
+        execution_id: args.execution_id,
+        tool_slug: args.tool_slug,
+        tool_type: args.tool_type || "skill",
+        outcome: args.outcome,
+        feedback_text: args.feedback || null,
+        caller_hash: _currentCallerHash,
+      });
+    }
+
+    // Also log to legacy recommendation_feedback for backwards compat
+    const ratingMap: Record<string, number> = { success: 5, partial: 3, failure: 1, skipped: 2 };
     await supabase.from("recommendation_feedback").insert({
-      goal: args.goal,
+      goal: args.goal || args.execution_id || "unknown",
       rating: ratingMap[args.outcome] || 3,
-      comment: [args.feedback || "", args.time_spent ? `Time: ${args.time_spent}` : "", args.would_recommend !== undefined ? `Recommend: ${args.would_recommend ? "yes" : "no"}` : ""].filter(Boolean).join(" | "),
-      recommended_slugs: [],
+      comment: [args.feedback || "", args.tool_slug ? `Tool: ${args.tool_slug}` : ""].filter(Boolean).join(" | "),
+      recommended_slugs: args.tool_slug ? [args.tool_slug] : [],
     });
+
     await supabase.from("agent_analytics").insert({
       event_type: "goal_outcome",
       tool_name: "report_goal_outcome",
-      goal: args.goal,
-      event_data: { outcome: args.outcome, feedback: args.feedback, time_spent: args.time_spent, would_recommend: args.would_recommend },
+      goal: args.goal || args.execution_id || "unknown",
+      event_data: { execution_id: args.execution_id, tool_slug: args.tool_slug, tool_type: args.tool_type, outcome: args.outcome, feedback: args.feedback },
     });
-    return { content: [{ type: "text" as const, text: `✅ Outcome recorded: ${args.outcome}. Thank you for the feedback!` }] };
+
+    return { content: [{ type: "text" as const, text: `✅ Outcome recorded: ${args.outcome}${args.tool_slug ? ` for ${args.tool_slug}` : ""}. Thank you for the feedback!` }] };
   },
 });
 
@@ -4453,7 +4581,11 @@ mcpApp.get("/", (c) => c.json({
     "get_skill_analytics", "install_bundle", "scan_skill", "run_skill_evals", "report_skill",
   ],
 }));
-mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
+mcpApp.all("/mcp", async (c) => {
+  // Set caller hash for rate limiting (non-blocking)
+  _currentCallerHash = await hashCallerIP(c.req.raw);
+  return await httpHandler(c.req.raw);
+});
 
 app.route("/mcp-server", mcpApp);
 
