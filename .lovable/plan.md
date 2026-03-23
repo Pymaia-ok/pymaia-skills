@@ -1,42 +1,70 @@
 
-# Experience Layer v2.0 — Implementation Status
+Objetivo: resolver una “pantalla en blanco” que yo no pude reproducir desde la sesión remota, aunque vos sí la seguís viendo en tu preview.
 
-## ✅ Completed
+Diagnóstico actual
+- En mi revisión, la app sí renderiza correctamente en `/` y la captura muestra navbar + hero visibles.
+- No aparecieron errores en consola, requests fallidas ni session replay útil.
+- Eso sugiere que el problema probablemente no es un crash global constante del código, sino uno de estos casos:
+  1. fallo intermitente de carga del preview,
+  2. chunk/import desincronizado en el navegador del preview,
+  3. ruta o estado local que deja la app en `null`,
+  4. error asíncrono no capturado por el `ErrorBoundary`.
 
-### Mensaje 1: DB Setup
-- [x] `experience_executions` table with RLS
-- [x] `experience_outcomes` table with RLS
-- [x] `scoring_config` table seeded with 17 keys
-- [x] `rate_limit_log` table
-- [x] Materialized view `experience_tool_scores`
-- [x] RPC `upsert_rate_limit` (atomic rate limiting)
-- [x] RPC `refresh_experience_scores` (refresh + cleanup)
-- [x] `HASH_SALT` secret configured
+Qué haría para dejarlo realmente robusto
+1. Instrumentar el arranque de la app
+- Agregar logging global para `window.onerror` y `unhandledrejection`.
+- Loguear errores de imports dinámicos/chunks para detectar si el preview quedó con assets viejos.
+- Mostrar un fallback visible en vez de dejar pantalla vacía.
 
-### Mensaje 2: Logging + Config
-- [x] `hashCallerIP` helper using HASH_SALT
-- [x] `generateExecutionId` helper
-- [x] `getScoringConfig` loader with 5-min cache
-- [x] `sc()` config reader with fallback
-- [x] All hardcoded scoring weights replaced by `sc(scoringCfg, key, fallback)`
-- [x] `execution_id` generated per solve_goal call
-- [x] HTML comment `<!-- execution_id: ... -->` in response
-- [x] Async logging to `experience_executions` table
-- [x] Experience-backed items indicator in response
+2. Eliminar “blank states” silenciosos
+- Revisar componentes/páginas que hoy hacen `return null` en estados de carga o auth (`Auth`, `Admin`, `CrearSkill`, etc.).
+- Reemplazarlos por loaders o mensajes explícitos.
+- Prioridad: cualquier componente montado globalmente (`Navbar`, auth provider, rutas lazy).
 
-### Mensaje 3: report_goal_outcome + Rate Limiting
-- [x] `checkRateLimit` using `upsert_rate_limit` RPC
-- [x] `report_goal_outcome` updated with execution_id + tool_slug support
-- [x] Rate limit: 20 outcomes/hour per caller
-- [x] Outcome validation (success/partial/failure/skipped)
-- [x] Backwards compatible with legacy `recommendation_feedback`
-- [x] Caller hash extracted in Hono middleware
+3. Endurecer lazy loading y recuperación
+- Envolver imports lazy con manejo de error amigable.
+- Detectar errores tipo “Failed to fetch dynamically imported module / Loading chunk failed”.
+- Ofrecer recarga automática o botón de “Reintentar” cuando el bundle quede desfasado.
 
-### Mensaje 4: Dynamic Scoring + Cron
-- [x] `experience_tool_scores` queried in scoring loop (200ms timeout)
-- [x] Experience-backed boost/penalty integrated
-- [x] `refresh-experience-scores` edge function created
-- [x] Config in supabase/config.toml
+4. Verificar componentes globales sensibles
+- Revisar `Navbar`, `GlobalSearch`, `useAuth`, `useSEO`, `ThemeProvider` y `ErrorBoundary`, porque están presentes desde el arranque.
+- Buscar accesos a `localStorage`, `document`, `window`, `clipboard` o queries globales que puedan fallar según el entorno.
 
-## ✅ All Complete
-- [x] Schedule cron job for `refresh-experience-scores` (hourly) — cron ID 163, runs at :15 each hour
+5. Diferenciar bug real vs preview desincronizado
+- Comparar comportamiento entre preview y published con la misma versión.
+- Si sólo falla el preview, dejar una protección para recargar assets/versiones y evitar que vuelva a quedar en blanco.
+
+Cambios concretos que implementaría
+- `src/main.tsx`: guardas globales de error + fallback de arranque.
+- `src/App.tsx`: manejo de error para rutas lazy.
+- `src/components/ErrorBoundary.tsx`: fallback más informativo con opción de recarga.
+- `src/hooks/useAuth.tsx`: proteger flujos asíncronos para que nunca dejen la app “vacía”.
+- Páginas con `return null`: reemplazarlas por estados de loading visibles.
+
+Resultado esperado
+- Aunque el preview falle o quede desincronizado, no debería volver a verse una pantalla totalmente blanca.
+- Vamos a poder distinguir si el problema es:
+  - error real de runtime,
+  - chunk stale/cache,
+  - auth/loading infinito,
+  - o issue específico del preview.
+
+Detalles técnicos
+```text
+Hoy:
+arranque falla o queda colgado
+-> varios componentes devuelven null
+-> usuario percibe "pantalla blanca"
+
+Propuesto:
+arranque falla o queda colgado
+-> logger global captura causa
+-> fallback visible informa el error
+-> retry / reload permite recuperar
+```
+
+Alcance recomendado
+- Paso 1: hardening del arranque + fallback visible
+- Paso 2: limpiar `return null` críticos
+- Paso 3: recuperación de lazy imports/chunks
+- Paso 4: revalidación de preview/published
