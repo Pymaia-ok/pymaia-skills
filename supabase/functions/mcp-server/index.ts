@@ -4581,7 +4581,11 @@ mcpApp.get("/", (c) => c.json({
     "get_skill_analytics", "install_bundle", "scan_skill", "run_skill_evals", "report_skill",
   ],
 }));
-mcpApp.all("/mcp", async (c) => await httpHandler(c.req.raw));
+mcpApp.all("/mcp", async (c) => {
+  // Set caller hash for rate limiting (non-blocking)
+  _currentCallerHash = await hashCallerIP(c.req.raw);
+  return await httpHandler(c.req.raw);
+});
 
 app.route("/mcp-server", mcpApp);
 
