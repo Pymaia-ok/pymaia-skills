@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, Component, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
+import { Loader2 } from "lucide-react";
 
 // Eagerly loaded (critical path)
 import Index from "./pages/Index";
@@ -16,42 +17,54 @@ import SkillDetail from "./pages/SkillDetail";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
+// ── Resilient lazy loader: auto-reloads on stale chunks ──
+function resilientLazy(factory: () => Promise<{ default: any }>) {
+  return lazy(() =>
+    factory().catch((err) => {
+      const key = "chunk_reload";
+      if (
+        !sessionStorage.getItem(key) &&
+        (err?.message?.includes("Failed to fetch dynamically imported module") ||
+          err?.message?.includes("Loading chunk"))
+      ) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+      }
+      throw err;
+    })
+  );
+}
+
 // Lazy loaded (heavy / less critical pages)
-const PrimerosPasos = lazy(() => import("./pages/PrimerosPasos"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const CrearSkill = lazy(() => import("./pages/CrearSkill"));
-const UserProfile = lazy(() => import("./pages/UserProfile"));
-const Conectores = lazy(() => import("./pages/Conectores"));
-const ConectorDetail = lazy(() => import("./pages/ConectorDetail"));
-const MCP = lazy(() => import("./pages/MCP"));
-const Admin = lazy(() => import("./pages/Admin"));
-const MisSkills = lazy(() => import("./pages/MisSkills"));
-const Terms = lazy(() => import("./pages/Terms"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Plugins = lazy(() => import("./pages/Plugins"));
-const PluginDetail = lazy(() => import("./pages/PluginDetail"));
-const RoleLanding = lazy(() => import("./pages/RoleLanding"));
-const Enterprise = lazy(() => import("./pages/Enterprise"));
-const SecurityAdvisories = lazy(() => import("./pages/SecurityAdvisories"));
-const ApiDocs = lazy(() => import("./pages/ApiDocs"));
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-const Courses = lazy(() => import("./pages/Courses"));
-const CourseDetail = lazy(() => import("./pages/CourseDetail"));
-const CourseModule = lazy(() => import("./pages/CourseModule"));
-const Links = lazy(() => import("./pages/Links"));
+const PrimerosPasos = resilientLazy(() => import("./pages/PrimerosPasos"));
+const ResetPassword = resilientLazy(() => import("./pages/ResetPassword"));
+const CrearSkill = resilientLazy(() => import("./pages/CrearSkill"));
+const UserProfile = resilientLazy(() => import("./pages/UserProfile"));
+const Conectores = resilientLazy(() => import("./pages/Conectores"));
+const ConectorDetail = resilientLazy(() => import("./pages/ConectorDetail"));
+const MCP = resilientLazy(() => import("./pages/MCP"));
+const Admin = resilientLazy(() => import("./pages/Admin"));
+const MisSkills = resilientLazy(() => import("./pages/MisSkills"));
+const Terms = resilientLazy(() => import("./pages/Terms"));
+const Privacy = resilientLazy(() => import("./pages/Privacy"));
+const Plugins = resilientLazy(() => import("./pages/Plugins"));
+const PluginDetail = resilientLazy(() => import("./pages/PluginDetail"));
+const RoleLanding = resilientLazy(() => import("./pages/RoleLanding"));
+const Enterprise = resilientLazy(() => import("./pages/Enterprise"));
+const SecurityAdvisories = resilientLazy(() => import("./pages/SecurityAdvisories"));
+const ApiDocs = resilientLazy(() => import("./pages/ApiDocs"));
+const Blog = resilientLazy(() => import("./pages/Blog"));
+const BlogPost = resilientLazy(() => import("./pages/BlogPost"));
+const Courses = resilientLazy(() => import("./pages/Courses"));
+const CourseDetail = resilientLazy(() => import("./pages/CourseDetail"));
+const CourseModule = resilientLazy(() => import("./pages/CourseModule"));
+const Links = resilientLazy(() => import("./pages/Links"));
 
 const queryClient = new QueryClient();
 
 const LazyFallback = () => (
-  <div className="min-h-[70vh] w-full max-w-6xl mx-auto px-4 pt-12 space-y-8 animate-pulse">
-    <div className="h-8 w-48 bg-muted rounded-md" />
-    <div className="h-5 w-96 max-w-full bg-muted rounded-md" />
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="rounded-xl bg-muted h-48" />
-      ))}
-    </div>
+  <div className="min-h-[70vh] flex items-center justify-center">
+    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
   </div>
 );
 

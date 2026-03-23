@@ -46,7 +46,7 @@ export default function MisSkills() {
     }
   }, [user]);
 
-  if (loading) return null;
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
 
   const statusLabels: Record<string, { label: string; className: string }> = {
