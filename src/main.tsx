@@ -2,9 +2,30 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import "./index.css";
 
+const hasBackendEnv = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+);
+
+async function renderSafePreview(detail?: string) {
+  const rootEl = document.getElementById("root");
+  if (!rootEl) return;
+
+  const { default: PreviewFallbackApp } = await import("./PreviewFallbackApp.tsx");
+
+  createRoot(rootEl).render(
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <PreviewFallbackApp detail={detail} />
+    </ThemeProvider>
+  );
+}
+
 // ── Global error handlers: prevent silent blank screens ──
 window.addEventListener("error", (e) => {
   console.error("[global error]", e.error || e.message);
+  if (String(e.message).includes("supabaseUrl is required.")) {
+    void renderSafePreview("Vista previa cargada sin backend.");
+    return;
+  }
   showCrashFallback(e.message);
 });
 
@@ -12,7 +33,7 @@ window.addEventListener("unhandledrejection", (e) => {
   const msg = e.reason?.message || String(e.reason);
   console.error("[unhandled rejection]", msg);
   if (msg.includes("supabaseUrl is required.")) {
-    void hardRefreshApp("supabase_url_missing");
+    void renderSafePreview("Vista previa cargada sin backend.");
     return;
   }
   // Stale chunk / dynamic import failure → auto-reload once
@@ -102,8 +123,9 @@ async function bootstrap() {
   showBootFallback();
 
   try {
+    const appModule = hasBackendEnv ? "./App.tsx" : "./PreviewFallbackApp.tsx";
     const [{ default: App }] = await Promise.all([
-      import("./App.tsx"),
+      import(appModule),
       import("./i18n"),
     ]);
 
@@ -130,7 +152,7 @@ async function bootstrap() {
     }
 
     if (detail.includes("supabaseUrl is required.")) {
-      await hardRefreshApp("supabase_url_missing");
+      await renderSafePreview("Vista previa cargada sin backend.");
       return;
     }
 
