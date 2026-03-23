@@ -10,13 +10,35 @@ async function renderSafePreview(detail?: string) {
   const rootEl = document.getElementById("root");
   if (!rootEl) return;
 
-  const { default: PreviewFallbackApp } = await import("./PreviewFallbackApp");
+  rootEl.innerHTML = `
+    <main style="min-height:100vh;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:2rem;">
+      <section style="max-width:48rem;text-align:center;">
+        <div style="display:inline-flex;margin-bottom:1.5rem;border:1px solid rgba(0,0,0,.1);background:rgba(0,0,0,.04);padding:.35rem .8rem;border-radius:999px;font-size:.875rem;color:rgba(0,0,0,.65);">
+          Vista previa segura
+        </div>
+        <h1 style="font-size:clamp(2rem,5vw,4rem);line-height:1.05;letter-spacing:-0.04em;margin:0;">
+          La app no se rompe aunque falte la configuración del backend.
+        </h1>
+        <p style="margin:1.25rem auto 0;max-width:40rem;font-size:1.125rem;line-height:1.7;color:rgba(0,0,0,.62);">
+          En este entorno de preview no llegaron las variables del backend, así que cargué una vista degradada para evitar la pantalla en blanco.
+        </p>
+        ${detail ? `<p style="margin:1rem auto 0;max-width:42rem;border:1px solid rgba(0,0,0,.08);background:rgba(0,0,0,.03);border-radius:1rem;padding:.9rem 1rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.95rem;color:rgba(0,0,0,.65);word-break:break-word;">${detail}</p>` : ""}
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;margin-top:2rem;">
+          <button id="safe-preview-reload" style="padding:.8rem 1.35rem;border-radius:.9rem;border:1px solid #111;background:#111;color:#fff;cursor:pointer;font-size:1rem;">Recargar preview</button>
+          <button id="safe-preview-published" style="padding:.8rem 1.35rem;border-radius:.9rem;border:1px solid rgba(0,0,0,.15);background:#fff;color:#111;cursor:pointer;font-size:1rem;">Ver sitio publicado</button>
+        </div>
+      </section>
+    </main>
+  `;
 
-  createRoot(rootEl).render(
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <PreviewFallbackApp detail={detail} />
-    </ThemeProvider>
-  );
+  document.getElementById("safe-preview-reload")?.addEventListener("click", () => {
+    sessionStorage.removeItem("chunk_reload");
+    window.location.reload();
+  });
+
+  document.getElementById("safe-preview-published")?.addEventListener("click", () => {
+    window.open("https://pymaiaskills.lovable.app", "_blank", "noopener,noreferrer");
+  });
 }
 
 // ── Global error handlers: prevent silent blank screens ──
@@ -123,10 +145,13 @@ async function bootstrap() {
   showBootFallback();
 
   try {
-    const [{ default: App }] = await Promise.all([
-      hasBackendEnv ? import("./App") : import("./PreviewFallbackApp"),
-      import("./i18n"),
-    ]);
+    if (!hasBackendEnv) {
+      await Promise.all([import("./i18n")]);
+      await renderSafePreview("Vista previa cargada sin backend.");
+      return;
+    }
+
+    const [{ default: App }] = await Promise.all([import("./App"), import("./i18n")]);
 
     createRoot(rootEl).render(
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
