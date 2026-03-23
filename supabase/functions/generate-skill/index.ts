@@ -43,17 +43,25 @@ Respondé SOLO con un JSON válido (sin markdown, sin backticks) con esta estruc
 
 El SKILL.md DEBE seguir estos patrones best-in-class de Anthropic:
 
-### 1. Frontmatter con description keyword-rich
-La description DEBE decir QUÉ hace + CUÁNDO usarla + keywords de matching:
+### 1. Frontmatter con description keyword-rich y negative triggers
+La description DEBE decir QUÉ hace + CUÁNDO usarla + CUÁNDO NO usarla + keywords de matching:
 
 ---
 name: nombre-en-kebab-case
-description: "[QUÉ hace en 1 frase]. [CUÁNDO usarla]. Use when [keywords de activación]."
+description: "[QUÉ hace en 1 frase]. [CUÁNDO usarla]. Use when [keywords de activación]. Do NOT use for [situaciones donde NO aplica]."
 compatibility: claude-code
+license: MIT
+allowed-tools: ["Bash", "Read", "Write"]
 metadata:
   author: pymaia
   version: "1.0"
 ---
+
+IMPORTANTE sobre el frontmatter:
+- La description DEBE incluir negative triggers ("Do NOT use for X, Y, Z")
+- NUNCA uses angle brackets XML (<, >) dentro del frontmatter YAML — causan errores de parsing
+- El campo "allowed-tools" es opcional: incluilo solo si la skill necesita herramientas específicas
+- El campo "license" siempre debe ser "MIT" salvo que el usuario pida otra
 
 ### 2. Estructura del body (secciones obligatorias)
 
@@ -94,7 +102,10 @@ Ejemplo de formato:
 
 ## Best Practices
 
-[Lista de mejores prácticas del dominio]
+[Lista de mejores prácticas del dominio, específicas y accionables]
+
+- **[Práctica 1]**: [Explicación concisa de por qué y cómo]
+- **[Práctica 2]**: [Explicación concisa]
 
 ## Common Pitfalls
 
@@ -111,6 +122,15 @@ Ejemplo de formato:
 [Lista explícita de restricciones absolutas]
 - NEVER [restricción 1]
 - NEVER [restricción 2]
+
+## Troubleshooting
+
+[Errores comunes con formato tabla o lista estructurada]
+
+| Error | Causa | Solución |
+|-------|-------|----------|
+| [Error 1] | [Por qué ocurre] | [Cómo resolverlo] |
+| [Error 2] | [Por qué ocurre] | [Cómo resolverlo] |
 
 ### 3. Sección ## Dependencies (SOLO si la skill necesita MCPs externos)
 
@@ -139,7 +159,8 @@ Before executing, verify MCP availability:
 - Si necesita más detalle, referenciar archivos externos
 - Los ejemplos deben ser EJECUTABLES, no genéricos
 - El tono debe ser directo e imperativo (instrucciones para un agente, no documentación para humanos)
-- Usar markdown semántico: headers, listas, code blocks, bold para énfasis`;
+- Usar markdown semántico: headers, listas, code blocks, bold para énfasis
+- NUNCA uses angle brackets XML (<tag>) en el frontmatter YAML`;
 
 const JUDGE_PROMPT = `Sos un evaluador experto de skills para Claude Code, calibrado contra las mejores skills del ecosistema de Anthropic (webapp-testing, mcp-builder, pdf-tools). Evaluá la skill generada con estos criterios best-in-class:
 
