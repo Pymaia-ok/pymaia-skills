@@ -302,6 +302,14 @@ serve(async (req) => {
       if (s.description && s.description.length > 1024) {
         s.description = s.description.slice(0, 1021) + '...';
       }
+      // Sanitize XML angle brackets from frontmatter in install_command
+      if (s.install_command) {
+        const fmMatch = s.install_command.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const sanitizedFm = fmMatch[1].replace(/</g, '(').replace(/>/g, ')');
+          s.install_command = s.install_command.replace(fmMatch[1], sanitizedFm);
+        }
+      }
       return s;
     };
 
