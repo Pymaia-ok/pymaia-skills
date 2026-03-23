@@ -11,6 +11,10 @@ window.addEventListener("error", (e) => {
 window.addEventListener("unhandledrejection", (e) => {
   const msg = e.reason?.message || String(e.reason);
   console.error("[unhandled rejection]", msg);
+  if (msg.includes("supabaseUrl is required.")) {
+    void hardRefreshApp("supabase_url_missing");
+    return;
+  }
   // Stale chunk / dynamic import failure → auto-reload once
   if (
     msg.includes("Failed to fetch dynamically imported module") ||
@@ -26,6 +30,34 @@ window.addEventListener("unhandledrejection", (e) => {
   }
   showCrashFallback(msg);
 });
+
+async function hardRefreshApp(reason: string) {
+  const key = `hard_refresh_${reason}`;
+  if (sessionStorage.getItem(key)) {
+    showCrashFallback(`Error persistente: ${reason}`);
+    return;
+  }
+
+  sessionStorage.setItem(key, "1");
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((reg) => reg.unregister()));
+    }
+
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((cacheKey) => caches.delete(cacheKey)));
+    }
+  } catch (error) {
+    console.warn("[hard refresh] cleanup failed", error);
+  }
+
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set("__lr", Date.now().toString());
+  window.location.replace(nextUrl.toString());
+}
 
 function showCrashFallback(detail?: string) {
   const root = document.getElementById("root");
@@ -95,6 +127,11 @@ async function bootstrap() {
         window.location.reload();
         return;
       }
+    }
+
+    if (detail.includes("supabaseUrl is required.")) {
+      await hardRefreshApp("supabase_url_missing");
+      return;
     }
 
     showCrashFallback(detail);

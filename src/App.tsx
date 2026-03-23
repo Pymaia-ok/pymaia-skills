@@ -14,7 +14,6 @@ import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import SkillDetail from "./pages/SkillDetail";
-import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 // ── Resilient lazy loader: auto-reloads on stale chunks ──
@@ -37,6 +36,7 @@ function resilientLazy(factory: () => Promise<{ default: any }>) {
 
 // Lazy loaded (heavy / less critical pages)
 const PrimerosPasos = resilientLazy(() => import("./pages/PrimerosPasos"));
+const Auth = resilientLazy(() => import("./pages/Auth"));
 const ResetPassword = resilientLazy(() => import("./pages/ResetPassword"));
 const CrearSkill = resilientLazy(() => import("./pages/CrearSkill"));
 const UserProfile = resilientLazy(() => import("./pages/UserProfile"));
