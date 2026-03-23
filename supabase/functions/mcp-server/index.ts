@@ -6,6 +6,65 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const HASH_SALT = Deno.env.get("HASH_SALT") || "pymaia-default-salt-change-me";
+
+// ─── EXPERIENCE LAYER: Helpers ───
+async function hashCallerIP(req: Request): Promise<string> {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("cf-connecting-ip")
+    || "unknown";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(HASH_SALT + ip));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function generateExecutionId(): string {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return `exec_${Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Scoring config cache (5 min TTL)
+let _scoringConfigCache: Record<string, number> | null = null;
+let _scoringConfigTs = 0;
+const SCORING_CONFIG_TTL = 5 * 60 * 1000;
+
+async function getScoringConfig(): Promise<Record<string, number>> {
+  if (_scoringConfigCache && Date.now() - _scoringConfigTs < SCORING_CONFIG_TTL) {
+    return _scoringConfigCache;
+  }
+  try {
+    const { data } = await supabase.from("scoring_config").select("key, value");
+    const config: Record<string, number> = {};
+    for (const row of data || []) config[row.key] = Number(row.value);
+    _scoringConfigCache = config;
+    _scoringConfigTs = Date.now();
+    return config;
+  } catch {
+    return _scoringConfigCache || {};
+  }
+}
+
+function sc(config: Record<string, number>, key: string, fallback: number): number {
+  return config[key] ?? fallback;
+}
+
+// Rate limiting via DB
+async function checkRateLimit(identifier: string, action: string, maxRequests: number): Promise<{ allowed: boolean; current: number }> {
+  try {
+    const { data } = await supabase.rpc("upsert_rate_limit", {
+      _identifier: identifier,
+      _action: action,
+      _max_requests: maxRequests,
+    });
+    const current = data ?? 1;
+    return { allowed: current <= maxRequests, current };
+  } catch {
+    return { allowed: true, current: 0 }; // fail open
+  }
+}
+
+// Per-request caller hash for rate limiting
+let _currentCallerHash: string = "anonymous";
 
 // ─── API KEY AUTH: resolve user_id from Bearer token ───
 async function sha256Hex(message: string): Promise<string> {
