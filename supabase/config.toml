@@ -136,3 +136,6 @@ verify_jwt = false
 [functions.skills-sitemap]
 verify_jwt = false
 
+[functions.refresh-experience-scores]
+verify_jwt = false
+
