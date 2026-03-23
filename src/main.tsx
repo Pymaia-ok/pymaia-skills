@@ -1,8 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
-import App from "./App.tsx";
 import "./index.css";
-import "./i18n";
 
 // ── Global error handlers: prevent silent blank screens ──
 window.addEventListener("error", (e) => {
@@ -31,7 +29,7 @@ window.addEventListener("unhandledrejection", (e) => {
 
 function showCrashFallback(detail?: string) {
   const root = document.getElementById("root");
-  if (!root || root.childElementCount > 0) return; // already rendered
+  if (!root) return;
   root.innerHTML = `
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:2rem;text-align:center">
       <div style="max-width:420px">
@@ -49,8 +47,58 @@ function showCrashFallback(detail?: string) {
   `;
 }
 
-createRoot(document.getElementById("root")!).render(
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-    <App />
-  </ThemeProvider>
-);
+function showBootFallback(message = "Cargando aplicación…") {
+  const root = document.getElementById("root");
+  if (!root) return;
+  root.innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:2rem;text-align:center;background:#fff;color:#111">
+      <div style="max-width:420px">
+        <div style="width:2.25rem;height:2.25rem;border-radius:9999px;border:3px solid rgba(0,0,0,.12);border-top-color:#111;margin:0 auto 1rem;animation:spin .8s linear infinite"></div>
+        <p style="font-size:.95rem;color:#666">${message}</p>
+      </div>
+    </div>
+    <style>
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  `;
+}
+
+async function bootstrap() {
+  const rootEl = document.getElementById("root");
+  if (!rootEl) return;
+
+  showBootFallback();
+
+  try {
+    const [{ default: App }] = await Promise.all([
+      import("./App.tsx"),
+      import("./i18n"),
+    ]);
+
+    createRoot(rootEl).render(
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <App />
+      </ThemeProvider>
+    );
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error("[bootstrap error]", error);
+
+    if (
+      detail.includes("Failed to fetch dynamically imported module") ||
+      detail.includes("Loading chunk") ||
+      detail.includes("Importing a module script failed")
+    ) {
+      const key = "chunk_reload";
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+        return;
+      }
+    }
+
+    showCrashFallback(detail);
+  }
+}
+
+void bootstrap();
