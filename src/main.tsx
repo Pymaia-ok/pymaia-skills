@@ -10,7 +10,7 @@ async function renderSafePreview(detail?: string) {
   const rootEl = document.getElementById("root");
   if (!rootEl) return;
 
-  const { default: PreviewFallbackApp } = await import("./PreviewFallbackApp.tsx");
+  const { default: PreviewFallbackApp } = await import("./PreviewFallbackApp");
 
   createRoot(rootEl).render(
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -123,9 +123,8 @@ async function bootstrap() {
   showBootFallback();
 
   try {
-    const appModule = hasBackendEnv ? "./App.tsx" : "./PreviewFallbackApp.tsx";
     const [{ default: App }] = await Promise.all([
-      import(appModule),
+      hasBackendEnv ? import("./App") : import("./PreviewFallbackApp"),
       import("./i18n"),
     ]);
 
