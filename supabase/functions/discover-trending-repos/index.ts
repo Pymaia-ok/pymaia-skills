@@ -4,17 +4,42 @@ import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 /** Parse GitHub repo full_names from markdown/HTML content */
 function extractRepoNames(text: string): string[] {
   const repos = new Set<string>();
-  // Match github.com/{owner}/{repo} patterns
   const ghUrlRegex = /github\.com\/([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+)/g;
   let match;
   while ((match = ghUrlRegex.exec(text)) !== null) {
     const name = match[1].replace(/\.git$/, "").replace(/\/+$/, "");
-    // Filter out non-repo paths
     if (!name.includes("/trending") && !name.includes("/topics") && !name.includes("/explore") && name.split("/").length === 2) {
       repos.add(name);
     }
   }
   return [...repos];
+}
+
+/** Fast keyword-based category detection (no AI call needed) */
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  ia: ["ai", "machine learning", "llm", "gpt", "claude", "model", "neural", "nlp", "embedding", "agent", "chatbot", "openai", "anthropic", "gemini", "rag"],
+  desarrollo: ["code", "programming", "api", "sdk", "framework", "react", "typescript", "rust", "go", "compiler", "debug", "git", "cli", "terminal", "lint", "test"],
+  automatizacion: ["automate", "workflow", "pipeline", "n8n", "zapier", "cron", "scheduler", "scraper", "bot", "ci", "cd"],
+  diseno: ["design", "ui", "ux", "figma", "css", "tailwind", "component", "layout", "animation", "font", "svg"],
+  productividad: ["productivity", "todo", "notes", "calendar", "organize", "template", "notion", "obsidian"],
+  datos: ["data", "database", "sql", "analytics", "visualization", "chart", "dashboard", "etl", "csv", "postgres"],
+  seguridad: ["security", "pentest", "vulnerability", "firewall", "auth", "encryption", "privacy"],
+  operaciones: ["devops", "infrastructure", "monitoring", "docker", "kubernetes", "terraform", "aws", "cloud"],
+  marketing: ["marketing", "seo", "content", "social media", "campaign", "copywriting", "ads"],
+  finanzas: ["finance", "trading", "payment", "crypto", "blockchain", "defi", "invoice"],
+  creatividad: ["creative", "video", "audio", "music", "image", "photo", "3d", "render", "media"],
+};
+
+function detectCategory(name: string, description: string, topics: string[]): string {
+  const text = `${name} ${description} ${topics.join(" ")}`.toLowerCase();
+  let best = "desarrollo";
+  let bestScore = 0;
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    let score = 0;
+    for (const kw of keywords) { if (text.includes(kw)) score++; }
+    if (score > bestScore) { bestScore = score; best = cat; }
+  }
+  return best;
 }
 
 Deno.serve(async (req) => {
@@ -29,6 +54,9 @@ Deno.serve(async (req) => {
     if (!githubToken) throw new Error("GITHUB_TOKEN not configured");
 
     const { min_stars = 1000 } = await req.json().catch(() => ({}));
+    const START_TIME = Date.now();
+    const MAX_RUNTIME_MS = 50_000; // 50s guard
+    const isTimedOut = () => Date.now() - START_TIME > MAX_RUNTIME_MS;
 
     // Build date filter: repos created or pushed in last 7 days
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -67,6 +95,7 @@ Deno.serve(async (req) => {
 
     // ═══ SOURCE 1: GitHub Search API ═══
     for (const query of searchQueries) {
+      if (isTimedOut()) { console.log("[trending] Timeout before finishing GitHub Search"); break; }
       try {
         const res = await fetch(
           `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`,
@@ -122,12 +151,18 @@ Deno.serve(async (req) => {
 
     // ═══ SOURCE 2: Trendshift.io scraping via Firecrawl ═══
     const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-    if (firecrawlKey) {
+    const MAX_ENRICH = 40; // Max repos to enrich via GitHub API per source
+    let enrichCount = 0;
+
+    if (firecrawlKey && !isTimedOut()) {
       for (const trendUrl of [
-        "https://trendshift.io/repositories",
-        "https://trendshift.io/repositories?language=TypeScript",
-        "https://trendshift.io/repositories?language=Python",
+        "https://trendshift.io",
+        "https://trendshift.io/topics/ai-agent",
+        "https://trendshift.io/topics/ai-skills",
+        "https://trendshift.io/topics/ai-coding",
+        "https://trendshift.io/topics/mcp",
       ]) {
+        if (isTimedOut() || enrichCount >= MAX_ENRICH) break;
         try {
           console.log(`[trending] Scraping ${trendUrl}`);
           const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -151,6 +186,7 @@ Deno.serve(async (req) => {
             console.log(`[trending] Found ${repoNames.length} repos from ${trendUrl}`);
 
             for (const fullName of repoNames) {
+              if (enrichCount >= MAX_ENRICH) break;
               if (seenFullNames.has(fullName)) continue;
               seenFullNames.add(fullName);
 
@@ -162,6 +198,7 @@ Deno.serve(async (req) => {
 
               // Fetch repo metadata from GitHub API
               try {
+                enrichCount++;
                 const repoRes = await fetch(`https://api.github.com/repos/${fullName}`, {
                   headers: {
                     Authorization: `Bearer ${githubToken}`,
@@ -186,7 +223,7 @@ Deno.serve(async (req) => {
                 } else {
                   await repoRes.text();
                 }
-                await new Promise((r) => setTimeout(r, 500));
+                await new Promise((r) => setTimeout(r, 300));
               } catch { /* skip */ }
             }
           } else {
@@ -199,12 +236,15 @@ Deno.serve(async (req) => {
       }
 
       // ═══ SOURCE 3: GitHub Trending page via Firecrawl ═══
+      enrichCount = 0; // Reset for this source
       for (const ghTrendUrl of [
         "https://github.com/trending?since=daily",
         "https://github.com/trending?since=weekly",
-        "https://github.com/trending/typescript?since=weekly",
-        "https://github.com/trending/python?since=weekly",
+        "https://github.com/trending?since=monthly",
+        "https://github.com/trending/typescript?since=monthly",
+        "https://github.com/trending/python?since=monthly",
       ]) {
+        if (enrichCount >= MAX_ENRICH || isTimedOut()) break;
         try {
           console.log(`[trending] Scraping ${ghTrendUrl}`);
           const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -226,13 +266,13 @@ Deno.serve(async (req) => {
             const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
             const links = scrapeData.data?.links || scrapeData.links || [];
             
-            // Extract from both markdown content and links array
             const fromMarkdown = extractRepoNames(markdown);
             const fromLinks = extractRepoNames(links.join(" "));
             const allRepoNames = [...new Set([...fromMarkdown, ...fromLinks])];
             console.log(`[trending] Found ${allRepoNames.length} repos from ${ghTrendUrl}`);
 
             for (const fullName of allRepoNames) {
+              if (enrichCount >= MAX_ENRICH) break;
               if (seenFullNames.has(fullName)) continue;
               seenFullNames.add(fullName);
 
@@ -243,6 +283,7 @@ Deno.serve(async (req) => {
               if (existingSlugs.has(baseSlug)) continue;
 
               try {
+                enrichCount++;
                 const repoRes = await fetch(`https://api.github.com/repos/${fullName}`, {
                   headers: {
                     Authorization: `Bearer ${githubToken}`,
@@ -267,7 +308,7 @@ Deno.serve(async (req) => {
                 } else {
                   await repoRes.text();
                 }
-                await new Promise((r) => setTimeout(r, 500));
+                await new Promise((r) => setTimeout(r, 300));
               } catch { /* skip */ }
             }
           } else {
@@ -283,61 +324,63 @@ Deno.serve(async (req) => {
 
     console.log(`[trending] Found ${discovered.length} new repos after dedup (GitHub Search + Trendshift + GitHub Trending)`);
 
-    // Categorize and insert
+    // Categorize and batch insert (fast keyword detection, no AI calls)
     let inserted = 0;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const sourceCounts: Record<string, number> = {};
 
-    for (const repo of discovered) {
-      try {
-        let category = "desarrollo";
-        if (LOVABLE_API_KEY) {
-          try {
-            const catRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash-lite",
-                messages: [
-                  { role: "system", content: "Classify this GitHub repo into ONE category. Reply with ONLY the category slug. Options: desarrollo, productividad, marketing, ventas, soporte, datos, diseño, legal, finanzas, seguridad, devops, educación, salud, rrhh, ecommerce, operaciones, comunicación" },
-                  { role: "user", content: `${repo.name}: ${repo.description}. Topics: ${repo.topics.join(", ")}` },
-                ],
-              }),
-            });
-            if (catRes.ok) {
-              const catData = await catRes.json();
-              const cat = catData.choices?.[0]?.message?.content?.trim().toLowerCase();
-              if (cat && cat.length < 30) category = cat;
-            } else {
-              await catRes.text();
-            }
-          } catch { /* use default */ }
-        }
-
+    // Batch insert in groups of 10 for speed
+    for (let i = 0; i < discovered.length; i += 10) {
+      if (isTimedOut()) { console.log("[trending] Timeout during insert phase"); break; }
+      const batch = discovered.slice(i, i + 10);
+      const records = batch.map((repo) => {
+        const category = detectCategory(repo.name, repo.description, repo.topics);
         const status = repo.stars >= 1000 ? "approved" : "pending";
-
-        const { error } = await supabase.from("skills").insert({
+        return {
           slug: repo.slug,
           display_name: repo.name,
           description_human: repo.description || `${repo.name} - GitHub repository with ${repo.stars} stars`,
-          tagline: repo.description?.substring(0, 120) || repo.name,
+          tagline: (repo.description || repo.name).substring(0, 120),
           github_url: repo.github_url,
           github_stars: repo.stars,
           category,
           status,
           install_command: `git clone ${repo.github_url}`,
           install_count_source: "estimated",
-        });
+          _source: repo.source, // temp field for counting
+        };
+      });
 
-        if (!error) {
-          inserted++;
-          sourceCounts[repo.source] = (sourceCounts[repo.source] || 0) + 1;
-          console.log(`[trending] Inserted ${repo.full_name} (${repo.stars}★, ${status}, src: ${repo.source})`);
-        } else if (error.code !== "23505") {
-          console.error(`[trending] Insert error for ${repo.full_name}:`, error.message);
+      // Remove temp field and insert
+      const cleanRecords = records.map(({ _source, ...rest }) => rest);
+      const { data: insertedData, error } = await supabase.from("skills").insert(cleanRecords).select("id");
+
+      if (!error && insertedData) {
+        inserted += insertedData.length;
+        for (const r of records) {
+          sourceCounts[r._source] = (sourceCounts[r._source] || 0) + 1;
         }
-      } catch (e) {
-        console.error(`[trending] Error processing ${repo.full_name}:`, (e as Error).message);
+      } else if (error && error.code !== "23505") {
+        // If batch fails (likely dupe), fallback to individual inserts
+        for (const repo of batch) {
+          const category = detectCategory(repo.name, repo.description, repo.topics);
+          const status = repo.stars >= 1000 ? "approved" : "pending";
+          const { error: singleErr } = await supabase.from("skills").insert({
+            slug: repo.slug,
+            display_name: repo.name,
+            description_human: repo.description || `${repo.name} - GitHub repository with ${repo.stars} stars`,
+            tagline: (repo.description || repo.name).substring(0, 120),
+            github_url: repo.github_url,
+            github_stars: repo.stars,
+            category,
+            status,
+            install_command: `git clone ${repo.github_url}`,
+            install_count_source: "estimated",
+          });
+          if (!singleErr) {
+            inserted++;
+            sourceCounts[repo.source] = (sourceCounts[repo.source] || 0) + 1;
+          }
+        }
       }
     }
 
