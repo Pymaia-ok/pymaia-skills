@@ -381,20 +381,6 @@ Deno.serve(async (req) => {
             sourceCounts[repo.source] = (sourceCounts[repo.source] || 0) + 1;
           }
         }
-      }
-          install_count_source: "estimated",
-        });
-
-        if (!error) {
-          inserted++;
-          sourceCounts[repo.source] = (sourceCounts[repo.source] || 0) + 1;
-          console.log(`[trending] Inserted ${repo.full_name} (${repo.stars}★, ${status}, src: ${repo.source})`);
-        } else if (error.code !== "23505") {
-          console.error(`[trending] Insert error for ${repo.full_name}:`, error.message);
-        }
-      } catch (e) {
-        console.error(`[trending] Error processing ${repo.full_name}:`, (e as Error).message);
-      }
     }
 
     await supabase.from("automation_logs").insert({
