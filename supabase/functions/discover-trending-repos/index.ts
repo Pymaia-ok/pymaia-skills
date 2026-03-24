@@ -29,6 +29,9 @@ Deno.serve(async (req) => {
     if (!githubToken) throw new Error("GITHUB_TOKEN not configured");
 
     const { min_stars = 1000 } = await req.json().catch(() => ({}));
+    const START_TIME = Date.now();
+    const MAX_RUNTIME_MS = 50_000; // 50s guard
+    const isTimedOut = () => Date.now() - START_TIME > MAX_RUNTIME_MS;
 
     // Build date filter: repos created or pushed in last 7 days
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
