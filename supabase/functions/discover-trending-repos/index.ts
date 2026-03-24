@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     const MAX_ENRICH = 40; // Max repos to enrich via GitHub API per source
     let enrichCount = 0;
 
-    if (firecrawlKey) {
+    if (firecrawlKey && !isTimedOut()) {
       for (const trendUrl of [
         "https://trendshift.io",
         "https://trendshift.io/topics/ai-agent",
@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
         "https://trendshift.io/topics/ai-coding",
         "https://trendshift.io/topics/mcp",
       ]) {
+        if (isTimedOut() || enrichCount >= MAX_ENRICH) break;
         try {
           console.log(`[trending] Scraping ${trendUrl}`);
           const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
