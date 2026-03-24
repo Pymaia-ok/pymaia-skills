@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
         "https://github.com/trending/typescript?since=monthly",
         "https://github.com/trending/python?since=monthly",
       ]) {
-        if (enrichCount >= MAX_ENRICH) break;
+        if (enrichCount >= MAX_ENRICH || isTimedOut()) break;
         try {
           console.log(`[trending] Scraping ${ghTrendUrl}`);
           const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
