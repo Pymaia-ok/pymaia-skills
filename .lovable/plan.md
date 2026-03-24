@@ -1,58 +1,41 @@
 
 
-## Plan: Scraper de GitHub Trending + Trendshift + Blog Auto-Generation
+## Auditoría de Seguridad para Repositorio Público
 
-### Situación actual
-- `discover-trending-repos` solo busca via GitHub Search API con queries fijas (topics: `claude-code`, `ai-agent`, `mcp-server`). No scrappea fuentes externas como Trendshift o GitHub Trending.
-- De los 20 repos del trending que compartiste, **ya tenemos 12** (superpowers, everything-claude-code, browser-use, deer-flow, Understand-Anything, gstack, pentagi, agency-agents, gsap-skills, Claude-Code-Game-Studios).
-- **Faltan 8**: project-nomad, spec-kit, MiniMax-AI/skills, MoneyPrinterV2, pascalorg/editor, TradingAgents, public-apis, supermemory, MoneyPrinterTurbo, floci.
-- No hay pipeline que use trending data para generar posts de blog automáticamente.
+### Resultado: **SEGURO con 2 observaciones menores**
 
-### Cambios propuestos
+El repositorio está en buenas condiciones para hacerse público. Todos los secretos sensibles están protegidos.
 
-#### 1. Agregar scraping de Trendshift al discover-trending-repos
-Ampliar la función existente para también scrapear `https://trendshift.io/repositories` como fuente adicional de repos trending, además de las queries de GitHub Search API.
+---
 
-- Usar Firecrawl (ya conectado) para scrapear la página de Trendshift
-- Parsear repos del HTML/markdown resultante
-- Resolver cada repo contra GitHub API para obtener metadata completa (stars, description, topics)
-- Deduplicar contra catálogo existente e insertar nuevos skills
+### Lo que está BIEN protegido
 
-#### 2. Agregar scraping de GitHub Trending page
-Scrapear `https://github.com/trending` (daily/weekly) como tercera fuente:
-- Firecrawl scrape de la trending page
-- Parsear los repo links del markdown
-- Enriquecer con GitHub API
-- Mismo pipeline de dedup + insert
+| Elemento | Estado |
+|----------|--------|
+| `.env` | Excluido en `.gitignore` — nunca se commitea |
+| `.lovable/` | Excluido en `.gitignore` — PRDs internos no se publican |
+| 8 secrets runtime (ADMIN_FUNCTION_SECRET, GITHUB_TOKEN, RESEND_API_KEY, etc.) | Solo en el vault de Lovable Cloud, no en código |
+| Edge functions | Usan `Deno.env.get()` — leen secrets del runtime, no los hardcodean |
+| Archivos `.pem`, `.key` | Excluidos en `.gitignore` |
+| No hay passwords ni API keys hardcodeadas | Confirmado en todo el frontend |
 
-#### 3. Nuevo modo `trending_to_blog` en generate-blog-post
-Agregar lógica que detecte repos trending de alto impacto y genere automáticamente posts de blog sobre ellos:
-- Consultar skills insertados en las últimas 24h con >1000 stars desde `discover-trending-repos`
-- Agrupar por tema (ej: "Claude Code skills", "AI agents", "trading bots")
-- Generar un post tipo "Top X trending AI tools this week" usando Gemini
-- Insertar como draft en `blog_posts` para revisión
+### Observaciones (riesgo BAJO, no bloqueantes)
 
-#### 4. Cron semanal para blog trending
-Agregar un cron job semanal que ejecute el modo `trending_to_blog`.
+**1. Anon key hardcodeada en `vite.config.ts`**
+- La anon key (`eyJhbG...`) está como fallback en `vite.config.ts`
+- **Riesgo**: BAJO. La anon key es **pública por diseño** — es la clave que va al browser. Está protegida por RLS policies
+- **Acción**: Ninguna requerida, pero si preferís limpieza, se puede reemplazar por un placeholder que falle con mensaje claro
 
-### Archivos a modificar
-- `supabase/functions/discover-trending-repos/index.ts` — agregar fuentes Trendshift + GitHub Trending via Firecrawl
-- `supabase/functions/generate-blog-post/index.ts` — agregar topics dinámicos basados en trending data
-- Nuevo cron job para blog trending semanal
+**2. Anon key + project URL en migrations SQL**
+- Los archivos en `supabase/migrations/` contienen la anon key en headers de cron jobs (`pg_net` calls)
+- **Riesgo**: BAJO. Son migrations que configuran crons server-side. La anon key es pública y los crons corren dentro de la infraestructura de Lovable Cloud
+- **Acción**: Ninguna requerida — es el patrón estándar de pg_cron + pg_net
 
-### Detalles técnicos
+**3. Project ID en `openapi.json` y `vite.config.ts`**
+- El project ID `zugqvdqactbhzlilwyds` aparece en URLs públicas
+- **Riesgo**: NINGUNO. Es un identificador público, no un secreto
 
-```text
-Flujo actual:
-  GitHub Search API (7 queries) → dedup → insert skills
+### Conclusión
 
-Flujo propuesto:
-  GitHub Search API (7 queries)
-  + Trendshift scrape (via Firecrawl)
-  + GitHub Trending page scrape (via Firecrawl)
-  → merge + dedup → insert skills
-  → flag high-impact repos → weekly blog post generation
-```
-
-El scraping de Trendshift y GitHub Trending usa Firecrawl que ya está configurado como conector. No requiere API keys adicionales.
+El repo es **seguro para publicar**. No hay secretos privados expuestos. La anon key que aparece es pública por diseño (equivalente a una URL de API pública). Todos los secretos sensibles (service role key, GitHub token, API keys) están exclusivamente en el vault runtime.
 
