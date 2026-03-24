@@ -381,6 +381,7 @@ Deno.serve(async (req) => {
             sourceCounts[repo.source] = (sourceCounts[repo.source] || 0) + 1;
           }
         }
+      }
     }
 
     await supabase.from("automation_logs").insert({
