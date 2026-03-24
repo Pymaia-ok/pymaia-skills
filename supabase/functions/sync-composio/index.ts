@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 function slugify(name: string): string {
   return name
@@ -9,8 +9,8 @@ function slugify(name: string): string {
     .slice(0, 200);
 }
 
-function inferCategory(name: string, desc: string): string {
-  const text = `${name} ${desc}`.toLowerCase();
+function inferCategory(name: string): string {
+  const text = name.toLowerCase();
   if (text.match(/\b(gmail|email|outlook|smtp|mailgun|sendgrid)\b/)) return "communication";
   if (text.match(/\b(slack|discord|teams|telegram|whatsapp|twilio)\b/)) return "communication";
   if (text.match(/\b(github|gitlab|git\b|bitbucket|jenkins)\b/)) return "development";
@@ -44,10 +44,10 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const maxScrape = body.maxScrape || 50;
+    const enrichTop = body.enrichTop || 0; // How many to scrape for rich descriptions (0 = none)
 
-    // Step 1: Map composio.dev/toolkits to discover toolkit URLs
-    console.log("[composio] Mapping composio.dev/toolkits...");
+    // ── Phase 1: Map all toolkit URLs (1 Firecrawl credit) ──
+    console.log("[composio] Phase 1: Mapping composio.dev/toolkits...");
     const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
@@ -68,105 +68,132 @@ Deno.serve(async (req) => {
 
     const mapData = await mapRes.json();
     const allLinks: string[] = mapData?.links || [];
-    console.log(`[composio] Found ${allLinks.length} total URLs`);
+    console.log(`[composio] Map returned ${allLinks.length} URLs`);
 
     // Filter toolkit detail URLs: /toolkits/{name}
+    const excludeSlugs = new Set(["new", "search", "categories", "api", "docs", "pricing", "blog", "changelog", "about", "contact", "login", "signup"]);
     const toolkitUrls = allLinks.filter((url: string) => {
       const m = url.match(/composio\.dev\/toolkits\/([a-zA-Z0-9_-]+)\/?$/);
-      return m && !["new", "search", "categories", "api", "docs"].includes(m[1]);
+      return m && !excludeSlugs.has(m[1]);
     });
-    console.log(`[composio] ${toolkitUrls.length} toolkit URLs found`);
+    console.log(`[composio] ${toolkitUrls.length} toolkit URLs after filtering`);
 
-    // Step 2: Scrape each toolkit page for rich data
+    // ── Phase 2: Build records from URLs (0 credits) ──
+    console.log("[composio] Phase 2: Building records from URLs...");
     const records: any[] = [];
-    const toScrape = toolkitUrls.slice(0, maxScrape);
-    let scraped = 0;
-    let errors = 0;
 
-    for (const url of toScrape) {
-      try {
-        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
-        });
+    for (const url of toolkitUrls) {
+      const nameMatch = url.match(/toolkits\/([a-zA-Z0-9_-]+)/);
+      if (!nameMatch) continue;
 
-        if (!scrapeRes.ok) { errors++; continue; }
-        const scrapeData = await scrapeRes.json();
-        const markdown = scrapeData?.data?.markdown || scrapeData?.markdown || "";
-        const metadata = scrapeData?.data?.metadata || scrapeData?.metadata || {};
+      const rawName = nameMatch[1];
+      const slug = `composio-${slugify(rawName)}`;
+      const displayName = rawName
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-        // Extract name from URL
-        const nameMatch = url.match(/toolkits\/([a-zA-Z0-9_-]+)/);
-        if (!nameMatch) continue;
+      const category = inferCategory(rawName);
 
-        const rawName = nameMatch[1];
-        const slug = `composio-${slugify(rawName)}`;
-        const displayName = rawName
-          .replace(/[-_]/g, " ")
-          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+      records.push({
+        slug,
+        name: displayName,
+        description: `${displayName} integration via Composio — connect your AI agents to ${displayName} with pre-built actions and triggers.`,
+        category,
+        status: "approved",
+        homepage: `https://composio.dev/toolkits/${rawName}`,
+        source: "composio",
+        external_use_count: 0,
+        install_command: "",
+        credentials_needed: [],
+        install_count: 0,
+      });
+    }
 
-        // Extract description from markdown (first paragraph)
-        const descMatch = markdown.match(/^(?!#)(.{20,500}?)(?:\n|$)/m);
-        const description = descMatch
-          ? descMatch[1].trim()
-          : metadata?.description || `${displayName} integration via Composio`;
+    console.log(`[composio] ${records.length} records built from URLs`);
 
-        const category = inferCategory(displayName, description);
+    // ── Phase 3: Optional enrichment via scrape (N credits) ──
+    let enriched = 0;
+    if (enrichTop > 0) {
+      // Find which slugs already have readme_summary
+      const slugsToCheck = records.slice(0, enrichTop).map((r: any) => r.slug);
+      const { data: existing } = await supabase
+        .from("mcp_servers")
+        .select("slug, readme_summary")
+        .in("slug", slugsToCheck);
 
-        // Extract supported tools/triggers from markdown
-        const toolsSection = markdown.match(/(?:tools|triggers|actions)[\s\S]*?(?=##|$)/i);
-        const readmeSummary = toolsSection ? toolsSection[0].slice(0, 2000) : "";
+      const alreadyEnriched = new Set(
+        (existing || []).filter((e: any) => e.readme_summary).map((e: any) => e.slug)
+      );
 
-        records.push({
-          slug,
-          name: displayName,
-          description: description.slice(0, 1000),
-          category,
-          status: "approved",
-          homepage: `https://composio.dev/toolkits/${rawName}`,
-          source: "composio",
-          external_use_count: 0,
-          install_command: "",
-          credentials_needed: [],
-          install_count: 0,
-          readme_summary: readmeSummary || null,
-        });
+      const toEnrich = records.filter((r: any) => !alreadyEnriched.has(r.slug)).slice(0, enrichTop);
+      console.log(`[composio] Phase 3: Enriching ${toEnrich.length} toolkits via scrape...`);
 
-        scraped++;
-        // Rate limit
-        await new Promise((r) => setTimeout(r, 500));
-      } catch (e) {
-        console.error(`[composio] Error scraping ${url}:`, (e as Error).message);
-        errors++;
+      for (const record of toEnrich) {
+        try {
+          const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ url: record.homepage, formats: ["markdown"], onlyMainContent: true }),
+          });
+
+          if (scrapeRes.ok) {
+            const scrapeData = await scrapeRes.json();
+            const markdown = scrapeData?.data?.markdown || scrapeData?.markdown || "";
+
+            // Extract first real paragraph as description
+            const descMatch = markdown.match(/^(?!#)(.{20,500}?)(?:\n|$)/m);
+            if (descMatch) {
+              record.description = descMatch[1].trim().slice(0, 1000);
+            }
+
+            // Extract tools/triggers section as readme_summary
+            const toolsSection = markdown.match(/(?:tools|triggers|actions)[\s\S]*?(?=##|$)/i);
+            record.readme_summary = toolsSection ? toolsSection[0].slice(0, 2000) : null;
+
+            enriched++;
+          }
+          // Rate limit between scrapes
+          await new Promise((r) => setTimeout(r, 500));
+        } catch (e) {
+          console.error(`[composio] Enrich error for ${record.slug}:`, (e as Error).message);
+        }
       }
     }
 
-    console.log(`[composio] Scraped ${scraped}/${toScrape.length}, errors: ${errors}`);
-
-    // Step 3: Upsert into mcp_servers
+    // ── Phase 4: Batch upsert into mcp_servers ──
+    console.log(`[composio] Phase 4: Upserting ${records.length} records...`);
     let totalImported = 0;
+    let errors = 0;
+
     for (let i = 0; i < records.length; i += 100) {
       const batch = records.slice(i, i + 100);
       const { error, count } = await supabase
         .from("mcp_servers")
         .upsert(batch, { onConflict: "slug", ignoreDuplicates: true, count: "exact" });
-      if (error) { console.error(`Upsert error:`, error.message); errors++; }
-      else { totalImported += count || 0; }
+      if (error) {
+        console.error(`[composio] Upsert error at batch ${i}:`, error.message);
+        errors++;
+      } else {
+        totalImported += count || 0;
+      }
     }
+
+    console.log(`[composio] Done: ${totalImported} imported, ${enriched} enriched, ${errors} errors`);
 
     return new Response(
       JSON.stringify({
         source: "composio",
         toolkitUrlsFound: toolkitUrls.length,
-        scraped,
+        recordsBuilt: records.length,
         imported: totalImported,
+        enriched,
         errors,
+        firecrawlCreditsUsed: 1 + enriched, // 1 for map + N for enrichment
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    console.error("Sync error:", (e as Error).message);
+    console.error("[composio] Sync error:", (e as Error).message);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
