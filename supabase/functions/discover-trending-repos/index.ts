@@ -122,11 +122,16 @@ Deno.serve(async (req) => {
 
     // ═══ SOURCE 2: Trendshift.io scraping via Firecrawl ═══
     const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+    const MAX_ENRICH = 40; // Max repos to enrich via GitHub API per source
+    let enrichCount = 0;
+
     if (firecrawlKey) {
       for (const trendUrl of [
-        "https://trendshift.io/repositories",
-        "https://trendshift.io/repositories?language=TypeScript",
-        "https://trendshift.io/repositories?language=Python",
+        "https://trendshift.io",
+        "https://trendshift.io/topics/ai-agent",
+        "https://trendshift.io/topics/ai-skills",
+        "https://trendshift.io/topics/ai-coding",
+        "https://trendshift.io/topics/mcp",
       ]) {
         try {
           console.log(`[trending] Scraping ${trendUrl}`);
