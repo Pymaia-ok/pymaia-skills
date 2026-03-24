@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
 
     // ═══ SOURCE 1: GitHub Search API ═══
     for (const query of searchQueries) {
+      if (isTimedOut()) { console.log("[trending] Timeout before finishing GitHub Search"); break; }
       try {
         const res = await fetch(
           `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=30`,
