@@ -4,17 +4,42 @@ import { corsHeaders, getCorsHeaders } from "../_shared/cors.ts";
 /** Parse GitHub repo full_names from markdown/HTML content */
 function extractRepoNames(text: string): string[] {
   const repos = new Set<string>();
-  // Match github.com/{owner}/{repo} patterns
   const ghUrlRegex = /github\.com\/([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+)/g;
   let match;
   while ((match = ghUrlRegex.exec(text)) !== null) {
     const name = match[1].replace(/\.git$/, "").replace(/\/+$/, "");
-    // Filter out non-repo paths
     if (!name.includes("/trending") && !name.includes("/topics") && !name.includes("/explore") && name.split("/").length === 2) {
       repos.add(name);
     }
   }
   return [...repos];
+}
+
+/** Fast keyword-based category detection (no AI call needed) */
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  ia: ["ai", "machine learning", "llm", "gpt", "claude", "model", "neural", "nlp", "embedding", "agent", "chatbot", "openai", "anthropic", "gemini", "rag"],
+  desarrollo: ["code", "programming", "api", "sdk", "framework", "react", "typescript", "rust", "go", "compiler", "debug", "git", "cli", "terminal", "lint", "test"],
+  automatizacion: ["automate", "workflow", "pipeline", "n8n", "zapier", "cron", "scheduler", "scraper", "bot", "ci", "cd"],
+  diseno: ["design", "ui", "ux", "figma", "css", "tailwind", "component", "layout", "animation", "font", "svg"],
+  productividad: ["productivity", "todo", "notes", "calendar", "organize", "template", "notion", "obsidian"],
+  datos: ["data", "database", "sql", "analytics", "visualization", "chart", "dashboard", "etl", "csv", "postgres"],
+  seguridad: ["security", "pentest", "vulnerability", "firewall", "auth", "encryption", "privacy"],
+  operaciones: ["devops", "infrastructure", "monitoring", "docker", "kubernetes", "terraform", "aws", "cloud"],
+  marketing: ["marketing", "seo", "content", "social media", "campaign", "copywriting", "ads"],
+  finanzas: ["finance", "trading", "payment", "crypto", "blockchain", "defi", "invoice"],
+  creatividad: ["creative", "video", "audio", "music", "image", "photo", "3d", "render", "media"],
+};
+
+function detectCategory(name: string, description: string, topics: string[]): string {
+  const text = `${name} ${description} ${topics.join(" ")}`.toLowerCase();
+  let best = "desarrollo";
+  let bestScore = 0;
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    let score = 0;
+    for (const kw of keywords) { if (text.includes(kw)) score++; }
+    if (score > bestScore) { bestScore = score; best = cat; }
+  }
+  return best;
 }
 
 Deno.serve(async (req) => {
