@@ -324,50 +324,64 @@ Deno.serve(async (req) => {
 
     console.log(`[trending] Found ${discovered.length} new repos after dedup (GitHub Search + Trendshift + GitHub Trending)`);
 
-    // Categorize and insert
+    // Categorize and batch insert (fast keyword detection, no AI calls)
     let inserted = 0;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const sourceCounts: Record<string, number> = {};
 
-    for (const repo of discovered) {
+    // Batch insert in groups of 10 for speed
+    for (let i = 0; i < discovered.length; i += 10) {
       if (isTimedOut()) { console.log("[trending] Timeout during insert phase"); break; }
-      try {
-        let category = "desarrollo";
-        if (LOVABLE_API_KEY) {
-          try {
-            const catRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash-lite",
-                messages: [
-                  { role: "system", content: "Classify this GitHub repo into ONE category. Reply with ONLY the category slug. Options: desarrollo, productividad, marketing, ventas, soporte, datos, diseño, legal, finanzas, seguridad, devops, educación, salud, rrhh, ecommerce, operaciones, comunicación" },
-                  { role: "user", content: `${repo.name}: ${repo.description}. Topics: ${repo.topics.join(", ")}` },
-                ],
-              }),
-            });
-            if (catRes.ok) {
-              const catData = await catRes.json();
-              const cat = catData.choices?.[0]?.message?.content?.trim().toLowerCase();
-              if (cat && cat.length < 30) category = cat;
-            } else {
-              await catRes.text();
-            }
-          } catch { /* use default */ }
-        }
-
+      const batch = discovered.slice(i, i + 10);
+      const records = batch.map((repo) => {
+        const category = detectCategory(repo.name, repo.description, repo.topics);
         const status = repo.stars >= 1000 ? "approved" : "pending";
-
-        const { error } = await supabase.from("skills").insert({
+        return {
           slug: repo.slug,
           display_name: repo.name,
           description_human: repo.description || `${repo.name} - GitHub repository with ${repo.stars} stars`,
-          tagline: repo.description?.substring(0, 120) || repo.name,
+          tagline: (repo.description || repo.name).substring(0, 120),
           github_url: repo.github_url,
           github_stars: repo.stars,
           category,
           status,
           install_command: `git clone ${repo.github_url}`,
+          install_count_source: "estimated",
+          _source: repo.source, // temp field for counting
+        };
+      });
+
+      // Remove temp field and insert
+      const cleanRecords = records.map(({ _source, ...rest }) => rest);
+      const { data: insertedData, error } = await supabase.from("skills").insert(cleanRecords).select("id");
+
+      if (!error && insertedData) {
+        inserted += insertedData.length;
+        for (const r of records) {
+          sourceCounts[r._source] = (sourceCounts[r._source] || 0) + 1;
+        }
+      } else if (error && error.code !== "23505") {
+        // If batch fails (likely dupe), fallback to individual inserts
+        for (const repo of batch) {
+          const category = detectCategory(repo.name, repo.description, repo.topics);
+          const status = repo.stars >= 1000 ? "approved" : "pending";
+          const { error: singleErr } = await supabase.from("skills").insert({
+            slug: repo.slug,
+            display_name: repo.name,
+            description_human: repo.description || `${repo.name} - GitHub repository with ${repo.stars} stars`,
+            tagline: (repo.description || repo.name).substring(0, 120),
+            github_url: repo.github_url,
+            github_stars: repo.stars,
+            category,
+            status,
+            install_command: `git clone ${repo.github_url}`,
+            install_count_source: "estimated",
+          });
+          if (!singleErr) {
+            inserted++;
+            sourceCounts[repo.source] = (sourceCounts[repo.source] || 0) + 1;
+          }
+        }
+      }
           install_count_source: "estimated",
         });
 
