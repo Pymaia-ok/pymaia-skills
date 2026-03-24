@@ -206,12 +206,15 @@ Deno.serve(async (req) => {
       }
 
       // ═══ SOURCE 3: GitHub Trending page via Firecrawl ═══
+      enrichCount = 0; // Reset for this source
       for (const ghTrendUrl of [
         "https://github.com/trending?since=daily",
         "https://github.com/trending?since=weekly",
-        "https://github.com/trending/typescript?since=weekly",
-        "https://github.com/trending/python?since=weekly",
+        "https://github.com/trending?since=monthly",
+        "https://github.com/trending/typescript?since=monthly",
+        "https://github.com/trending/python?since=monthly",
       ]) {
+        if (enrichCount >= MAX_ENRICH) break;
         try {
           console.log(`[trending] Scraping ${ghTrendUrl}`);
           const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -233,13 +236,13 @@ Deno.serve(async (req) => {
             const markdown = scrapeData.data?.markdown || scrapeData.markdown || "";
             const links = scrapeData.data?.links || scrapeData.links || [];
             
-            // Extract from both markdown content and links array
             const fromMarkdown = extractRepoNames(markdown);
             const fromLinks = extractRepoNames(links.join(" "));
             const allRepoNames = [...new Set([...fromMarkdown, ...fromLinks])];
             console.log(`[trending] Found ${allRepoNames.length} repos from ${ghTrendUrl}`);
 
             for (const fullName of allRepoNames) {
+              if (enrichCount >= MAX_ENRICH) break;
               if (seenFullNames.has(fullName)) continue;
               seenFullNames.add(fullName);
 
@@ -250,6 +253,7 @@ Deno.serve(async (req) => {
               if (existingSlugs.has(baseSlug)) continue;
 
               try {
+                enrichCount++;
                 const repoRes = await fetch(`https://api.github.com/repos/${fullName}`, {
                   headers: {
                     Authorization: `Bearer ${githubToken}`,
@@ -274,7 +278,7 @@ Deno.serve(async (req) => {
                 } else {
                   await repoRes.text();
                 }
-                await new Promise((r) => setTimeout(r, 500));
+                await new Promise((r) => setTimeout(r, 300));
               } catch { /* skip */ }
             }
           } else {
