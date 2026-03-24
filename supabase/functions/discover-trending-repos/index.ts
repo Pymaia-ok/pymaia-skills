@@ -156,6 +156,7 @@ Deno.serve(async (req) => {
             console.log(`[trending] Found ${repoNames.length} repos from ${trendUrl}`);
 
             for (const fullName of repoNames) {
+              if (enrichCount >= MAX_ENRICH) break;
               if (seenFullNames.has(fullName)) continue;
               seenFullNames.add(fullName);
 
@@ -167,6 +168,7 @@ Deno.serve(async (req) => {
 
               // Fetch repo metadata from GitHub API
               try {
+                enrichCount++;
                 const repoRes = await fetch(`https://api.github.com/repos/${fullName}`, {
                   headers: {
                     Authorization: `Bearer ${githubToken}`,
@@ -191,7 +193,7 @@ Deno.serve(async (req) => {
                 } else {
                   await repoRes.text();
                 }
-                await new Promise((r) => setTimeout(r, 500));
+                await new Promise((r) => setTimeout(r, 300));
               } catch { /* skip */ }
             }
           } else {
