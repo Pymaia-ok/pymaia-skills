@@ -305,6 +305,7 @@ Deno.serve(async (req) => {
     const sourceCounts: Record<string, number> = {};
 
     for (const repo of discovered) {
+      if (isTimedOut()) { console.log("[trending] Timeout during insert phase"); break; }
       try {
         let category = "desarrollo";
         if (LOVABLE_API_KEY) {
