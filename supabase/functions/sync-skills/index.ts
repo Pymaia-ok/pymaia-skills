@@ -1258,6 +1258,108 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── Import repos by URL (manual import) ───
+    if (requestedSource === "import_repos") {
+      let repos: string[] = [];
+      try { const body = await req.clone().json(); repos = body?.repos || []; } catch {}
+      if (!repos.length) {
+        return new Response(JSON.stringify({ success: false, error: "Parameter 'repos' (array of GitHub URLs) is required." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const token = Deno.env.get("GITHUB_TOKEN");
+      const ghHeaders: Record<string, string> = { Accept: "application/vnd.github.v3+json", "User-Agent": "SkillStoreBot/1.0" };
+      if (token) ghHeaders["Authorization"] = `token ${token}`;
+
+      // Get existing github_urls for dedup
+      const existingGhUrls = new Set<string>();
+      let dbOff = 0;
+      while (true) {
+        const { data } = await supabase.from("skills").select("github_url").not("github_url", "is", null).range(dbOff, dbOff + 999);
+        if (!data || data.length === 0) break;
+        for (const s of data) {
+          const m = s.github_url?.match(/github\.com\/([^\/]+\/[^\/\s?#]+)/);
+          if (m) existingGhUrls.add(m[1].toLowerCase().replace(/\.git$/, ""));
+        }
+        if (data.length < 1000) break;
+        dbOff += 1000;
+      }
+
+      const results: Array<{ url: string; status: string; slug?: string }> = [];
+
+      for (const repoUrl of repos) {
+        try {
+          const repoMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\s?#]+)/);
+          if (!repoMatch) { results.push({ url: repoUrl, status: "invalid_url" }); continue; }
+          const [, owner, repoName] = repoMatch;
+          const cleanRepo = repoName.replace(/\.git$/, "");
+          const ghKey = `${owner}/${cleanRepo}`.toLowerCase();
+
+          if (existingGhUrls.has(ghKey)) { results.push({ url: repoUrl, status: "already_exists" }); continue; }
+
+          // Fetch repo metadata
+          const repoRes = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`, { headers: ghHeaders });
+          if (!repoRes.ok) { results.push({ url: repoUrl, status: `github_error_${repoRes.status}` }); continue; }
+          const repoData = await repoRes.json();
+
+          // Fetch README
+          let readme = "";
+          try {
+            const readmeRes = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/readme`, {
+              headers: { ...ghHeaders, Accept: "application/vnd.github.v3.raw" },
+            });
+            if (readmeRes.ok) {
+              readme = await readmeRes.text();
+              if (readme.length > 15000) readme = readme.slice(0, 15000) + "\n\n[...truncated]";
+            }
+          } catch {}
+
+          const slug = slugFromName(cleanRepo);
+          const displayName = repoData.name || cleanRepo;
+          const description = repoData.description || `${displayName} — Open-source tool`;
+          const category = inferCategory(slug, `${displayName} ${description} ${(repoData.topics || []).join(" ")}`);
+          const targetRoles = inferRoles(slug, `${displayName} ${description}`, category);
+
+          // Check slug collision
+          const { data: existing } = await supabase.from("skills").select("id").eq("slug", slug).limit(1);
+          const finalSlug = existing && existing.length > 0 ? `${owner}-${slug}` : slug;
+
+          const { error: insertErr } = await supabase.from("skills").insert({
+            slug: finalSlug,
+            display_name: displayName.split("-").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+            tagline: description.slice(0, 200),
+            description_human: description,
+            install_command: `claude mcp add ${cleanRepo} -- npx -y @anthropic/claude-code@latest skill add --from-url https://github.com/${owner}/${cleanRepo}`,
+            github_url: `https://github.com/${owner}/${cleanRepo}`,
+            github_stars: repoData.stargazers_count || 0,
+            install_count: 0,
+            status: "pending",
+            industry: ["tecnologia"],
+            target_roles: targetRoles,
+            time_to_install_minutes: 2,
+            category,
+            readme_raw: readme || null,
+          });
+
+          if (insertErr) {
+            results.push({ url: repoUrl, status: `insert_error: ${insertErr.message}` });
+          } else {
+            results.push({ url: repoUrl, status: "imported", slug: finalSlug });
+            existingGhUrls.add(ghKey);
+          }
+
+          await new Promise(r => setTimeout(r, 300));
+        } catch (e) {
+          results.push({ url: repoUrl, status: `error: ${(e as Error).message}` });
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, source: "import_repos", results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── GitHub Enrich (special: doesn't go through upsert) ───
     if (requestedSource === "github-enrich") {
       const result = await githubEnrich(supabase, batchSize);
