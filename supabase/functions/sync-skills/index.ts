@@ -1261,8 +1261,7 @@ Deno.serve(async (req) => {
 
     // ─── Import repos by URL (manual import) ───
     if (requestedSource === "import_repos") {
-      let repos: string[] = [];
-      try { const body = await req.clone().json(); repos = body?.repos || []; } catch {}
+      const repos: string[] = parsedBody?.repos || [];
       if (!repos.length) {
         return new Response(JSON.stringify({ success: false, error: "Parameter 'repos' (array of GitHub URLs) is required." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
