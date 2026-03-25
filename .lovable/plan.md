@@ -1,41 +1,60 @@
 
 
-## Remover VirusTotal y reemplazar con escaneo interno mejorado
+## Plan: Importar los 3 repos faltantes al catálogo
 
 ### Contexto
 
-VirusTotal requiere licencia comercial para uso en productos (su tier gratuito es solo para uso personal/no-comercial). No existen alternativas gratuitas equivalentes para escaneo de malware a escala. Sin embargo, nuestro escaneo interno de 13 capas ya cubre el 95% del valor de seguridad — las capas de secrets, injection, scope, license, publisher y LLM analysis son las que realmente detectan problemas en skills/plugins de texto.
+Tras la revisión del Sprint 5 Ecosystem, **todas las features están completamente implementadas**:
+- ✅ Creators (486 en tabla, cron semanal activo)
+- ✅ Bundles (29 activos, cron semanal activo)  
+- ✅ Usage Events (145 eventos, instrumentado en MCP server)
+- ✅ Trending Solutions (con scoring ponderado real)
+- ✅ Cleanup de eventos (cron mensual, 90 días)
+- ✅ Agent Analytics (usa usage_events reales)
 
-**VirusTotal aporta poco valor real aquí** porque escaneamos texto plano (Markdown, YAML, JSON), no binarios ejecutables. VT está diseñado para detectar malware en ejecutables, no en archivos de configuración de agentes IA.
+Lo único pendiente de la conversación son **3 repositorios GitHub** que no están en el catálogo:
 
-### Alcance de cambios
+1. **`zubair-trabzada/ai-sales-team-claude`** — Skill de ventas con IA
+2. **`Miosa-osa/canopy`** — No encontrado en catálogo
+3. **`YouMind-OpenLab/awesome-nano-banana-pro-prompts`** — URL incorrecta en el registro existente
 
-**Archivos a modificar:**
+### Implementación
 
-1. **`supabase/functions/scan-security/index.ts`** — Eliminar Layer 13 (bloque VirusTotal ~80 líneas). Mantener las 12 capas restantes intactas.
+**Paso 1: Agregar modo `import_repos` a `sync-skills/index.ts`**
 
-2. **`supabase/functions/calculate-trust-score/index.ts`** — Remover el bloque que suma/resta puntos por `scanResult.layers?.virustotal`. Redistribuir esos 5 puntos de security al escaneo interno (secrets + injection limpios).
+Añadir un nuevo modo al edge function que acepte un array de URLs de GitHub y para cada una:
+- Fetch el README del repo
+- Extraer nombre, descripción, owner
+- Inferir categoría y roles con las funciones existentes (`inferCategory`, `inferRoles`)
+- Generar slug y comando de instalación
+- Insertar en la tabla `skills` con `status: 'pending'` y `source: 'manual'`
+- Aplicar deduplicación contra skills existentes (por `github_url`)
 
-3. **`src/components/SecurityPanel.tsx`** — Eliminar referencias a `vtData`, el link "Ver reporte VirusTotal", y el texto "+ VirusTotal" del badge de escaneo.
+Ejemplo de invocación:
+```json
+{
+  "source": "import_repos",
+  "repos": [
+    "https://github.com/zubair-trabzada/ai-sales-team-claude",
+    "https://github.com/Miosa-osa/canopy",
+    "https://github.com/YouMind-OpenLab/awesome-nano-banana-pro-prompts"
+  ]
+}
+```
 
-4. **`supabase/functions/mcp-server/index.ts`** — Quitar la mención de "VirusTotal" en la descripción del tool `get_trust_report` y la línea que muestra `vt_status`.
+**Paso 2: Corregir el registro existente de YouMind-OpenLab**
 
-**Archivos a eliminar:**
+Buscar el skill con slug que referencia a YouMind-OpenLab y actualizar su `github_url` al valor correcto.
 
-5. **`supabase/functions/virustotal-scan/index.ts`** — Función dedicada, ya no necesaria.
-6. **`supabase/functions/poll-vt-pending/index.ts`** — Función de polling, ya no necesaria.
+**Paso 3: Invocar el edge function** para importar los 3 repos.
 
-**Secret a limpiar:**
+### Detalles técnicos
 
-7. Eliminar el secret `VIRUSTOTAL_API_KEY` del proyecto.
+El nuevo modo reutilizará las funciones helper existentes del archivo (`inferCategory`, `inferRoles`, `slugFromName`) y el flujo de fetch de README via GitHub API. Los skills entrarán como `pending` y serán procesados por el pipeline existente de auto-approve, enriquecimiento AI, y escaneo de seguridad.
 
-### Lo que NO cambia
+### Archivos modificados
 
-- Las 12 capas de escaneo internas siguen funcionando igual (secrets, injection, scope, obfuscation, URLs, dependencies, publisher, license, LLM analysis, etc.)
-- El Trust Score sigue calculándose con las mismas 4 dimensiones (security, publisher, community, longevity)
-- La UI de SecurityPanel sigue mostrando los checks internos
-
-### Alternativa gratuita considerada
-
-No hay un reemplazo 1:1 gratuito para VirusTotal. Las opciones como **ClamAV** o **YARA rules** son para binarios/archivos, no para texto de configuración de agentes. Nuestra capa LLM (que usa Gemini para análisis de código) ya cumple mejor esa función para nuestro caso de uso.
+| Archivo | Cambio |
+|---|---|
+| `supabase/functions/sync-skills/index.ts` | Agregar modo `import_repos` (~60 líneas) |
 
