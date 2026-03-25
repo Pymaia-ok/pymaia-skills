@@ -1209,15 +1209,16 @@ Deno.serve(async (req) => {
     let maxInsert = 2000;
     let topic = "";
     let batchSize = 50;
+    let parsedBody: any = {};
 
     try {
-      const body = await req.json();
-      requestedSource = body?.source || "all";
-      letter = body?.letter || "";
-      insertOffset = body?.offset || 0;
-      maxInsert = body?.maxInsert || 2000;
-      topic = body?.topic || "";
-      batchSize = body?.batchSize || 50;
+      parsedBody = await req.json();
+      requestedSource = parsedBody?.source || "all";
+      letter = parsedBody?.letter || "";
+      insertOffset = parsedBody?.offset || 0;
+      maxInsert = parsedBody?.maxInsert || 2000;
+      topic = parsedBody?.topic || "";
+      batchSize = parsedBody?.batchSize || 50;
     } catch { /* no body */ }
 
     console.log(`Sync: source=${requestedSource}, letter="${letter}", topic="${topic}", offset=${insertOffset}, maxInsert=${maxInsert}`);
