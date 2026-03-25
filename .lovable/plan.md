@@ -1,29 +1,41 @@
 
 
-## Plan: Importar TODOS los toolkits de Composio eficientemente
+## Remover VirusTotal y reemplazar con escaneo interno mejorado
 
-### Problema actual
-- `sync-composio` tiene `maxScrape = 50` por defecto
-- Scrapea cada toolkit individualmente con Firecrawl (1 crédito por toolkit = ~1,000 créditos para todo)
-- Solo importó ~50 de los ~1,000 toolkits disponibles
+### Contexto
 
-### Solución: Approach híbrido (Map + batch insert)
+VirusTotal requiere licencia comercial para uso en productos (su tier gratuito es solo para uso personal/no-comercial). No existen alternativas gratuitas equivalentes para escaneo de malware a escala. Sin embargo, nuestro escaneo interno de 13 capas ya cubre el 95% del valor de seguridad — las capas de secrets, injection, scope, license, publisher y LLM analysis son las que realmente detectan problemas en skills/plugins de texto.
 
-#### Cambio en `supabase/functions/sync-composio/index.ts`
+**VirusTotal aporta poco valor real aquí** porque escaneamos texto plano (Markdown, YAML, JSON), no binarios ejecutables. VT está diseñado para detectar malware en ejecutables, no en archivos de configuración de agentes IA.
 
-1. **Fase 1 — Map** (1 crédito): Usar Firecrawl Map API para obtener TODAS las URLs de `composio.dev/toolkits` (ya lo hace, pero luego scrappea individualmente)
+### Alcance de cambios
 
-2. **Fase 2 — Insert sin scrape**: Para cada URL de toolkit, extraer el nombre directamente de la URL (`/toolkits/{name}`), generar `slug`, `displayName`, `category` y `description` básica — todo sin gastar créditos de scrape
+**Archivos a modificar:**
 
-3. **Fase 3 — Enriquecimiento opcional**: Solo scrapear los primeros N toolkits que no tengan `readme_summary` para obtener descripciones ricas (parámetro `enrichTop` opcional, default 0)
+1. **`supabase/functions/scan-security/index.ts`** — Eliminar Layer 13 (bloque VirusTotal ~80 líneas). Mantener las 12 capas restantes intactas.
 
-4. **Eliminar el límite de 50**: El Map API ya devuelve hasta 5,000 URLs, suficiente para cubrir todo Composio
+2. **`supabase/functions/calculate-trust-score/index.ts`** — Remover el bloque que suma/resta puntos por `scanResult.layers?.virustotal`. Redistribuir esos 5 puntos de security al escaneo interno (secrets + injection limpios).
 
-### Resultado esperado
-- ~1,000 toolkits importados con **1 solo crédito de Firecrawl** (Map)
-- Datos básicos (nombre, categoría, URL) para todos
-- Opción de enriquecer con scrape bajo demanda
+3. **`src/components/SecurityPanel.tsx`** — Eliminar referencias a `vtData`, el link "Ver reporte VirusTotal", y el texto "+ VirusTotal" del badge de escaneo.
 
-### Archivo a modificar
-- `supabase/functions/sync-composio/index.ts` — refactorizar para usar Map-only por defecto, scrape opcional
+4. **`supabase/functions/mcp-server/index.ts`** — Quitar la mención de "VirusTotal" en la descripción del tool `get_trust_report` y la línea que muestra `vt_status`.
+
+**Archivos a eliminar:**
+
+5. **`supabase/functions/virustotal-scan/index.ts`** — Función dedicada, ya no necesaria.
+6. **`supabase/functions/poll-vt-pending/index.ts`** — Función de polling, ya no necesaria.
+
+**Secret a limpiar:**
+
+7. Eliminar el secret `VIRUSTOTAL_API_KEY` del proyecto.
+
+### Lo que NO cambia
+
+- Las 12 capas de escaneo internas siguen funcionando igual (secrets, injection, scope, obfuscation, URLs, dependencies, publisher, license, LLM analysis, etc.)
+- El Trust Score sigue calculándose con las mismas 4 dimensiones (security, publisher, community, longevity)
+- La UI de SecurityPanel sigue mostrando los checks internos
+
+### Alternativa gratuita considerada
+
+No hay un reemplazo 1:1 gratuito para VirusTotal. Las opciones como **ClamAV** o **YARA rules** son para binarios/archivos, no para texto de configuración de agentes. Nuestra capa LLM (que usa Gemini para análisis de código) ya cumple mejor esa función para nuestro caso de uso.
 
