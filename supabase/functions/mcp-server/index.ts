@@ -3606,7 +3606,7 @@ mcp.tool("semantic_search", {
 
 // ─── get_trust_report: Detailed security breakdown ───
 mcp.tool("get_trust_report", {
-  description: "Get a detailed trust and security report for a skill, connector, or plugin. Shows trust score breakdown, security scan results, VirusTotal status, GitHub activity, and review sentiment. Use to make informed security recommendations.",
+  description: "Get a detailed trust and security report for a skill, connector, or plugin. Shows trust score breakdown, security scan results, GitHub activity, and review sentiment. Use to make informed security recommendations.",
   inputSchema: {
     type: "object",
     properties: {
@@ -3654,7 +3654,7 @@ mcp.tool("get_trust_report", {
       if (scan.verdict) scanParts.push(`Verdict: ${scan.verdict}`);
       if (scan.risk_level) scanParts.push(`Risk: ${scan.risk_level}`);
       if (scan.issues?.length) scanParts.push(`Issues: ${scan.issues.length} found`);
-      if (scan.vt_status) scanParts.push(`VirusTotal: ${scan.vt_status}`);
+      
       if (scanParts.length) sections.push(`- **Scan Details:** ${scanParts.join(" · ")}`);
     }
 

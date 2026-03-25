@@ -81,10 +81,7 @@ export const SecurityPanel = ({
     scanResult.layers?.typosquatting?.flags?.length > 0,
     scanResult.layers?.scope?.scope_assessment === "excessive",
     scanResult.layers?.dependencies?.vulnerabilities?.length > 0,
-    scanResult.layers?.virustotal?.verdict === "malicious",
   ].filter(Boolean).length : 0;
-
-  const vtData = scanResult?.layers?.virustotal;
 
   // Derive a display score: use trustScore if available, else derive from scan
   const hasBeenScanned = !!securityScannedAt;
@@ -176,7 +173,6 @@ export const SecurityPanel = ({
               { key: "typosquatting", label: "Typosquatting", ok: !scanResult.layers?.typosquatting?.flags?.length },
               { key: "scope", label: isEs ? "Permisos" : "Permissions", ok: scanResult.layers?.scope?.scope_assessment !== "excessive" },
               { key: "license", label: isEs ? "Licencia" : "License", ok: !!scanResult.layers?.license?.license },
-              ...(vtData ? [{ key: "virustotal", label: `VirusTotal: ${vtData.detection_ratio || "—"}`, ok: vtData.verdict === "clean" }] : []),
             ].map((check) => (
               <div key={check.key} className="flex items-center gap-1.5 text-xs">
                 {check.ok ? (
@@ -199,24 +195,9 @@ export const SecurityPanel = ({
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Fingerprint className="w-3.5 h-3.5 text-primary" />
             <span>
-              {isEs ? "Escaneado por Pymaia" : "Scanned by Pymaia"}
-              {vtData ? " + VirusTotal" : ""}{" "}
+              {isEs ? "Escaneado por Pymaia" : "Scanned by Pymaia"}{" "}
               {new Date(securityScannedAt).toLocaleDateString(isEs ? "es" : "en", { year: "numeric", month: "short", day: "numeric" })}
             </span>
-          </div>
-        )}
-
-        {vtData?.vt_permalink && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Shield className="w-3.5 h-3.5 text-primary" />
-            <a
-              href={vtData.vt_permalink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors underline underline-offset-2"
-            >
-              {isEs ? "Ver reporte VirusTotal" : "View VirusTotal report"}
-            </a>
           </div>
         )}
 

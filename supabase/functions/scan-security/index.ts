@@ -983,124 +983,6 @@ async function runFullScan(
     llmResult = await analyzeWithLLM(content, itemType, lovableApiKey, scopeAnalysis || undefined);
   }
 
-  // Layer 13: VirusTotal scan (non-blocking — skip if VT API key not set)
-  // Strategy: Use README content for VT (more meaningful than short descriptions)
-  // If README not in DB, try fetching from GitHub. Upload to VT on 404 for future polling.
-  let vtResult = null;
-  const vtApiKey = Deno.env.get("VIRUSTOTAL_API_KEY");
-  if (vtApiKey) {
-    try {
-      // Determine best content for VT: prefer readme, fallback to full content
-      let vtContent = content;
-      
-      // If content is short (likely just description), try to get README from GitHub
-      if (content.length < 500 && githubUrl) {
-        try {
-          const ghMatch = githubUrl.match(/github\.com\/([^\/]+\/[^\/]+)/);
-          if (ghMatch) {
-            const ownerRepo = ghMatch[1].replace(/\.git$/, "").replace(/\/$/, "");
-            const ghToken = Deno.env.get("GITHUB_TOKEN");
-            const ghHeaders: Record<string, string> = { Accept: "application/vnd.github.v3.raw" };
-            if (ghToken) ghHeaders["Authorization"] = `token ${ghToken}`;
-            const readmeRes = await fetch(`https://api.github.com/repos/${ownerRepo}/readme`, {
-              headers: ghHeaders,
-              signal: AbortSignal.timeout(8000),
-            });
-            if (readmeRes.ok) {
-              const readmeText = await readmeRes.text();
-              if (readmeText.length > 100) {
-                vtContent = readmeText.slice(0, 15000);
-              }
-            } else {
-              await readmeRes.text(); // consume
-            }
-          }
-        } catch (ghErr) {
-          console.log("VT: GitHub README fetch failed (non-blocking):", (ghErr as Error).message);
-        }
-      }
-
-      const vtHash = await (async () => {
-        const data = new TextEncoder().encode(vtContent);
-        const buf = await crypto.subtle.digest("SHA-256", data);
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-      })();
-
-      // Step 1: Hash lookup (free, no quota cost)
-      const vtRes = await fetch(`https://www.virustotal.com/api/v3/files/${vtHash}`, {
-        headers: { "x-apikey": vtApiKey },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (vtRes.ok) {
-        const vtData = await vtRes.json();
-        const stats = vtData?.data?.attributes?.last_analysis_stats || {};
-        const malicious = (stats.malicious || 0) + (stats.suspicious || 0);
-        const total = Object.values(stats).reduce((a: number, b: any) => a + (Number(b) || 0), 0) as number;
-        const codeInsight = vtData?.data?.attributes?.crowdsourced_ai_results?.[0]?.category || null;
-
-        vtResult = {
-          hash: vtHash,
-          detection_ratio: `${malicious}/${total}`,
-          malicious_count: malicious,
-          total_engines: total,
-          code_insight_verdict: codeInsight,
-          vt_permalink: `https://www.virustotal.com/gui/file/${vtHash}`,
-          verdict: malicious >= 4 ? "malicious" : malicious >= 1 ? "suspicious" : "clean",
-          scanned_at: new Date().toISOString(),
-        };
-      } else {
-        await vtRes.text(); // consume
-        if (vtRes.status === 404) {
-          // Step 2: Upload content to VT for async analysis
-          try {
-            const boundary = "----VTBoundary" + Date.now();
-            const uploadBody = [
-              `--${boundary}`,
-              'Content-Disposition: form-data; name="file"; filename="scan-content.txt"',
-              "Content-Type: text/plain",
-              "",
-              vtContent.slice(0, 30000),
-              `--${boundary}--`,
-            ].join("\r\n");
-
-            const uploadRes = await fetch("https://www.virustotal.com/api/v3/files", {
-              method: "POST",
-              headers: {
-                "x-apikey": vtApiKey,
-                "Content-Type": `multipart/form-data; boundary=${boundary}`,
-              },
-              body: uploadBody,
-              signal: AbortSignal.timeout(15000),
-            });
-
-            if (uploadRes.ok) {
-              vtResult = {
-                hash: vtHash,
-                detection_ratio: "pending",
-                malicious_count: 0,
-                total_engines: 0,
-                code_insight_verdict: null,
-                vt_permalink: `https://www.virustotal.com/gui/file/${vtHash}`,
-                verdict: "pending",
-                scanned_at: new Date().toISOString(),
-              };
-            } else {
-              await uploadRes.text();
-              vtResult = { hash: vtHash, verdict: "unknown", error: `VT upload ${uploadRes.status}`, scanned_at: new Date().toISOString() };
-            }
-          } catch (uploadErr) {
-            vtResult = { hash: vtHash, verdict: "unknown", error: `VT upload error: ${(uploadErr as Error).message}`, scanned_at: new Date().toISOString() };
-          }
-        } else {
-          vtResult = { hash: vtHash, verdict: "unknown", error: `VT API ${vtRes.status}`, scanned_at: new Date().toISOString() };
-        }
-      }
-    } catch (e) {
-      console.error("VirusTotal scan error (non-blocking):", (e as Error).message);
-    }
-  }
-
   // Determine overall verdict
   let verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS" = "SAFE";
   const formatErrors = formatIssues.filter(i => i.severity === "error");
@@ -1136,13 +1018,6 @@ async function runFullScan(
     verdict = "SUSPICIOUS";
   }
 
-  // Layer 13: VT can escalate verdict
-  if (vtResult?.verdict === "malicious") {
-    verdict = "MALICIOUS";
-  } else if (vtResult?.verdict === "suspicious" && verdict === "SAFE") {
-    verdict = "SUSPICIOUS";
-  }
-
   return {
     verdict,
     layers: {
@@ -1163,9 +1038,8 @@ async function runFullScan(
       publisher: publisherResult,
       dependencies: dependencyResult,
       llm: llmResult,
-      virustotal: vtResult,
     },
     scanned_at: new Date().toISOString(),
-    version: "7.0.0",
+    version: "8.0.0",
   };
 }
