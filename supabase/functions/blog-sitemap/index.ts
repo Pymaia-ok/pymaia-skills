@@ -1,11 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -41,16 +40,16 @@ ${urls}
 
     return new Response(xml, {
       headers: {
+        ...corsHeaders,
         "Content-Type": "application/xml; charset=utf-8",
         "Cache-Control": "public, max-age=3600",
-        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (e) {
     console.error("blog-sitemap error:", e);
     return new Response("<error>Internal error</error>", {
       status: 500,
-      headers: { "Content-Type": "application/xml" },
+      headers: { ...corsHeaders, "Content-Type": "application/xml" },
     });
   }
 });
