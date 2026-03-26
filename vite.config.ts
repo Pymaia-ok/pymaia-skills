@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+const FALLBACK_SUPABASE_URL = "https://zugqvdqactbhzlilwyds.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1Z3F2ZHFhY3RiaHpsaWx3eWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzI3MjUsImV4cCI6MjA4ODE0ODcyNX0.zwmNMXvqjdn_5m2vfrsgWpdavwiH_4n8nLMq5huLfMg";
 
@@ -12,7 +13,9 @@ function envDefines(): Record<string, string> {
   const defs: Record<string, string> = {};
 
   const url = process.env.SUPABASE_URL;
-  if (url) defs["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify(url);
+  defs["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify(
+    url || FALLBACK_SUPABASE_URL
+  );
 
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ??
