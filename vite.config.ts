@@ -13,7 +13,9 @@ function envDefines(): Record<string, string> {
   const defs: Record<string, string> = {};
 
   const url = process.env.SUPABASE_URL;
-  if (url) defs["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify(url);
+  defs["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify(
+    url || FALLBACK_SUPABASE_URL
+  );
 
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ??
