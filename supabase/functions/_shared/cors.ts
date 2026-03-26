@@ -1,3 +1,7 @@
+// TODO: Implement rate limiting per IP for public endpoints
+// Priority: MEDIUM — needed after public launch
+// Targets: smart-search, skill-raw, trust-score-api, mcp-server
+
 // Restrictive CORS — only allow known origins
 const ALLOWED_ORIGINS = [
   "https://pymaiaskills.lovable.app",
