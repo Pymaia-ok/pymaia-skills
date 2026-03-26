@@ -7,12 +7,12 @@
     "contact": {
       "name": "Pymaia",
       "email": "info@pymaia.com",
-      "url": "https://pymaiaskills.lovable.app"
+      "url": "https://pymaia.com"
     }
   },
   "servers": [
     {
-      "url": "https://zugqvdqactbhzlilwyds.supabase.co/functions/v1",
+      "url": "https://mcp.pymaia.com",
       "description": "Pymaia Skills API"
     }
   ],

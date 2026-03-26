@@ -1,15 +1,11 @@
 // Shared error response + failure logging helpers
-
-const defaultCorsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "./cors.ts";
 
 /** Return a JSON error Response with CORS headers */
 export function errorResponse(
   message: string,
   status = 500,
-  cors = defaultCorsHeaders
+  cors: Record<string, string> = corsHeaders
 ): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
