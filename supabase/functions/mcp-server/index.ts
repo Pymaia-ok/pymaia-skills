@@ -4542,7 +4542,7 @@ mcpApp.use("/mcp", async (c, next) => {
   const rateLimitKey = currentApiKeyUserId ? `user:${currentApiKeyUserId}` : `ip:${ip}`;
   const rateLimitMax = currentApiKeyUserId ? RATE_LIMIT_AUTH : RATE_LIMIT_ANON;
 
-  if (!checkRateLimit(rateLimitKey, rateLimitMax)) {
+  if (!checkInMemoryRateLimit(rateLimitKey, rateLimitMax)) {
     return c.json(
       { error: `Rate limit exceeded. Max ${rateLimitMax} requests per minute.` },
       429
