@@ -3794,7 +3794,7 @@ const RATE_LIMIT_ANON = 30;
 const RATE_LIMIT_AUTH = 120;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(key: string, max: number): boolean {
+function checkInMemoryRateLimit(key: string, max: number): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetAt) {
@@ -4542,7 +4542,7 @@ mcpApp.use("/mcp", async (c, next) => {
   const rateLimitKey = currentApiKeyUserId ? `user:${currentApiKeyUserId}` : `ip:${ip}`;
   const rateLimitMax = currentApiKeyUserId ? RATE_LIMIT_AUTH : RATE_LIMIT_ANON;
 
-  if (!checkRateLimit(rateLimitKey, rateLimitMax)) {
+  if (!checkInMemoryRateLimit(rateLimitKey, rateLimitMax)) {
     return c.json(
       { error: `Rate limit exceeded. Max ${rateLimitMax} requests per minute.` },
       429
