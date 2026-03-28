@@ -3794,7 +3794,7 @@ const RATE_LIMIT_ANON = 30;
 const RATE_LIMIT_AUTH = 120;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(key: string, max: number): boolean {
+function checkInMemoryRateLimit(key: string, max: number): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetAt) {
