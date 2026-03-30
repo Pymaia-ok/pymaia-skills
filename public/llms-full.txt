@@ -10,7 +10,7 @@
 | MCP connectors | 500+ | 0 | 0 |
 | Plugins | 100+ | 0 | 0 |
 | AI Solutions Architect | 48 tools | No | No |
-| Security scanning | 13-layer pipeline | No | No |
+| Security scanning | 18-layer pipeline | No | No |
 | Trust scores | Yes (0-100) | No | No |
 | Multi-agent support | 6+ agents | Claude only | Varies |
 
@@ -26,10 +26,12 @@ The MCP server includes an **AI Solutions Architect** (`solve_goal`) that analyz
 
 ## Key Numbers
 
-- 38,000+ skills available
+- 43,000+ skills available
 - 19 categories
-- 100+ MCP connectors
-- 37 MCP tools (AI Solutions Architect)
+- 500+ MCP connectors
+- 100+ plugins
+- 48 MCP tools (AI Solutions Architect)
+- 18-layer security pipeline
 - 2 min average install time
 - Community reviews and ratings
 
@@ -148,7 +150,7 @@ Benefits of authenticated access:
 - Higher rate limit: 120 requests/min (vs 60 for anonymous)
 - API key prefix: `pymsk_`
 
-### Available Tools (37)
+### Available Tools (48)
 
 > **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
@@ -329,7 +331,7 @@ AI-powered vector similarity search for natural language queries. Uses embedding
 #### 33. get_trust_report
 Detailed security/trust breakdown for any skill, connector, or plugin. Returns comprehensive trust analysis.
 - Parameters: `slug` (string, required)
-- Returns: Trust score breakdown, security scan result (secrets, prompt injection, typosquatting, hidden content), VirusTotal status, GitHub activity (stars, last commit), publisher verification, dependency audit status
+- Returns: Trust score breakdown, 18-layer security scan result (secrets, prompt injection, typosquatting, hidden content, description accuracy, frontmatter compliance), GitHub activity (stars, last commit), publisher verification, dependency audit status
 
 #### 34. whats_new
 Recent catalog additions — skills, connectors, and plugins added or updated in the last N days.
@@ -365,7 +367,7 @@ Publish a SKILL.md created by an agent to the Pymaia catalog. Requires authentic
 
 ## MCP Connectors Directory
 
-Pymaia Skills also maintains a directory of 100+ MCP connectors — external integrations that extend Claude's capabilities with real-time access to tools and services.
+Pymaia Skills also maintains a directory of 500+ MCP connectors — external integrations that extend Claude's capabilities with real-time access to tools and services.
 
 ### Connector Categories
 dev-tools, data, communication, productivity, ai, cloud, design, business, finance, marketing, security, analytics, automation, education, social, media, iot, legal, hr, health, ecommerce, support
