@@ -925,6 +925,127 @@ Deno.serve(async (req) => {
   }
 });
 
+// ── DESCRIPTION ACCURACY CHECK (Layer 13 — inspired by Skill Vault #12) ──
+function checkDescriptionAccuracy(content: string, name: string, description: string, installCommand: string): {
+  matches: boolean;
+  confidence: number;
+  mismatches: string[];
+} {
+  const mismatches: string[] = [];
+  const nameLower = (name || "").toLowerCase();
+  const descLower = (description || "").toLowerCase();
+  const contentLower = content.toLowerCase();
+  const cmdLower = (installCommand || "").toLowerCase();
+
+  // Extract claimed capabilities from name/description
+  const claimedCapabilities: string[] = [];
+  const capabilityKeywords: Record<string, RegExp> = {
+    "linting": /lint|eslint|stylelint|pylint/i,
+    "testing": /test|jest|vitest|pytest|playwright|cypress/i,
+    "formatting": /format|prettier|black|autopep8/i,
+    "deployment": /deploy|vercel|netlify|docker|k8s|kubernetes/i,
+    "database": /database|sql|postgres|mongo|redis|supabase/i,
+    "auth": /auth|login|oauth|jwt|session/i,
+    "api": /api|rest|graphql|grpc|endpoint/i,
+    "ui": /ui|component|design|css|tailwind|shadcn/i,
+    "documentation": /doc|readme|changelog|wiki/i,
+    "security": /security|scan|audit|vuln|cve/i,
+    "translation": /translat|i18n|locali[zs]/i,
+    "seo": /seo|meta.?tag|sitemap|search.?engine/i,
+    "email": /email|smtp|resend|sendgrid|mailgun/i,
+  };
+
+  for (const [cap, regex] of Object.entries(capabilityKeywords)) {
+    if (regex.test(descLower) || regex.test(nameLower)) {
+      claimedCapabilities.push(cap);
+    }
+  }
+
+  // Check for scope creep: content does things NOT mentioned in description
+  const dangerousActions: Record<string, RegExp> = {
+    "network_calls": /curl|wget|fetch\s*\(|axios|http\.get|requests\.get/i,
+    "file_deletion": /rm\s+-rf|unlink|rmdir|fs\.rm/i,
+    "credential_access": /\.ssh|\.aws|\.env\b|credentials|api.?key/i,
+    "system_modification": /\/usr\/local|\/etc\/|systemctl|chmod|chown/i,
+    "process_spawn": /exec\(|spawn\(|child_process|subprocess/i,
+  };
+
+  for (const [action, regex] of Object.entries(dangerousActions)) {
+    if (regex.test(contentLower) && !regex.test(descLower)) {
+      // Action found in content but NOT in description — scope creep
+      mismatches.push(`Content contains ${action.replace("_", " ")} not mentioned in description`);
+    }
+  }
+
+  // Check if claimed capabilities are actually in the content
+  for (const cap of claimedCapabilities) {
+    const regex = capabilityKeywords[cap];
+    if (!regex.test(contentLower) && !regex.test(cmdLower)) {
+      mismatches.push(`Description claims "${cap}" but content doesn't implement it`);
+    }
+  }
+
+  const confidence = mismatches.length === 0 ? 1.0 : Math.max(0, 1 - mismatches.length * 0.2);
+  return {
+    matches: mismatches.length === 0,
+    confidence,
+    mismatches,
+  };
+}
+
+// ── FRONTMATTER COMPLIANCE CHECK (Layer 14 — inspired by Anthropic official spec) ──
+function checkFrontmatterCompliance(content: string): {
+  has_frontmatter: boolean;
+  has_name: boolean;
+  has_description: boolean;
+  issues: string[];
+} {
+  const issues: string[] = [];
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  
+  if (!fmMatch) {
+    return { has_frontmatter: false, has_name: false, has_description: false, issues: ["No YAML frontmatter found"] };
+  }
+
+  const fm = fmMatch[1];
+  const hasName = /^name\s*:/m.test(fm);
+  const hasDescription = /^description\s*:/m.test(fm);
+
+  if (!hasName) issues.push("Missing required 'name' field in frontmatter (Anthropic spec)");
+  if (!hasDescription) issues.push("Missing required 'description' field in frontmatter (Anthropic spec)");
+
+  // Check for deprecated/dangerous frontmatter keys
+  const deprecatedKeys = ["allowed-tools", "allowed_tools"];
+  for (const key of deprecatedKeys) {
+    if (new RegExp(`^${key}\\s*:`, "mi").test(fm)) {
+      // Not an issue per se, but note it
+      const value = fm.match(new RegExp(`^${key}\\s*:\\s*(.+)`, "mi"));
+      if (value && /\*/.test(value[1])) {
+        issues.push(`Frontmatter '${key}' uses wildcard (*) — overly broad permissions`);
+      }
+    }
+  }
+
+  // Check name format (should be lowercase, hyphens)
+  const nameMatch = fm.match(/^name\s*:\s*(.+)/m);
+  if (nameMatch) {
+    const nameVal = nameMatch[1].trim().replace(/^['"]|['"]$/g, "");
+    if (/[A-Z]/.test(nameVal)) {
+      issues.push("Skill name should be lowercase per Anthropic convention");
+    }
+    if (/\s/.test(nameVal)) {
+      issues.push("Skill name should use hyphens instead of spaces");
+    }
+  }
+
+  return {
+    has_frontmatter: true,
+    has_name: hasName,
+    has_description: hasDescription,
+    issues,
+  };
+}
+
 async function runFullScan(
   content: string,
   slug: string,
