@@ -107,6 +107,17 @@ function slugFromName(raw: string): string {
   return raw.replace(/\.md$/, "").replace(/\s+/g, "-").toLowerCase();
 }
 
+function levenshteinDist(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
 // ─── Firecrawl crawl helper (async with polling) ───
 
 async function firecrawlCrawl(url: string, opts: Record<string, unknown>): Promise<any[]> {
@@ -1129,12 +1140,25 @@ async function upsertSkills(supabase: ReturnType<typeof createClient>, discovere
   }
   console.log(`Existing: ${existingSlugs.size} slugs, ${existingGithubUrls.size} github URLs`);
 
-  // Filter new skills (not existing by slug or github URL)
+  // Build slug array for Levenshtein dedup
+  const existingSlugArray = Array.from(existingSlugs);
+
+  // Filter new skills (not existing by slug, github URL, or Levenshtein similarity)
   const newSkills = allSkills.filter(s => {
     if (existingSlugs.has(s.name)) return false;
     if (s.owner && s.repo) {
       const ghKey = `${s.owner}/${s.repo}`.toLowerCase();
       if (existingGithubUrls.has(ghKey)) return false;
+    }
+    // Levenshtein check: skip if name is within distance ≤ 2 of any existing slug
+    if (s.name.length >= 4) {
+      for (const existing of existingSlugArray) {
+        if (Math.abs(s.name.length - existing.length) > 2) continue;
+        if (levenshteinDist(s.name, existing) <= 2 && s.name !== existing) {
+          console.log(`[dedup] Skipping "${s.name}" — too similar to existing "${existing}"`);
+          return false;
+        }
+      }
     }
     return true;
   });

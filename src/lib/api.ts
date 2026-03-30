@@ -81,27 +81,50 @@ export async function smartSearch(filters: {
   return { data: skills, count: result.count || 0, keywords: result.keywords, mode: result.mode };
 }
 
-export const SKILL_CATEGORIES = [
-  { key: "ia", label: "IA" },
-  { key: "desarrollo", label: "Desarrollo" },
-  { key: "automatización", label: "Automatización" },
-  { key: "diseño", label: "Diseño" },
-  { key: "productividad", label: "Productividad" },
-  { key: "datos", label: "Datos" },
-  { key: "marketing", label: "Marketing" },
-  { key: "legal", label: "Legal" },
-  { key: "negocios", label: "Negocios" },
-  { key: "creatividad", label: "Creatividad" },
-  { key: "ventas", label: "Ventas" },
-  { key: "producto", label: "Producto" },
-  { key: "finanzas", label: "Finanzas" },
-  { key: "rrhh", label: "RRHH" },
-  { key: "soporte", label: "Soporte" },
-  { key: "salud", label: "Salud" },
-  { key: "educación", label: "Educación" },
-  { key: "ecommerce", label: "E-commerce" },
-  { key: "operaciones", label: "Operaciones" },
+export const SKILL_CATEGORIES_FALLBACK = [
+  { key: "ia", label: "IA", emoji: "🤖" },
+  { key: "desarrollo", label: "Desarrollo", emoji: "💻" },
+  { key: "automatización", label: "Automatización", emoji: "⚡" },
+  { key: "diseño", label: "Diseño", emoji: "🎨" },
+  { key: "productividad", label: "Productividad", emoji: "📋" },
+  { key: "datos", label: "Datos", emoji: "📊" },
+  { key: "marketing", label: "Marketing", emoji: "📢" },
+  { key: "legal", label: "Legal", emoji: "⚖️" },
+  { key: "negocios", label: "Negocios", emoji: "💼" },
+  { key: "creatividad", label: "Creatividad", emoji: "🎬" },
+  { key: "ventas", label: "Ventas", emoji: "🤝" },
+  { key: "producto", label: "Producto", emoji: "🧩" },
+  { key: "finanzas", label: "Finanzas", emoji: "💰" },
+  { key: "rrhh", label: "RRHH", emoji: "👥" },
+  { key: "soporte", label: "Soporte", emoji: "🎧" },
+  { key: "salud", label: "Salud", emoji: "🏥" },
+  { key: "educación", label: "Educación", emoji: "🎓" },
+  { key: "ecommerce", label: "E-commerce", emoji: "🛒" },
+  { key: "operaciones", label: "Operaciones", emoji: "⚙️" },
 ] as const;
+
+// Keep backward compat alias
+export const SKILL_CATEGORIES = SKILL_CATEGORIES_FALLBACK;
+
+export interface CategoryFromDB {
+  slug: string;
+  display_name: string;
+  display_name_es: string | null;
+  emoji: string | null;
+  description: string | null;
+  description_es: string | null;
+  skill_count: number | null;
+  sort_order: number | null;
+}
+
+export async function fetchCategories(): Promise<CategoryFromDB[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error || !data || data.length === 0) return [];
+  return data as CategoryFromDB[];
+}
 
 export const PAGE_SIZE = 24;
 

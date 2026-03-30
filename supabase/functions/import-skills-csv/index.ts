@@ -86,6 +86,17 @@ function parseCSVLine(line: string): string[] {
   return fields;
 }
 
+function levenshteinDist(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -100,6 +111,26 @@ Deno.serve(async (req) => {
 
     const { csv_url, offset = 0, limit = 2000 } = await req.json();
     if (!csv_url) return new Response(JSON.stringify({ error: "No csv_url" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Fetch existing slugs and github_urls for dedup
+    const existingSlugs: string[] = [];
+    const existingGithubUrls = new Set<string>();
+    let dbOffset = 0;
+    while (true) {
+      const { data, error: dbErr } = await supabase.from("skills").select("slug, github_url").range(dbOffset, dbOffset + 999);
+      if (dbErr || !data || data.length === 0) break;
+      for (const s of data) {
+        existingSlugs.push(s.slug);
+        if (s.github_url) {
+          const m = s.github_url.match(/github\.com\/([^\/]+\/[^\/\s?#]+)/);
+          if (m) existingGithubUrls.add(m[1].toLowerCase().replace(/\.git$/, ""));
+        }
+      }
+      if (data.length < 1000) break;
+      dbOffset += 1000;
+    }
+    const existingSlugSet = new Set(existingSlugs);
+    console.log(`Loaded ${existingSlugs.length} existing slugs, ${existingGithubUrls.size} github URLs for dedup`);
 
     console.log(`Fetching CSV from ${csv_url}, offset=${offset}, limit=${limit}`);
     const csvRes = await fetch(csv_url);
@@ -129,6 +160,32 @@ Deno.serve(async (req) => {
       const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
       if (slug.length < 2 || slug.length > 200) continue;
       if (seenSlugs.has(slug)) continue;
+
+      // Skip if already exists in DB by slug
+      if (existingSlugSet.has(slug)) continue;
+
+      // Skip if github_url already exists
+      const githubMatch = (sourceUrl || "").match(/(https:\/\/github\.com\/[^\s,]+)/);
+      const githubUrl = githubMatch ? githubMatch[1] : null;
+      if (githubUrl) {
+        const ghKey = githubUrl.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").toLowerCase();
+        if (existingGithubUrls.has(ghKey)) continue;
+      }
+
+      // Levenshtein dedup: skip if too similar to existing slug
+      if (slug.length >= 4) {
+        let tooSimilar = false;
+        for (const existing of existingSlugs) {
+          if (Math.abs(slug.length - existing.length) > 2) continue;
+          if (levenshteinDist(slug, existing) <= 2 && slug !== existing) {
+            console.log(`[dedup] Skipping CSV "${slug}" — too similar to "${existing}"`);
+            tooSimilar = true;
+            break;
+          }
+        }
+        if (tooSimilar) continue;
+      }
+
       seenSlugs.add(slug);
 
       const category = inferCategory(name, description || "");
@@ -137,8 +194,7 @@ Deno.serve(async (req) => {
       const displayName = formatDisplayName(name);
       const tagline = (description || "").length > 200 ? (description || "").slice(0, 197) + "..." : (description || displayName);
 
-      const githubMatch = (sourceUrl || "").match(/(https:\/\/github\.com\/[^\s,]+)/);
-      const githubUrl = githubMatch ? githubMatch[1] : null;
+      // githubUrl already extracted above for dedup
 
       skills.push({
         slug,

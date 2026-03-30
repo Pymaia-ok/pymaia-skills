@@ -6,7 +6,9 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
 import SkillCard from "@/components/SkillCard";
 import RisingStars from "@/components/landing/RisingStars";
-import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
+import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES_FALLBACK, fetchCategories, PAGE_SIZE } from "@/lib/api";
+import type { CategoryFromDB } from "@/lib/api";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
@@ -18,6 +20,22 @@ const Explore = () => {
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   const isEs = i18n.language?.startsWith("es");
+
+  // Dynamic categories from DB with fallback
+  const { data: dbCategories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const categories = dbCategories && dbCategories.length > 0
+    ? dbCategories.map((c: CategoryFromDB) => ({
+        key: c.slug,
+        label: isEs ? (c.display_name_es || c.display_name) : c.display_name,
+        emoji: c.emoji || "📦",
+        description: isEs ? (c.description_es || c.description) : c.description,
+      }))
+    : SKILL_CATEGORIES_FALLBACK.map(c => ({ ...c, description: null as string | null }));
 
   useSEO({
     title: isEs ? "Explorar soluciones — Pymaia Skills" : "Explore Skills — Pymaia Skills",
@@ -230,15 +248,25 @@ const Explore = () => {
               >
                 {t("explore.all")}
               </button>
-              {SKILL_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.key}
-                  onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t(`categories.${cat.key}`, cat.label)}
-                </button>
-              ))}
+              <TooltipProvider delayDuration={300}>
+                {categories.map((cat) => (
+                  <Tooltip key={cat.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {cat.emoji} {t(`categories.${cat.key}`, cat.label)}
+                      </button>
+                    </TooltipTrigger>
+                    {cat.description && (
+                      <TooltipContent side="bottom" className="max-w-xs text-xs">
+                        {cat.description}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             </div>
           </motion.div>
 
