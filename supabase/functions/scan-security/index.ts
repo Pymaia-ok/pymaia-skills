@@ -1111,6 +1111,17 @@ async function runFullScan(
     llmResult = await analyzeWithLLM(content, itemType, lovableApiKey, scopeAnalysis || undefined);
   }
 
+  // Layer 13: Description accuracy (Skill Vault-inspired)
+  const descAccuracy = checkDescriptionAccuracy(
+    content,
+    slug,
+    content.split("\n").slice(0, 5).join(" "), // Use first few lines as description proxy
+    installCommand
+  );
+
+  // Layer 14: Frontmatter compliance (Anthropic spec-inspired)
+  const frontmatterCompliance = checkFrontmatterCompliance(content);
+
   // Determine overall verdict
   let verdict: "SAFE" | "SUSPICIOUS" | "MALICIOUS" = "SAFE";
   const formatErrors = formatIssues.filter(i => i.severity === "error");
@@ -1136,6 +1147,8 @@ async function runFullScan(
     verdict = "SUSPICIOUS";
   } else if (similarityResult?.is_plagiarized) {
     verdict = "SUSPICIOUS";
+  } else if (descAccuracy.mismatches.length >= 3) {
+    verdict = "SUSPICIOUS"; // Significant scope mismatch
   } else if (publisherResult && !publisherResult.verified && publisherResult.flags.length > 0) {
     if (publisherResult.account_age_days !== null && publisherResult.account_age_days < 30) {
       verdict = "SUSPICIOUS";
@@ -1166,8 +1179,10 @@ async function runFullScan(
       publisher: publisherResult,
       dependencies: dependencyResult,
       llm: llmResult,
+      description_accuracy: descAccuracy,
+      frontmatter_compliance: frontmatterCompliance,
     },
     scanned_at: new Date().toISOString(),
-    version: "8.0.0",
+    version: "9.0.0",
   };
 }

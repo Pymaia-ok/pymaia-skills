@@ -174,6 +174,11 @@ export default function AdminOverviewTab({
               { label: "Trust Score < 20", value: catalogHealth.low_trust_score, warn: true },
               { label: "Pending > 7 días", value: catalogHealth.pending_over_7_days, warn: catalogHealth.pending_over_7_days > 0 },
               { label: "GitHub URLs duplicadas", value: catalogHealth.duplicate_github_urls, warn: catalogHealth.duplicate_github_urls > 0 },
+              { label: "Refs huérfanas (bundles)", value: catalogHealth.orphaned_bundle_refs ?? 0, warn: true },
+              { label: "Refs huérfanas (cursos→skills)", value: catalogHealth.orphaned_course_skill_refs ?? 0, warn: true },
+              { label: "Refs huérfanas (cursos→MCPs)", value: catalogHealth.orphaned_course_connector_refs ?? 0, warn: true },
+              { label: "Skills obsoletas (stale)", value: catalogHealth.stale_skills ?? 0, warn: false },
+              { label: "Categorías sin tabla", value: catalogHealth.missing_category_in_db ?? 0, warn: true },
             ].map((item) => (
               <div key={item.label} className={`p-3 rounded-xl ${item.warn && item.value > 0 ? "bg-amber-500/10 border border-amber-500/20" : "bg-background/50 border border-border"}`}>
                 <p className={`text-2xl font-bold ${item.warn && item.value > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
