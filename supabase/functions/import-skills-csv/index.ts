@@ -112,6 +112,26 @@ Deno.serve(async (req) => {
     const { csv_url, offset = 0, limit = 2000 } = await req.json();
     if (!csv_url) return new Response(JSON.stringify({ error: "No csv_url" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // Fetch existing slugs and github_urls for dedup
+    const existingSlugs: string[] = [];
+    const existingGithubUrls = new Set<string>();
+    let dbOffset = 0;
+    while (true) {
+      const { data, error: dbErr } = await supabase.from("skills").select("slug, github_url").range(dbOffset, dbOffset + 999);
+      if (dbErr || !data || data.length === 0) break;
+      for (const s of data) {
+        existingSlugs.push(s.slug);
+        if (s.github_url) {
+          const m = s.github_url.match(/github\.com\/([^\/]+\/[^\/\s?#]+)/);
+          if (m) existingGithubUrls.add(m[1].toLowerCase().replace(/\.git$/, ""));
+        }
+      }
+      if (data.length < 1000) break;
+      dbOffset += 1000;
+    }
+    const existingSlugSet = new Set(existingSlugs);
+    console.log(`Loaded ${existingSlugs.length} existing slugs, ${existingGithubUrls.size} github URLs for dedup`);
+
     console.log(`Fetching CSV from ${csv_url}, offset=${offset}, limit=${limit}`);
     const csvRes = await fetch(csv_url);
     if (!csvRes.ok) throw new Error(`Failed to fetch CSV: ${csvRes.status}`);
