@@ -199,6 +199,42 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          description_es: string | null
+          display_name: string
+          display_name_es: string | null
+          emoji: string | null
+          skill_count: number | null
+          slug: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          description_es?: string | null
+          display_name: string
+          display_name_es?: string | null
+          emoji?: string | null
+          skill_count?: number | null
+          slug: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          description_es?: string | null
+          display_name?: string
+          display_name_es?: string | null
+          emoji?: string | null
+          skill_count?: number | null
+          slug?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       community_goal_templates: {
         Row: {
           capabilities: Json
@@ -2401,6 +2437,7 @@ export type Database = {
       }
     }
     Functions: {
+      catalog_health_check: { Args: never; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
