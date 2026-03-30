@@ -227,9 +227,9 @@ const SecurityMethodology = () => {
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-12">
           {[
-            { value: "13", label: isEs ? "Capas de análisis" : "Analysis Layers" },
+            { value: "16", label: isEs ? "Capas de análisis" : "Analysis Layers" },
             { value: "15", label: isEs ? "Patrones de secretos" : "Secret Patterns" },
-            { value: "13", label: isEs ? "Patrones de inyección" : "Injection Patterns" },
+            { value: "19", label: isEs ? "Patrones de inyección" : "Injection Patterns" },
             { value: "10", label: isEs ? "Auto-block triggers" : "Auto-block Triggers" },
           ].map((stat) => (
             <div key={stat.label} className="p-4 rounded-2xl bg-secondary text-center">
