@@ -331,7 +331,7 @@ AI-powered vector similarity search for natural language queries. Uses embedding
 #### 33. get_trust_report
 Detailed security/trust breakdown for any skill, connector, or plugin. Returns comprehensive trust analysis.
 - Parameters: `slug` (string, required)
-- Returns: Trust score breakdown, security scan result (secrets, prompt injection, typosquatting, hidden content), VirusTotal status, GitHub activity (stars, last commit), publisher verification, dependency audit status
+- Returns: Trust score breakdown, 18-layer security scan result (secrets, prompt injection, typosquatting, hidden content, description accuracy, frontmatter compliance), GitHub activity (stars, last commit), publisher verification, dependency audit status
 
 #### 34. whats_new
 Recent catalog additions — skills, connectors, and plugins added or updated in the last N days.
