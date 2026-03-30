@@ -405,6 +405,7 @@ const Admin = () => {
                 recentLogs={recentLogs}
                 qualityInsights={qualityInsights as any}
                 pipelineHealth={pipelineHealth}
+                catalogHealth={catalogHealth}
               />
             </TabsContent>
 
