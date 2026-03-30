@@ -243,8 +243,8 @@ const SecurityMethodology = () => {
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {isEs
-              ? "Cada skill, conector y plugin pasa por un pipeline de escaneo automatizado de 16 capas antes de ser aprobado en nuestro catálogo."
-              : "Every skill, connector, and plugin passes through a 16-layer automated scanning pipeline before approval in our catalog."}
+              ? "Cada skill, conector y plugin pasa por un pipeline de escaneo automatizado de 18 capas antes de ser aprobado en nuestro catálogo."
+              : "Every skill, connector, and plugin passes through an 18-layer automated scanning pipeline before approval in our catalog."}
           </p>
         </div>
 
