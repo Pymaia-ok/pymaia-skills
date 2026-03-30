@@ -197,6 +197,30 @@ const SecurityMethodology = () => {
       ],
       severity: "critical",
     },
+    {
+      icon: CheckSquare,
+      title: isEs ? "17. Precisión de la descripción" : "17. Description Accuracy",
+      description: isEs
+        ? "Verificamos que el contenido real del skill coincida con lo que dice su nombre y descripción. Detectamos scope creep: acciones peligrosas (acceso a red, eliminación de archivos, credenciales) no mencionadas en la descripción."
+        : "We verify that the actual skill content matches what its name and description claim. We detect scope creep: dangerous actions (network access, file deletion, credentials) not mentioned in the description.",
+      examples: [
+        { label: isEs ? "Scope creep" : "Scope creep", code: '"git helper" but accesses ~/.ssh → ⚠️' },
+        { label: isEs ? "No implementado" : "Not implemented", code: '"testing tool" but no test framework mentioned → ⚠️' },
+      ],
+      severity: "high",
+    },
+    {
+      icon: FileText,
+      title: isEs ? "18. Conformidad de frontmatter (Anthropic)" : "18. Frontmatter Compliance (Anthropic)",
+      description: isEs
+        ? "Validamos que el SKILL.md siga la especificación oficial de Anthropic: campos requeridos (name, description), formato de nombre (lowercase, hyphens), y detectamos wildcards en allowed-tools."
+        : "We validate that the SKILL.md follows Anthropic's official spec: required fields (name, description), name format (lowercase, hyphens), and detect wildcards in allowed-tools.",
+      examples: [
+        { label: isEs ? "Campos requeridos" : "Required fields", code: "name: my-skill ✅ | missing name → ⚠️" },
+        { label: isEs ? "Formato" : "Format", code: '"My Skill" → should be "my-skill" → ⚠️' },
+      ],
+      severity: "medium",
+    },
   ];
 
   const severityColors: Record<string, string> = {
