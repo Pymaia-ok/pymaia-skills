@@ -295,8 +295,8 @@ const SecurityMethodology = () => {
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {isEs
-              ? "El Trust Score se calcula automáticamente combinando los resultados de las 13 capas. Los factores principales son: ausencia de secretos expuestos (8pts), ausencia de inyección de código (7pts), verificación del publisher, actividad del repositorio, licencia open-source, y resultado de la auditoría AI."
-              : "The Trust Score is automatically calculated by combining results from all 13 layers. Key factors: no exposed secrets (8pts), no code injection (7pts), publisher verification, repo activity, open-source license, and AI audit result."}
+              ? "El Trust Score se calcula automáticamente combinando los resultados de las 16 capas. Los factores principales son: ausencia de secretos expuestos (8pts), ausencia de inyección de código (7pts), verificación del publisher, actividad del repositorio, licencia open-source, y resultado de la auditoría AI."
+              : "The Trust Score is automatically calculated by combining results from all 16 layers. Key factors: no exposed secrets (8pts), no code injection (7pts), publisher verification, repo activity, open-source license, and AI audit result."}
           </p>
         </div>
 
