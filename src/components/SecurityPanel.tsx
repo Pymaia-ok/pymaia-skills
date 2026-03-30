@@ -173,6 +173,8 @@ export const SecurityPanel = ({
               { key: "typosquatting", label: "Typosquatting", ok: !scanResult.layers?.typosquatting?.flags?.length },
               { key: "scope", label: isEs ? "Permisos" : "Permissions", ok: scanResult.layers?.scope?.scope_assessment !== "excessive" },
               { key: "license", label: isEs ? "Licencia" : "License", ok: !!scanResult.layers?.license?.license },
+              { key: "description_accuracy", label: isEs ? "Precisión descripción" : "Description accuracy", ok: !scanResult.layers?.description_accuracy?.mismatches?.length },
+              { key: "frontmatter", label: isEs ? "Cumplimiento formato" : "Format compliance", ok: !scanResult.layers?.frontmatter?.issues?.length },
             ].map((check) => (
               <div key={check.key} className="flex items-center gap-1.5 text-xs">
                 {check.ok ? (

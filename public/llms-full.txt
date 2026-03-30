@@ -367,7 +367,7 @@ Publish a SKILL.md created by an agent to the Pymaia catalog. Requires authentic
 
 ## MCP Connectors Directory
 
-Pymaia Skills also maintains a directory of 100+ MCP connectors — external integrations that extend Claude's capabilities with real-time access to tools and services.
+Pymaia Skills also maintains a directory of 500+ MCP connectors — external integrations that extend Claude's capabilities with real-time access to tools and services.
 
 ### Connector Categories
 dev-tools, data, communication, productivity, ai, cloud, design, business, finance, marketing, security, analytics, automation, education, social, media, iot, legal, hr, health, ecommerce, support
