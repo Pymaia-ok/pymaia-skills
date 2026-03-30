@@ -167,7 +167,7 @@ export default function AdminOverviewTab({
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             <h2 className="font-semibold">Health Check del Catálogo</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
             {[
               { label: "Sin install_command", value: catalogHealth.missing_install_command, warn: true },
               { label: "Sin README", value: catalogHealth.missing_readme, warn: true },
