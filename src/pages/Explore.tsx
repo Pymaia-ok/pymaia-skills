@@ -6,7 +6,9 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
 import SkillCard from "@/components/SkillCard";
 import RisingStars from "@/components/landing/RisingStars";
-import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES, PAGE_SIZE } from "@/lib/api";
+import { fetchSkills, semanticSearch, isIntentQuery, SKILL_CATEGORIES_FALLBACK, fetchCategories, PAGE_SIZE } from "@/lib/api";
+import type { CategoryFromDB } from "@/lib/api";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSEO } from "@/hooks/useSEO";
 
 const Explore = () => {
