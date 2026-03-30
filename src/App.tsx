@@ -59,6 +59,7 @@ const Courses = resilientLazy(() => import("./pages/Courses"));
 const CourseDetail = resilientLazy(() => import("./pages/CourseDetail"));
 const CourseModule = resilientLazy(() => import("./pages/CourseModule"));
 const Links = resilientLazy(() => import("./pages/Links"));
+const SecurityMethodology = resilientLazy(() => import("./pages/SecurityMethodology"));
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,7 @@ const App = () => (
                 <Route path="/cursos" element={<Courses />} />
                 <Route path="/curso/:slug" element={<CourseDetail />} />
                 <Route path="/curso/:slug/:moduleOrder" element={<CourseModule />} />
+                <Route path="/security-methodology" element={<SecurityMethodology />} />
                 <Route path="/security" element={<Navigate to="/seguridad" replace />} />
                 <Route path="/terminos" element={<Terms />} />
                 <Route path="/privacidad" element={<Privacy />} />

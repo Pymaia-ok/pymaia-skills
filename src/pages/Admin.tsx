@@ -241,6 +241,17 @@ const Admin = () => {
     refetchInterval: 30000,
   });
 
+  const { data: catalogHealth } = useQuery({
+    queryKey: ["catalog-health"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("catalog_health_check");
+      if (error) { console.error("catalog_health_check error:", error); return null; }
+      return data as unknown as Record<string, any>;
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 60000,
+  });
+
   const { data: pipelineProgress } = useQuery({
     queryKey: ["pipeline-progress"],
     queryFn: async () => {
@@ -394,6 +405,7 @@ const Admin = () => {
                 recentLogs={recentLogs}
                 qualityInsights={qualityInsights as any}
                 pipelineHealth={pipelineHealth}
+                catalogHealth={catalogHealth as any}
               />
             </TabsContent>
 
