@@ -1,4 +1,4 @@
-import { Shield, ShieldCheck, ShieldAlert, AlertTriangle, Eye, Code, Lock, Fingerprint, Search, FileWarning, Zap, Bug, Layers, ExternalLink } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, AlertTriangle, Eye, Code, Lock, Fingerprint, Search, FileWarning, Zap, Bug, Layers, ExternalLink, FileText, CheckSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useSEO } from "@/hooks/useSEO";
