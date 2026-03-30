@@ -160,6 +160,32 @@ Deno.serve(async (req) => {
       const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
       if (slug.length < 2 || slug.length > 200) continue;
       if (seenSlugs.has(slug)) continue;
+
+      // Skip if already exists in DB by slug
+      if (existingSlugSet.has(slug)) continue;
+
+      // Skip if github_url already exists
+      const githubMatch = (sourceUrl || "").match(/(https:\/\/github\.com\/[^\s,]+)/);
+      const githubUrl = githubMatch ? githubMatch[1] : null;
+      if (githubUrl) {
+        const ghKey = githubUrl.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").toLowerCase();
+        if (existingGithubUrls.has(ghKey)) continue;
+      }
+
+      // Levenshtein dedup: skip if too similar to existing slug
+      if (slug.length >= 4) {
+        let tooSimilar = false;
+        for (const existing of existingSlugs) {
+          if (Math.abs(slug.length - existing.length) > 2) continue;
+          if (levenshteinDist(slug, existing) <= 2 && slug !== existing) {
+            console.log(`[dedup] Skipping CSV "${slug}" — too similar to "${existing}"`);
+            tooSimilar = true;
+            break;
+          }
+        }
+        if (tooSimilar) continue;
+      }
+
       seenSlugs.add(slug);
 
       const category = inferCategory(name, description || "");
