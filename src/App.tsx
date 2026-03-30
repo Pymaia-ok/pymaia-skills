@@ -59,6 +59,7 @@ const Courses = resilientLazy(() => import("./pages/Courses"));
 const CourseDetail = resilientLazy(() => import("./pages/CourseDetail"));
 const CourseModule = resilientLazy(() => import("./pages/CourseModule"));
 const Links = resilientLazy(() => import("./pages/Links"));
+const SecurityMethodology = resilientLazy(() => import("./pages/SecurityMethodology"));
 
 const queryClient = new QueryClient();
 
