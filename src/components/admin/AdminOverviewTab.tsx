@@ -69,7 +69,7 @@ const insightLabel: Record<string, string> = {
 
 export default function AdminOverviewTab({
   translatedCount, translationTotal, translationPercent, translationStats,
-  securityPercent, securityStats, connectorStats, recentLogs, qualityInsights, pipelineHealth,
+  securityPercent, securityStats, connectorStats, recentLogs, qualityInsights, pipelineHealth, catalogHealth,
 }: AdminOverviewTabProps) {
   const pendingInsights = qualityInsights?.filter(i => i.status === "pending") || [];
   const embPct = pipelineHealth ? (pipelineHealth.embeddings.total > 0 ? (pipelineHealth.embeddings.done / pipelineHealth.embeddings.total) * 100 : 0) : 0;
