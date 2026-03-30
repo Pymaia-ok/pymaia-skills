@@ -248,15 +248,25 @@ const Explore = () => {
               >
                 {t("explore.all")}
               </button>
-              {SKILL_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.key}
-                  onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t(`categories.${cat.key}`, cat.label)}
-                </button>
-              ))}
+              <TooltipProvider delayDuration={300}>
+                {categories.map((cat) => (
+                  <Tooltip key={cat.key}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => { setSelectedCategory(cat.key === selectedCategory ? null : cat.key); setPage(0); }}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${selectedCategory === cat.key ? "bg-foreground text-background" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {cat.emoji} {t(`categories.${cat.key}`, cat.label)}
+                      </button>
+                    </TooltipTrigger>
+                    {cat.description && (
+                      <TooltipContent side="bottom" className="max-w-xs text-xs">
+                        {cat.description}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             </div>
           </motion.div>
 

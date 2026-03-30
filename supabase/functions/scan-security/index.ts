@@ -38,6 +38,13 @@ const INJECTION_PATTERNS: Array<{ name: string; regex: RegExp; severity: "critic
   { name: "social_engineering", regex: /(?:paste\s+your\s+(?:api\s+)?key|enter\s+your\s+(?:password|credentials|token))/gi, severity: "medium" },
   { name: "reverse_shell", regex: /(?:reverse\s+shell|bind\s+shell|reverse_tcp|meterpreter)/gi, severity: "critical" },
   { name: "config_override", regex: /(?:\.claude\/settings|\.claude\/permissions|mcp\.json\s*override)/gi, severity: "critical" },
+  // Phase 3: Skill Vault-inspired patterns
+  { name: "system_dir_write", regex: /(?:cp|mv|ln|install)\s+.*(?:\/usr\/local|\/etc\/|\/opt\/)/gi, severity: "critical" },
+  { name: "home_dotfile_write", regex: /(?:>>?|cp|mv)\s+.*~\/\.\w+/gi, severity: "high" },
+  { name: "raw_ip_network", regex: /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/gi, severity: "high" },
+  { name: "broad_permissions", regex: /allowed.?tools.*(?:\*|Bash\(\*\))/gi, severity: "critical" },
+  { name: "background_process", regex: /(?:nohup|disown|setsid)\b/gi, severity: "high" },
+  { name: "url_shortener", regex: /(?:bit\.ly|tinyurl|t\.co|goo\.gl|short\.io)/gi, severity: "medium" },
 ];
 
 // ── TYPOSQUATTING ──
