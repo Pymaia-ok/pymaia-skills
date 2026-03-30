@@ -150,7 +150,7 @@ Benefits of authenticated access:
 - Higher rate limit: 120 requests/min (vs 60 for anonymous)
 - API key prefix: `pymsk_`
 
-### Available Tools (37)
+### Available Tools (48)
 
 > **Tip:** For complex goals like "set up outbound email via Gmail" or "automate my code reviews", use `solve_goal` — it searches across all catalogs and returns two curated options with trust scores, compatibility analysis, and step-by-step install commands.
 
