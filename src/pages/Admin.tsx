@@ -246,7 +246,7 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("catalog_health_check");
       if (error) { console.error("catalog_health_check error:", error); return null; }
-      return data;
+      return data as unknown as Record<string, any>;
     },
     enabled: !!isAdmin,
     refetchInterval: 60000,
