@@ -30,6 +30,11 @@ interface CatalogHealth {
   total_rejected: number;
   trust_score_distribution: { excellent: number; good: number; caution: number; low: number; unscored: number };
   category_distribution: Record<string, number>;
+  orphaned_bundle_refs: number;
+  orphaned_course_skill_refs: number;
+  orphaned_course_connector_refs: number;
+  stale_skills: number;
+  missing_category_in_db: number;
 }
 
 interface AdminOverviewTabProps {
