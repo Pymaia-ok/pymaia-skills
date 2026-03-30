@@ -21,6 +21,22 @@ const Explore = () => {
 
   const isEs = i18n.language?.startsWith("es");
 
+  // Dynamic categories from DB with fallback
+  const { data: dbCategories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const categories = dbCategories && dbCategories.length > 0
+    ? dbCategories.map((c: CategoryFromDB) => ({
+        key: c.slug,
+        label: isEs ? (c.display_name_es || c.display_name) : c.display_name,
+        emoji: c.emoji || "📦",
+        description: isEs ? (c.description_es || c.description) : c.description,
+      }))
+    : SKILL_CATEGORIES_FALLBACK.map(c => ({ ...c, description: null as string | null }));
+
   useSEO({
     title: isEs ? "Explorar soluciones — Pymaia Skills" : "Explore Skills — Pymaia Skills",
     description: isEs
