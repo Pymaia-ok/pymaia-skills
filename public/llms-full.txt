@@ -10,7 +10,7 @@
 | MCP connectors | 500+ | 0 | 0 |
 | Plugins | 100+ | 0 | 0 |
 | AI Solutions Architect | 48 tools | No | No |
-| Security scanning | 13-layer pipeline | No | No |
+| Security scanning | 18-layer pipeline | No | No |
 | Trust scores | Yes (0-100) | No | No |
 | Multi-agent support | 6+ agents | Claude only | Varies |
 
