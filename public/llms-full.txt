@@ -26,10 +26,12 @@ The MCP server includes an **AI Solutions Architect** (`solve_goal`) that analyz
 
 ## Key Numbers
 
-- 38,000+ skills available
+- 43,000+ skills available
 - 19 categories
-- 100+ MCP connectors
-- 37 MCP tools (AI Solutions Architect)
+- 500+ MCP connectors
+- 100+ plugins
+- 48 MCP tools (AI Solutions Architect)
+- 18-layer security pipeline
 - 2 min average install time
 - Community reviews and ratings
 
