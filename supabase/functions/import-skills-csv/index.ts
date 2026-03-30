@@ -194,8 +194,7 @@ Deno.serve(async (req) => {
       const displayName = formatDisplayName(name);
       const tagline = (description || "").length > 200 ? (description || "").slice(0, 197) + "..." : (description || displayName);
 
-      const githubMatch = (sourceUrl || "").match(/(https:\/\/github\.com\/[^\s,]+)/);
-      const githubUrl = githubMatch ? githubMatch[1] : null;
+      // githubUrl already extracted above for dedup
 
       skills.push({
         slug,
