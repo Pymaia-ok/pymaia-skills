@@ -10,8 +10,8 @@ const SecurityMethodology = () => {
   useSEO({
     title: isEs ? "Metodología de seguridad — Pymaia Skills" : "Security Methodology — Pymaia Skills",
     description: isEs
-      ? "Conocé nuestro pipeline de escaneo de seguridad de 16 capas. Cómo analizamos cada skill, conector y plugin antes de aprobarlo."
-      : "Learn about our 16-layer security scanning pipeline. How we analyze every skill, connector, and plugin before approval.",
+      ? "Conocé nuestro pipeline de escaneo de seguridad de 18 capas. Cómo analizamos cada skill, conector y plugin antes de aprobarlo."
+      : "Learn about our 18-layer security scanning pipeline. How we analyze every skill, connector, and plugin before approval.",
     canonical: "https://pymaiaskills.lovable.app/security-methodology",
   });
 
