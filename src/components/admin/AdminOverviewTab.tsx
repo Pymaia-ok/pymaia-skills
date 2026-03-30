@@ -19,6 +19,19 @@ interface PipelineHealth {
   usage24h: number;
 }
 
+interface CatalogHealth {
+  missing_install_command: number;
+  missing_readme: number;
+  low_trust_score: number;
+  pending_over_7_days: number;
+  duplicate_github_urls: number;
+  total_approved: number;
+  total_pending: number;
+  total_rejected: number;
+  trust_score_distribution: { excellent: number; good: number; caution: number; low: number; unscored: number };
+  category_distribution: Record<string, number>;
+}
+
 interface AdminOverviewTabProps {
   translatedCount: number;
   translationTotal: number;
@@ -30,6 +43,7 @@ interface AdminOverviewTabProps {
   recentLogs: any[] | undefined;
   qualityInsights?: QualityInsight[];
   pipelineHealth?: PipelineHealth;
+  catalogHealth?: CatalogHealth | null;
 }
 
 const insightIcon: Record<string, typeof Lightbulb> = {
