@@ -30,6 +30,11 @@ interface CatalogHealth {
   total_rejected: number;
   trust_score_distribution: { excellent: number; good: number; caution: number; low: number; unscored: number };
   category_distribution: Record<string, number>;
+  orphaned_bundle_refs: number;
+  orphaned_course_skill_refs: number;
+  orphaned_course_connector_refs: number;
+  stale_skills: number;
+  missing_category_in_db: number;
 }
 
 interface AdminOverviewTabProps {
@@ -162,13 +167,18 @@ export default function AdminOverviewTab({
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             <h2 className="font-semibold">Health Check del Catálogo</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
             {[
               { label: "Sin install_command", value: catalogHealth.missing_install_command, warn: true },
               { label: "Sin README", value: catalogHealth.missing_readme, warn: true },
               { label: "Trust Score < 20", value: catalogHealth.low_trust_score, warn: true },
               { label: "Pending > 7 días", value: catalogHealth.pending_over_7_days, warn: catalogHealth.pending_over_7_days > 0 },
               { label: "GitHub URLs duplicadas", value: catalogHealth.duplicate_github_urls, warn: catalogHealth.duplicate_github_urls > 0 },
+              { label: "Refs huérfanas (bundles)", value: catalogHealth.orphaned_bundle_refs ?? 0, warn: true },
+              { label: "Refs huérfanas (cursos→skills)", value: catalogHealth.orphaned_course_skill_refs ?? 0, warn: true },
+              { label: "Refs huérfanas (cursos→MCPs)", value: catalogHealth.orphaned_course_connector_refs ?? 0, warn: true },
+              { label: "Skills obsoletas (stale)", value: catalogHealth.stale_skills ?? 0, warn: false },
+              { label: "Categorías sin tabla", value: catalogHealth.missing_category_in_db ?? 0, warn: true },
             ].map((item) => (
               <div key={item.label} className={`p-3 rounded-xl ${item.warn && item.value > 0 ? "bg-amber-500/10 border border-amber-500/20" : "bg-background/50 border border-border"}`}>
                 <p className={`text-2xl font-bold ${item.warn && item.value > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>

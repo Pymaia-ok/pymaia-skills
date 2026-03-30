@@ -389,6 +389,24 @@ const SkillDetail = () => {
                 </motion.div>
               )}
 
+              {/* Original SKILL.md Content */}
+              {skill.install_command && skill.install_command.length > 100 && /^---\n/.test(skill.install_command) && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-10">
+                  <details className="group">
+                    <summary className="flex items-center gap-2 text-lg font-semibold cursor-pointer hover:text-muted-foreground transition-colors list-none">
+                      <FileArchive className="w-5 h-5" />
+                      {isEs ? "Ver SKILL.md original" : "View original SKILL.md"}
+                      <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="mt-4 p-4 rounded-2xl bg-secondary border border-border overflow-x-auto">
+                      <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap max-h-96 overflow-y-auto leading-relaxed">
+                        {skill.install_command}
+                      </pre>
+                    </div>
+                  </details>
+                </motion.div>
+              )}
+
               {/* Full README */}
               {skill.readme_raw && skill.readme_raw.length > 10 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">

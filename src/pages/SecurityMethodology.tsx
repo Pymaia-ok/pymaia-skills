@@ -1,4 +1,4 @@
-import { Shield, ShieldCheck, ShieldAlert, AlertTriangle, Eye, Code, Lock, Fingerprint, Search, FileWarning, Zap, Bug, Layers, ExternalLink } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, AlertTriangle, Eye, Code, Lock, Fingerprint, Search, FileWarning, Zap, Bug, Layers, ExternalLink, FileText, CheckSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useSEO } from "@/hooks/useSEO";
@@ -10,8 +10,8 @@ const SecurityMethodology = () => {
   useSEO({
     title: isEs ? "Metodología de seguridad — Pymaia Skills" : "Security Methodology — Pymaia Skills",
     description: isEs
-      ? "Conocé nuestro pipeline de escaneo de seguridad de 16 capas. Cómo analizamos cada skill, conector y plugin antes de aprobarlo."
-      : "Learn about our 16-layer security scanning pipeline. How we analyze every skill, connector, and plugin before approval.",
+      ? "Conocé nuestro pipeline de escaneo de seguridad de 18 capas. Cómo analizamos cada skill, conector y plugin antes de aprobarlo."
+      : "Learn about our 18-layer security scanning pipeline. How we analyze every skill, connector, and plugin before approval.",
     canonical: "https://pymaiaskills.lovable.app/security-methodology",
   });
 
@@ -197,6 +197,30 @@ const SecurityMethodology = () => {
       ],
       severity: "critical",
     },
+    {
+      icon: CheckSquare,
+      title: isEs ? "17. Precisión de la descripción" : "17. Description Accuracy",
+      description: isEs
+        ? "Verificamos que el contenido real del skill coincida con lo que dice su nombre y descripción. Detectamos scope creep: acciones peligrosas (acceso a red, eliminación de archivos, credenciales) no mencionadas en la descripción."
+        : "We verify that the actual skill content matches what its name and description claim. We detect scope creep: dangerous actions (network access, file deletion, credentials) not mentioned in the description.",
+      examples: [
+        { label: isEs ? "Scope creep" : "Scope creep", code: '"git helper" but accesses ~/.ssh → ⚠️' },
+        { label: isEs ? "No implementado" : "Not implemented", code: '"testing tool" but no test framework mentioned → ⚠️' },
+      ],
+      severity: "high",
+    },
+    {
+      icon: FileText,
+      title: isEs ? "18. Conformidad de frontmatter (Anthropic)" : "18. Frontmatter Compliance (Anthropic)",
+      description: isEs
+        ? "Validamos que el SKILL.md siga la especificación oficial de Anthropic: campos requeridos (name, description), formato de nombre (lowercase, hyphens), y detectamos wildcards en allowed-tools."
+        : "We validate that the SKILL.md follows Anthropic's official spec: required fields (name, description), name format (lowercase, hyphens), and detect wildcards in allowed-tools.",
+      examples: [
+        { label: isEs ? "Campos requeridos" : "Required fields", code: "name: my-skill ✅ | missing name → ⚠️" },
+        { label: isEs ? "Formato" : "Format", code: '"My Skill" → should be "my-skill" → ⚠️' },
+      ],
+      severity: "medium",
+    },
   ];
 
   const severityColors: Record<string, string> = {
@@ -219,18 +243,18 @@ const SecurityMethodology = () => {
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             {isEs
-              ? "Cada skill, conector y plugin pasa por un pipeline de escaneo automatizado de 16 capas antes de ser aprobado en nuestro catálogo."
-              : "Every skill, connector, and plugin passes through a 16-layer automated scanning pipeline before approval in our catalog."}
+              ? "Cada skill, conector y plugin pasa por un pipeline de escaneo automatizado de 18 capas antes de ser aprobado en nuestro catálogo."
+              : "Every skill, connector, and plugin passes through an 18-layer automated scanning pipeline before approval in our catalog."}
           </p>
         </div>
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-12">
           {[
-            { value: "16", label: isEs ? "Capas de análisis" : "Analysis Layers" },
+            { value: "18", label: isEs ? "Capas de análisis" : "Analysis Layers" },
             { value: "15", label: isEs ? "Patrones de secretos" : "Secret Patterns" },
             { value: "19", label: isEs ? "Patrones de inyección" : "Injection Patterns" },
-            { value: "10", label: isEs ? "Auto-block triggers" : "Auto-block Triggers" },
+            { value: "12", label: isEs ? "Auto-block triggers" : "Auto-block Triggers" },
           ].map((stat) => (
             <div key={stat.label} className="p-4 rounded-2xl bg-secondary text-center">
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
@@ -295,8 +319,8 @@ const SecurityMethodology = () => {
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {isEs
-              ? "El Trust Score se calcula automáticamente combinando los resultados de las 16 capas. Los factores principales son: ausencia de secretos expuestos (8pts), ausencia de inyección de código (7pts), verificación del publisher, actividad del repositorio, licencia open-source, y resultado de la auditoría AI."
-              : "The Trust Score is automatically calculated by combining results from all 16 layers. Key factors: no exposed secrets (8pts), no code injection (7pts), publisher verification, repo activity, open-source license, and AI audit result."}
+              ? "El Trust Score se calcula automáticamente combinando los resultados de las 18 capas. Los factores principales son: ausencia de secretos expuestos (8pts), ausencia de inyección de código (7pts), verificación del publisher, actividad del repositorio, licencia open-source, precisión de la descripción, conformidad de frontmatter, y resultado de la auditoría AI."
+              : "The Trust Score is automatically calculated by combining results from all 18 layers. Key factors: no exposed secrets (8pts), no code injection (7pts), publisher verification, repo activity, open-source license, description accuracy, frontmatter compliance, and AI audit result."}
           </p>
         </div>
 
