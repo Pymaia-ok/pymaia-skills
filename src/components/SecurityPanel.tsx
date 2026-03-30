@@ -278,8 +278,15 @@ export const SecurityPanel = ({
         </div>
       )}
 
-      {/* Link to security advisories */}
-      <div className="pt-4 mt-4 border-t border-border">
+      {/* Links to security pages */}
+      <div className="pt-4 mt-4 border-t border-border flex flex-col gap-2">
+        <Link
+          to="/security-methodology"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" />
+          {isEs ? "Cómo escaneamos" : "How we scan"}
+        </Link>
         <Link
           to="/seguridad"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"

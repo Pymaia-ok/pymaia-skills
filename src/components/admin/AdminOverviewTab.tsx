@@ -155,6 +155,41 @@ export default function AdminOverviewTab({
         </div>
       </div>
 
+      {/* Catalog Health Check */}
+      {catalogHealth && (
+        <div className="p-5 rounded-2xl bg-secondary mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <h2 className="font-semibold">Health Check del Catálogo</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {[
+              { label: "Sin install_command", value: catalogHealth.missing_install_command, warn: true },
+              { label: "Sin README", value: catalogHealth.missing_readme, warn: true },
+              { label: "Trust Score < 20", value: catalogHealth.low_trust_score, warn: true },
+              { label: "Pending > 7 días", value: catalogHealth.pending_over_7_days, warn: catalogHealth.pending_over_7_days > 0 },
+              { label: "GitHub URLs duplicadas", value: catalogHealth.duplicate_github_urls, warn: catalogHealth.duplicate_github_urls > 0 },
+            ].map((item) => (
+              <div key={item.label} className={`p-3 rounded-xl ${item.warn && item.value > 0 ? "bg-amber-500/10 border border-amber-500/20" : "bg-background/50 border border-border"}`}>
+                <p className={`text-2xl font-bold ${item.warn && item.value > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+                  {item.value.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+              </div>
+            ))}
+          </div>
+          {catalogHealth.trust_score_distribution && (
+            <div className="mt-4 flex gap-2 text-xs">
+              <span className="text-emerald-500">✓ {catalogHealth.trust_score_distribution.excellent} excelente</span>
+              <span className="text-green-500">● {catalogHealth.trust_score_distribution.good} bueno</span>
+              <span className="text-amber-500">⚠ {catalogHealth.trust_score_distribution.caution} precaución</span>
+              <span className="text-destructive">✕ {catalogHealth.trust_score_distribution.low} bajo</span>
+              <span className="text-muted-foreground">○ {catalogHealth.trust_score_distribution.unscored} sin score</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Quality Insights */}
       <div className="p-5 rounded-2xl bg-secondary mb-8">
         <div className="flex items-center gap-2 mb-4">
